@@ -1,0 +1,132 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{E34AC310-324C-46BC-AF9F-1A41DF58E867}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>SharedProtocol</RootNamespace>
+    <AssemblyName>SharedProtocol</AssemblyName>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\..\</SolutionDir>
+    <RestorePackages>true</RestorePackages>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Xml" />
+    <Reference Include="zlib.net, Version=1.0.3.0, Culture=neutral, PublicKeyToken=47d7877cb3620160">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>packages\zlib.net.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Compression\CompressionDictionary.cs" />
+    <Compile Include="Compression\CompressionProcessor.cs" />
+    <Compile Include="EventArgs\FrameSentEventArgs.cs" />
+    <Compile Include="Exceptions\MonitorIsBusyException.cs" />
+    <Compile Include="IMonitorable.cs" />
+    <Compile Include="Monitors\SessionMonitor.cs" />
+    <Compile Include="FlowControlOptions.cs" />
+    <Compile Include="IO\FileHelper.cs" />
+    <Compile Include="IO\HeaderWriter.cs" />
+    <Compile Include="Compression\ZOutputStreamExt.cs" />
+    <Compile Include="Constants.cs" />
+    <Compile Include="IO\DuplexStream.cs" />
+    <Compile Include="IO\InputStream.cs" />
+    <Compile Include="IO\PriorityQueue.cs" />
+    <Compile Include="IO\PriorityQueueEntry.cs" />
+    <Compile Include="Monitors\IMonitor.cs" />
+    <Compile Include="Settings\SettingsManager.cs" />
+    <Compile Include="Framing\DataFrame.cs" />
+    <Compile Include="Framing\Frame.cs" />
+    <Compile Include="Framing\FrameFlags.cs" />
+    <Compile Include="Framing\FrameHelpers.cs" />
+    <Compile Include="Framing\FrameReader.cs" />
+    <Compile Include="Framing\FrameType.cs" />
+    <Compile Include="Framing\GoAwayFrame.cs" />
+    <Compile Include="Framing\GoAwayStatusCode.cs" />
+    <Compile Include="Framing\HeadersFrame.cs" />
+    <Compile Include="Framing\PingFrame.cs" />
+    <Compile Include="Framing\Priority.cs" />
+    <Compile Include="Framing\ResetStatusCode.cs" />
+    <Compile Include="Framing\RstStreamFrame.cs" />
+    <Compile Include="Framing\SettingsIds.cs" />
+    <Compile Include="Framing\SettingsPair.cs" />
+    <Compile Include="Framing\SettingsFlags.cs" />
+    <Compile Include="Framing\SettingsFrame.cs" />
+    <Compile Include="Framing\HeadersPlusPriority.cs" />
+    <Compile Include="Framing\WindowUpdateFrame.cs" />
+    <Compile Include="Http2BaseSession.cs" />
+    <Compile Include="Http2BaseStream.cs" />
+    <Compile Include="Ping.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="IO\QueueStream.cs" />
+    <Compile Include="IO\OutputStream.cs" />
+    <Compile Include="IO\WriteQueue.cs" />
+    <Compile Include="StreamState.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\MentalisSecurityLibrary\Security Library.csproj">
+      <Project>{5bfa5a70-d384-4417-afcc-5c744485a85f}</Project>
+      <Name>Security Library</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <Import Project="$(SolutionDir)\.nuget\nuget.targets" />
+  <PropertyGroup>
+    <PostBuildEvent>copy /y "$(ProjectDir)packages\Microsoft.Owin.Hosting.dll" "$(SolutionDir)Drop\Microsoft.Owin.Hosting.dll"
+copy /y "$(ProjectDir)packages\Owin.Types.dll" "$(SolutionDir)Drop\Owin.Types.dll"
+copy /y "$(ProjectDir)packages\Firefly.dll" "$(SolutionDir)Drop\Firefly.dll"
+copy /y "$(ProjectDir)packages\Owin.dll" "$(SolutionDir)Drop\Owin.dll"
+copy /y "$(ProjectDir)packages\Owin.Extensions.dll" "$(SolutionDir)Drop\Owin.Extensions.dll"
+copy /y "$(ProjectDir)packages\Microsoft.AspNet.WebApi.Owin.dll" "$(SolutionDir)Drop\Microsoft.AspNet.WebApi.Owin.dll"
+copy /y "$(ProjectDir)packages\Microsoft.Owin.Host.HttpListener.dll" "$(SolutionDir)Drop\Microsoft.Owin.Host.HttpListener.dll"
+copy /y "$(ProjectDir)packages\System.Net.Http.dll" "$(SolutionDir)Drop\System.Net.Http.dll"
+copy /y "$(ProjectDir)packages\System.Net.Http.Formatting.dll" "$(SolutionDir)Drop\System.Net.Http.Formatting.dll"
+copy /y "$(ProjectDir)packages\System.Net.Http.WebRequest.dll" "$(SolutionDir)Drop\System.Net.Http.WebRequest.dll"
+copy /y "$(ProjectDir)packages\System.Web.Http.dll" "$(SolutionDir)Drop\System.Web.Http.dll"
+copy /y "$(ProjectDir)packages\zlib.net.dll" "$(SolutionDir)Drop\zlib.net.dll"
+copy /y "$(ProjectDir)packages\Newtonsoft.Json.dll" "$(SolutionDir)Drop\Newtonsoft.Json.dll"
+copy /y "$(TargetPath)" "$(SolutionDir)Drop\$(TargetFileName)"
+</PostBuildEvent>
+  </PropertyGroup>
+  <PropertyGroup>
+    <PreBuildEvent>
+    </PreBuildEvent>
+  </PropertyGroup>
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>
