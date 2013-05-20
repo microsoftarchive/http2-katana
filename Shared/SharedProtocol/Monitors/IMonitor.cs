@@ -8,7 +8,7 @@ namespace SharedProtocol
 {
     public interface IMonitor
     {
-        void Attach(IMonitorable obj);
+        void Attach(object obj);
         void Detach();
     }
 }

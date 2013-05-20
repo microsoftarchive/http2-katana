@@ -50,7 +50,7 @@
     <Compile Include="EventArgs\FrameSentEventArgs.cs" />
     <Compile Include="Exceptions\MonitorIsBusyException.cs" />
     <Compile Include="IMonitorable.cs" />
-    <Compile Include="Monitors\SessionMonitor.cs" />
+    <Compile Include="Monitors\FlowControlMonitor.cs" />
     <Compile Include="FlowControlOptions.cs" />
     <Compile Include="IO\FileHelper.cs" />
     <Compile Include="IO\HeaderWriter.cs" />
@@ -61,6 +61,7 @@
     <Compile Include="IO\PriorityQueue.cs" />
     <Compile Include="IO\PriorityQueueEntry.cs" />
     <Compile Include="Monitors\IMonitor.cs" />
+    <Compile Include="Monitors\SessionMonitor.cs" />
     <Compile Include="Settings\SettingsManager.cs" />
     <Compile Include="Framing\DataFrame.cs" />
     <Compile Include="Framing\Frame.cs" />

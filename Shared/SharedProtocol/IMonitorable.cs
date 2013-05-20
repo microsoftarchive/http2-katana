@@ -8,6 +8,5 @@ namespace SharedProtocol
 {
     public interface IMonitorable
     {
-        event EventHandler<EventArgs> OnMonitoringEventRaised; 
     }
 }
