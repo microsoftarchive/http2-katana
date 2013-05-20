@@ -116,6 +116,7 @@
     <PostBuildEvent>copy /y "$(TargetPath)" "$(SolutionDir)Drop\$(TargetFileName)"
 copy /y "$(ProjectDir)\certificate.pfx" "$(SolutionDir)Drop\certificate.pfx"
 mkdir "$(SolutionDir)Drop\root"
+copy /y "$(ProjectDir)\root\test.txt" "$(SolutionDir)Drop\root\test.txt"
 copy /y "$(ProjectDir)\certificate.pfx" "$(TargetDir)\certificate.pfx"
 mkdir "$(TargetDir)\root"
 copy /y "$(ProjectDir)\root\test.txt" "$(TargetDir)\root\test.txt"</PostBuildEvent>
