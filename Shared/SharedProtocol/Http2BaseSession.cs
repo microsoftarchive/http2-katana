@@ -30,8 +30,6 @@ namespace SharedProtocol
         protected CompressionProcessor _decompressor;
         protected static string assemblyPath;
         protected FlowControlOptions _options;
-        protected List<IMonitor> _monitors;
-        protected List<IMonitor> _trafficMonitors;
 
         public Int32 MaxConcurrentStreams { get; set; }
 
@@ -44,11 +42,15 @@ namespace SharedProtocol
             _options = new FlowControlOptions();
             _sessionSocket = sessionSocket;
 
-            //_monitors = new List<IMonitor>(1) { new SessionMonitor(this, FrameSentHandler) };
-
-            _writeQueue = new WriteQueue(_sessionSocket, null);
+            _writeQueue = new WriteQueue(_sessionSocket);
             _headerWriter = new HeaderWriter(_writeQueue);
             _frameReader = new FrameReader(_sessionSocket, validateFirstFrameIsControl);
+
+            Dictionary<IMonitor, object> monitorPairs = new Dictionary<IMonitor, object>(1);
+            monitorPairs.Add(new FlowControlMonitor(FrameSentHandler), _writeQueue);
+
+            SessionMonitor monitor = new SessionMonitor(monitorPairs);
+            monitor.Attach(this);
 
             assemblyPath = Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
         }
@@ -213,7 +215,7 @@ namespace SharedProtocol
             _decompressor.Dispose();
         }
 
-        public void FrameSentHandler(object sender, EventArgs args)
+        public void FrameSentHandler(object sender, FrameSentEventArgs args)
         {
 
         }

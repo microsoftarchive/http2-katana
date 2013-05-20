@@ -18,20 +18,12 @@ namespace SharedProtocol.IO
         private bool _disposed;
         private TaskCompletionSource<object> _readWaitingForData;
 
-        public WriteQueue(SecureSocket socket, List<IMonitor> monitors = null)
+        public WriteQueue(SecureSocket socket)
         {
             _messageQueue = new PriorityQueue();
             _socket = socket;
             _dataAvailable = new ManualResetEvent(false);
             _readWaitingForData = new TaskCompletionSource<object>();
-
-            if (monitors != null)
-            {
-                foreach (var monitor in monitors)
-                {
-                    monitor.Attach(this);
-                }
-            }
         }
 
         // Queue up a fully rendered frame to send
@@ -88,8 +80,8 @@ namespace SharedProtocol.IO
                     {
                         _socket.Send(entry.Buffer, 0, entry.Buffer.Length,SocketFlags.None);
 
-                        if (this.OnMonitoringEventRaised != null)
-                            this.OnMonitoringEventRaised(this, new FrameSentEventArgs(entry.Frame));
+                        if (this.OnFrameSent != null)
+                            this.OnFrameSent(this, new FrameSentEventArgs(entry.Frame));
 
                         entry.Complete();
                     }
@@ -128,6 +120,6 @@ namespace SharedProtocol.IO
             _readWaitingForData.TrySetResult(null);
         }
 
-        public event EventHandler<EventArgs> OnMonitoringEventRaised;
+        public event EventHandler<FrameSentEventArgs> OnFrameSent;
     }
 }

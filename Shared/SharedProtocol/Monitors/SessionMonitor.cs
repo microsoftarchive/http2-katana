@@ -1,46 +1,48 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Data;
-using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using SharedProtocol.IO;
 
 namespace SharedProtocol
 {
     public class SessionMonitor : IMonitor
     {
         private Http2BaseSession _monitoringSession;
-        private WriteQueue _monitoringObject;
+        private Dictionary<IMonitor, object> _monitorPairs;
 
-        private delegate void Something(object sender, EventArgs args);
-
-        private Action<object, EventArgs> _handler;
-
-        public SessionMonitor(Http2BaseSession session, Action<object, EventArgs> handler)
+        public SessionMonitor(Dictionary<IMonitor, object> monitorPairs)
         {
-            _monitoringSession = session;
-            _handler = handler;
+            _monitorPairs = monitorPairs;
         }
 
-        public void Attach(IMonitorable forMonitoring)
+        private void Attach()
         {
-            if (_monitoringObject != null)
+            foreach (var monitor in _monitorPairs.Keys)
+            {
+                monitor.Attach(_monitorPairs[monitor]);
+            }
+        }
+
+        public void Attach(object sessionForMonitoring)
+        {
+            if (!(sessionForMonitoring is Http2BaseSession))
+                throw new InvalidCastException("Session monitor can be only attached to a Http2BaseSession");
+
+            if (_monitoringSession != null)
                 throw new MonitorIsBusyException();
 
-            //_monitoringObject += FrameSentHandler;
+            _monitoringSession = (Http2BaseSession)sessionForMonitoring;
+
+            Attach();
         }
 
         public void Detach()
         {
-            if (_monitoringObject == null)
-                throw new NoNullAllowedException("You are called Detach for non-attached monitor!");
-        }
-
-        private void FrameSentHandler(object sender, FrameSentEventArgs args)
-        {
-            _handler.Invoke(sender, args);
+            foreach (var monitor in _monitorPairs.Keys)
+            {
+                monitor.Detach();
+            }
         }
     }
 }
