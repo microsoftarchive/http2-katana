@@ -13,6 +13,6 @@ namespace ServerProtocol
         public string LocalPort { get; set; }
         public string RemoteIpAddress { get; set; }
         public string RemotePort { get; set; }
-        public X509Certificate ClientCertificate { get; set; }
+        public X509Certificate Certificate { get; set; }
     }
 }

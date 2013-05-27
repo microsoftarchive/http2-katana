@@ -64,18 +64,19 @@
   <ItemGroup>
     <Compile Include="ContentTypes.cs" />
     <Compile Include="GlobalSuppressions.cs" />
+    <Compile Include="Http2SessionHandler.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="XHtmlDocument.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\ClientHandler\ClientHandler.csproj">
-      <Project>{4cdcbd88-292c-421f-8c57-05560829c5dc}</Project>
-      <Name>ClientHandler</Name>
+    <ProjectReference Include="..\..\..\MentalisSecurityLibrary\Security Library.csproj">
+      <Project>{5bfa5a70-d384-4417-afcc-5c744485a85f}</Project>
+      <Name>Security Library</Name>
     </ProjectReference>
-    <ProjectReference Include="..\..\ClientProtocol\ClientProtocol.csproj">
-      <Project>{59F1A0D5-BB8C-4637-B891-A84A606E59E6}</Project>
-      <Name>ClientProtocol</Name>
+    <ProjectReference Include="..\..\..\Shared\SharedProtocol\SharedProtocol.csproj">
+      <Project>{e34ac310-324c-46bc-af9f-1a41df58e867}</Project>
+      <Name>SharedProtocol</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
@@ -85,7 +86,8 @@
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>copy /y "$(TargetPath)" "$(SolutionDir)Drop\$(TargetFileName)"
-copy /y "$(ProjectDir)\certificate.pfx" "$(SolutionDir)Drop\certificate.pfx"</PostBuildEvent>
+copy /y "$(ProjectDir)\certificate.pfx" "$(SolutionDir)Drop\certificate.pfx"
+copy /y "$(ProjectDir)\certificate.pfx" "$(TargetDir)\certificate.pfx"</PostBuildEvent>
   </PropertyGroup>
   <Import Project="$(SolutionDir)\.nuget\nuget.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

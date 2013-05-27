@@ -7,13 +7,12 @@ namespace SharedProtocol.IO
 {
     public static class FileHelper
     {
-        public static byte[] GetFile(string rootPath, string localPath)
+        public static byte[] GetFile(string localPath)
         {
             string assemblyPath = Assembly.GetEntryAssembly().Location;
             assemblyPath = Path.GetDirectoryName(assemblyPath);
 
-            if (rootPath == String.Empty)
-                rootPath = @"\root";
+            string rootPath = @"\root";
 
             if (!File.Exists(assemblyPath + rootPath + localPath))
             {

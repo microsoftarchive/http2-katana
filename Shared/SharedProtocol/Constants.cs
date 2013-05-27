@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace SharedProtocol
+﻿namespace SharedProtocol
 {
     public class Constants
     {
@@ -12,7 +6,7 @@ namespace SharedProtocol
         public const int FramePreambleSize = 8;
         public const int DefaultClientCertVectorSize = 8;
         public const int CurrentProtocolVersion = 3;
-        public const int DefaultFlowControlCredit = 64 * 1024; // 64kb
+        public const int DefaultFlowControlCredit = 0xFFFF; // 64kb
         public const int MaxDataFrameContentSize = 0xFFFF; // The DataFrame Length field is 16 bits.
         public const int InitialFlowControlOptionsValue = 0;
 

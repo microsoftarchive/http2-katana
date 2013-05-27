@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 namespace SharedProtocol.IO
 {
     // Queue up frames to send, including headers, body, flush, pings, etc.
-    public sealed class WriteQueue : IDisposable, IMonitorable
+    public sealed class WriteQueue : IDisposable
     {
         private PriorityQueue _messageQueue;
         private SecureSocket _socket;
@@ -32,6 +32,7 @@ namespace SharedProtocol.IO
             PriorityQueueEntry entry = new PriorityQueueEntry(frame, priority);
             Enqueue(entry);
             SignalDataAvailable();
+
             return entry.Task;
         }
 
@@ -80,9 +81,6 @@ namespace SharedProtocol.IO
                     {
                         _socket.Send(entry.Buffer, 0, entry.Buffer.Length,SocketFlags.None);
 
-                        if (this.OnFrameSent != null)
-                            this.OnFrameSent(this, new FrameSentEventArgs(entry.Frame));
-
                         entry.Complete();
                     }
                     catch (Exception ex)
@@ -119,7 +117,5 @@ namespace SharedProtocol.IO
             _disposed = true;
             _readWaitingForData.TrySetResult(null);
         }
-
-        public event EventHandler<FrameSentEventArgs> OnFrameSent;
     }
 }

@@ -170,7 +170,6 @@ namespace Org.Mentalis.Security.Ssl
             }
             else
             {
-
                 if (monitor != null)
                     monitor.Attach(this);
 
@@ -210,8 +209,6 @@ namespace Org.Mentalis.Security.Ssl
             try
             {
                 base.EndConnect(ar);
-
-                this.m_Controller = new SocketController(this, base.InternalSocket, m_Options);
             }
             catch (Exception e)
             {
@@ -729,6 +726,7 @@ namespace Org.Mentalis.Security.Ssl
         /// </summary>
         public override void Close()
         {
+            this.Shutdown(SocketShutdown.Both);
             base.Close();
 
             this.OnHandshakeFinish = null;

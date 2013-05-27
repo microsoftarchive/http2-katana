@@ -8,7 +8,7 @@ namespace SharedProtocol
 {
     public class SessionMonitor : IMonitor
     {
-        private Http2BaseSession _monitoringSession;
+        private Http2Session _monitoringSession;
         private Dictionary<IMonitor, object> _monitorPairs;
 
         public SessionMonitor(Dictionary<IMonitor, object> monitorPairs)
@@ -26,13 +26,13 @@ namespace SharedProtocol
 
         public void Attach(object sessionForMonitoring)
         {
-            if (!(sessionForMonitoring is Http2BaseSession))
-                throw new InvalidCastException("Session monitor can be only attached to a Http2BaseSession");
+            if (!(sessionForMonitoring is Http2Session))
+                throw new InvalidCastException("Session monitor can be only attached to a Http2Session");
 
             if (_monitoringSession != null)
                 throw new MonitorIsBusyException();
 
-            _monitoringSession = (Http2BaseSession)sessionForMonitoring;
+            _monitoringSession = (Http2Session)sessionForMonitoring;
 
             Attach();
         }

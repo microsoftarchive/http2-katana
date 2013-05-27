@@ -32,6 +32,15 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Owin">
+      <HintPath>packages\Owin.dll</HintPath>
+    </Reference>
+    <Reference Include="Owin.Extensions">
+      <HintPath>packages\Owin.Extensions.dll</HintPath>
+    </Reference>
+    <Reference Include="Owin.Types">
+      <HintPath>packages\Owin.Types.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
@@ -47,13 +56,17 @@
   <ItemGroup>
     <Compile Include="Compression\CompressionDictionary.cs" />
     <Compile Include="Compression\CompressionProcessor.cs" />
-    <Compile Include="EventArgs\FrameSentEventArgs.cs" />
+    <Compile Include="ContentTypes.cs" />
+    <Compile Include="EventArgs\DataFrameReceivedEventArgs.cs" />
+    <Compile Include="EventArgs\DataFrameSentEventArgs.cs" />
+    <Compile Include="EventArgs\StreamClosedEventArgs.cs" />
+    <Compile Include="Exceptions\HTTP2HandshakeFailed.cs" />
     <Compile Include="Exceptions\MonitorIsBusyException.cs" />
-    <Compile Include="IMonitorable.cs" />
+    <Compile Include="FlowControl\FlowControlManager.cs" />
+    <Compile Include="Handshake\HandshakeManager.cs" />
+    <Compile Include="Http11\Http11Manager.cs" />
     <Compile Include="Monitors\FlowControlMonitor.cs" />
-    <Compile Include="FlowControlOptions.cs" />
     <Compile Include="IO\FileHelper.cs" />
-    <Compile Include="IO\HeaderWriter.cs" />
     <Compile Include="Compression\ZOutputStreamExt.cs" />
     <Compile Include="Constants.cs" />
     <Compile Include="IO\DuplexStream.cs" />
@@ -82,14 +95,20 @@
     <Compile Include="Framing\SettingsFrame.cs" />
     <Compile Include="Framing\HeadersPlusPriority.cs" />
     <Compile Include="Framing\WindowUpdateFrame.cs" />
-    <Compile Include="Http2BaseSession.cs" />
-    <Compile Include="Http2BaseStream.cs" />
+    <Compile Include="Http2Session.cs" />
+    <Compile Include="Http2Stream.cs" />
     <Compile Include="Ping.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="IO\QueueStream.cs" />
     <Compile Include="IO\OutputStream.cs" />
     <Compile Include="IO\WriteQueue.cs" />
+    <Compile Include="StatusCode.cs" />
     <Compile Include="StreamState.cs" />
+    <Compile Include="Handshake\UpgradeHandshaker.cs" />
+    <Compile Include="Handshake\HandshakeResponse.cs" />
+    <Compile Include="Handshake\HandshakeResult.cs" />
+    <Compile Include="Handshake\SecureHandshaker.cs" />
+    <Compile Include="TransportInformation.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

@@ -5,42 +5,55 @@ using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using SharedProtocol.Framing;
 using SharedProtocol.IO;
 
 namespace SharedProtocol
 {
     public class FlowControlMonitor : IMonitor
     {
-        private WriteQueue _monitoringObject;
+        private WriteQueue _writeQueue;
+        private FrameReader _frameReader;
 
-        private Action<object, FrameSentEventArgs> _handler;
+        private Action<object, DataFrameSentEventArgs> _sentHandler;
+        private Action<object, DataFrameReceivedEventArgs> _receivedHandler;
 
-        public FlowControlMonitor(Action<object, FrameSentEventArgs> handler)
+        public FlowControlMonitor(Action<object, DataFrameSentEventArgs> sentHandler, 
+                                    Action<object, DataFrameReceivedEventArgs> receivedHandler)
         {
-            _handler = handler;
+            _sentHandler = sentHandler;
+            _receivedHandler = receivedHandler;
         }
 
-        public void Attach(object forMonitoring)
+        public void Attach(object ioPairforMonitoring)
         {
-            if (_monitoringObject != null)
+            if (_writeQueue != null || _frameReader != null)
                 throw new MonitorIsBusyException();
 
-            if (!(forMonitoring is WriteQueue))
-                throw new InvalidCastException("Flow control monitor can be attached only to a WriteQueue object");
+            if (!(ioPairforMonitoring is Tuple<FrameReader, WriteQueue>))
+                throw new InvalidCastException("Flow control monitor can be attached only to a Tuple<FrameReader, WriteQueue> object");
 
-            _monitoringObject = (WriteQueue)forMonitoring;
-            _monitoringObject.OnFrameSent += FrameSentHandler;
+            _frameReader = ((Tuple<FrameReader, WriteQueue>)ioPairforMonitoring).Item1;
+            _writeQueue = ((Tuple<FrameReader, WriteQueue>)ioPairforMonitoring).Item2;
+
+            //_writeQueue.OnDataFrameSent += DataFrameSentHandler;
+            //_frameReader.OnDataFrameReceived += DataFrameReceivedHandler;
         }
 
         public void Detach()
         {
-            if (_monitoringObject == null)
+            if (_writeQueue == null && _frameReader == null)
                 throw new NoNullAllowedException("You are called Detach for non-attached monitor!");
         }
 
-        private void FrameSentHandler(object sender, FrameSentEventArgs args)
+        private void DataFrameSentHandler(object sender, DataFrameSentEventArgs args)
         {
-            _handler.Invoke(sender, args);
+            _sentHandler.Invoke(sender, args);
+        }
+
+        private void DataFrameReceivedHandler(object sender, DataFrameReceivedEventArgs args)
+        {
+            _receivedHandler.Invoke(sender, args);
         }
     }
 }

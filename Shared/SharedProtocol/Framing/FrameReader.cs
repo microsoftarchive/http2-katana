@@ -11,12 +11,10 @@ namespace SharedProtocol.Framing
     public class FrameReader
     {
         private SecureSocket _socket;
-        private bool _validateFirstFrameIsControl;
 
-        public FrameReader(SecureSocket socket, bool validateFirstFrameIsControl)
+        public FrameReader(SecureSocket socket)
         {
             _socket = socket;
-            _validateFirstFrameIsControl = validateFirstFrameIsControl;
         }
 
         public Frame ReadFrame()
@@ -26,19 +24,6 @@ namespace SharedProtocol.Framing
             {
                 return null;
             }
-
-            if (_validateFirstFrameIsControl)
-            {
-                if (!preamble.IsControl)
-                {
-                    // Probably a HTTP/1.1 text formatted request.  We could check if it starts with 'GET'
-                    // Is it sane to send a response here?  What kind of response? 1.1 text, or 2.0 binary?
-                    throw new ProtocolViolationException("First frame is not a control frame.");
-                }
-                _validateFirstFrameIsControl = false;
-            }
-            // TODO: If this is the first frame, verify that it is in fact a control frame, and that it is not a HTTP/1.1 text request.
-            // Not applicable after an HTTP/1.1->HTTP-01/2.0 upgrade handshake.
 
             Frame wholeFrame = GetFrameType(preamble);
             if (!TryFill(wholeFrame.Buffer, Constants.FramePreambleSize, wholeFrame.Buffer.Length - Constants.FramePreambleSize))
@@ -75,7 +60,13 @@ namespace SharedProtocol.Framing
                     return new WindowUpdateFrame(preamble);
 
                 case FrameType.Data:
-                    return new DataFrame(preamble);
+                    var dataFrame = new DataFrame(preamble);
+                    //if (this.OnDataFrameReceived != null)
+                    //{
+                    //    this.OnDataFrameReceived(this, new DataFrameReceivedEventArgs(dataFrame));
+                    //}
+
+                    return dataFrame;
 
                 default:
                     throw new NotImplementedException("Frame type: " + preamble.FrameType);

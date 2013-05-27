@@ -57,7 +57,7 @@ namespace Org.Mentalis.Security.Ssl.Shared.Extensions
         {
             this.Type = ExtensionType.ALPN;
 
-            string[] knownProtocols = new string[2] {"spdy/3","http/1.1"};
+            string[] knownProtocols = new string[2] {"http/2.0", "http/1.1"};
             this.SelectedProtocol = String.Empty;
             if (end == ConnectionEnd.Client)
             {

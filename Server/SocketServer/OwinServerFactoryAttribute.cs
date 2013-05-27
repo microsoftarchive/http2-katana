@@ -24,7 +24,7 @@ namespace SocketServer
 
         public static IDisposable Create(AppFunc app, IDictionary<string, object> properties)
         {
-            return new Http2SocketServer(app, properties);
+            return new HttpSocketServer(app, properties);
         }
     }
 }

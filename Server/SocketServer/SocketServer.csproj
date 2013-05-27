@@ -46,8 +46,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="DictionaryExtensions.cs" />
-    <Compile Include="Http2ConnetingClient.cs" />
-    <Compile Include="Http2SocketServer.cs" />
+    <Compile Include="HttpConnetingClient.cs" />
+    <Compile Include="HttpSocketServer.cs" />
     <Compile Include="OwinServerFactoryAttribute.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
@@ -59,10 +59,6 @@
     <ProjectReference Include="..\..\Shared\SharedProtocol\SharedProtocol.csproj">
       <Project>{e34ac310-324c-46bc-af9f-1a41df58e867}</Project>
       <Name>SharedProtocol</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\ServerProtocol\ServerProtocol.csproj">
-      <Project>{d7d6c1eb-016e-491f-806a-5bfec806179d}</Project>
-      <Name>ServerProtocol</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
