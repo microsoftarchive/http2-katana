@@ -192,7 +192,6 @@
     <Compile Include="Security\Monitors\ExtensionMonitors\NPNExtensionMonitor.cs" />
     <Compile Include="Security\Monitors\ISocketMonitor.cs" />
     <Compile Include="Security\Monitors\SslTlsHandshakeMonitor.cs" />
-    <Compile Include="Security\SecureHandshaker.cs" />
     <Compile Include="Security\SecurityConstants.cs">
       <SubType>Code</SubType>
     </Compile>

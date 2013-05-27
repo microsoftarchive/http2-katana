@@ -77,9 +77,12 @@ namespace Org.Mentalis
 
         public void Dispose()
         {
-            this.AlpnExtension.OnAddedToClientHello -= this.AddedToClientHelloHandler;
-            this.AlpnExtension.OnParsedFromServerHello -= this.ParsedFromServerHelloHandler;
-            this.AlpnExtension.OnProtocolSelected -= this.ProtocolSelectedHandler;
+            if (AlpnExtension != null)
+            {
+                this.AlpnExtension.OnAddedToClientHello -= this.AddedToClientHelloHandler;
+                this.AlpnExtension.OnParsedFromServerHello -= this.ParsedFromServerHelloHandler;
+                this.AlpnExtension.OnProtocolSelected -= this.ProtocolSelectedHandler;
+            }
         }
 	}
 }

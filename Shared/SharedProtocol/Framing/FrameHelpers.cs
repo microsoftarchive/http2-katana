@@ -222,9 +222,9 @@ namespace SharedProtocol.Framing
         // |          Value   (string)          |
         // +------------------------------------+
         // |           (repeats)                |
-        public static IList<KeyValuePair<string, string>> DeserializeHeaderBlock(byte[] rawHeaders)
+        public static Dictionary<string, string> DeserializeHeaderBlock(byte[] rawHeaders)
         {
-            IList<KeyValuePair<string, string>> headers = new List<KeyValuePair<string, string>>();
+            var headers = new Dictionary<string, string>();
 
             int offset = 0;
             int headerCount = FrameHelpers.Get32BitsAt(rawHeaders, offset);
@@ -241,7 +241,7 @@ namespace SharedProtocol.Framing
                 string value = FrameHelpers.GetAsciiAt(rawHeaders, offset, valueLength);
                 offset += valueLength;
 
-                headers.Add(new KeyValuePair<string,string>(key, value));
+                headers.Add(key, value);
             }
             return headers;
         }

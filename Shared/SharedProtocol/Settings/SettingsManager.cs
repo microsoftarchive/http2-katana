@@ -4,7 +4,7 @@ namespace SharedProtocol
 {
     public class SettingsManager 
     {
-        public void ProcessSettings(SettingsFrame settingsFrame, FlowControlOptions options, Http2BaseStream stream)
+        public void ProcessSettings(SettingsFrame settingsFrame, FlowControlManager flCtrlManager, Http2Stream stream)
         {
             for (int i = 0; i < settingsFrame.EntryCount; i++)
             {
@@ -22,10 +22,10 @@ namespace SharedProtocol
                     case SettingsIds.DownloadRetransRate:
                         break;
                     case SettingsIds.InitialWindowSize:
-                        options.InitialWindowSize = settingsFrame[i].Value;
+                        flCtrlManager.StreamsInitialWindowSize = settingsFrame[i].Value;
                         break;
                     case SettingsIds.FlowControlOptions:
-                        options.OptionsValue = settingsFrame[i].Value;
+                        flCtrlManager.Options = settingsFrame[i].Value;
                         break;
                     default:
                         break;

@@ -32,10 +32,10 @@
 //
 // </copyright>
 //-----------------------------------------------------------------------
-
-using ClientHandler;
 using System;
-using System.Net.Http;
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Client
 {
@@ -44,21 +44,43 @@ namespace Client
     /// </summary>   
     public class Program
     {
+
+        private static Dictionary<string, Http2SessionHandler> hostSession;
+
         public static void Main(string[] args)
         {
+            hostSession = new Dictionary<string, Http2SessionHandler>();
             try
             {
-                Console.WriteLine("Ready, press any key to send request");
-                Console.ReadKey();
-                using (HttpClient client = new HttpClient(
-                    new Http2SessionTracker(do11Handshake: true, fallbackHandler: new HttpClientHandler())))
+                Console.WriteLine("Type connect cmd for session opening");
+                while (true)
                 {
-                    HttpResponseMessage response = client.GetAsync(
-                         "http://localhost:8443/test.txt"
-                        , HttpCompletionOption.ResponseHeadersRead
-                        ).Result;
-                    Console.WriteLine(response);
-                    Console.WriteLine(response.Content.ReadAsStringAsync().Result);
+                    string command = Console.ReadLine();
+
+                    switch (command)
+                    {
+                        case "connect":
+                            string connectString = "http://localhost:8443/test.txt";
+                            Uri uri;
+                            Uri.TryCreate(connectString, UriKind.Absolute, out uri);
+
+                            var sessionHandler = new Http2SessionHandler(uri);
+                            sessionHandler.Connect();
+
+                            hostSession.Add("http://localhost:8443/", sessionHandler);
+                            break;
+                        case "get":
+                            ThreadPool.QueueUserWorkItem(delegate
+                                {
+                                    hostSession["http://localhost:8443/"].SendRequestAsync();
+                                    hostSession["http://localhost:8443/"].WaitForResponse();
+                                });
+                            break;
+                        case "disconnect":
+                            hostSession["http://localhost:8443/"].Dispose();
+                            hostSession.Remove("http://localhost:8443/");
+                            break;
+                    }
                 }
             }
             catch (Exception ex)

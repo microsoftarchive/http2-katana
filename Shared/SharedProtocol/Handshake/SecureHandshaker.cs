@@ -23,88 +23,61 @@
 
 using System.Net;
 using System.Net.Sockets;
+using Org.Mentalis;
 using Org.Mentalis.Security.Certificates;
 using Org.Mentalis.Security.Ssl.Shared.Extensions;
 using Org.Mentalis.Security.Ssl;
 using System;
 using System.Collections.Generic;
-using System.Text;
 using System.Threading;
+using SharedProtocol.Exceptions;
 
-namespace Org.Mentalis
+namespace SharedProtocol.Handshake
 {
     /// <summary>
     /// TODO: Update summary.
     /// </summary>
     public sealed class SecureHandshaker : IDisposable
     { 
-        private ALPNExtensionMonitor monitor = null;
-        private readonly ExtensionType[] extensionTypes = null;
         private ManualResetEvent handshakeFinishedEventRaised;
-        private Uri uri;
 
         public SecurityOptions Options { get; private set; }
         public string SelectedProtocol { get; private set; }
         public SecureSocket InternalSocket { get; private set; }
 
-        public SecureHandshaker(SecurityOptions options, Uri uri)
+        public SecureHandshaker(SecureSocket secureSocket, SecurityOptions options)
         {
+            this.InternalSocket = secureSocket;
+            this.InternalSocket.OnHandshakeFinish += this.HandshakeFinishedHandler;
+
             this.Options = options;
-            this.uri = uri;
-            this.monitor = new ALPNExtensionMonitor();
             this.handshakeFinishedEventRaised = new ManualResetEvent(false);
-        }
 
-        public SecureHandshaker(Uri uri, IEnumerable<ExtensionType> extensionTypes = null)
-        {
-            this.uri = uri;
-
-            if (extensionTypes == null)
-                this.extensionTypes = new ExtensionType[] {ExtensionType.Renegotiation, ExtensionType.ALPN};
-            else
-                this.extensionTypes = (ExtensionType[]) extensionTypes;
-
-            this.Options = new SecurityOptions(SecureProtocol.Tls1, this.extensionTypes, ConnectionEnd.Client);
-
-            this.Options.Entity = ConnectionEnd.Client;
-            this.Options.CommonName = uri.Host;
-            this.Options.VerificationType = CredentialVerification.None;
-            this.Options.Certificate = Certificate.CreateFromCerFile(@"certificate.pfx");
-            this.Options.Flags = SecurityFlags.Default;
-            this.Options.AllowedAlgorithms = SslAlgorithms.RSA_AES_128_SHA | SslAlgorithms.NULL_COMPRESSION;
-            
-            this.monitor = new ALPNExtensionMonitor();
-            this.handshakeFinishedEventRaised = new ManualResetEvent(false);
+            if (this.Options.Protocol == SecureProtocol.None)
+                HandshakeFinishedHandler(this, null);
         }
 
         public void Handshake()
         {
-            this.InternalSocket = new SecureSocket(AddressFamily.InterNetwork, SocketType.Stream, 
-                                                        ProtocolType.Tcp, this.Options);
-
-            this.InternalSocket.OnHandshakeFinish += this.HandshakeFinishedHandler;
-            this.monitor.OnProtocolSelected += this.ProtocolSelectedHandler;
-
-            this.InternalSocket.Connect(new DnsEndPoint(this.uri.Host, this.uri.Port), this.monitor);
-
+            this.InternalSocket.StartHandshake();
             this.handshakeFinishedEventRaised.WaitOne(60000);
-
-            if (!this.InternalSocket.IsNegotiationCompleted)
-            {
-                throw new Exception("Handshake failed");
-            }
+            this.InternalSocket.OnHandshakeFinish -= this.HandshakeFinishedHandler;
 
             if (!this.InternalSocket.Connected)
             {
                 throw new Exception("Connection was lost!");
             }
 
-            this.InternalSocket.OnHandshakeFinish -= this.HandshakeFinishedHandler;
-        }
+            if (this.Options.Protocol != SecureProtocol.None && !this.InternalSocket.IsNegotiationCompleted)
+            {
+                throw new HTTP2HandshakeFailed();
+            }
 
-        private void ProtocolSelectedHandler(object sender, ProtocolSelectedArgs args)
-        {
-            this.SelectedProtocol = args.SelectedProtocol;
+            if (this.SelectedProtocol == "http/1.1")
+            {
+                //TODO Refactor exceptions cant be a part of the program logic
+                throw new HTTP2HandshakeFailed(); 
+            }
         }
 
         private void HandshakeFinishedHandler(object sender, EventArgs args)
@@ -114,9 +87,7 @@ namespace Org.Mentalis
 
         public void Dispose()
         {
-            //this.InternalSocket.Close();
             this.handshakeFinishedEventRaised.Dispose();
-            this.monitor.Dispose();
         }
     }
 }

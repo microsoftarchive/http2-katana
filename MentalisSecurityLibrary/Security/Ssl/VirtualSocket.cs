@@ -228,7 +228,8 @@ namespace Org.Mentalis.Security.Ssl {
 		/// <exception cref="ObjectDisposedException">The VirtualSocket has been closed.</exception>
 		/// <remarks>The Accept method extracts the first connection request from the queue of pending requests and creates a new VirtualSocket to handle it.</remarks>
         public virtual VirtualSocket Accept(ISocketMonitor monitor = null)
-        {
+		{
+		    this.Monitor = monitor;
 			return new VirtualSocket(InternalAccept());
 		}
 		/// <summary>
@@ -381,7 +382,9 @@ namespace Org.Mentalis.Security.Ssl {
 		/// <exception cref="SocketException">An operating system error occurs while accessing the VirtualSocket.</exception>
 		/// <exception cref="ObjectDisposedException">The VirtualSocket has been closed.</exception>
 		/// <remarks>The EndAccept method completes a request for a connection that was started with the BeginAccept method.</remarks>
-		public virtual VirtualSocket EndAccept(IAsyncResult asyncResult, ISocketMonitor monitor = null) {
+		public virtual VirtualSocket EndAccept(IAsyncResult asyncResult, ISocketMonitor monitor = null)
+		{
+		    this.Monitor = monitor;
 			return new VirtualSocket(InternalEndAccept(asyncResult));
 		}
 

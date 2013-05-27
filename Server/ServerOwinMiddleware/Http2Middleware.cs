@@ -33,8 +33,8 @@ namespace ServerOwinMiddleware
 
         public async Task Invoke(IDictionary<string, object> environment)
         {
-            var socket = (SecureSocket)environment["socket"];
-            socket.StartHandshake();
+            var handshakeAction = (Action)environment["HandshakeAction"];
+            handshakeAction.Invoke();
         }
     }
 }

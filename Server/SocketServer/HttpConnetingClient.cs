@@ -9,6 +9,8 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Net.Sockets;
+using System.Reflection;
 using System.Text;
 using System.Threading;
 using System.Collections.Generic;
@@ -16,6 +18,10 @@ using System.Threading.Tasks;
 using Org.Mentalis;
 using Org.Mentalis.Security.Ssl;
 using ServerProtocol;
+using SharedProtocol;
+using SharedProtocol.Exceptions;
+using SharedProtocol.Handshake;
+using SharedProtocol.Http11;
 
 namespace SocketServer
 {
@@ -23,74 +29,66 @@ namespace SocketServer
     /// <summary>
     /// TODO: Update summary.
     /// </summary>
-    internal sealed class Http2ConnetingClient
+    internal sealed class HttpConnetingClient
     {
-        private ALPNExtensionMonitor monitor;
-
-        private string assemblyPath;
+        private static readonly string assemblyPath = Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
         private SecureTcpListener server;
+        private SecurityOptions options;
         private AppFunc next;
+        private string _alpnSelectedProtocol;
 
         public string SelectedProtocol { get; private set; }
         public SecureSocket InternalSocket { get; private set; }
 
-        internal Http2ConnetingClient(SecureTcpListener server, string assemblyPath, AppFunc next)
+        internal HttpConnetingClient(SecureTcpListener server, SecurityOptions options, AppFunc next)
         {
-            this.assemblyPath = assemblyPath;
             this.SelectedProtocol = String.Empty;
             this.server = server;
             this.next = next;
-
-            this.monitor = new ALPNExtensionMonitor();
-            this.monitor.OnProtocolSelected += this.ProtocolSelectionHandler;
+            this.options = options;
         }
 
         internal async void Accept()
         {
-            this.InternalSocket = server.AcceptSocket(this.monitor);
-            this.InternalSocket.OnHandshakeFinish += this.HandshakeFinishedHandler;
-
-            IDictionary<string, object> environment = new Dictionary<string, object>();
-
-            environment.Add("socket", this.InternalSocket);
-            try
+            bool backToHttp11 = false;
+            using (var monitor = new ALPNExtensionMonitor())
             {
-                await next(environment);
+                monitor.OnProtocolSelected += ProtocolSelectedHandler;
+
+                this.InternalSocket = server.AcceptSocket(monitor);
+                Console.WriteLine("New client accepted");
+
+                IDictionary<string, object> environment = new Dictionary<string, object>();
+
+                environment.Add("HandshakeAction",
+                                HandshakeManager.GetHandshakeAction(this.InternalSocket, this.options));
+
+                try
+                {
+                    await next(environment);
+                }
+                catch (HTTP2HandshakeFailed)
+                {
+                    backToHttp11 = true;
+                }
+
             }
-            catch (Exception)
-            {
-                throw new ProtocolViolationException("Handshake failed!");
-            }
+            HandleRequest(backToHttp11);
         }
 
-
-        private void HandshakeFinishedHandler(object sender, EventArgs args)
+        private void HandleRequest(bool backToHttp11)
         {
-            switch (this.SelectedProtocol)
+            if (backToHttp11 || _alpnSelectedProtocol == "http/1.1")
             {
-                case "http/1.1":
-                    ThreadPool.QueueUserWorkItem(delegate
-                        {
-                            ;
-                        });
-                    break;
-                case "spdy/3":
-                case "spdy/2":
-                    ThreadPool.QueueUserWorkItem(delegate
-                        {
-                            OpenSession();
-                        });
-                    break;
-                default:
-                    break;
+                Console.WriteLine("Sending with http11");
+                Http11Manager.Http11SendResponse(this.InternalSocket);
+                return;
             }
-            
-            this.monitor.Dispose();
-        }
 
-        private void ProtocolSelectionHandler(object sender, ProtocolSelectedArgs args)
-        {
-            this.SelectedProtocol = args.SelectedProtocol;
+            ThreadPool.QueueUserWorkItem(delegate
+            {
+                OpenHttp2Session();
+            });
         }
 
         private TransportInformation GetSocketTranspInfo()
@@ -126,11 +124,16 @@ namespace SocketServer
             return transportInfo;
         }
 
-        private async void OpenSession()
+        private async void OpenHttp2Session()
         {
             Console.WriteLine("Handshake successful");
-            var session = new Http2ServerSession(this.InternalSocket, next, GetSocketTranspInfo());
+            var session = new Http2Session(this.InternalSocket, ConnectionEnd.Server);
             await session.Start();
+        }
+
+        private void ProtocolSelectedHandler(object sender, ProtocolSelectedArgs args)
+        {
+            _alpnSelectedProtocol = args.SelectedProtocol;
         }
     }
 }
