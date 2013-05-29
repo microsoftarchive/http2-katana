@@ -27,7 +27,7 @@ namespace SharedProtocol
         private ConnectionEnd _end;
         private int _lastId;
 
-        public ConcurrentDictionary<int, Http2Stream> ActiveStreams { get; protected set; }
+        internal ActiveStreams ActiveStreams { get; private set; }
 
         //TODO take into account this variable
         public Int32 MaxConcurrentStreams { get; set; }
@@ -48,7 +48,6 @@ namespace SharedProtocol
             }
 
             _goAwayReceived = false;
-            ActiveStreams = new ConcurrentDictionary<int, Http2Stream>();
             _settingsManager = new SettingsManager();
             _comprProc = new CompressionProcessor();
             _sessionSocket = sessionSocket;
@@ -56,6 +55,8 @@ namespace SharedProtocol
             _writeQueue = new WriteQueue(_sessionSocket);
 
             _frameReader = new FrameReader(_sessionSocket);
+
+            ActiveStreams = new ActiveStreams();
 
             _flowControlManager = new FlowControlManager(this);
 
@@ -110,63 +111,77 @@ namespace SharedProtocol
         #region Frame handling
         private void DispatchIncomingFrame(Frame frame)
         {
-            Http2Stream stream;
+            Http2Stream stream = null;
             byte[] decompressedHeaders;
             Dictionary<string, string> headers;
 
-            switch (frame.FrameType)
+            try
             {
-                case FrameType.HeadersPlusPriority:
-                    Console.WriteLine("New headers + priority" + frame.StreamId);
-                    var headersPlusPriorityFrame = (HeadersPlusPriority)frame;
-                    decompressedHeaders = _comprProc.Decompress(headersPlusPriorityFrame.CompressedHeaders);
-                    headers = FrameHelpers.DeserializeHeaderBlock(decompressedHeaders);
+                switch (frame.FrameType)
+                {
+                    case FrameType.HeadersPlusPriority:
+                        Console.WriteLine("New headers + priority with id = " + frame.StreamId);
+                        var headersPlusPriorityFrame = (HeadersPlusPriority) frame;
+                        decompressedHeaders = _comprProc.Decompress(headersPlusPriorityFrame.CompressedHeaders);
+                        headers = FrameHelpers.DeserializeHeaderBlock(decompressedHeaders);
 
-                    stream = new Http2Stream(headers, headersPlusPriorityFrame.StreamId,
-                                             headersPlusPriorityFrame.Priority, _writeQueue,
-                                             _flowControlManager, _comprProc);
+                        stream = new Http2Stream(headers, headersPlusPriorityFrame.StreamId,
+                                                 headersPlusPriorityFrame.Priority, _writeQueue,
+                                                 _flowControlManager, _comprProc);
 
-                    ActiveStreams[stream.Id] = stream;
+                        ActiveStreams[stream.Id] = stream;
 
-                    DispatchNewStream(stream);
-                    break;
+                        DispatchNewStream(stream);
+                        break;
 
-                case FrameType.RstStream:
-                    var resetFrame = (RstStreamFrame)frame;
-                    stream = GetStream(resetFrame.StreamId);
+                    case FrameType.RstStream:
+                        var resetFrame = (RstStreamFrame) frame;
+                        stream = GetStream(resetFrame.StreamId);
 
-                    //TODO rework
-                    stream.WriteRst(resetFrame.StatusCode);
-                    break;
-                case FrameType.Data:
-                    var dataFrame = (DataFrame)frame;
-                    stream = GetStream(dataFrame.StreamId);
-                    stream.ProcessIncomingData(dataFrame);
-                    break;
-                case FrameType.Ping:
-                    //TODO Process ping correctly
-                    var pingFrame = (PingFrame)frame;
-                    ReceivePing(pingFrame.Id);
-                    break;
-                case FrameType.Settings:
-                    _settingsManager.ProcessSettings((SettingsFrame)frame, _flowControlManager, ActiveStreams[frame.StreamId]);
-                    break;
-                case FrameType.WindowUpdate:
-                    var windowFrame = (WindowUpdateFrame)frame;
-                    stream = GetStream(windowFrame.StreamId);
-                    stream.UpdateWindowSize(windowFrame.Delta);
+                        //TODO rework
+                        stream.WriteRst(resetFrame.StatusCode);
+                        break;
+                    case FrameType.Data:
+                        var dataFrame = (DataFrame) frame;
+                        stream = GetStream(dataFrame.StreamId);
+                        stream.ProcessIncomingData(dataFrame);
+                        break;
+                    case FrameType.Ping:
+                        //TODO Process ping correctly
+                        var pingFrame = (PingFrame) frame;
+                        ReceivePing(pingFrame.Id);
+                        break;
+                    case FrameType.Settings:
+                        _settingsManager.ProcessSettings((SettingsFrame) frame, _flowControlManager);
+                        break;
+                    case FrameType.WindowUpdate:
+                        var windowFrame = (WindowUpdateFrame) frame;
+                        stream = GetStream(windowFrame.StreamId);
+                        stream.UpdateWindowSize(windowFrame.Delta);
 
-                    stream.PumpUnshippedFrames();
-                    break;
-                case FrameType.Headers:
-                    var headersFrame = (HeadersFrame)frame;
-                    stream = GetStream(headersFrame.StreamId);
-                    decompressedHeaders = _comprProc.Decompress(headersFrame.CompressedHeaders);
-                    headers = FrameHelpers.DeserializeHeaderBlock(decompressedHeaders);
-                    //TODO Process headers
-                    break;
-                default:
-                    throw new NotImplementedException(frame.FrameType.ToString());
+                        stream.PumpUnshippedFrames();
+                        break;
+                    case FrameType.Headers:
+                        var headersFrame = (HeadersFrame) frame;
+                        stream = GetStream(headersFrame.StreamId);
+                        decompressedHeaders = _comprProc.Decompress(headersFrame.CompressedHeaders);
+                        headers = FrameHelpers.DeserializeHeaderBlock(decompressedHeaders);
+                        //TODO Process headers
+                        break;
+                    default:
+                        throw new NotImplementedException(frame.FrameType.ToString());
+                }
+
+                //Tell the stream that it was the last frame
+                if (stream != null && frame.IsFin)
+                {
+                    stream.FinReceived = true;
+                }
+            }
+                //Frame came for already closed stream. Ignore it.
+            catch (KeyNotFoundException)
+            {
+                
             }
         }
         #endregion
@@ -210,7 +225,7 @@ namespace SharedProtocol
             if (!ActiveStreams.TryGetValue(id, out stream))
             {
                 // TODO: Session already gone? Send a reset?
-                throw new NotImplementedException("Stream id not found: " + id);
+                throw new KeyNotFoundException("Stream id not found: " + id);
             }
             return stream;
         }
@@ -218,18 +233,24 @@ namespace SharedProtocol
 
         public Task Start()
         {
-            // TODO: Assert not started
-
+            WriteSettings(new[] { new SettingsPair(0, SettingsIds.InitialWindowSize, Constants.DefaultFlowControlCredit) });
+            
             // Listen for incoming Http/2.0 frames
-            //Task incomingTask = PumpIncommingData();
-            // Send outgoing Http/2.0 frames
-            //Task outgoingTask = PumpOutgoingData();
             Task incomingTask = new Task(() => PumpIncommingData());
+            // Send outgoing Http/2.0 frames
             Task outgoingTask = new Task(() => PumpOutgoingData());
             incomingTask.Start();
             outgoingTask.Start();
 
             return Task.WhenAll(incomingTask, outgoingTask);
+        }
+
+        //Because settings must be sent once session was opened. Looks like Settings is not stream specific. 
+        public void WriteSettings(SettingsPair[] settings)
+        {
+            var frame = new SettingsFrame(new List<SettingsPair>(settings));
+
+            _writeQueue.WriteFrameAsync(frame, Priority.Pri3);
         }
 
         #region Ping
@@ -304,9 +325,9 @@ namespace SharedProtocol
         private void StreamCloseHandler(object sender, StreamClosedEventArgs args)
         {
             var stream = ActiveStreams[args.Id];
-            if (ActiveStreams.TryRemove(stream.Id, out stream) == false)
+            if (ActiveStreams.Remove(stream) == false)
             {
-                throw new ArgumentException("Cant remove stream from _activeStreams");
+                throw new ArgumentException("Cant remove stream from ActiveStreams");
             }
         }
     }

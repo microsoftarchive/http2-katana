@@ -54,6 +54,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ActiveStreams.cs" />
     <Compile Include="Compression\CompressionDictionary.cs" />
     <Compile Include="Compression\CompressionProcessor.cs" />
     <Compile Include="ContentTypes.cs" />

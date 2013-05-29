@@ -35,7 +35,6 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace Client
 {
@@ -44,42 +43,57 @@ namespace Client
     /// </summary>   
     public class Program
     {
-
-        private static Dictionary<string, Http2SessionHandler> hostSession;
+        private static List<Http2SessionHandler> _sessions;
 
         public static void Main(string[] args)
         {
-            hostSession = new Dictionary<string, Http2SessionHandler>();
+            _sessions = new List<Http2SessionHandler>();
+
+            HelpDisplayer.ShowMainMenuHelp();
+
             try
             {
-                Console.WriteLine("Type connect cmd for session opening");
+                Console.WriteLine("Enter command");
                 while (true)
                 {
+                    Console.Write(">");
                     string command = Console.ReadLine();
-
-                    switch (command)
+                    Command cmd = null;
+                    
+                    try
                     {
-                        case "connect":
-                            string connectString = "http://localhost:8443/test.txt";
-                            Uri uri;
-                            Uri.TryCreate(connectString, UriKind.Absolute, out uri);
+                        cmd = CommandParser.Parse(command);
+                    }
+                    catch (InvalidOperationException ex)
+                    {
+                        Console.WriteLine(ex.Message);
+                        continue;
+                    }
 
-                            var sessionHandler = new Http2SessionHandler(uri);
-                            sessionHandler.Connect();
+                    switch (cmd.GetCmdType())
+                    {
+                        case CommandType.Get:
+                            var getCmd = (GetCommand) cmd;
+                            var sessionHandler = new Http2SessionHandler(getCmd.Uri);
 
-                            hostSession.Add("http://localhost:8443/", sessionHandler);
-                            break;
-                        case "get":
                             ThreadPool.QueueUserWorkItem(delegate
-                                {
-                                    hostSession["http://localhost:8443/"].SendRequestAsync();
-                                    hostSession["http://localhost:8443/"].WaitForResponse();
-                                });
+                            {
+                                sessionHandler.Connect();
+                                sessionHandler.SendRequestAsync();
+                            });
+
+                            _sessions.Add(sessionHandler);
                             break;
-                        case "disconnect":
-                            hostSession["http://localhost:8443/"].Dispose();
-                            hostSession.Remove("http://localhost:8443/");
+                        case CommandType.Help:
+                            ((HelpCommand)cmd).ShowHelp.Invoke();
                             break;
+                        case CommandType.Exit:
+                            foreach (var session in _sessions)
+                            {
+                                session.Dispose();
+                                _sessions.Remove(session);
+                            }
+                            return;
                     }
                 }
             }
