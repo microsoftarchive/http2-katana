@@ -9,6 +9,7 @@ using Org.Mentalis.Security.Ssl;
 using Org.Mentalis.Security.Ssl.Shared.Extensions;
 using SharedProtocol;
 using SharedProtocol.Exceptions;
+using SharedProtocol.Framing;
 using SharedProtocol.Handshake;
 using SharedProtocol.Http11;
 
@@ -23,7 +24,6 @@ namespace Client
         private string _certificatePath = @"certificate.pfx";
         private Uri _requestUri;
         private SecureSocket _socket;
-        private ManualResetEvent _gotResponse;
         private string _selectedProtocol;
         private bool _useHttp20 = true;
         
@@ -34,11 +34,15 @@ namespace Client
         public Http2SessionHandler(Uri requestUri)
         {
             _requestUri = requestUri;
-            _gotResponse = new ManualResetEvent(false);
         }
 
-        public void Connect()
+        public async void Connect()
         {
+            if (_clientSession != null)
+            {
+                return;
+            }
+
             SecureSocket sessionSocket = null;
 
             try
@@ -88,8 +92,8 @@ namespace Client
                 }
                 _useHttp20 = true;
                 _clientSession = new Http2Session(_socket, ConnectionEnd.Client);
-
-                Task pumpTasks = _clientSession.Start();
+        
+                await _clientSession.Start();
             }
             catch (HTTP2HandshakeFailed)
             {
@@ -150,19 +154,10 @@ namespace Client
             Http2Stream stream;
             Console.WriteLine("Submitting request");
             stream = SubmitRequest();
-
-            return;
-        }
-        
-        public void WaitForResponse()
-        {
-            // TODO wait for session close
-            _gotResponse.WaitOne(60000);
         }
 
         public void Dispose()
         {
-            _gotResponse.Dispose();
             if (_clientSession != null)
             {
                 _clientSession.Dispose();

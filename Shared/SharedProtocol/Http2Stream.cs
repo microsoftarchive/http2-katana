@@ -19,7 +19,6 @@ namespace SharedProtocol
         private StreamState _state;
         private WriteQueue _writeQueue;
         private Priority _priority;
-        private bool _isDataFrameReceived;
         private static string assemblyPath = Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
         private CompressionProcessor _compressionProc;
         private FlowControlManager _flowCrtlManager;
@@ -28,6 +27,7 @@ namespace SharedProtocol
 
         private Queue<DataFrame> _unshippedFrames;
 
+        //Incoming
         public Http2Stream(Dictionary<string, string> headers, int id,
                            Priority priority, WriteQueue writeQueue,
                            FlowControlManager flowCrtlManager, CompressionProcessor comprProc)
@@ -36,12 +36,13 @@ namespace SharedProtocol
             _headers = headers;
         }
 
-        public Http2Stream(int id, Priority priority, WriteQueue writeQueue, FlowControlManager flowCrtlManager, CompressionProcessor comprProc)
+        //Outgoing
+        public Http2Stream(int id, Priority priority, WriteQueue writeQueue, 
+                           FlowControlManager flowCrtlManager, CompressionProcessor comprProc)
         {
             _id = id;
             _priority = priority;
             _writeQueue = writeQueue;
-            _isDataFrameReceived = false;
             _compressionProc = comprProc;
             _flowCrtlManager = flowCrtlManager;
 
@@ -51,17 +52,10 @@ namespace SharedProtocol
             SentDataAmount = 0;
             ReceivedDataAmount = 0;
             IsFlowControlBlocked = false;
-            IsFlowControlEnabled = _flowCrtlManager.IsNewStreamsFlowControlled;
+            IsFlowControlEnabled = _flowCrtlManager.IsStreamsFlowControlledEnabled;
 
             _flowCrtlManager.NewStreamOpenedHandler(this);
             UpdateWindowSize(_flowCrtlManager.StreamsInitialWindowSize);
-        }
-
-        //TODO remove this.
-        public bool IsDataFrameReceived
-        {
-            get { return _isDataFrameReceived; }
-            set { _isDataFrameReceived = value; }
         }
 
         #region Properties
@@ -121,6 +115,13 @@ namespace SharedProtocol
                 var dataFrame = _unshippedFrames.Dequeue();
                 WriteDataFrame(dataFrame);
             }
+
+            Console.WriteLine("File sent: " + _headers[":path"]);
+            //Do not dispose if unshipped frames are still here
+            if (FinSent && FinReceived)
+            {
+                Dispose();
+            }
         }
 
         public Int32 WindowSize { get; private set; }
@@ -152,42 +153,33 @@ namespace SharedProtocol
             _flowCrtlManager.DataFrameReceivedHandler(this, new DataFrameReceivedEventArgs(dataFrame));
             string path = GetHeader(":path");
             FileHelper.SaveToFile(dataFrame.Data.Array, dataFrame.Data.Offset, dataFrame.Data.Count, assemblyPath + path,
-                                  IsDataFrameReceived);
-            IsDataFrameReceived = true;
+                                  ReceivedDataAmount != 0);
 
             ReceivedDataAmount += dataFrame.FrameLength;
 
             if (dataFrame.IsFin)
             {
-                Console.WriteLine("File downloaded: " + path);
+                Console.WriteLine("File downloaded: " + GetHeader(":path"));
                 Dispose();
             }
-            
-            //Update window
-            if (_receivedDataConstraint - ReceivedDataAmount <= 0)
+            else
             {
-                WriteWindowUpdate(Constants.DefaultFlowControlCredit * 10); // For example * 10
+                //Aggressive window update
+                if (_receivedDataConstraint - ReceivedDataAmount <= 0)
+                {
+                    WriteWindowUpdate(Constants.DefaultFlowControlCredit * 10); // For example * 10
 
-                //Add something to the receive constraint.
-                _receivedDataConstraint += 32768; // constant value is irrelevant. It will be counted somehow later
+                    //Add something to the receive constraint.
+                    _receivedDataConstraint += 32768; // constant value is irrelevant. It will be counted somehow later
+                }   
             }
         }
 
         #endregion
 
         #region Responce Methods
-        private void StartResponse()
-        {
-            SettingsFrame frame =
-                    new SettingsFrame(new List<SettingsPair>() { new SettingsPair(SettingsFlags.None, 
-                                        SettingsIds.InitialWindowSize, 0) }) { StreamId = this.Id };
 
-            _writeQueue.WriteFrameAsync(frame, Priority.Pri3);
-
-            Console.WriteLine("Settings sent: " + frame.StreamId);
-        }
-
-        private void EndResponse()
+        private void SendResponse()
         {
             byte[] binaryFile = FileHelper.GetFile(_headers[":path"]);
             int i = 0;
@@ -204,22 +196,13 @@ namespace SharedProtocol
 
                 i += Constants.MaxDataFrameContentSize;
             }
-
-            Console.WriteLine("File sent: " + _headers[":path"]);
-
-            //Do not dispose if unshipped frames are still here
-            if (_unshippedFrames.Count == 0)
-            {
-                Dispose();
-            }
         }
 
         public void Run()
         {
             try
             {
-                StartResponse();
-                EndResponse();
+                SendResponse();
             }
             //TODO Refactor catch
             catch (Exception)
@@ -241,6 +224,11 @@ namespace SharedProtocol
             frame.IsFin = isFin;
             frame.Priority = _priority;
 
+            if (frame.IsFin)
+            {
+                FinSent = true;
+            }
+
             _writeQueue.WriteFrameAsync(frame, _priority);
         }
 
@@ -258,6 +246,11 @@ namespace SharedProtocol
                 _unshippedFrames.Enqueue(dataFrame);
             }
 
+            if (dataFrame.IsFin)
+            {
+                FinSent = true;
+            }
+
             _flowCrtlManager.DataFrameSentHandler(this, new DataFrameSentEventArgs(dataFrame));
             SentDataAmount += dataFrame.FrameLength;
         }
@@ -273,15 +266,13 @@ namespace SharedProtocol
                 _unshippedFrames.Enqueue(dataFrame);
             }
 
+            if (dataFrame.IsFin)
+            {
+                FinSent = true;
+            }
+
             _flowCrtlManager.DataFrameSentHandler(this, new DataFrameSentEventArgs(dataFrame));
             SentDataAmount += dataFrame.FrameLength;
-        }
-
-        public void WriteSettings(SettingsPair[] settings)
-        {
-            SettingsFrame frame = new SettingsFrame(new List<SettingsPair>(settings)) { StreamId = _id };
-
-            _writeQueue.WriteFrameAsync(frame, _priority);
         }
 
         public void WriteHeaders(SettingsPair[] settings)

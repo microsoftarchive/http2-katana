@@ -4,7 +4,7 @@ namespace SharedProtocol
 {
     public class SettingsManager 
     {
-        public void ProcessSettings(SettingsFrame settingsFrame, FlowControlManager flCtrlManager, Http2Stream stream)
+        public void ProcessSettings(SettingsFrame settingsFrame, FlowControlManager flCtrlManager)
         {
             for (int i = 0; i < settingsFrame.EntryCount; i++)
             {

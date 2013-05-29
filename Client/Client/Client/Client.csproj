@@ -62,7 +62,15 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="ContentTypes.cs" />
+    <Compile Include="CommandParser\CommandParser.cs" />
+    <Compile Include="CommandParser\HelpDisplayer.cs" />
+    <Compile Include="Commands\Command.cs" />
+    <Compile Include="Commands\EmptyCommand.cs" />
+    <Compile Include="Commands\ExitCommand.cs" />
+    <Compile Include="Commands\GetCommand.cs" />
+    <Compile Include="CommandParser\CommandTypes.cs" />
+    <Compile Include="Commands\HelpCommand.cs" />
+    <Compile Include="Commands\UnknownCommand.cs" />
     <Compile Include="GlobalSuppressions.cs" />
     <Compile Include="Http2SessionHandler.cs" />
     <Compile Include="Program.cs" />
