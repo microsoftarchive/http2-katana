@@ -1,13 +1,10 @@
-﻿using System.Reflection;
-using Org.Mentalis.Security.Ssl;
+﻿using Org.Mentalis.Security.Ssl;
 using SharedProtocol.Compression;
 using SharedProtocol.Framing;
 using SharedProtocol.IO;
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
-using System.IO;
 using System.Threading.Tasks;
 
 namespace SharedProtocol
@@ -131,7 +128,8 @@ namespace SharedProtocol
 
                         ActiveStreams[stream.Id] = stream;
 
-                        DispatchNewStream(stream);
+                        stream.OnClose += StreamCloseHandler;
+                        Task.Run(() => stream.Run());
                         break;
 
                     case FrameType.RstStream:
@@ -144,7 +142,8 @@ namespace SharedProtocol
                     case FrameType.Data:
                         var dataFrame = (DataFrame) frame;
                         stream = GetStream(dataFrame.StreamId);
-                        stream.ProcessIncomingData(dataFrame);
+
+                        Task.Run(() => stream.ProcessIncomingData(dataFrame));
                         break;
                     case FrameType.Ping:
                         //TODO Process ping correctly
@@ -152,14 +151,14 @@ namespace SharedProtocol
                         ReceivePing(pingFrame.Id);
                         break;
                     case FrameType.Settings:
-                        _settingsManager.ProcessSettings((SettingsFrame) frame, _flowControlManager);
+                        Task.Run(() => _settingsManager.ProcessSettings((SettingsFrame)frame, _flowControlManager));
                         break;
                     case FrameType.WindowUpdate:
                         var windowFrame = (WindowUpdateFrame) frame;
                         stream = GetStream(windowFrame.StreamId);
                         stream.UpdateWindowSize(windowFrame.Delta);
 
-                        stream.PumpUnshippedFrames();
+                        Task.Run(() => stream.PumpUnshippedFrames());
                         break;
                     case FrameType.Headers:
                         var headersFrame = (HeadersFrame) frame;
@@ -175,6 +174,7 @@ namespace SharedProtocol
                 //Tell the stream that it was the last frame
                 if (stream != null && frame.IsFin)
                 {
+                    Console.WriteLine("Final frame received");
                     stream.FinReceived = true;
                 }
             }
@@ -183,14 +183,6 @@ namespace SharedProtocol
             {
                 
             }
-        }
-        #endregion
-
-        #region Responce
-        private void DispatchNewStream(Http2Stream stream)
-        {
-            stream.OnClose += StreamCloseHandler;
-            Task.Run(() => stream.Run());
         }
         #endregion
 
@@ -233,7 +225,7 @@ namespace SharedProtocol
 
         public Task Start()
         {
-            WriteSettings(new[] { new SettingsPair(0, SettingsIds.InitialWindowSize, Constants.DefaultFlowControlCredit) });
+            WriteSettings(new[] { new SettingsPair(0, SettingsIds.InitialWindowSize, Constants.MaxDataFrameContentSize) });
             
             // Listen for incoming Http/2.0 frames
             Task incomingTask = new Task(() => PumpIncommingData());

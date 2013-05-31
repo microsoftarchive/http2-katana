@@ -31,14 +31,12 @@ namespace SocketServer
     /// </summary>
     internal sealed class HttpConnetingClient
     {
-        private static readonly string assemblyPath = Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
         private SecureTcpListener server;
         private SecurityOptions options;
         private AppFunc next;
         private string _alpnSelectedProtocol;
 
         public string SelectedProtocol { get; private set; }
-        public SecureSocket InternalSocket { get; private set; }
 
         internal HttpConnetingClient(SecureTcpListener server, SecurityOptions options, AppFunc next)
         {
@@ -51,17 +49,18 @@ namespace SocketServer
         internal async void Accept()
         {
             bool backToHttp11 = false;
+            SecureSocket incomingClient = null;
             using (var monitor = new ALPNExtensionMonitor())
             {
-                monitor.OnProtocolSelected += ProtocolSelectedHandler;
+                monitor.OnProtocolSelected += (sender, args) => { _alpnSelectedProtocol = args.SelectedProtocol; };
 
-                this.InternalSocket = server.AcceptSocket(monitor);
+                incomingClient = server.AcceptSocket(monitor);
                 Console.WriteLine("New client accepted");
 
                 IDictionary<string, object> environment = new Dictionary<string, object>();
 
                 environment.Add("HandshakeAction",
-                                HandshakeManager.GetHandshakeAction(this.InternalSocket, this.options));
+                                HandshakeManager.GetHandshakeAction(incomingClient, this.options));
 
                 try
                 {
@@ -73,28 +72,25 @@ namespace SocketServer
                 }
 
             }
-            HandleRequest(backToHttp11);
+            Task.Run(() => HandleRequest(incomingClient, backToHttp11));
         }
 
-        private void HandleRequest(bool backToHttp11)
+        private void HandleRequest(SecureSocket incomingClient, bool backToHttp11)
         {
             if (backToHttp11 || _alpnSelectedProtocol == "http/1.1")
             {
                 Console.WriteLine("Sending with http11");
-                Http11Manager.Http11SendResponse(this.InternalSocket);
+                Http11Manager.Http11SendResponse(incomingClient);
                 return;
             }
 
-            ThreadPool.QueueUserWorkItem(delegate
-            {
-                OpenHttp2Session();
-            });
+            OpenHttp2Session(incomingClient);
         }
 
-        private TransportInformation GetSocketTranspInfo()
+        private TransportInformation GetSocketTranspInfo(SecureSocket incomingClient)
         {
-            IPEndPoint localEndPoint = (IPEndPoint)InternalSocket.LocalEndPoint;
-            IPEndPoint remoteEndPoint = (IPEndPoint)InternalSocket.RemoteEndPoint;
+            IPEndPoint localEndPoint = (IPEndPoint)incomingClient.LocalEndPoint;
+            IPEndPoint remoteEndPoint = (IPEndPoint)incomingClient.RemoteEndPoint;
 
             TransportInformation transportInfo = new TransportInformation()
             {
@@ -124,16 +120,11 @@ namespace SocketServer
             return transportInfo;
         }
 
-        private async void OpenHttp2Session()
+        private async void OpenHttp2Session(SecureSocket incomingClient)
         {
             Console.WriteLine("Handshake successful");
-            var session = new Http2Session(this.InternalSocket, ConnectionEnd.Server);
+            var session = new Http2Session(incomingClient, ConnectionEnd.Server);
             await session.Start();
-        }
-
-        private void ProtocolSelectedHandler(object sender, ProtocolSelectedArgs args)
-        {
-            _alpnSelectedProtocol = args.SelectedProtocol;
         }
     }
 }

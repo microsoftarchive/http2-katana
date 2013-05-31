@@ -63,6 +63,7 @@
     <Compile Include="EventArgs\StreamClosedEventArgs.cs" />
     <Compile Include="Exceptions\HTTP2HandshakeFailed.cs" />
     <Compile Include="Exceptions\MonitorIsBusyException.cs" />
+    <Compile Include="ExtendedMath\MathEx.cs" />
     <Compile Include="FlowControl\FlowControlManager.cs" />
     <Compile Include="Handshake\HandshakeManager.cs" />
     <Compile Include="Http11\Http11Manager.cs" />
@@ -120,6 +121,7 @@
       <Name>Security Library</Name>
     </ProjectReference>
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="$(SolutionDir)\.nuget\nuget.targets" />
   <PropertyGroup>

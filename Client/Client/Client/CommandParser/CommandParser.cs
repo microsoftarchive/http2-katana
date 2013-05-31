@@ -36,7 +36,6 @@ namespace Client
                     return new HelpCommand(cmdBody);
                 case "exit":
                     return new ExitCommand();
-                    break;
             }
             return new UnknownCommand(splittedCmd[0]);
         }

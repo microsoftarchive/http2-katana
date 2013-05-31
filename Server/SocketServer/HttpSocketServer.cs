@@ -80,6 +80,11 @@ namespace SocketServer
             }
         }
 
+        public void Stop()
+        {
+            Dispose();
+        }
+
         public void Dispose()
         {
             if (_disposed)

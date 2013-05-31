@@ -9,9 +9,6 @@ namespace SharedProtocol.Framing
         // The number of bytes in the frame.
         private const int InitialFrameSize = 12;
 
-        //Settings is not stream specific. It must be sent only at the session start.
-        public new int StreamId { get; private set; }
-
         // Incoming
         public SettingsFrame(Frame preamble)
             : base(preamble)
@@ -26,6 +23,8 @@ namespace SharedProtocol.Framing
             FrameType = FrameType.Settings;
             FrameLength = (settings.Count * SettingsPair.PairSize) + InitialFrameSize - Constants.FramePreambleSize;
             EntryCount = settings.Count;
+            StreamId = 0;
+
             for (int i = 0; i < settings.Count; i++)
             {
                 ArraySegment<byte> segment = settings[i].BufferSegment;

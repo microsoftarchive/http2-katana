@@ -117,7 +117,7 @@ namespace SharedProtocol
         {
             if (ContainsKey(item.Id))
             {
-                return;
+                throw new ArgumentException("This key already exists in the collection");
             }
 
             if (item.IsFlowControlEnabled)

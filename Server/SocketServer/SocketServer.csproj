@@ -46,6 +46,9 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="DictionaryExtensions.cs" />
+    <Compile Include="EventArgs\ServerStartedEventArgs.cs" />
+    <Compile Include="EventArgs\ServerStoppedEventArgs.cs" />
+    <Compile Include="GlobalSuppressions.cs" />
     <Compile Include="HttpConnetingClient.cs" />
     <Compile Include="HttpSocketServer.cs" />
     <Compile Include="OwinServerFactoryAttribute.cs" />
