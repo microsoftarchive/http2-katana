@@ -2,11 +2,14 @@
 using System.Text;
 using System.IO;
 using System.Reflection;
+using System.Threading;
 
 namespace SharedProtocol.IO
 {
     public static class FileHelper
     {
+        public static object writeLock = new object();
+
         public static byte[] GetFile(string localPath)
         {
             string assemblyPath = Assembly.GetEntryAssembly().Location;
@@ -26,14 +29,18 @@ namespace SharedProtocol.IO
 
         public static void SaveToFile(byte[] data, int offset, int count, string path, bool append)
         {
-            if (!append && File.Exists(path))
+            //Sync write streams and do not let multiple streams to write the same file. Avoid data mixing and access exceptions.
+            lock (writeLock)
             {
-                File.Delete(path);
-            }
+                if (!append && File.Exists(path))
+                {
+                    File.Delete(path);
+                }
 
-            using (var stream = new FileStream(path, FileMode.Append))
-            {
-                stream.Write(data, offset, count);
+                using (var stream = new FileStream(path, FileMode.Append))
+                {
+                    stream.Write(data, offset, count);
+                }
             }
         }
     }

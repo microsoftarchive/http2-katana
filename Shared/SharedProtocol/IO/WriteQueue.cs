@@ -17,6 +17,7 @@ namespace SharedProtocol.IO
         private ManualResetEvent _dataAvailable;
         private bool _disposed;
         private TaskCompletionSource<object> _readWaitingForData;
+        private object writeLock = new object();
 
         public WriteQueue(SecureSocket socket)
         {
@@ -29,9 +30,14 @@ namespace SharedProtocol.IO
         // Queue up a fully rendered frame to send
         public Task WriteFrameAsync(Frame frame, Priority priority)
         {
-            PriorityQueueEntry entry = new PriorityQueueEntry(frame, priority);
-            Enqueue(entry);
-            SignalDataAvailable();
+            PriorityQueueEntry entry = null;
+
+            lock (writeLock)
+            {
+                entry = new PriorityQueueEntry(frame, priority);
+                Enqueue(entry);
+                SignalDataAvailable();
+            }
 
             return entry.Task;
         }

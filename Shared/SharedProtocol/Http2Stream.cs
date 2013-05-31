@@ -1,31 +1,27 @@
 ﻿using System.Reflection;
-using Org.Mentalis.Security.Ssl;
-using Owin.Types;
 using SharedProtocol.Compression;
+using SharedProtocol.ExtendedMath;
 using SharedProtocol.Framing;
 using SharedProtocol.IO;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.IO;
-using System.Threading;
 
 namespace SharedProtocol
 {
     public class Http2Stream : IDisposable
     {
-        private int _id;
+        private readonly int _id;
         private Dictionary<string, string> _headers;
         private StreamState _state;
-        private WriteQueue _writeQueue;
-        private Priority _priority;
-        private static string assemblyPath = Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
-        private CompressionProcessor _compressionProc;
-        private FlowControlManager _flowCrtlManager;
+        private readonly WriteQueue _writeQueue;
+        private readonly Priority _priority;
+        private static readonly string assemblyPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+        private readonly CompressionProcessor _compressionProc;
+        private readonly FlowControlManager _flowCrtlManager;
 
-        private Int32 _receivedDataConstraint = Constants.DefaultFlowControlCredit;
-
-        private Queue<DataFrame> _unshippedFrames;
+        private readonly Queue<DataFrame> _unshippedFrames;
 
         //Incoming
         public Http2Stream(Dictionary<string, string> headers, int id,
@@ -48,14 +44,13 @@ namespace SharedProtocol
 
             _unshippedFrames = new Queue<DataFrame>(16);
 
-            WindowSize = 0;
             SentDataAmount = 0;
             ReceivedDataAmount = 0;
             IsFlowControlBlocked = false;
             IsFlowControlEnabled = _flowCrtlManager.IsStreamsFlowControlledEnabled;
+            WindowSize = _flowCrtlManager.StreamsInitialWindowSize;
 
             _flowCrtlManager.NewStreamOpenedHandler(this);
-            UpdateWindowSize(_flowCrtlManager.StreamsInitialWindowSize);
         }
 
         #region Properties
@@ -116,10 +111,10 @@ namespace SharedProtocol
                 WriteDataFrame(dataFrame);
             }
 
-            Console.WriteLine("File sent: " + _headers[":path"]);
             //Do not dispose if unshipped frames are still here
             if (FinSent && FinReceived)
             {
+                Console.WriteLine("File sent: " + GetHeader(":path"));
                 Dispose();
             }
         }
@@ -164,14 +159,8 @@ namespace SharedProtocol
             }
             else
             {
-                //Aggressive window update
-                if (_receivedDataConstraint - ReceivedDataAmount <= 0)
-                {
-                    WriteWindowUpdate(Constants.DefaultFlowControlCredit * 10); // For example * 10
-
-                    //Add something to the receive constraint.
-                    _receivedDataConstraint += 32768; // constant value is irrelevant. It will be counted somehow later
-                }   
+                //Aggresive window update
+                WriteWindowUpdate(Constants.MaxDataFrameContentSize);  
             }
         }
 
@@ -181,21 +170,29 @@ namespace SharedProtocol
 
         private void SendResponse()
         {
-            byte[] binaryFile = FileHelper.GetFile(_headers[":path"]);
+            byte[] binaryFile = FileHelper.GetFile(GetHeader(":path"));
             int i = 0;
+
+            Console.WriteLine("Transfer begin");
 
             while (binaryFile.Length > i)
             {
                 bool isLastData = binaryFile.Length - i < Constants.MaxDataFrameContentSize;
-                int chunkSize = Math.Min(binaryFile.Length - i, Constants.MaxDataFrameContentSize);
 
-                byte[] chunk = new byte[chunkSize];
+                int chunkSize = WindowSize > 0 
+                                ?
+                                    MathEx.Min(binaryFile.Length - i, Constants.MaxDataFrameContentSize, WindowSize)
+                                :
+                                    MathEx.Min(binaryFile.Length - i, Constants.MaxDataFrameContentSize);
+                
+                var chunk = new byte[chunkSize];
                 Buffer.BlockCopy(binaryFile, i, chunk, 0, chunk.Length);
 
                 WriteDataFrame(chunk, isLastData);
 
-                i += Constants.MaxDataFrameContentSize;
+                i += chunkSize;
             }
+
         }
 
         public void Run()
@@ -220,7 +217,9 @@ namespace SharedProtocol
             // TODO: Prioritization re-ordering will also break decompression. Scrap the priority queue.
             byte[] headerBytes = FrameHelpers.SerializeHeaderBlock(headers);
             headerBytes = _compressionProc.Compress(headerBytes);
-            HeadersPlusPriority frame = new HeadersPlusPriority(_id, headerBytes);
+
+            var frame = new HeadersPlusPriority(_id, headerBytes);
+
             frame.IsFin = isFin;
             frame.Priority = _priority;
 
@@ -240,19 +239,20 @@ namespace SharedProtocol
             if (IsFlowControlBlocked == false)
             {
                 _writeQueue.WriteFrameAsync(dataFrame, _priority);
+                SentDataAmount += dataFrame.FrameLength;
+
+                _flowCrtlManager.DataFrameSentHandler(this, new DataFrameSentEventArgs(dataFrame));
+
+                if (dataFrame.IsFin)
+                {
+                    Console.WriteLine("Transfer end");
+                    FinSent = true;
+                }
             }
             else
             {
                 _unshippedFrames.Enqueue(dataFrame);
             }
-
-            if (dataFrame.IsFin)
-            {
-                FinSent = true;
-            }
-
-            _flowCrtlManager.DataFrameSentHandler(this, new DataFrameSentEventArgs(dataFrame));
-            SentDataAmount += dataFrame.FrameLength;
         }
 
         public void WriteDataFrame(DataFrame dataFrame)
@@ -260,19 +260,20 @@ namespace SharedProtocol
             if (IsFlowControlBlocked == false)
             {
                 _writeQueue.WriteFrameAsync(dataFrame, _priority);
+                SentDataAmount += dataFrame.FrameLength;
+
+                _flowCrtlManager.DataFrameSentHandler(this, new DataFrameSentEventArgs(dataFrame));
+
+                if (dataFrame.IsFin)
+                {
+                    Console.WriteLine("Transfer end");
+                    FinSent = true;
+                }
             }
             else
             {
                 _unshippedFrames.Enqueue(dataFrame);
             }
-
-            if (dataFrame.IsFin)
-            {
-                FinSent = true;
-            }
-
-            _flowCrtlManager.DataFrameSentHandler(this, new DataFrameSentEventArgs(dataFrame));
-            SentDataAmount += dataFrame.FrameLength;
         }
 
         public void WriteHeaders(SettingsPair[] settings)

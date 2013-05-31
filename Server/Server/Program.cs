@@ -9,7 +9,7 @@ namespace Server
         {
             using (WebApplication.Start<Startup>(options =>
                 {
-                    options.Url = "http://localhost:8443/";
+                    options.Url = "http://localhost:8080/";
                     options.Server =
                         //"Microsoft.Owin.Host.HttpListener"; // No opaque or 2.0 frames
                         // "Microsoft.Owin.Host.HttpSys"; // Opaque only

@@ -95,6 +95,12 @@ namespace SharedProtocol
         {
             int id = args.Id;
 
+            //Stream was closed after a data final frame.
+            if (_streamCollection.ContainsKey(id) == false)
+            {
+                return;
+            }
+
             var stream = _streamCollection[id];
             if (stream.IsFlowControlEnabled == false)
             {
