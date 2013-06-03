@@ -12,8 +12,7 @@ namespace SharedProtocol.IO
 
         public static byte[] GetFile(string localPath)
         {
-            string assemblyPath = Assembly.GetEntryAssembly().Location;
-            assemblyPath = Path.GetDirectoryName(assemblyPath);
+            string assemblyPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
 
             string rootPath = @"\root";
 

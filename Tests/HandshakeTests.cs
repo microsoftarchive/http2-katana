@@ -1,70 +1,77 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Net;
 using System.Net.Sockets;
-using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using Org.Mentalis;
 using Org.Mentalis.Security.Ssl;
 using Org.Mentalis.Security.Ssl.Shared.Extensions;
-using Server;
-using ServerOwinMiddleware;
-using SharedProtocol;
+using Owin.Types;
 using SharedProtocol.Exceptions;
 using SharedProtocol.Handshake;
+using SocketServer;
 using Xunit;
-using Xunit.Extensions;
-using Microsoft.Owin.Hosting;
 
 namespace HandshakeTests
 {
     public class HandshakeTests
     {
-        private readonly Thread _secureServerThread;
-        private readonly Thread _unsecureServerThread;
+        private HttpSocketServer _http2SecureServer;
+        private HttpSocketServer _http2UnsecureServer;
+
+        private async Task InvokeMiddleWare(IDictionary<string, object> environment)
+        {
+            var handshakeAction = (Action)environment["HandshakeAction"];
+            handshakeAction.Invoke();
+        }
+
+        private HttpSocketServer RunServer(string address)
+        {
+            Uri uri;
+            Uri.TryCreate(address, UriKind.Absolute, out uri);
+
+            var properties = new Dictionary<string, object>();
+            var addresses = new List<IDictionary<string, object>>()
+                {
+                    new Dictionary<string, object>()
+                        {
+                            {"host", uri.Host},
+                            {"scheme", uri.Scheme},
+                            {"port", uri.Port.ToString()},
+                            {"path", uri.AbsolutePath}
+                        }
+                };
+
+            properties.Add(OwinConstants.CommonKeys.Addresses, addresses);
+
+            HttpSocketServer server = null;
+
+            new Thread((ThreadStart)delegate
+            {
+                server = new HttpSocketServer(InvokeMiddleWare, properties);
+            }).Start();
+
+            return server;
+        }
 
         public HandshakeTests()
-        {
-            //Secure Server
-            _secureServerThread = new Thread((ThreadStart)delegate
-                {
-                    using (WebApplication.Start<Startup>(options =>
-                    {
-                        options.Url = "http://localhost:8443/";
-                        options.Server = "SocketServer";
-                    }))
-                    {
-                    }
-                });
-            _secureServerThread.Start();
+        {            
+            const string addressSecure = @"https://localhost:8443/";
+            const string addressUnsecure = @"http://localhost:8080/";
+            _http2UnsecureServer = RunServer(addressUnsecure);
+            _http2SecureServer = RunServer(addressSecure);
 
-
-            //Unsecure server
-            _unsecureServerThread = new Thread((ThreadStart)delegate
+            using (var waitForServersStart = new ManualResetEvent(false))
             {
-                using (WebApplication.Start<Startup>(options =>
-                {
-                    options.Url = "http://localhost:8080/";
-                    options.Server = "SocketServer";
-                }))
-                {
-                }
-            });
-
-            _unsecureServerThread.Start();
-
-             using (var waitForServersStart = new ManualResetEvent(false))
-             {
-                 waitForServersStart.WaitOne(5000);
-             }
+                waitForServersStart.WaitOne(3000);
+            }
         }
 
         [Fact]
         public void AlpnSelectionHttp2Successful()
         {
-            string requestStr = @"http://localhost:8443/";
+            const string requestStr = @"http://localhost:8443/";
             string selectedProtocol = null;
             Uri uri;
             Uri.TryCreate(requestStr, UriKind.Absolute, out uri);
@@ -78,7 +85,7 @@ namespace HandshakeTests
             options.Flags = SecurityFlags.Default;
             options.AllowedAlgorithms = SslAlgorithms.RSA_AES_128_SHA | SslAlgorithms.NULL_COMPRESSION;
 
-            SecureSocket sessionSocket = new SecureSocket(AddressFamily.InterNetwork, SocketType.Stream,
+            var sessionSocket = new SecureSocket(AddressFamily.InterNetwork, SocketType.Stream,
                                                 ProtocolType.Tcp, options);
 
             using (var monitor = new ALPNExtensionMonitor())
@@ -97,7 +104,7 @@ namespace HandshakeTests
         [Fact]
         public void UpgradeHandshakeSuccessful()
         {
-            string requestStr = @"http://localhost:8080/";
+            const string requestStr = @"http://localhost:8080/";
             string selectedProtocol = null;
             Uri uri;
             Uri.TryCreate(requestStr, UriKind.Absolute, out uri);
@@ -111,7 +118,7 @@ namespace HandshakeTests
             options.Flags = SecurityFlags.Default;
             options.AllowedAlgorithms = SslAlgorithms.RSA_AES_128_SHA | SslAlgorithms.NULL_COMPRESSION;
 
-            SecureSocket sessionSocket = new SecureSocket(AddressFamily.InterNetwork, SocketType.Stream,
+            var sessionSocket = new SecureSocket(AddressFamily.InterNetwork, SocketType.Stream,
                                                 ProtocolType.Tcp, options);
 
             sessionSocket.Connect(new DnsEndPoint(uri.Host, uri.Port));
@@ -132,8 +139,8 @@ namespace HandshakeTests
 
         ~HandshakeTests()
         {
-            _unsecureServerThread.Abort();
-            _secureServerThread.Abort();
+            _http2UnsecureServer.Dispose();
+            _http2SecureServer.Dispose();
         }
     }
 }

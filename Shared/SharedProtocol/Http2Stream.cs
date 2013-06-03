@@ -21,6 +21,9 @@ namespace SharedProtocol
         private readonly CompressionProcessor _compressionProc;
         private readonly FlowControlManager _flowCrtlManager;
 
+        private int windowUpdateReceivedCount = 0;
+        private int dataFrameSentCount = 0;
+
         private readonly Queue<DataFrame> _unshippedFrames;
 
         //Incoming
@@ -91,10 +94,13 @@ namespace SharedProtocol
         #region FlowControl
         public void UpdateWindowSize(Int32 delta)
         {
+            windowUpdateReceivedCount++;
             if (IsFlowControlEnabled)
             {
                 WindowSize += delta;
             }
+
+            Console.WriteLine(WindowSize);
 
             //Unblock stream if it was blocked by flowCtrlManager
             if (WindowSize > 0 && IsFlowControlBlocked)
@@ -114,6 +120,9 @@ namespace SharedProtocol
             //Do not dispose if unshipped frames are still here
             if (FinSent && FinReceived)
             {
+                Console.WriteLine("Received {0} window update frames", windowUpdateReceivedCount);
+                Console.WriteLine("Sent {0} data frames", dataFrameSentCount);
+                Console.WriteLine("Sent data {0}", SentDataAmount);
                 Console.WriteLine("File sent: " + GetHeader(":path"));
                 Dispose();
             }
@@ -160,7 +169,7 @@ namespace SharedProtocol
             else
             {
                 //Aggresive window update
-                WriteWindowUpdate(Constants.MaxDataFrameContentSize);  
+                WriteWindowUpdate(2000000);  
             }
         }
 
@@ -205,6 +214,7 @@ namespace SharedProtocol
             catch (Exception)
             {
                 WriteRst(ResetStatusCode.InternalError);
+
                 Dispose();
             }
         }
@@ -229,10 +239,16 @@ namespace SharedProtocol
             }
 
             _writeQueue.WriteFrameAsync(frame, _priority);
+
+            if (OnFrameSent != null)
+            {
+                OnFrameSent(this, new FrameSentArgs(frame));
+            }
         }
 
         public void WriteDataFrame(byte[] data, bool isFin)
         {
+            dataFrameSentCount++;
             var dataFrame = new DataFrame(_id, new ArraySegment<byte>(data), isFin);
             dataFrame.IsFin = isFin;
 
@@ -248,6 +264,11 @@ namespace SharedProtocol
                     Console.WriteLine("Transfer end");
                     FinSent = true;
                 }
+
+                if (OnFrameSent != null)
+                {
+                    OnFrameSent(this, new FrameSentArgs(dataFrame));
+                }
             }
             else
             {
@@ -257,6 +278,7 @@ namespace SharedProtocol
 
         public void WriteDataFrame(DataFrame dataFrame)
         {
+            dataFrameSentCount++;
             if (IsFlowControlBlocked == false)
             {
                 _writeQueue.WriteFrameAsync(dataFrame, _priority);
@@ -269,6 +291,11 @@ namespace SharedProtocol
                     Console.WriteLine("Transfer end");
                     FinSent = true;
                 }
+
+                if (OnFrameSent != null)
+                {
+                    OnFrameSent(this, new FrameSentArgs(dataFrame));
+                }
             }
             else
             {
@@ -279,12 +306,21 @@ namespace SharedProtocol
         public void WriteHeaders(SettingsPair[] settings)
         {
             //TODO process write headers
+            if (OnFrameSent != null)
+            {
+                OnFrameSent(this, new FrameSentArgs(new HeadersFrame(1, null)));
+            }
         }
 
         public void WriteWindowUpdate(Int32 windowSize)
         {
             var frame = new WindowUpdateFrame(_id, windowSize);
             _writeQueue.WriteFrameAsync(frame, _priority);
+
+            if (OnFrameSent != null)
+            {
+                OnFrameSent(this, new FrameSentArgs(frame));
+            }
         }
 
         public void WriteRst(ResetStatusCode code)
@@ -292,6 +328,11 @@ namespace SharedProtocol
             var frame = new RstStreamFrame(_id, code);
             _writeQueue.WriteFrameAsync(frame, _priority);
             ResetSent = true;
+
+            if (OnFrameSent != null)
+            {
+                OnFrameSent(this, new FrameSentArgs(frame));
+            }
         }
         #endregion
 
@@ -304,6 +345,8 @@ namespace SharedProtocol
             _flowCrtlManager.StreamClosedHandler(this);
             Disposed = true;
         }
+
+        public event EventHandler<FrameSentArgs> OnFrameSent;
 
         public event EventHandler<StreamClosedEventArgs> OnClose;
     }

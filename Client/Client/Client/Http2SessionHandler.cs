@@ -49,18 +49,15 @@ namespace Client
             {
                 int port = _requestUri.Port;
 
-                ExtensionType[] extensions = new ExtensionType[] { ExtensionType.Renegotiation, ExtensionType.ALPN };
+                ExtensionType[] extensions = new [] { ExtensionType.Renegotiation, ExtensionType.ALPN };
 
                 switch (port)
                 {
                     case HttpsPort:
                         _options = new SecurityOptions(SecureProtocol.Tls1, extensions, ConnectionEnd.Client);
                         break;
-                    case HttpPort:
-                        _options = new SecurityOptions(SecureProtocol.None, extensions, ConnectionEnd.Client);
-                        break;
                     default:
-                        Console.WriteLine("Incorrect port: use 8080 or 8443");
+                        _options = new SecurityOptions(SecureProtocol.None, extensions, ConnectionEnd.Client);
                         return;
                 }
 
