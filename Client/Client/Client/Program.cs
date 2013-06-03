@@ -50,7 +50,7 @@ namespace Client
             _sessions = new List<Http2SessionHandler>();
 
             HelpDisplayer.ShowMainMenuHelp();
-
+            ThreadPool.SetMaxThreads(10, 10);
             try
             {
                 Console.WriteLine("Enter command");

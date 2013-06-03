@@ -37,11 +37,11 @@ namespace SharedProtocol
 
             if (_end == ConnectionEnd.Client)
             {
-                _lastId = -1;
+                _lastId = -1; // Streams opened by client are odd
             }
             else
             {
-                _lastId = 0;
+                _lastId = 0; // Streams opened by server are even
             }
 
             _goAwayReceived = false;
@@ -128,7 +128,13 @@ namespace SharedProtocol
 
                         ActiveStreams[stream.Id] = stream;
 
-                        stream.OnClose += StreamCloseHandler;
+                        stream.OnClose += (o, args) =>
+                        {
+                            if (ActiveStreams.Remove(ActiveStreams[args.Id]) == false)
+                            {
+                                throw new ArgumentException("Cant remove stream from ActiveStreams");
+                            }
+                        };
                         Task.Run(() => stream.Run());
                         break;
 
@@ -171,11 +177,18 @@ namespace SharedProtocol
                         throw new NotImplementedException(frame.FrameType.ToString());
                 }
 
-                //Tell the stream that it was the last frame
-                if (stream != null && frame.IsFin)
+                if (stream != null)
                 {
-                    Console.WriteLine("Final frame received");
-                    stream.FinReceived = true;
+                    if (OnFrameReceived != null)
+                    {
+                        OnFrameReceived(this, new FrameReceivedEventArgs(stream, frame));
+                    } 
+                    //Tell the stream that it was the last frame
+                    if (frame.IsFin)
+                    {
+                        Console.WriteLine("Final frame received");
+                        stream.FinReceived = true;
+                    }
                 }
             }
                 //Frame came for already closed stream. Ignore it.
@@ -196,7 +209,22 @@ namespace SharedProtocol
         private Http2Stream CreateStream(Priority priority)
         {
             var stream = new Http2Stream(GetNextId(), priority, _writeQueue, _flowControlManager, _comprProc);
-            stream.OnClose += StreamCloseHandler;
+            
+            stream.OnClose += (o, args) =>
+                {
+                    if (ActiveStreams.Remove(ActiveStreams[args.Id]) == false)
+                    {
+                        throw new ArgumentException("Cant remove stream from ActiveStreams");
+                    }
+                };
+
+            stream.OnFrameSent += (o, args) =>
+                {
+                    if (OnFrameSent != null)
+                    {
+                        OnFrameSent(o, args);
+                    }
+                };
 
             ActiveStreams[stream.Id] = stream;
             return stream;
@@ -205,7 +233,7 @@ namespace SharedProtocol
         public Http2Stream SendRequest(Dictionary<string, string> pairs, int priority, bool isFin)
         {
             Contract.Assert(priority >= 0 && priority <= 7);
-            Http2Stream stream = CreateStream((Priority)priority);
+            var stream = CreateStream((Priority)priority);
 
             stream.WriteHeadersPlusPriorityFrame(pairs, isFin);
             return stream;
@@ -225,7 +253,7 @@ namespace SharedProtocol
 
         public Task Start()
         {
-            WriteSettings(new[] { new SettingsPair(0, SettingsIds.InitialWindowSize, Constants.MaxDataFrameContentSize) });
+            WriteSettings(new[] { new SettingsPair(0, SettingsIds.InitialWindowSize, 200000) });
             
             // Listen for incoming Http/2.0 frames
             Task incomingTask = new Task(() => PumpIncommingData());
@@ -243,6 +271,11 @@ namespace SharedProtocol
             var frame = new SettingsFrame(new List<SettingsPair>(settings));
 
             _writeQueue.WriteFrameAsync(frame, Priority.Pri3);
+
+            if (OnSettingsSent != null)
+            {
+                OnSettingsSent(this, new SettingsSentEventArgs(frame));
+            }
         }
 
         #region Ping
@@ -308,19 +341,20 @@ namespace SharedProtocol
                 stream.WriteRst(ResetStatusCode.Cancel);
                 stream.Dispose();
             }
-            
+
+            OnSettingsSent = null;
+            OnFrameReceived = null;
+            OnFrameSent = null;
+
             _comprProc.Dispose();
             _sessionSocket.Close();
         }
         #endregion
 
-        private void StreamCloseHandler(object sender, StreamClosedEventArgs args)
-        {
-            var stream = ActiveStreams[args.Id];
-            if (ActiveStreams.Remove(stream) == false)
-            {
-                throw new ArgumentException("Cant remove stream from ActiveStreams");
-            }
-        }
+        public event EventHandler<SettingsSentEventArgs> OnSettingsSent;
+
+        public event EventHandler<FrameSentArgs> OnFrameSent;
+
+        public event EventHandler<FrameReceivedEventArgs> OnFrameReceived;
     }
 }

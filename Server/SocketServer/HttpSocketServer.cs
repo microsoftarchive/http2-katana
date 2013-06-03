@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Org.Mentalis.Security.Certificates;
 using Org.Mentalis.Security.Ssl;
@@ -29,25 +30,20 @@ namespace SocketServer
         {
             _next = next;
 
-            IList<IDictionary<string, object>> addresses =
-                (IList<IDictionary<string, object>>)properties[OwinConstants.CommonKeys.Addresses];
+            var addresses = (IList<IDictionary<string, object>>)properties[OwinConstants.CommonKeys.Addresses];
 
-            IDictionary<string, object> address = addresses.First();
+            var address = addresses.First();
             _port = Int32.Parse(address.Get<string>("port"));
 
-            ExtensionType[] extensions = new ExtensionType[] { ExtensionType.Renegotiation, ExtensionType.ALPN };
+            var extensions = new [] { ExtensionType.Renegotiation, ExtensionType.ALPN };
 
             switch (_port)
             {
                 case HttpsPort:
                     _options = new SecurityOptions(SecureProtocol.Tls1, extensions, ConnectionEnd.Server);
                     break;
-                // TODO http is default
-                case HttpPort:
+                default:
                     _options = new SecurityOptions(SecureProtocol.None, extensions, ConnectionEnd.Server);
-                    break;
-                default: 
-                    Console.WriteLine("Incorrect port: use 8080 or 8443");
                     return;
             }
 
@@ -57,6 +53,8 @@ namespace SocketServer
             _options.AllowedAlgorithms = SslAlgorithms.RSA_AES_128_SHA | SslAlgorithms.NULL_COMPRESSION;
 
             _server = new SecureTcpListener(_port, _options);
+
+            ThreadPool.SetMaxThreads(10,10);
 
             Listen();
         }
@@ -78,11 +76,6 @@ namespace SocketServer
                     Console.WriteLine("Unhandled exception was caught: " + ex.Message);
                 }
             }
-        }
-
-        public void Stop()
-        {
-            Dispose();
         }
 
         public void Dispose()

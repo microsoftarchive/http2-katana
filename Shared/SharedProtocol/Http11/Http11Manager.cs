@@ -13,8 +13,8 @@ namespace SharedProtocol.Http11
 {
     public static class Http11Manager
     {
-        private static readonly string assemblyPath = Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
-
+        private static readonly string assemblyPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+        
         private static string GetFileName(string[] headers)
         {
             string getRequest = String.Empty;

@@ -88,6 +88,12 @@
     <Compile Include="..\Server\SocketServer\GlobalSuppressions.cs">
       <Link>Sources\GlobalSuppressions.cs</Link>
     </Compile>
+    <Compile Include="..\Server\SocketServer\HttpConnetingClient.cs">
+      <Link>Sources\HttpConnetingClient.cs</Link>
+    </Compile>
+    <Compile Include="..\Server\SocketServer\HttpSocketServer.cs">
+      <Link>Sources\HttpSocketServer.cs</Link>
+    </Compile>
     <Compile Include="..\Server\SocketServer\OwinServerFactoryAttribute.cs">
       <Link>Sources\OwinServerFactoryAttribute.cs</Link>
     </Compile>
@@ -114,6 +120,15 @@
     </Compile>
     <Compile Include="..\Shared\SharedProtocol\EventArgs\DataFrameSentEventArgs.cs">
       <Link>Sources\DataFrameSentEventArgs.cs</Link>
+    </Compile>
+    <Compile Include="..\Shared\SharedProtocol\EventArgs\FrameReceivedEventArgs.cs">
+      <Link>Sources\FrameReceivedEventArgs.cs</Link>
+    </Compile>
+    <Compile Include="..\Shared\SharedProtocol\EventArgs\FrameSentArgs.cs">
+      <Link>Sources\FrameSentArgs.cs</Link>
+    </Compile>
+    <Compile Include="..\Shared\SharedProtocol\EventArgs\SettingsSentEventArgs.cs">
+      <Link>Sources\SettingsSentEventArgs.cs</Link>
     </Compile>
     <Compile Include="..\Shared\SharedProtocol\EventArgs\StreamClosedEventArgs.cs">
       <Link>Sources\StreamClosedEventArgs.cs</Link>
@@ -240,6 +255,8 @@
     </Compile>
     <Compile Include="BasicTests.cs" />
     <Compile Include="HandshakeTests.cs" />
+    <Compile Include="Http11Tests.cs" />
+    <Compile Include="Http2Tests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -259,6 +276,9 @@
       <Project>{658c0a0d-a624-4532-aff0-180ec5ed7887}</Project>
       <Name>SocketServer</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="App.config" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
