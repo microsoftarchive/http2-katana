@@ -52,6 +52,7 @@
       <HintPath>..\Shared\SharedProtocol\packages\Owin.Types.dll</HintPath>
     </Reference>
     <Reference Include="System" />
+    <Reference Include="System.Configuration" />
     <Reference Include="System.Core" />
     <Reference Include="System.Net.Http" />
     <Reference Include="System.Net.Http.Formatting, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
@@ -126,6 +127,9 @@
     </Compile>
     <Compile Include="..\Shared\SharedProtocol\EventArgs\FrameSentArgs.cs">
       <Link>Sources\FrameSentArgs.cs</Link>
+    </Compile>
+    <Compile Include="..\Shared\SharedProtocol\EventArgs\Http11ResourceDownloadedEventArgs.cs">
+      <Link>Sources\Http11ResourceDownloadedEventArgs.cs</Link>
     </Compile>
     <Compile Include="..\Shared\SharedProtocol\EventArgs\SettingsSentEventArgs.cs">
       <Link>Sources\SettingsSentEventArgs.cs</Link>
@@ -238,9 +242,6 @@
     <Compile Include="..\Shared\SharedProtocol\IO\WriteQueue.cs">
       <Link>Sources\WriteQueue.cs</Link>
     </Compile>
-    <Compile Include="..\Shared\SharedProtocol\Ping.cs">
-      <Link>Sources\Ping.cs</Link>
-    </Compile>
     <Compile Include="..\Shared\SharedProtocol\Settings\SettingsManager.cs">
       <Link>Sources\SettingsManager.cs</Link>
     </Compile>
@@ -284,8 +285,8 @@
   <PropertyGroup>
     <PostBuildEvent>copy /y "$(SolutionDir)Drop\certificate.pfx"  "$(TargetDir)"
 mkdir "$(TargetDir)root"
-copy /y "$(SolutionDir)Drop\root\10mbTest.txt"  "$(TargetDir)root"
-copy /y "$(SolutionDir)Drop\root\test.txt"  "$(TargetDir)root"</PostBuildEvent>
+copy /y "$(SolutionDir)Drop\root\10mbTest.txt"  "$(TargetDir)root\10mbTest.txt"
+copy /y "$(SolutionDir)Drop\root\test.txt"  "$(TargetDir)root\simpleTest.txt"</PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

@@ -1,4 +1,5 @@
-﻿using Org.Mentalis.Security.Ssl;
+﻿using System.Threading;
+using Org.Mentalis.Security.Ssl;
 using SharedProtocol.Compression;
 using SharedProtocol.Framing;
 using SharedProtocol.IO;
@@ -11,36 +12,41 @@ namespace SharedProtocol
 {
     public class Http2Session : IDisposable
     {
-        private bool _goAwayReceived; 
-        private FrameReader _frameReader;
-        private WriteQueue _writeQueue;
-        private SecureSocket _sessionSocket;
-        private Ping _currentPing;
-        private int _nextPingId;
+        private readonly bool _goAwayReceived; 
+        private readonly FrameReader _frameReader;
+        private readonly WriteQueue _writeQueue;
+        private readonly SecureSocket _sessionSocket;
+        private readonly ManualResetEvent _pingReceived = new ManualResetEvent(false);
         private bool _disposed;
-        private SettingsManager _settingsManager;
-        private CompressionProcessor _comprProc;
-        private FlowControlManager _flowControlManager;
-        private ConnectionEnd _end;
+        private readonly SettingsManager _settingsManager;
+        private readonly CompressionProcessor _comprProc;
+        private readonly FlowControlManager _flowControlManager;
+        private readonly ConnectionEnd _ourEnd;
+        private readonly ConnectionEnd _remoteEnd;
         private int _lastId;
+        private bool _wasSettingsReceived = false;
+        private bool _wasPingReceived = false;
 
         internal ActiveStreams ActiveStreams { get; private set; }
 
         //TODO take into account this variable
-        public Int32 MaxConcurrentStreams { get; set; }
+        internal Int32 OurMaxConcurrentStreams { get; set; }
+        internal Int32 RemoteMaxConcurrentStreams { get; set; }
 
         public Int32 SessionWindowSize { get; set; }
 
         public Http2Session(SecureSocket sessionSocket, ConnectionEnd end)
         {
-            _end = end;
+            _ourEnd = end;
 
-            if (_end == ConnectionEnd.Client)
+            if (_ourEnd == ConnectionEnd.Client)
             {
+                _remoteEnd = ConnectionEnd.Server;
                 _lastId = -1; // Streams opened by client are odd
             }
             else
             {
+                _remoteEnd = ConnectionEnd.Client;
                 _lastId = 0; // Streams opened by server are even
             }
 
@@ -55,18 +61,12 @@ namespace SharedProtocol
 
             ActiveStreams = new ActiveStreams();
 
+            OurMaxConcurrentStreams = 100; //Spec recommends value 100 by default
+            RemoteMaxConcurrentStreams = 100;
+
             _flowControlManager = new FlowControlManager(this);
 
             SessionWindowSize = 0;
-            /*var ioPair = new Tuple<FrameReader, WriteQueue>(_frameReader, _writeQueue);
-            Dictionary<IMonitor, object> monitorPairs = new Dictionary<IMonitor, object>(1);
-
-            monitorPairs.Add(new FlowControlMonitor(_flowControlManager.DataFrameSentHandler, 
-                                                    _flowControlManager.DataFrameReceivedHandler), 
-                                                    ioPair);
-
-            SessionMonitor monitor = new SessionMonitor(monitorPairs);
-            monitor.Attach(this);*/
         }
 
         #region Pumps
@@ -122,6 +122,13 @@ namespace SharedProtocol
                         decompressedHeaders = _comprProc.Decompress(headersPlusPriorityFrame.CompressedHeaders);
                         headers = FrameHelpers.DeserializeHeaderBlock(decompressedHeaders);
 
+                        //Remote side tries to open more streams than allowed
+                        if (ActiveStreams.GetOpenedStreamsBy(_remoteEnd) + 1 > OurMaxConcurrentStreams)
+                        {
+                            Dispose();
+                            return;
+                        }
+
                         stream = new Http2Stream(headers, headersPlusPriorityFrame.StreamId,
                                                  headersPlusPriorityFrame.Priority, _writeQueue,
                                                  _flowControlManager, _comprProc);
@@ -135,29 +142,48 @@ namespace SharedProtocol
                                 throw new ArgumentException("Cant remove stream from ActiveStreams");
                             }
                         };
-                        Task.Run(() => stream.Run());
                         break;
 
                     case FrameType.RstStream:
                         var resetFrame = (RstStreamFrame) frame;
                         stream = GetStream(resetFrame.StreamId);
 
-                        //TODO rework
-                        stream.WriteRst(resetFrame.StatusCode);
+                        Console.WriteLine("Got rst with code {0}", resetFrame.StatusCode);
+                        stream.Dispose();
                         break;
                     case FrameType.Data:
                         var dataFrame = (DataFrame) frame;
                         stream = GetStream(dataFrame.StreamId);
 
-                        Task.Run(() => stream.ProcessIncomingData(dataFrame));
+                        //Aggressive window update
+                        stream.WriteWindowUpdate(2000000);
                         break;
                     case FrameType.Ping:
                         //TODO Process ping correctly
                         var pingFrame = (PingFrame) frame;
-                        ReceivePing(pingFrame.Id);
+                        if (pingFrame.Flags == FrameFlags.Pong)
+                        {
+                            _wasPingReceived = true;
+                            _pingReceived.Set();
+                        }
+                        else
+                        {
+                            var pingResonseFrame = new PingFrame(true);
+                            _writeQueue.WriteFrameAsync(pingResonseFrame, Priority.Pri0);
+                        }
                         break;
                     case FrameType.Settings:
-                        Task.Run(() => _settingsManager.ProcessSettings((SettingsFrame)frame, _flowControlManager));
+                        //Not first frame in the session.
+                        //Client initiates connection and it send settings before request. 
+                        //It means that if server will send settings then it will not be a first frame,
+                        //because client initiates connection.
+                        if (_ourEnd == ConnectionEnd.Server && !_wasSettingsReceived && ActiveStreams.Count != 0)
+                        {
+                            Dispose();
+                        }
+
+                        _wasSettingsReceived = true;
+                        Task.Run(() => _settingsManager.ProcessSettings((SettingsFrame)frame, this,_flowControlManager));
                         break;
                     case FrameType.WindowUpdate:
                         var windowFrame = (WindowUpdateFrame) frame;
@@ -171,7 +197,15 @@ namespace SharedProtocol
                         stream = GetStream(headersFrame.StreamId);
                         decompressedHeaders = _comprProc.Decompress(headersFrame.CompressedHeaders);
                         headers = FrameHelpers.DeserializeHeaderBlock(decompressedHeaders);
-                        //TODO Process headers
+
+                        foreach (var key in headers.Keys)
+                        {
+                            stream.Headers.Add(key, headers[key]);
+                        }
+
+                        break;
+                    case FrameType.GoAway:
+                        Dispose();
                         break;
                     default:
                         throw new NotImplementedException(frame.FrameType.ToString());
@@ -191,7 +225,7 @@ namespace SharedProtocol
                     }
                 }
             }
-                //Frame came for already closed stream. Ignore it.
+            //Frame came for already closed stream. Ignore it.
             catch (KeyNotFoundException)
             {
                 
@@ -208,6 +242,11 @@ namespace SharedProtocol
 
         private Http2Stream CreateStream(Priority priority)
         {
+            if (ActiveStreams.GetOpenedStreamsBy(_ourEnd) + 1 > RemoteMaxConcurrentStreams)
+            {
+                Dispose();
+                throw new InvalidOperationException("Trying to create more streams than allowed by the remote side!");
+            }
             var stream = new Http2Stream(GetNextId(), priority, _writeQueue, _flowControlManager, _comprProc);
             
             stream.OnClose += (o, args) =>
@@ -254,7 +293,9 @@ namespace SharedProtocol
         public Task Start()
         {
             WriteSettings(new[] { new SettingsPair(0, SettingsIds.InitialWindowSize, 200000) });
-            
+
+            Task.Run(() => Ping());
+  
             // Listen for incoming Http/2.0 frames
             Task incomingTask = new Task(() => PumpIncommingData());
             // Send outgoing Http/2.0 frames
@@ -278,36 +319,33 @@ namespace SharedProtocol
             }
         }
 
-        #region Ping
-        public Task<TimeSpan> PingAsync()
+        public void WriteGoAway(GoAwayStatusCode code)
         {
-            Contract.Assert(_currentPing == null || _currentPing.Task.IsCompleted);
-            Ping ping = new Ping(_nextPingId);
-            _nextPingId += 2;
-            _currentPing = ping;
-            PingFrame pingFrame = new PingFrame(_currentPing.Id);
-            _writeQueue.WriteFrameAsync(pingFrame, Priority.Ping);
-            return ping.Task;
+            var frame = new GoAwayFrame(_lastId, code);
+
+            _writeQueue.WriteFrameAsync(frame, Priority.Pri3);
         }
 
-        public void ReceivePing(int id)
+        public TimeSpan Ping()
         {
-            // Even or odd?
-            if (id % 2 != _nextPingId % 2)
+            var pingFrame = new PingFrame(false);
+            _writeQueue.WriteFrameAsync(pingFrame, Priority.Pri0);
+            var now = DateTime.UtcNow;
+
+            _pingReceived.WaitOne(60000);
+            _pingReceived.Reset();
+
+            if (!_wasPingReceived)
             {
-                // Not one of ours, response ASAP
-                _writeQueue.WriteFrameAsync(new PingFrame(id), Priority.Ping);
-                return;
+                //Remote endpoint was not answer at time.
+                Dispose();
             }
 
-            Ping currentPing = _currentPing;
-            if (currentPing != null && id == currentPing.Id)
-            {
-                currentPing.Complete();
-            }
-            // Ignore extra pings
+            var newNow = DateTime.UtcNow;
+            Console.WriteLine("Ping: {0}", (newNow - now).Milliseconds);
+            _wasPingReceived = false;
+            return newNow - now;
         }
-        #endregion
 
         #region Dispose
         public void Dispose()
@@ -328,12 +366,6 @@ namespace SharedProtocol
                 _writeQueue.Dispose();
             }
 
-            Ping currentPing = _currentPing;
-            if (currentPing != null)
-            {
-                currentPing.Cancel();
-            }
-
             // Dispose of all streams
             foreach (Http2Stream stream in ActiveStreams.Values)
             {
@@ -342,12 +374,16 @@ namespace SharedProtocol
                 stream.Dispose();
             }
 
+            WriteGoAway(GoAwayStatusCode.Ok);
+
             OnSettingsSent = null;
             OnFrameReceived = null;
             OnFrameSent = null;
 
             _comprProc.Dispose();
             _sessionSocket.Close();
+
+            Console.WriteLine("Session closed");
         }
         #endregion
 

@@ -34,6 +34,9 @@ namespace Client
                 case "exit":
                     ShowHelp = HelpDisplayer.ShowExitCommandHelp;
                     break;
+                case "ping":
+                    ShowHelp = HelpDisplayer.ShowPingCommandHelp;
+                    break;
                 default:
                     Console.WriteLine("Help was called for non-implemented command");
                     break;

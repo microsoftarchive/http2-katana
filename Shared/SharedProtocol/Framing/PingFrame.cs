@@ -13,25 +13,16 @@ namespace SharedProtocol.Framing
         }
 
         // Outgoing
-        public PingFrame(int pingId)
+        public PingFrame(bool isPong)
             : base(new byte[InitialFrameSize])
         {
             FrameType = FrameType.Ping;
             FrameLength = InitialFrameSize - Constants.FramePreambleSize; // 4
-            Id = pingId;
-        }
-
-        // 32 bits
-        public int Id
-        {
-            get
+            if (isPong)
             {
-                return FrameHelpers.Get32BitsAt(Buffer, 8);
+                Flags = FrameFlags.Pong;
             }
-            set
-            {
-                FrameHelpers.Set32BitsAt(Buffer, 8, value);
-            }
-        }        
+            StreamId = 0;
+        }     
     }
 }

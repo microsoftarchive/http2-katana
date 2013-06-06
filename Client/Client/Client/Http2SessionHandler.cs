@@ -1,32 +1,38 @@
-﻿using System.Net.Sockets;
+﻿using System.Configuration;
+using System.IO;
+using System.Net.Sockets;
 using System;
 using System.Collections.Generic;
 using System.Net;
-using System.Threading;
+using System.Reflection;
 using System.Threading.Tasks;
 using Org.Mentalis;
 using Org.Mentalis.Security.Ssl;
 using Org.Mentalis.Security.Ssl.Shared.Extensions;
 using SharedProtocol;
 using SharedProtocol.Exceptions;
+using SharedProtocol.ExtendedMath;
 using SharedProtocol.Framing;
 using SharedProtocol.Handshake;
 using SharedProtocol.Http11;
+using SharedProtocol.IO;
 
 namespace Client
 {
     public sealed class Http2SessionHandler : IDisposable
     {
-        private const int HttpsPort = 8443;
-        private const int HttpPort = 8080;
         private SecurityOptions _options;
         private Http2Session _clientSession;
-        private string _certificatePath = @"certificate.pfx";
-        private Uri _requestUri;
+        private const string _certificatePath = @"certificate.pfx";
+        private readonly Uri _requestUri;
         private SecureSocket _socket;
         private string _selectedProtocol;
         private bool _useHttp20 = true;
-        
+        private readonly FileHelper _fileHelper;
+        private readonly object _writeLock = new object();
+
+        private static readonly string assemblyPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+
         public bool IsHttp2WillBeUsed {
             get { return _useHttp20; }
         }
@@ -34,6 +40,7 @@ namespace Client
         public Http2SessionHandler(Uri requestUri)
         {
             _requestUri = requestUri;
+            _fileHelper = new FileHelper();
         }
 
         public async void Connect()
@@ -49,17 +56,22 @@ namespace Client
             {
                 int port = _requestUri.Port;
 
-                ExtensionType[] extensions = new [] { ExtensionType.Renegotiation, ExtensionType.ALPN };
+                int securePort;
 
-                switch (port)
+                try
                 {
-                    case HttpsPort:
-                        _options = new SecurityOptions(SecureProtocol.Tls1, extensions, ConnectionEnd.Client);
-                        break;
-                    default:
-                        _options = new SecurityOptions(SecureProtocol.None, extensions, ConnectionEnd.Client);
-                        return;
+                    securePort = int.Parse(ConfigurationManager.AppSettings["securePort"]);
                 }
+                catch (Exception)
+                {
+                    Console.WriteLine("Incorrect port in the config file!");
+                    return;
+                }
+
+                var extensions = new [] { ExtensionType.Renegotiation, ExtensionType.ALPN };
+
+                _options = port == securePort ? new SecurityOptions(SecureProtocol.Tls1, extensions, new[] { "http/2.0", "http/1.1" }, ConnectionEnd.Client)
+                    : new SecurityOptions(SecureProtocol.None, extensions, new[] { "http/2.0", "http/1.1" }, ConnectionEnd.Client);
 
                 _options.VerificationType = CredentialVerification.None;
                 _options.Certificate = Org.Mentalis.Security.Certificates.Certificate.CreateFromCerFile(_certificatePath);
@@ -71,7 +83,7 @@ namespace Client
 
                 using (var monitor = new ALPNExtensionMonitor())
                 {
-                    monitor.OnProtocolSelected += ProtocolSelectedHandler;
+                    monitor.OnProtocolSelected += (o, args) => { _selectedProtocol = args.SelectedProtocol; };
                     sessionSocket.Connect(new DnsEndPoint(_requestUri.Host, _requestUri.Port), monitor);
 
                     HandshakeManager.GetHandshakeAction(sessionSocket, _options).Invoke();
@@ -89,7 +101,9 @@ namespace Client
                 }
                 _useHttp20 = true;
                 _clientSession = new Http2Session(_socket, ConnectionEnd.Client);
-        
+
+                _clientSession.OnFrameReceived += FrameReceivedHandler;
+
                 await _clientSession.Start();
             }
             catch (HTTP2HandshakeFailed)
@@ -108,21 +122,15 @@ namespace Client
                     _clientSession.Dispose();
                     _clientSession = null;
                 }
-                throw;
             }
-        }
-
-        private void ProtocolSelectedHandler(object sender, ProtocolSelectedArgs args)
-        {
-            _selectedProtocol = args.SelectedProtocol;
         }
 
         private Http2Stream SubmitRequest()
         {
-            Dictionary<string, string> pairs = new Dictionary<string, string>(10);
-            string method = "GET";
+            var pairs = new Dictionary<string, string>(10);
+            const string method = "GET";
             string path = _requestUri.PathAndQuery;
-            string version = "HTTP/2.0";
+            const string version = "HTTP/2.0";
             string scheme = _requestUri.Scheme;
             string host = _requestUri.Host;
 
@@ -153,12 +161,93 @@ namespace Client
             stream = SubmitRequest();
         }
 
+        public TimeSpan Ping()
+        {
+            if (_clientSession != null)
+            {
+                return Task.Run(() => _clientSession.Ping()).Result;
+            }
+
+            return default(TimeSpan);
+        }
+
+        private void SendResponce(Http2Stream stream)
+        {
+            byte[] binaryFile = _fileHelper.GetFile(stream.Headers[":path"]);
+            int i = 0;
+
+            Console.WriteLine("Transfer begin");
+
+            while (binaryFile.Length > i)
+            {
+                bool isLastData = binaryFile.Length - i < Constants.MaxDataFrameContentSize;
+
+                int chunkSize = stream.WindowSize > 0
+                                ?
+                                    MathEx.Min(binaryFile.Length - i, Constants.MaxDataFrameContentSize, stream.WindowSize)
+                                :
+                                    MathEx.Min(binaryFile.Length - i, Constants.MaxDataFrameContentSize);
+
+                var chunk = new byte[chunkSize];
+                Buffer.BlockCopy(binaryFile, i, chunk, 0, chunk.Length);
+
+                stream.WriteDataFrame(chunk, isLastData);
+
+                i += chunkSize;
+            }
+        }
+
+        private void SaveToFile(Http2Stream stream, DataFrame dataFrame)
+        {
+            lock (_writeLock)
+            {
+                var path = stream.Headers[":path"];
+                _fileHelper.SaveToFile(dataFrame.Data.Array, dataFrame.Data.Offset, dataFrame.Data.Count,
+                                       assemblyPath + path,
+                                       stream.ReceivedDataAmount != 0);
+
+                stream.ReceivedDataAmount += dataFrame.FrameLength;
+
+                if (dataFrame.IsFin)
+                {
+                    _fileHelper.Dispose();
+                    Console.WriteLine("File downloaded: " + path);
+                    stream.Dispose();
+                }
+            }
+        }
+
+        private void FrameReceivedHandler(object handler, FrameReceivedEventArgs args)
+        {
+            var stream = args.Stream;
+            try
+            {
+                if (args.Frame is DataFrame)
+                {
+                    Task.Run(() => SaveToFile(stream, (DataFrame)args.Frame));
+                }
+
+                if (args.Frame is HeadersPlusPriority)
+                {
+                    Task.Run(() => SendResponce(stream));
+                }
+            }
+            catch (Exception)
+            {
+                stream.WriteRst(ResetStatusCode.InternalError);
+
+                stream.Dispose();
+            }
+        }
+
         public void Dispose()
         {
             if (_clientSession != null)
             {
                 _clientSession.Dispose();
             }
+
+            _fileHelper.Dispose();
         }
     }
 }

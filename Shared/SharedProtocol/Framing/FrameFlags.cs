@@ -7,12 +7,6 @@ namespace SharedProtocol.Framing
     {
         None = 0x00,
         Fin = 0x01,
-
-        // Data frame:
-        Compress = 0x02,
-
-        // Control frame:
-        ClearSettings = 0x01,
-        Unidirectional = 0x02,
+        Pong = 0x02
     }
 }

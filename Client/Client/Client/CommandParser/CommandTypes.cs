@@ -12,6 +12,7 @@
         Exit = 7,
         Help = 8,
         Unknown = 9,
-        Empty = 10
+        Empty = 10,
+        Ping = 11
     }
 }

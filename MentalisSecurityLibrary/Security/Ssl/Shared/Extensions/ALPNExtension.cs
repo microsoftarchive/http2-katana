@@ -53,11 +53,10 @@ namespace Org.Mentalis.Security.Ssl.Shared.Extensions
             }
          }
 
-        public ALPNExtension(ConnectionEnd end)
+        public ALPNExtension(ConnectionEnd end, IEnumerable<string> knownProtocols)
         {
             this.Type = ExtensionType.ALPN;
 
-            string[] knownProtocols = new string[2] {"http/2.0", "http/1.1"};
             this.SelectedProtocol = String.Empty;
             if (end == ConnectionEnd.Client)
             {

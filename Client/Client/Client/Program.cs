@@ -43,11 +43,11 @@ namespace Client
     /// </summary>   
     public class Program
     {
-        private static List<Http2SessionHandler> _sessions;
+        private static Dictionary<string, Http2SessionHandler> _sessions;
 
         public static void Main(string[] args)
         {
-            _sessions = new List<Http2SessionHandler>();
+            _sessions = new Dictionary<string, Http2SessionHandler>();
 
             HelpDisplayer.ShowMainMenuHelp();
             ThreadPool.SetMaxThreads(10, 10);
@@ -74,6 +74,14 @@ namespace Client
                     {
                         case CommandType.Get:
                             var getCmd = (GetCommand) cmd;
+
+                            //Only unique sessions can be opened
+                            if (_sessions.ContainsKey(getCmd.Uri.Authority))
+                            {
+                                Console.WriteLine("Session with to this server was already opened: {0}", getCmd.Uri.Authority);
+                                continue;
+                            }
+
                             var sessionHandler = new Http2SessionHandler(getCmd.Uri);
 
                             ThreadPool.QueueUserWorkItem(delegate
@@ -82,16 +90,19 @@ namespace Client
                                 sessionHandler.SendRequestAsync();
                             });
 
-                            _sessions.Add(sessionHandler);
+                            _sessions.Add(getCmd.Uri.Authority, sessionHandler);
                             break;
                         case CommandType.Help:
                             ((HelpCommand)cmd).ShowHelp.Invoke();
                             break;
+                        case CommandType.Ping:
+                            _sessions[((PingCommand)cmd).Uri.Authority].Ping();
+                            break;
                         case CommandType.Exit:
-                            foreach (var session in _sessions)
+                            foreach (var sessionUri in _sessions.Keys)
                             {
-                                session.Dispose();
-                                _sessions.Remove(session);
+                                _sessions[sessionUri].Dispose();
+                                _sessions.Remove(sessionUri);
                             }
                             return;
                     }

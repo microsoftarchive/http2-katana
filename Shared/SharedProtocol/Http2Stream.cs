@@ -13,11 +13,9 @@ namespace SharedProtocol
     public class Http2Stream : IDisposable
     {
         private readonly int _id;
-        private Dictionary<string, string> _headers;
         private StreamState _state;
         private readonly WriteQueue _writeQueue;
         private readonly Priority _priority;
-        private static readonly string assemblyPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
         private readonly CompressionProcessor _compressionProc;
         private readonly FlowControlManager _flowCrtlManager;
 
@@ -32,7 +30,7 @@ namespace SharedProtocol
                            FlowControlManager flowCrtlManager, CompressionProcessor comprProc)
             : this(id, priority, writeQueue, flowCrtlManager, comprProc)
         {
-            _headers = headers;
+            Headers = headers;
         }
 
         //Outgoing
@@ -89,6 +87,8 @@ namespace SharedProtocol
             get { return (_state & StreamState.Disposed) == StreamState.Disposed; }
             set { Contract.Assert(value); _state |= StreamState.Disposed; }
         }
+
+        public Dictionary<string, string> Headers { get; set; }
         #endregion
 
         #region FlowControl
@@ -123,7 +123,7 @@ namespace SharedProtocol
                 Console.WriteLine("Received {0} window update frames", windowUpdateReceivedCount);
                 Console.WriteLine("Sent {0} data frames", dataFrameSentCount);
                 Console.WriteLine("Sent data {0}", SentDataAmount);
-                Console.WriteLine("File sent: " + GetHeader(":path"));
+                Console.WriteLine("File sent: " + Headers[":path"]);
                 Dispose();
             }
         }
@@ -132,98 +132,17 @@ namespace SharedProtocol
 
         public Int64 SentDataAmount { get; private set; }
 
-        public Int64 ReceivedDataAmount { get; private set; }
+        public Int64 ReceivedDataAmount { get; set; }
 
         public bool IsFlowControlBlocked { get; set; }
 
         public bool IsFlowControlEnabled { get; set; }
         #endregion
 
-        #region Incoming data processing
-
-        private string GetHeader(string key)
-        {
-            foreach (var header in _headers)
-            {
-                if (header.Key == key)
-                    return header.Value;
-            }
-
-            return null;
-        }
-
-        public void ProcessIncomingData(DataFrame dataFrame)
-        {
-            _flowCrtlManager.DataFrameReceivedHandler(this, new DataFrameReceivedEventArgs(dataFrame));
-            string path = GetHeader(":path");
-            FileHelper.SaveToFile(dataFrame.Data.Array, dataFrame.Data.Offset, dataFrame.Data.Count, assemblyPath + path,
-                                  ReceivedDataAmount != 0);
-
-            ReceivedDataAmount += dataFrame.FrameLength;
-
-            if (dataFrame.IsFin)
-            {
-                Console.WriteLine("File downloaded: " + GetHeader(":path"));
-                Dispose();
-            }
-            else
-            {
-                //Aggresive window update
-                WriteWindowUpdate(2000000);  
-            }
-        }
-
-        #endregion
-
-        #region Responce Methods
-
-        private void SendResponse()
-        {
-            byte[] binaryFile = FileHelper.GetFile(GetHeader(":path"));
-            int i = 0;
-
-            Console.WriteLine("Transfer begin");
-
-            while (binaryFile.Length > i)
-            {
-                bool isLastData = binaryFile.Length - i < Constants.MaxDataFrameContentSize;
-
-                int chunkSize = WindowSize > 0 
-                                ?
-                                    MathEx.Min(binaryFile.Length - i, Constants.MaxDataFrameContentSize, WindowSize)
-                                :
-                                    MathEx.Min(binaryFile.Length - i, Constants.MaxDataFrameContentSize);
-                
-                var chunk = new byte[chunkSize];
-                Buffer.BlockCopy(binaryFile, i, chunk, 0, chunk.Length);
-
-                WriteDataFrame(chunk, isLastData);
-
-                i += chunkSize;
-            }
-
-        }
-
-        public void Run()
-        {
-            try
-            {
-                SendResponse();
-            }
-            //TODO Refactor catch
-            catch (Exception)
-            {
-                WriteRst(ResetStatusCode.InternalError);
-
-                Dispose();
-            }
-        }
-        #endregion
-
         #region WriteMethods
         public void WriteHeadersPlusPriorityFrame(Dictionary<string, string> headers, bool isFin)
         {
-            _headers = headers;
+            Headers = headers;
             // TODO: Prioritization re-ordering will also break decompression. Scrap the priority queue.
             byte[] headerBytes = FrameHelpers.SerializeHeaderBlock(headers);
             headerBytes = _compressionProc.Compress(headerBytes);

@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Org.Mentalis.Security.Ssl;
 
 namespace SharedProtocol
 {
@@ -246,6 +247,18 @@ namespace SharedProtocol
         IEnumerator IEnumerable.GetEnumerator()
         {
             return GetEnumerator();
+        }
+
+        public int GetOpenedStreamsBy(ConnectionEnd end)
+        {
+            if (end == ConnectionEnd.Client)
+            {
+                return FlowControlledStreams.Count(element => element.Key % 2 != 0) +
+                       NonFlowControlledStreams.Count(element => element.Key % 2 != 0);
+            }
+
+            return FlowControlledStreams.Count(element => element.Key % 2 == 0) +
+                   NonFlowControlledStreams.Count(element => element.Key % 2 == 0);
         }
     }
 }

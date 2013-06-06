@@ -6,16 +6,21 @@
 
 using System;
 using System.Globalization;
+using System.IO;
 using System.Net;
 using System.Collections.Generic;
+using System.Reflection;
 using System.Threading.Tasks;
 using Org.Mentalis;
 using Org.Mentalis.Security.Ssl;
 using ServerProtocol;
 using SharedProtocol;
 using SharedProtocol.Exceptions;
+using SharedProtocol.ExtendedMath;
+using SharedProtocol.Framing;
 using SharedProtocol.Handshake;
 using SharedProtocol.Http11;
+using SharedProtocol.IO;
 
 namespace SocketServer
 {
@@ -23,12 +28,16 @@ namespace SocketServer
     /// <summary>
     /// TODO: Update summary.
     /// </summary>
-    internal sealed class HttpConnetingClient
+    internal sealed class HttpConnetingClient : IDisposable
     {
-        private SecureTcpListener server;
-        private SecurityOptions options;
-        private AppFunc next;
+        private readonly SecureTcpListener server;
+        private readonly SecurityOptions options;
+        private readonly AppFunc next;
         private string _alpnSelectedProtocol;
+        private Http2Session _session = null;
+        private static readonly string assemblyPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+        private readonly FileHelper _fileHelper;
+        private readonly object _writeLock = new object();
 
         public string SelectedProtocol { get; private set; }
 
@@ -38,6 +47,8 @@ namespace SocketServer
             this.server = server;
             this.next = next;
             this.options = options;
+
+            _fileHelper = new FileHelper();
         }
 
         internal async void Accept()
@@ -117,8 +128,90 @@ namespace SocketServer
         private async void OpenHttp2Session(SecureSocket incomingClient)
         {
             Console.WriteLine("Handshake successful");
-            var session = new Http2Session(incomingClient, ConnectionEnd.Server);
-            await session.Start();
+            _session = new Http2Session(incomingClient, ConnectionEnd.Server);
+
+            _session.OnFrameReceived += FrameReceivedHandler;
+
+            await _session.Start();
+        }
+
+        private void SendResponce(Http2Stream stream)
+        {
+            byte[] binaryFile = _fileHelper.GetFile(stream.Headers[":path"]);
+            int i = 0;
+
+            Console.WriteLine("Transfer begin");
+
+            while (binaryFile.Length > i)
+            {
+                bool isLastData = binaryFile.Length - i < Constants.MaxDataFrameContentSize;
+
+                int chunkSize = stream.WindowSize > 0
+                                ?
+                                    MathEx.Min(binaryFile.Length - i, Constants.MaxDataFrameContentSize, stream.WindowSize)
+                                :
+                                    MathEx.Min(binaryFile.Length - i, Constants.MaxDataFrameContentSize);
+
+                var chunk = new byte[chunkSize];
+                Buffer.BlockCopy(binaryFile, i, chunk, 0, chunk.Length);
+
+                stream.WriteDataFrame(chunk, isLastData);
+
+                i += chunkSize;
+            }
+        }
+
+        private void SaveToFile(Http2Stream stream, DataFrame dataFrame)
+        {
+            lock (_writeLock)
+            {
+                var path = stream.Headers[":path"];
+                _fileHelper.SaveToFile(dataFrame.Data.Array, dataFrame.Data.Offset, dataFrame.Data.Count,
+                                       assemblyPath + path,
+                                       stream.ReceivedDataAmount != 0);
+
+                stream.ReceivedDataAmount += dataFrame.FrameLength;
+
+                if (dataFrame.IsFin)
+                {
+                    _fileHelper.Dispose();
+                    Console.WriteLine("File downloaded: " + path);
+                    stream.Dispose();
+                }
+            }
+        }
+
+        private void FrameReceivedHandler(object handler, FrameReceivedEventArgs args)
+        {
+            var stream = args.Stream;  
+            try
+            {
+                if (args.Frame is DataFrame)
+                {
+                    Task.Run(() => SaveToFile(stream, (DataFrame)args.Frame));
+                }
+
+                if (args.Frame is HeadersPlusPriority)
+                {
+                    Task.Run(() => SendResponce(stream));
+                }               
+            }
+            catch (Exception)
+            {
+                stream.WriteRst(ResetStatusCode.InternalError);
+
+                stream.Dispose();
+            }
+        }
+
+        public void Dispose()
+        {
+            if (_session != null)
+            {
+                _session.Dispose();
+            }
+
+            _fileHelper.Dispose();
         }
     }
 }

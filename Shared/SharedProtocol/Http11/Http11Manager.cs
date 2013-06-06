@@ -6,7 +6,7 @@ using System.Linq;
 using System.Net.Sockets;
 using System.Reflection;
 using System.Text;
-using System.Threading.Tasks;
+using Org.Mentalis;
 using Org.Mentalis.Security.Ssl;
 
 namespace SharedProtocol.Http11
@@ -153,6 +153,18 @@ namespace SharedProtocol.Http11
                 //TODO Saving not only in client exe folder
                 string directory = assemblyPath;
                 SaveFile(directory, fileName, fileBuffer);
+
+                if (OnDownloadSuccessful != null)
+                {
+                    OnDownloadSuccessful(null, new Http11ResourceDownloadedEventArgs(fileBuffer.Length, fileName));
+                }
+
+                socket.Close();
+
+                if (OnSocketClosed != null)
+                {
+                    OnSocketClosed(null, new SocketCloseEventArgs());
+                }
             }
         }
 
@@ -183,6 +195,11 @@ namespace SharedProtocol.Http11
                     Console.WriteLine("File sent: " + filename);
 
                     socket.Close();
+
+                    if (OnSocketClosed != null)
+                    {
+                        OnSocketClosed(null, new SocketCloseEventArgs());
+                    }
                 }
             }
             catch (Exception ex)
@@ -265,5 +282,9 @@ namespace SharedProtocol.Http11
 
             return headers.ToArray();
         }
+
+        public static event EventHandler<Http11ResourceDownloadedEventArgs> OnDownloadSuccessful;
+
+        public static event EventHandler<SocketCloseEventArgs> OnSocketClosed;
     }
 }

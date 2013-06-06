@@ -83,7 +83,7 @@ namespace Org.Mentalis.Security.Ssl {
         /// <param name="requestHandler">The <see cref="CertRequestEventHandler"/> delegate.</param>
         [CLSCompliant(false)]
         public SecurityOptions(SecureProtocol protocol, ExtensionType[] extensions, Certificate cert,
-                               ConnectionEnd entity,
+                               ConnectionEnd entity, IEnumerable<string> knownProtocols,
                                CredentialVerification verifyType, CertVerifyEventHandler verifier,
                                string commonName, SecurityFlags flags, SslAlgorithms allowed,
                                CertRequestEventHandler requestHandler)
@@ -97,8 +97,9 @@ namespace Org.Mentalis.Security.Ssl {
             this.Flags = flags;
             this.AllowedAlgorithms = allowed;
             this.RequestHandler = requestHandler;
+            this.KnownProtocols = knownProtocols;
             this.Extensions = extensions;
-
+           
             this.ExtensionList = FormExtsList(extensions);
         }
 
@@ -112,9 +113,9 @@ namespace Org.Mentalis.Security.Ssl {
         /// All other members of the structure will be instantiated with default values.
         /// </remarks>
         [CLSCompliant(false)]
-        public SecurityOptions(SecureProtocol protocol, ExtensionType[] extensions, Certificate cert,
-                               ConnectionEnd entity)
-            : this(protocol, extensions, cert, entity, CredentialVerification.Auto, null, null,
+        public SecurityOptions(SecureProtocol protocol, ExtensionType[] extensions, Certificate cert, 
+            IEnumerable<string> knownProtocols, ConnectionEnd entity)
+            : this(protocol, extensions, cert, entity, knownProtocols, CredentialVerification.Auto, null, null,
                    SecurityFlags.Default, SslAlgorithms.ALL, null)
         {
         }
@@ -127,8 +128,9 @@ namespace Org.Mentalis.Security.Ssl {
         /// All other members of the structure will be instantiated with default values.
         /// </remarks>
         [CLSCompliant(false)]
-        public SecurityOptions(SecureProtocol protocol, ExtensionType[] extensions, ConnectionEnd end)
-            : this(protocol, extensions, null, end, CredentialVerification.Auto, null, null,
+        public SecurityOptions(SecureProtocol protocol, ExtensionType[] extensions, 
+            IEnumerable<string> knownProtocols, ConnectionEnd end)
+            : this(protocol, extensions, null, end, knownProtocols, CredentialVerification.Auto, null, null,
                    SecurityFlags.Default, SslAlgorithms.ALL, null)
         {
         }
@@ -273,7 +275,10 @@ namespace Org.Mentalis.Security.Ssl {
         [CLSCompliant(false)]
         public ExtensionType[] Extensions { get; private set; }
 
-        private ExtensionList FormExtsList(ExtensionType[] extensions)
+        [CLSCompliant(false)]
+        public IEnumerable<string> KnownProtocols { get; private set; } 
+
+        private ExtensionList FormExtsList(IEnumerable<ExtensionType> extensions)
         {
             if (extensions != null)
             {
@@ -289,7 +294,7 @@ namespace Org.Mentalis.Security.Ssl {
                             result.Add(new NextProtocolNegotiationExtension(this.Entity));
                             break;
                         case ExtensionType.ALPN:
-                            result.Add(new ALPNExtension(this.Entity));
+                            result.Add(new ALPNExtension(this.Entity, KnownProtocols));
                             break;
                         default: break;
                     }
@@ -305,7 +310,9 @@ namespace Org.Mentalis.Security.Ssl {
 		/// </summary>
 		/// <returns>A shallow copy of this object.</returns>
 		public object Clone() {
-			return new SecurityOptions(this.Protocol,this.Extensions, this.Certificate, this.Entity, this.VerificationType, this.Verifier, this.CommonName, this.Flags, this.AllowedAlgorithms, this.RequestHandler);
+			return new SecurityOptions(this.Protocol,this.Extensions, this.Certificate, this.Entity, this.KnownProtocols, 
+                                        this.VerificationType, this.Verifier, this.CommonName, this.Flags, 
+                                        this.AllowedAlgorithms, this.RequestHandler);
 		}
 		/// <summary>One of the <see cref="SecureProtocol"/> values.</summary>
 		private SecureProtocol m_Protocol;
