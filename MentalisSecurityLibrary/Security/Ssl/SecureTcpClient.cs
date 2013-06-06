@@ -69,14 +69,14 @@ namespace Org.Mentalis.Security.Ssl {
 		/// <remarks>
 		///  The default constructor initializes a new SecureTcpClient. You must call the Connect method to establish a remote host connection.
 		/// </remarks>
-		public SecureTcpClient() : this(new SecurityOptions(SecureProtocol.None, null, ConnectionEnd.Client)) {}
+        public SecureTcpClient() : this(new SecurityOptions(SecureProtocol.None, null, new[] { "http/2.0", "http/1.1" }, ConnectionEnd.Client)) { }
 		/// <summary>
 		/// Initializes a new instance of <see cref="SecureTcpClient"/> bound to the specified local endpoint.
 		/// </summary>
 		/// <param name="localEP">The IPEndPoint to which you bind the TCP Socket.</param>
 		/// <exception cref="ArgumentNullException"><paramref name="localEP"/> is null (<b>Nothing</b> in Visual Basic).</exception>
 		/// <exception cref="SocketException">An operating system error occurs while accessing the Socket.</exception>
-		public SecureTcpClient(IPEndPoint localEP) : this(localEP, new SecurityOptions(SecureProtocol.None, null, ConnectionEnd.Client)) {}
+        public SecureTcpClient(IPEndPoint localEP) : this(localEP, new SecurityOptions(SecureProtocol.None, null, new[] { "http/2.0", "http/1.1" }, ConnectionEnd.Client)) { }
 		/// <summary>
 		/// Initializes a new instance of the <see cref="SecureTcpClient"/> class and connects to the specified port on the specified host.
 		/// </summary>
@@ -86,7 +86,7 @@ namespace Org.Mentalis.Security.Ssl {
 		/// <exception cref="ArgumentOutOfRangeException"><paramref name="port"/> is less than MinPort -or- <paramref name="port"/> is greater than MaxPort.</exception>
 		/// <exception cref="SocketException">An error is encountered when resolving <paramref name="hostname"/><br>-or-</br><br>an error occurred while connecting to the remote host.</br></exception>
 		/// <exception cref="SecurityException">The security negotiation failed.</exception>
-		public SecureTcpClient(string hostname, int port) : this(hostname, port, new SecurityOptions(SecureProtocol.None, null, ConnectionEnd.Client)) {}
+        public SecureTcpClient(string hostname, int port) : this(hostname, port, new SecurityOptions(SecureProtocol.None, null, new[] { "http/2.0", "http/1.1" }, ConnectionEnd.Client)) { }
 		/// <summary>
 		/// Initializes a new instance of the <see cref="SecureTcpClient"/> class.
 		/// </summary>

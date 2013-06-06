@@ -70,6 +70,7 @@
     <Compile Include="Commands\GetCommand.cs" />
     <Compile Include="CommandParser\CommandTypes.cs" />
     <Compile Include="Commands\HelpCommand.cs" />
+    <Compile Include="Commands\PingCommand.cs" />
     <Compile Include="Commands\UnknownCommand.cs" />
     <Compile Include="GlobalSuppressions.cs" />
     <Compile Include="Http2SessionHandler.cs" />
@@ -95,7 +96,8 @@
   <PropertyGroup>
     <PostBuildEvent>copy /y "$(TargetPath)" "$(SolutionDir)Drop\$(TargetFileName)"
 copy /y "$(ProjectDir)\certificate.pfx" "$(SolutionDir)Drop\certificate.pfx"
-copy /y "$(ProjectDir)\certificate.pfx" "$(TargetDir)\certificate.pfx"</PostBuildEvent>
+copy /y "$(ProjectDir)\certificate.pfx" "$(TargetDir)\certificate.pfx"
+copy /y "$(TargetDir)\Client.exe.config" "$(SolutionDir)Drop\Client.exe.config"</PostBuildEvent>
   </PropertyGroup>
   <Import Project="$(SolutionDir)\.nuget\nuget.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

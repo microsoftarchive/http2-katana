@@ -12,7 +12,7 @@ namespace Client
                               "                              Ex. HELP GET");
             //Console.WriteLine("DIR <host url>                List files on server.");
             Console.WriteLine("GET <resource url>            Download web page and associated resources.\n" +
-                              "                              E.g.: http://localhost:8443/test.txt");
+                              "                              E.g.: https://localhost:8443/test.txt");
             //Console.WriteLine("VERBOSE   [1|2|3]             Display verbose output.");
             //Console.WriteLine("CAPTURE-STATS [On|Off|Reset]  Start/stop/reset protocol monitoring.");
            // Console.WriteLine("DUMP-STATS                    Display statistics captured using CAPTURE-STATS.");
@@ -20,6 +20,8 @@ namespace Client
             Console.WriteLine("HTTP11GET <filename>          Download file using HTTP 1.1.");
 #endif
             //Console.WriteLine("RUN  <filename>               Run command script");
+            Console.WriteLine("PING                          Pings session\n" +
+                              "                              E.g.: ping https://localhost:8443/");
             Console.WriteLine("EXIT                          Exit application");
             Console.WriteLine();
         }
@@ -47,8 +49,14 @@ namespace Client
             Console.WriteLine("  Directory structure is preserved.");
             Console.WriteLine("  Download is done using HTTP2 protocol.");
             Console.WriteLine("  Examples of GET:\n");
-            Console.WriteLine("  GET http://localhost:8443/test.txt");
+            Console.WriteLine("  GET https://localhost:8443/test.txt");
             Console.WriteLine("\n");
+        }
+
+        internal static void ShowPingCommandHelp()
+        {
+            Console.WriteLine("Pings the remote endpoint if you are connected to it");
+            Console.WriteLine("ping https://localhost:8443/");
         }
     }
 }

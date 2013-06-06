@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
@@ -56,11 +57,14 @@ namespace HandshakeTests
         }
 
         public HandshakeTests()
-        {            
-            const string addressSecure = @"https://localhost:8443/";
-            const string addressUnsecure = @"http://localhost:8080/";
-            _http2UnsecureServer = RunServer(addressUnsecure);
-            _http2SecureServer = RunServer(addressSecure);
+        {
+            var appSettings = ConfigurationManager.AppSettings;
+
+            var secureAddress = appSettings["secureAddress"];
+            var unsecureAddress = appSettings["unsecureAddress"];
+
+            _http2UnsecureServer = RunServer(unsecureAddress);
+            _http2SecureServer = RunServer(secureAddress);
 
             using (var waitForServersStart = new ManualResetEvent(false))
             {
@@ -78,7 +82,7 @@ namespace HandshakeTests
 
             var extensions = new [] { ExtensionType.Renegotiation, ExtensionType.ALPN };
 
-            var options = new SecurityOptions(SecureProtocol.Tls1, extensions, ConnectionEnd.Client);
+            var options = new SecurityOptions(SecureProtocol.Tls1, extensions, new[] { "http/2.0", "http/1.1" }, ConnectionEnd.Client);
 
             options.VerificationType = CredentialVerification.None;
             options.Certificate = Org.Mentalis.Security.Certificates.Certificate.CreateFromCerFile(@"certificate.pfx");
@@ -105,13 +109,12 @@ namespace HandshakeTests
         public void UpgradeHandshakeSuccessful()
         {
             const string requestStr = @"http://localhost:8080/";
-            string selectedProtocol = null;
             Uri uri;
             Uri.TryCreate(requestStr, UriKind.Absolute, out uri);
 
             var extensions = new[] { ExtensionType.Renegotiation, ExtensionType.ALPN };
 
-            var options = new SecurityOptions(SecureProtocol.None, extensions, ConnectionEnd.Client);
+            var options = new SecurityOptions(SecureProtocol.None, extensions, new[] { "http/2.0", "http/1.1" }, ConnectionEnd.Client);
 
             options.VerificationType = CredentialVerification.None;
             options.Certificate = Org.Mentalis.Security.Certificates.Certificate.CreateFromCerFile(@"certificate.pfx");

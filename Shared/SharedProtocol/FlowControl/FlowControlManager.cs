@@ -123,9 +123,5 @@ namespace SharedProtocol
                 stream.IsFlowControlBlocked = true;
             }
         }
-        public void DataFrameReceivedHandler(object sender, DataFrameReceivedEventArgs args)
-        {
-
-        }
     }
 }

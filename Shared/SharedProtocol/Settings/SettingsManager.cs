@@ -4,7 +4,8 @@ namespace SharedProtocol
 {
     public class SettingsManager 
     {
-        public void ProcessSettings(SettingsFrame settingsFrame, FlowControlManager flCtrlManager)
+        public void ProcessSettings(SettingsFrame settingsFrame, Http2Session session, 
+                                        FlowControlManager flCtrlManager)
         {
             for (int i = 0; i < settingsFrame.EntryCount; i++)
             {
@@ -18,6 +19,7 @@ namespace SharedProtocol
                     case SettingsIds.RoundTripTime:
                         break;
                     case SettingsIds.MaxCurrentStreams:
+                        session.RemoteMaxConcurrentStreams = settingsFrame[i].Value;
                         break;
                     case SettingsIds.DownloadRetransRate:
                         break;

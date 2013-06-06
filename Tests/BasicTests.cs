@@ -8,6 +8,7 @@ using SharedProtocol.Compression;
 using SharedProtocol.ExtendedMath;
 using SharedProtocol.Framing;
 using Xunit;
+using System.Configuration;
 
 namespace BasicTests
 {

@@ -7,8 +7,7 @@ using Org.Mentalis.Security.Certificates;
 using Org.Mentalis.Security.Ssl;
 using Org.Mentalis.Security.Ssl.Shared.Extensions;
 using Owin.Types;
-using System.Net;
-using System.Net.Sockets;
+using System.Configuration;
 
 namespace SocketServer
 {
@@ -16,15 +15,14 @@ namespace SocketServer
 
     public class HttpSocketServer : IDisposable
     {
-        private const int HttpsPort = 8443;
-        private const int HttpPort = 8080;
-        private AppFunc _next;
-        private int _port;
+        private readonly AppFunc _next;
+        private readonly int _port;
+        private readonly string _scheme;
 
         private bool _disposed;
         private readonly SecurityOptions _options;
         private readonly  SecureTcpListener _server;
-        private readonly string _certificateFilename = @"certificate.pfx";
+        private const string _certificateFilename = @"certificate.pfx";
 
         public HttpSocketServer(Func<IDictionary<string, object>, Task> next, IDictionary<string, object> properties)
         {
@@ -34,18 +32,38 @@ namespace SocketServer
 
             var address = addresses.First();
             _port = Int32.Parse(address.Get<string>("port"));
+            _scheme = address.Get<string>("scheme");
+
+            int securePort;
+
+            try
+            {
+                securePort = int.Parse(ConfigurationManager.AppSettings["securePort"]);
+            }
+            catch (Exception)
+            {
+                Console.WriteLine("Incorrect port in the config file!");
+               
+                Console.WriteLine(ConfigurationManager.AppSettings["securePort"]);
+                return;
+            }
+
+            if (_port == securePort
+                &&
+                _scheme == Uri.UriSchemeHttp
+                ||
+                _port != securePort
+                &&
+                _scheme == Uri.UriSchemeHttps)
+            {
+                Console.WriteLine("Invalid scheme on port! Use https for secure port");
+                return;
+            }
 
             var extensions = new [] { ExtensionType.Renegotiation, ExtensionType.ALPN };
 
-            switch (_port)
-            {
-                case HttpsPort:
-                    _options = new SecurityOptions(SecureProtocol.Tls1, extensions, ConnectionEnd.Server);
-                    break;
-                default:
-                    _options = new SecurityOptions(SecureProtocol.None, extensions, ConnectionEnd.Server);
-                    return;
-            }
+            _options = _port == securePort ? new SecurityOptions(SecureProtocol.Tls1, extensions, new[] { "http/2.0", "http/1.1" }, ConnectionEnd.Server)
+                                : new SecurityOptions(SecureProtocol.None, extensions, new [] { "http/2.0", "http/1.1" }, ConnectionEnd.Server);
 
             _options.VerificationType = CredentialVerification.None;
             _options.Certificate = Certificate.CreateFromCerFile(_certificateFilename);
@@ -61,7 +79,7 @@ namespace SocketServer
 
         private void Listen()
         {
-            Console.WriteLine("Started");
+            Console.WriteLine("Started on port {0}", _port);
             _server.Start();
 
             while (!_disposed)
@@ -84,7 +102,10 @@ namespace SocketServer
                 return;
 
             _disposed = true;
-            _server.Stop();
+            if (_server != null)
+            {
+                _server.Stop();
+            }
         }
     }
 }

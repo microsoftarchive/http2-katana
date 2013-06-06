@@ -33,9 +33,11 @@ namespace Http2Tests
 
         public Http2Tests()
         {
-            const string address = @"http://localhost:8443/";
+            var appSettings = ConfigurationManager.AppSettings;
+
+            var secureAddress = appSettings["secureAddress"];
             Uri uri;
-            Uri.TryCreate(address, UriKind.Absolute, out uri);
+            Uri.TryCreate(secureAddress, UriKind.Absolute, out uri);
 
             var properties = new Dictionary<string, object>();
             var addresses = new List<IDictionary<string, object>>()
@@ -54,11 +56,14 @@ namespace Http2Tests
             var assemblyPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
             var rootPath = @"\root";
             var serverRootDir = assemblyPath + rootPath;
-            var serverRootFile = serverRootDir + @"/test.txt";
+            var serverSmallRootFile = serverRootDir + ConfigurationManager.AppSettings["smallTestFile"];
+            var server10mbRootFile = serverRootDir + ConfigurationManager.AppSettings["10mbTestFile"];
+
             Directory.CreateDirectory(serverRootDir);
+
             var content = Encoding.UTF8.GetBytes("HelloWorld"); //10 bytes
 
-            using (var stream = new FileStream(serverRootFile, FileMode.Create))
+            using (var stream = new FileStream(server10mbRootFile, FileMode.Create))
             {
                 //Write 10 000 000 bytes or 10 mb
                 for (int i = 0; i < 1000000; i++)
@@ -67,10 +72,20 @@ namespace Http2Tests
                 }
             }
 
+            using (var stream = new FileStream(serverSmallRootFile, FileMode.Create))
+            {
+                stream.Write(content, 0, content.Length);
+            }
+
             new Thread((ThreadStart)delegate
                 {
                     _http2Server = new HttpSocketServer(InvokeMiddleWare, properties);
                 }).Start();
+
+            using (var waitForServersStart = new ManualResetEvent(false))
+            {
+                waitForServersStart.WaitOne(3000);
+            }
         }
 
         private static SecureSocket GetHandshakedSocket(Uri uri)
@@ -79,7 +94,7 @@ namespace Http2Tests
 
             var extensions = new [] { ExtensionType.Renegotiation, ExtensionType.ALPN };
 
-            var options = new SecurityOptions(SecureProtocol.Tls1, extensions, ConnectionEnd.Client);
+            var options = new SecurityOptions(SecureProtocol.Tls1, extensions, new[] { "http/2.0", "http/1.1" }, ConnectionEnd.Client);
 
             options.VerificationType = CredentialVerification.None;
             options.Certificate = Org.Mentalis.Security.Certificates.Certificate.CreateFromCerFile(@"certificate.pfx");
@@ -124,7 +139,7 @@ namespace Http2Tests
         [Fact]
         public void StartSessionAndSendRequestSuccessful()
         {
-            const string requestStr = @"http://localhost:8443/test.txt";
+            string requestStr = ConfigurationManager.AppSettings["secureAddress"] + ConfigurationManager.AppSettings["smallTestFile"];
             Uri uri;
             Uri.TryCreate(requestStr, UriKind.Absolute, out uri);
             
@@ -196,7 +211,7 @@ namespace Http2Tests
         [Fact]
         public void StartMultipleSessionAndSendMultipleRequests()
         {
-            for (int i = 0; i < 1000; i++)
+            for (int i = 0; i < 50; i++)
             {
                 StartSessionAndSendRequestSuccessful();
             }
@@ -205,15 +220,15 @@ namespace Http2Tests
         [Fact]
         public void StartSessionAndGet10mbDataSuccessful()
         {
-            const string requestStr = @"http://localhost:8443/test.txt";
+            string requestStr = ConfigurationManager.AppSettings["secureAddress"] + ConfigurationManager.AppSettings["10mbTestFile"];
             Uri uri;
             Uri.TryCreate(requestStr, UriKind.Absolute, out uri);
 
-            bool wasSettingsSent = false;
-            bool wasHeadersPlusPrioritySent = false;
             bool wasSocketClosed = false;
+            bool wasFinalFrameReceived = false;
 
             var socketClosedRaisedEvent = new ManualResetEvent(false);
+            var finalFrameReceivedRaisedEvent = new ManualResetEvent(false);
 
             var socket = GetHandshakedSocket(uri);
 
@@ -225,18 +240,12 @@ namespace Http2Tests
 
             var session = new Http2Session(socket, ConnectionEnd.Client);
 
-            session.OnSettingsSent += (o, args) =>
+            session.OnFrameReceived += (sender, args) =>
             {
-                wasSettingsSent = true;
-
-                Assert.Equal(args.SettingsFrame.StreamId, 0);
-            };
-
-            session.OnFrameSent += (sender, args) =>
-            {
-                if (wasHeadersPlusPrioritySent == false)
+                if (args.Frame is DataFrame && args.Frame.IsFin)
                 {
-                    wasHeadersPlusPrioritySent = args.Frame is HeadersPlusPriority;
+                    finalFrameReceivedRaisedEvent.Set();
+                    wasFinalFrameReceived = true;
                 }
             };
 
@@ -244,18 +253,82 @@ namespace Http2Tests
 
             var stream = SubmitRequest(session, uri);
 
-
+            finalFrameReceivedRaisedEvent.WaitOne(60000);
 
             session.Dispose();
 
             socketClosedRaisedEvent.WaitOne(60000);
 
+            Assert.Equal(wasFinalFrameReceived, true);
             Assert.Equal(wasSocketClosed, true);
         }
 
-        ~Http2Tests()
+        [Fact]
+        public void StartMultipleSessionsAndGet100mbDataSuccessful()
         {
-            _http2Server.Dispose();
+            for (int i = 0; i < 10; i++ )
+            {
+                StartSessionAndGet10mbDataSuccessful();
+            }
         }
+
+        [Fact]
+        public void StartMultipleStreamsInOneSessionSuccessful()
+        {
+            string requestStr = ConfigurationManager.AppSettings["secureAddress"] + ConfigurationManager.AppSettings["smallTestFile"];
+            Uri uri;
+            Uri.TryCreate(requestStr, UriKind.Absolute, out uri);
+            int finalFramesCounter = 0;
+
+            const int streamsQuantity = 100;
+
+            bool wasAllResourcesDownloaded = false;
+            bool wasSocketClosed = false;
+
+            var allResourcesDowloadedRaisedEvent = new ManualResetEvent(false);
+            var socketClosedRaisedEvent = new ManualResetEvent(false);
+
+            var socket = GetHandshakedSocket(uri);
+
+            socket.OnClose += (sender, args) =>
+                {
+                    wasSocketClosed = true;
+                    socketClosedRaisedEvent.Set();
+                };
+
+            var session = new Http2Session(socket, ConnectionEnd.Client);
+
+            session.OnFrameReceived += (sender, args) =>
+            {
+                if (args.Frame is DataFrame && args.Frame.IsFin)
+                {
+                    finalFramesCounter++;
+                    if (finalFramesCounter == streamsQuantity)
+                    {
+                        allResourcesDowloadedRaisedEvent.Set();
+                        wasAllResourcesDownloaded = true;
+                    }
+                }
+            };
+
+            session.Start();
+
+            for (int i = 0; i < streamsQuantity; i++)
+            {
+                SubmitRequest(session, uri);
+            }
+
+            allResourcesDowloadedRaisedEvent.WaitOne(60000);
+
+            Assert.Equal(session.ActiveStreams.Count, streamsQuantity);
+
+            session.Dispose();
+
+            socketClosedRaisedEvent.WaitOne(60000);
+
+            Assert.Equal(wasAllResourcesDownloaded, true);
+            Assert.Equal(wasSocketClosed, true);
+        }
+
     }
 }

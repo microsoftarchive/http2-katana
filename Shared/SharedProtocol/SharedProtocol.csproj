@@ -62,6 +62,7 @@
     <Compile Include="EventArgs\DataFrameSentEventArgs.cs" />
     <Compile Include="EventArgs\FrameReceivedEventArgs.cs" />
     <Compile Include="EventArgs\FrameSentArgs.cs" />
+    <Compile Include="EventArgs\Http11ResourceDownloadedEventArgs.cs" />
     <Compile Include="EventArgs\SettingsSentEventArgs.cs" />
     <Compile Include="EventArgs\StreamClosedEventArgs.cs" />
     <Compile Include="Exceptions\HTTP2HandshakeFailed.cs" />
@@ -102,7 +103,6 @@
     <Compile Include="Framing\WindowUpdateFrame.cs" />
     <Compile Include="Http2Session.cs" />
     <Compile Include="Http2Stream.cs" />
-    <Compile Include="Ping.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="IO\QueueStream.cs" />
     <Compile Include="IO\OutputStream.cs" />

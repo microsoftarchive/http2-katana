@@ -36,6 +36,8 @@ namespace Client
                     return new HelpCommand(cmdBody);
                 case "exit":
                     return new ExitCommand();
+                case "ping":
+                    return new PingCommand(cmdBody);
             }
             return new UnknownCommand(splittedCmd[0]);
         }

@@ -2,19 +2,19 @@
 using System.Text;
 using System.IO;
 using System.Reflection;
-using System.Threading;
 
 namespace SharedProtocol.IO
 {
-    public static class FileHelper
+    public class FileHelper : IDisposable
     {
-        public static object writeLock = new object();
+        private readonly object _writeLock = new object();
+        private FileStream _iostream;
 
-        public static byte[] GetFile(string localPath)
+        public byte[] GetFile(string localPath)
         {
             string assemblyPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
 
-            string rootPath = @"\root";
+            const string rootPath = @"\root";
 
             if (!File.Exists(assemblyPath + rootPath + localPath))
             {
@@ -25,21 +25,27 @@ namespace SharedProtocol.IO
             return Encoding.ASCII.GetBytes(content);
         }
 
-
-        public static void SaveToFile(byte[] data, int offset, int count, string path, bool append)
+        public void SaveToFile(byte[] data, int offset, int count, string path, bool append)
         {
             //Sync write streams and do not let multiple streams to write the same file. Avoid data mixing and access exceptions.
-            lock (writeLock)
+            if (!append && File.Exists(path))
             {
-                if (!append && File.Exists(path))
-                {
-                    File.Delete(path);
-                }
+                File.Delete(path);
+            }
 
-                using (var stream = new FileStream(path, FileMode.Append))
-                {
-                    stream.Write(data, offset, count);
-                }
+            if (!append)
+            {
+                _iostream = new FileStream(path, FileMode.Append);
+            }
+            _iostream.Write(data, offset, count);
+            //_iostream.Flush();
+        }
+
+        public void Dispose()
+        {
+            if (_iostream != null)
+            {
+                _iostream.Dispose();
             }
         }
     }
