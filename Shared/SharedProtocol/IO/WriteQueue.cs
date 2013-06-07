@@ -1,10 +1,7 @@
-﻿using System.Collections.Generic;
-using System.Net.Sockets;
+﻿using System.Net.Sockets;
 using Org.Mentalis.Security.Ssl;
 using SharedProtocol.Framing;
 using System;
-using System.IO;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace SharedProtocol.IO
@@ -12,18 +9,16 @@ namespace SharedProtocol.IO
     // Queue up frames to send, including headers, body, flush, pings, etc.
     public sealed class WriteQueue : IDisposable
     {
-        private PriorityQueue _messageQueue;
-        private SecureSocket _socket;
-        private ManualResetEvent _dataAvailable;
+        private readonly PriorityQueue _messageQueue;
+        private readonly SecureSocket _socket;
         private bool _disposed;
         private TaskCompletionSource<object> _readWaitingForData;
-        private object writeLock = new object();
+        private readonly object _writeLock = new object();
 
         public WriteQueue(SecureSocket socket)
         {
             _messageQueue = new PriorityQueue();
             _socket = socket;
-            _dataAvailable = new ManualResetEvent(false);
             _readWaitingForData = new TaskCompletionSource<object>();
         }
 
@@ -32,7 +27,7 @@ namespace SharedProtocol.IO
         {
             PriorityQueueEntry entry = null;
 
-            lock (writeLock)
+            lock (_writeLock)
             {
                 entry = new PriorityQueueEntry(frame, priority);
                 Enqueue(entry);
@@ -51,7 +46,7 @@ namespace SharedProtocol.IO
                 return Task.FromResult<object>(null);
             }
 
-            PriorityQueueEntry entry = new PriorityQueueEntry(priority);
+            var entry = new PriorityQueueEntry(priority);
             Enqueue(entry);
             SignalDataAvailable();
             return entry.Task;

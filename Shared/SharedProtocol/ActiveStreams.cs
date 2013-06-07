@@ -2,17 +2,21 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Org.Mentalis.Security.Ssl;
 
 namespace SharedProtocol
 {
+    /// <summary>
+    /// This collection consists of two collection - flow controlled and nonflowcontrolled streams.
+    /// </summary>
     internal class ActiveStreams : IDictionary<int, Http2Stream>
     {
+        /// <summary>
+        /// Collection enumerator class
+        /// </summary>
         private class ActiveStreamsEnumerator : IEnumerator<KeyValuePair<int, Http2Stream>>
         {
-            private ActiveStreams _collection;
+            private readonly ActiveStreams _collection;
             private KeyValuePair<int, Http2Stream> _curPair;
             private Dictionary<int, Http2Stream>.Enumerator _nonControlledEnum;
             private Dictionary<int, Http2Stream>.Enumerator _controlledEnum;
@@ -249,6 +253,11 @@ namespace SharedProtocol
             return GetEnumerator();
         }
 
+        /// <summary>
+        /// Gets the streams opened by the specified endpoint.
+        /// </summary>
+        /// <param name="end">The endpoint.</param>
+        /// <returns></returns>
         public int GetOpenedStreamsBy(ConnectionEnd end)
         {
             if (end == ConnectionEnd.Client)

@@ -21,73 +21,60 @@
 // </copyright>
 //-----------------------------------------------------------------------
 
-using System.Net;
-using System.Net.Sockets;
-using Org.Mentalis;
-using Org.Mentalis.Security.Certificates;
-using Org.Mentalis.Security.Ssl.Shared.Extensions;
 using Org.Mentalis.Security.Ssl;
 using System;
-using System.Collections.Generic;
 using System.Threading;
 using SharedProtocol.Exceptions;
 
 namespace SharedProtocol.Handshake
 {
     /// <summary>
-    /// TODO: Update summary.
+    /// This class provides secure handshake methods
     /// </summary>
     public sealed class SecureHandshaker : IDisposable
     { 
-        private ManualResetEvent handshakeFinishedEventRaised;
+        private readonly ManualResetEvent _handshakeFinishedEventRaised;
 
         public SecurityOptions Options { get; private set; }
-        public string SelectedProtocol { get; private set; }
         public SecureSocket InternalSocket { get; private set; }
 
         public SecureHandshaker(SecureSocket secureSocket, SecurityOptions options)
         {
-            this.InternalSocket = secureSocket;
-            this.InternalSocket.OnHandshakeFinish += this.HandshakeFinishedHandler;
+            InternalSocket = secureSocket;
+            InternalSocket.OnHandshakeFinish += HandshakeFinishedHandler;
 
-            this.Options = options;
-            this.handshakeFinishedEventRaised = new ManualResetEvent(false);
+            Options = options;
+            _handshakeFinishedEventRaised = new ManualResetEvent(false);
 
-            if (this.Options.Protocol == SecureProtocol.None)
+            if (Options.Protocol == SecureProtocol.None)
                 HandshakeFinishedHandler(this, null);
         }
 
         public void Handshake()
         {
-            this.InternalSocket.StartHandshake();
-            this.handshakeFinishedEventRaised.WaitOne(60000);
-            this.InternalSocket.OnHandshakeFinish -= this.HandshakeFinishedHandler;
+            InternalSocket.StartHandshake();
+            _handshakeFinishedEventRaised.WaitOne(60000);
+            InternalSocket.OnHandshakeFinish -= HandshakeFinishedHandler;
 
-            if (!this.InternalSocket.Connected)
+            if (!InternalSocket.Connected)
             {
                 throw new Exception("Connection was lost!");
             }
 
-            if (this.Options.Protocol != SecureProtocol.None && !this.InternalSocket.IsNegotiationCompleted)
+            if (Options.Protocol != SecureProtocol.None && !InternalSocket.IsNegotiationCompleted)
             {
-                throw new HTTP2HandshakeFailed();
-            }
-
-            if (this.SelectedProtocol == "http/1.1")
-            {
-                //TODO Refactor exceptions cant be a part of the program logic
-                throw new HTTP2HandshakeFailed(); 
+                throw new Http2HandshakeFailed();
             }
         }
 
         private void HandshakeFinishedHandler(object sender, EventArgs args)
         {
-            this.handshakeFinishedEventRaised.Set();
+            _handshakeFinishedEventRaised.Set();
         }
 
         public void Dispose()
         {
-            this.handshakeFinishedEventRaised.Dispose();
+            _handshakeFinishedEventRaised.Dispose();
         }
     }
 }

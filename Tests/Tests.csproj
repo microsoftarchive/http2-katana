@@ -19,7 +19,9 @@
     <OutputPath>bin\Debug\</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
+    <WarningLevel>2</WarningLevel>
+    <NoWarn>
+    </NoWarn>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -80,9 +82,6 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="..\Server\ServerOwinMiddleware\Http2Extensions.cs">
-      <Link>Sources\Http2Extensions.cs</Link>
-    </Compile>
     <Compile Include="..\Server\SocketServer\DictionaryExtensions.cs">
       <Link>Sources\DictionaryExtensions.cs</Link>
     </Compile>
@@ -264,18 +263,6 @@
     <ProjectReference Include="..\MentalisSecurityLibrary\Security Library.csproj">
       <Project>{5bfa5a70-d384-4417-afcc-5c744485a85f}</Project>
       <Name>Security Library</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\Server\ServerOwinMiddleware\ServerOwinMiddleware.csproj">
-      <Project>{ae3e0df3-1e7e-4d8d-9780-78d3d1ce436f}</Project>
-      <Name>ServerOwinMiddleware</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\Server\Server\Server.csproj">
-      <Project>{6771b061-37a9-40de-9e70-84cedc930b29}</Project>
-      <Name>Server %28Server\Server%29</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\Server\SocketServer\SocketServer.csproj">
-      <Project>{658c0a0d-a624-4532-aff0-180ec5ed7887}</Project>
-      <Name>SocketServer</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

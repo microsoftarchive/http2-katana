@@ -11,6 +11,9 @@ using Org.Mentalis.Security.Ssl;
 
 namespace SharedProtocol.Http11
 {
+    /// <summary>
+    /// This class is designed for http11 handling.
+    /// </summary>
     public static class Http11Manager
     {
         private static readonly string assemblyPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
@@ -81,17 +84,17 @@ namespace SharedProtocol.Http11
 
         private static string[] ReadHeaders(SecureSocket socket)
         {
-            byte[] lineBuffer = new byte[256];
+            var lineBuffer = new byte[256];
             string header = String.Empty;
             int totalBytesCame = 0;
             bool gotException;
             int bytesOfLastHeader = 0;
-            List<string> headers = new List<string>(10);
+            var headers = new List<string>(10);
 
             while (true)
             {
                 gotException = false;
-                byte[] bf = new byte[1];
+                var bf = new byte[1];
                 int bytesCame = socket.Receive(bf);
                 if (bytesCame == 0) break;
 
@@ -131,7 +134,7 @@ namespace SharedProtocol.Http11
 
             string[] responseHeaders = ReadHeaders(socket);
 
-            byte[] buffer = new byte[128 * 1024]; //128 kb
+            var buffer = new byte[128 * 1024]; //128 kb
             int received;
             using (var stream = new MemoryStream(128 * 1024))
             {
@@ -144,13 +147,11 @@ namespace SharedProtocol.Http11
                     stream.Write(buffer, 0, received);
                 }
 
-                byte[] fileBuffer = new byte[stream.Position];
+                var fileBuffer = new byte[stream.Position];
                 Buffer.BlockCopy(stream.GetBuffer(), 0, fileBuffer, 0, fileBuffer.Length);
                 int fileNameIndex = requestUri.AbsolutePath.LastIndexOf("/");
                 string fileName = requestUri.AbsolutePath.Substring(fileNameIndex);
-                //string directory = this.Uri.AbsolutePath.Substring(0, fileNameIndex);
 
-                //TODO Saving not only in client exe folder
                 string directory = assemblyPath;
                 SaveFile(directory, fileName, fileBuffer);
 
@@ -239,9 +240,9 @@ namespace SharedProtocol.Http11
 
         public static string[] GetHttp11Headers(SecureSocket socket)
         {
-            List<string> headers = new List<string>(5);
+            var headers = new List<string>(5);
 
-            byte[] lineBuffer = new byte[256];
+            var lineBuffer = new byte[256];
             string header = String.Empty;
             int totalBytesCame = 0;
             bool gotException;

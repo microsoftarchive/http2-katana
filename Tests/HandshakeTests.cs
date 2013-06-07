@@ -131,7 +131,7 @@ namespace HandshakeTests
             {
                 HandshakeManager.GetHandshakeAction(sessionSocket, options).Invoke();
             }
-            catch (HTTP2HandshakeFailed)
+            catch (Http2HandshakeFailed)
             {
                 gotFailedException = true;
             }

@@ -1,16 +1,12 @@
 ﻿using System;
-using System.IO;
-using System.Net;
 using System.Net.Sockets;
-using System.Threading;
-using System.Threading.Tasks;
 using Org.Mentalis.Security.Ssl;
 
 namespace SharedProtocol.Framing
 {
     public class FrameReader
     {
-        private SecureSocket _socket;
+        private readonly SecureSocket _socket;
 
         public FrameReader(SecureSocket socket)
         {
@@ -19,13 +15,13 @@ namespace SharedProtocol.Framing
 
         public Frame ReadFrame()
         {
-            Frame preamble = new Frame();
+            var preamble = new Frame();
             if (!TryFill(preamble.Buffer, 0, preamble.Buffer.Length))
             {
                 return null;
             }
 
-            Frame wholeFrame = GetFrameType(preamble);
+            var wholeFrame = GetFrameType(preamble);
             if (!TryFill(wholeFrame.Buffer, Constants.FramePreambleSize, wholeFrame.Buffer.Length - Constants.FramePreambleSize))
             {
                 return null;
@@ -60,14 +56,7 @@ namespace SharedProtocol.Framing
                     return new WindowUpdateFrame(preamble);
 
                 case FrameType.Data:
-                    var dataFrame = new DataFrame(preamble);
-                    //if (this.OnDataFrameReceived != null)
-                    //{
-                    //    this.OnDataFrameReceived(this, new DataFrameReceivedEventArgs(dataFrame));
-                    //}
-
-                    return dataFrame;
-
+                    return new DataFrame(preamble);
                 default:
                     throw new NotImplementedException("Frame type: " + preamble.FrameType);
             }

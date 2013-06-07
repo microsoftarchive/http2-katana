@@ -16,7 +16,6 @@ using SharedProtocol.Framing;
 using SharedProtocol.Handshake;
 using SocketServer;
 using Xunit;
-using Xunit.Extensions;
 using System.Configuration;
 
 namespace Http2Tests
@@ -42,7 +41,7 @@ namespace Http2Tests
             var properties = new Dictionary<string, object>();
             var addresses = new List<IDictionary<string, object>>()
                 {
-                    new Dictionary<string, object>()
+                    new Dictionary<string, object>
                         {
                             {"host", uri.Host},
                             {"scheme", uri.Scheme},
@@ -131,9 +130,9 @@ namespace Http2Tests
             pairs.Add(":host", host);
             pairs.Add(":scheme", scheme);
             
-            var clientStream = session.SendRequest(pairs, 3, true);
+            session.SendRequest(pairs, 3, true);
 
-            return clientStream;
+            return session.ActiveStreams[1];
         }
    
         [Fact]
@@ -211,14 +210,14 @@ namespace Http2Tests
         [Fact]
         public void StartMultipleSessionAndSendMultipleRequests()
         {
-            for (int i = 0; i < 50; i++)
+            for (int i = 0; i < 5; i++)
             {
                 StartSessionAndSendRequestSuccessful();
             }
         }
 
         [Fact]
-        public void StartSessionAndGet10mbDataSuccessful()
+        public void StartSessionAndGet10MbDataSuccessful()
         {
             string requestStr = ConfigurationManager.AppSettings["secureAddress"] + ConfigurationManager.AppSettings["10mbTestFile"];
             Uri uri;
@@ -242,7 +241,7 @@ namespace Http2Tests
 
             session.OnFrameReceived += (sender, args) =>
             {
-                if (args.Frame is DataFrame && args.Frame.IsFin)
+                if (args.Frame.IsFin)
                 {
                     finalFrameReceivedRaisedEvent.Set();
                     wasFinalFrameReceived = true;
@@ -251,7 +250,7 @@ namespace Http2Tests
 
             session.Start();
 
-            var stream = SubmitRequest(session, uri);
+            SubmitRequest(session, uri);
 
             finalFrameReceivedRaisedEvent.WaitOne(60000);
 
@@ -264,11 +263,11 @@ namespace Http2Tests
         }
 
         [Fact]
-        public void StartMultipleSessionsAndGet100mbDataSuccessful()
+        public void StartMultipleSessionsAndGet50MbDataSuccessful()
         {
-            for (int i = 0; i < 10; i++ )
+            for (int i = 0; i < 5; i++ )
             {
-                StartSessionAndGet10mbDataSuccessful();
+                StartSessionAndGet10MbDataSuccessful();
             }
         }
 

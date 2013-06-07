@@ -12,15 +12,12 @@ using Org.Mentalis;
 using Org.Mentalis.Security.Ssl;
 using Org.Mentalis.Security.Ssl.Shared.Extensions;
 using Owin.Types;
-using SharedProtocol;
 using SharedProtocol.Http11;
 using SocketServer;
 using Xunit;
-using Xunit.Extensions;
 using SharedProtocol.Handshake;
-using SharedProtocol.Exceptions;
 
-namespace HandshakeTests
+namespace Http11Tests
 {
     public class Http11Tests
     {

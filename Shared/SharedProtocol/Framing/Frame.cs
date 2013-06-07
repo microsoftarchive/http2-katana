@@ -3,8 +3,6 @@ using System;
 
 namespace SharedProtocol.Framing
 {
-    // Represents the initial frame fields on every frame.
-
     //0                   1                   2                   3
     //0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
     //+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -14,9 +12,12 @@ namespace SharedProtocol.Framing
     //+-+-------------------------------------------------------------+
     //|                     Frame Data (0...)                       ...
     //+---------------------------------------------------------------+
+    /// <summary>
+    /// Represents the initial frame fields on every frame.
+    /// </summary>
     public class Frame
     {
-        private byte[] _buffer;
+        private readonly byte[] _buffer;
         // For reading the preamble to determine the frame type and length
         public Frame()
             : this(new byte[Constants.FramePreambleSize])
@@ -103,6 +104,13 @@ namespace SharedProtocol.Framing
             }
         }
 
+        /// <summary>
+        /// Gets or sets the stream id.
+        /// All frames have stream Id field.
+        /// </summary>
+        /// <value>
+        /// The stream id.
+        /// </value>
         public Int32 StreamId
         {
             get
