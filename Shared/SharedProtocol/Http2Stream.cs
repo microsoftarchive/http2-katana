@@ -1,15 +1,15 @@
-﻿using System.Reflection;
-using SharedProtocol.Compression;
-using SharedProtocol.ExtendedMath;
+﻿using SharedProtocol.Compression;
 using SharedProtocol.Framing;
 using SharedProtocol.IO;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
-using System.IO;
 
 namespace SharedProtocol
 {
+    /// <summary>
+    /// Class represents http2 stream.
+    /// </summary>
     public class Http2Stream : IDisposable
     {
         private readonly int _id;
@@ -19,11 +19,8 @@ namespace SharedProtocol
         private readonly CompressionProcessor _compressionProc;
         private readonly FlowControlManager _flowCrtlManager;
 
-        private int windowUpdateReceivedCount = 0;
-        private int dataFrameSentCount = 0;
-
         private readonly Queue<DataFrame> _unshippedFrames;
-
+        private readonly object _unshippedDeliveryLock = new object();
         //Incoming
         public Http2Stream(Dictionary<string, string> headers, int id,
                            Priority priority, WriteQueue writeQueue,
@@ -92,9 +89,9 @@ namespace SharedProtocol
         #endregion
 
         #region FlowControl
+
         public void UpdateWindowSize(Int32 delta)
         {
-            windowUpdateReceivedCount++;
             if (IsFlowControlEnabled)
             {
                 WindowSize += delta;
@@ -109,22 +106,29 @@ namespace SharedProtocol
             }
         }
 
+        /// <summary>
+        /// Pumps the unshipped frames.
+        /// Calls after window update was received for stream. 
+        /// Method tried to deliver as many unshipped data frames as it can.
+        /// </summary>
         public void PumpUnshippedFrames()
         {
-            while (_unshippedFrames.Count > 0 && IsFlowControlBlocked == false)
+            //Handle window update one at a time
+            lock (_unshippedDeliveryLock)
             {
-                var dataFrame = _unshippedFrames.Dequeue();
-                WriteDataFrame(dataFrame);
-            }
+                while (_unshippedFrames.Count > 0 && IsFlowControlBlocked == false)
+                {
+                    var dataFrame = _unshippedFrames.Dequeue();
+                    WriteDataFrame(dataFrame);
+                }
 
-            //Do not dispose if unshipped frames are still here
-            if (FinSent && FinReceived)
-            {
-                Console.WriteLine("Received {0} window update frames", windowUpdateReceivedCount);
-                Console.WriteLine("Sent {0} data frames", dataFrameSentCount);
-                Console.WriteLine("Sent data {0}", SentDataAmount);
-                Console.WriteLine("File sent: " + Headers[":path"]);
-                Dispose();
+                //Do not dispose if unshipped frames are still here
+                if (FinSent && FinReceived && !Disposed)
+                {
+                    Console.WriteLine("Sent data {0}", SentDataAmount);
+                    Console.WriteLine("File sent: " + Headers[":path"]);
+                    Dispose();
+                }
             }
         }
 
@@ -165,9 +169,15 @@ namespace SharedProtocol
             }
         }
 
+        /// <summary>
+        /// Writes the data frame.
+        /// If flow control manager has blocked stream, frames are adding to the unshippedFrames collection.
+        /// After window update for that stream they will be delivered.
+        /// </summary>
+        /// <param name="data">The data.</param>
+        /// <param name="isFin">if set to <c>true</c> [is fin].</param>
         public void WriteDataFrame(byte[] data, bool isFin)
         {
-            dataFrameSentCount++;
             var dataFrame = new DataFrame(_id, new ArraySegment<byte>(data), isFin);
             dataFrame.IsFin = isFin;
 
@@ -195,9 +205,14 @@ namespace SharedProtocol
             }
         }
 
+        /// <summary>
+        /// Writes the data frame.
+        /// If flow control manager has blocked stream, frames are adding to the unshippedFrames collection.
+        /// After window update for that stream they will be delivered.
+        /// </summary>
+        /// <param name="dataFrame">The data frame.</param>
         public void WriteDataFrame(DataFrame dataFrame)
         {
-            dataFrameSentCount++;
             if (IsFlowControlBlocked == false)
             {
                 _writeQueue.WriteFrameAsync(dataFrame, _priority);
@@ -222,12 +237,13 @@ namespace SharedProtocol
             }
         }
 
-        public void WriteHeaders(SettingsPair[] settings)
+        public void WriteHeaders(byte[] compressedHeaders)
         {
-            //TODO process write headers
+            _writeQueue.WriteFrameAsync(new HeadersFrame(_id, compressedHeaders), Priority.Pri3);
+            
             if (OnFrameSent != null)
             {
-                OnFrameSent(this, new FrameSentArgs(new HeadersFrame(1, null)));
+                OnFrameSent(this, new FrameSentArgs(new HeadersFrame(_id, compressedHeaders)));
             }
         }
 
@@ -265,8 +281,14 @@ namespace SharedProtocol
             Disposed = true;
         }
 
+        /// <summary>
+        /// Occurs when stream was sent frame.
+        /// </summary>
         public event EventHandler<FrameSentArgs> OnFrameSent;
 
+        /// <summary>
+        /// Occurs when stream closes.
+        /// </summary>
         public event EventHandler<StreamClosedEventArgs> OnClose;
     }
 }

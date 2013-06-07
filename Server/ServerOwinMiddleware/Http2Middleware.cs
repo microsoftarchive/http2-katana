@@ -1,9 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Org.Mentalis.Security.Ssl;
-
-using UpgradeDelegate = System.Action<System.Collections.Generic.IDictionary<string, object>, System.Func<System.Collections.Generic.IDictionary<string, object>, System.Threading.Tasks.Task>>;
 
 namespace ServerOwinMiddleware
 {
@@ -31,6 +28,12 @@ namespace ServerOwinMiddleware
             _nextHttp2 = branch;
         }
 
+        /// <summary>
+        /// Invokes the specified environment.
+        /// This method is used for handshake.
+        /// </summary>
+        /// <param name="environment">The environment.</param>
+        /// <returns></returns>
         public async Task Invoke(IDictionary<string, object> environment)
         {
             var handshakeAction = (Action)environment["HandshakeAction"];

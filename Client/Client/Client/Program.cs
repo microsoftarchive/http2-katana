@@ -69,7 +69,7 @@ namespace Client
                         Console.WriteLine(ex.Message);
                         continue;
                     }
-
+                    //Scheme and port were checked during parsing get cmd.
                     switch (cmd.GetCmdType())
                     {
                         case CommandType.Get:
@@ -78,16 +78,18 @@ namespace Client
                             //Only unique sessions can be opened
                             if (_sessions.ContainsKey(getCmd.Uri.Authority))
                             {
-                                Console.WriteLine("Session with to this server was already opened: {0}", getCmd.Uri.Authority);
-                                continue;
+                                _sessions[getCmd.Uri.Authority].SendRequestAsync(getCmd.Uri);
+                                break;
                             }
 
                             var sessionHandler = new Http2SessionHandler(getCmd.Uri);
 
+                            //Get cmd is equivalent for connect -> get. This means, that each get request 
+                            //will open new session.
                             ThreadPool.QueueUserWorkItem(delegate
                             {
                                 sessionHandler.Connect();
-                                sessionHandler.SendRequestAsync();
+                                sessionHandler.SendRequestAsync(getCmd.Uri);
                             });
 
                             _sessions.Add(getCmd.Uri.Authority, sessionHandler);

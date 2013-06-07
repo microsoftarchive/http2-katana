@@ -26,13 +26,14 @@ namespace SocketServer
 {
     using AppFunc = Func<IDictionary<string, object>, Task>;
     /// <summary>
-    /// TODO: Update summary.
+    /// This class handles incoming clients. It can accept them, make handshake and chose how to give a responce.
+    /// It encouraged to responce with http11 or http20 
     /// </summary>
     internal sealed class HttpConnetingClient : IDisposable
     {
-        private readonly SecureTcpListener server;
-        private readonly SecurityOptions options;
-        private readonly AppFunc next;
+        private readonly SecureTcpListener _server;
+        private readonly SecurityOptions _options;
+        private readonly AppFunc _next;
         private string _alpnSelectedProtocol;
         private Http2Session _session = null;
         private static readonly string assemblyPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
@@ -43,14 +44,17 @@ namespace SocketServer
 
         internal HttpConnetingClient(SecureTcpListener server, SecurityOptions options, AppFunc next)
         {
-            this.SelectedProtocol = String.Empty;
-            this.server = server;
-            this.next = next;
-            this.options = options;
+            SelectedProtocol = String.Empty;
+            _server = server;
+            _next = next;
+            _options = options;
 
             _fileHelper = new FileHelper();
         }
 
+        /// <summary>
+        /// Accepts client and deals handshake with it.
+        /// </summary>
         internal async void Accept()
         {
             bool backToHttp11 = false;
@@ -59,19 +63,20 @@ namespace SocketServer
             {
                 monitor.OnProtocolSelected += (sender, args) => { _alpnSelectedProtocol = args.SelectedProtocol; };
 
-                incomingClient = server.AcceptSocket(monitor);
+                incomingClient = _server.AcceptSocket(monitor);
                 Console.WriteLine("New client accepted");
 
                 IDictionary<string, object> environment = new Dictionary<string, object>();
 
+                //Sets the handshake action depends on port.
                 environment.Add("HandshakeAction",
-                                HandshakeManager.GetHandshakeAction(incomingClient, this.options));
+                                HandshakeManager.GetHandshakeAction(incomingClient, _options));
 
                 try
                 {
-                    await next(environment);
+                    await _next(environment);
                 }
-                catch (HTTP2HandshakeFailed)
+                catch (Http2HandshakeFailed)
                 {
                     backToHttp11 = true;
                 }
@@ -92,12 +97,13 @@ namespace SocketServer
             OpenHttp2Session(incomingClient);
         }
 
+        //This method is never used, but it's useful for future
         private TransportInformation GetSocketTranspInfo(SecureSocket incomingClient)
         {
-            IPEndPoint localEndPoint = (IPEndPoint)incomingClient.LocalEndPoint;
-            IPEndPoint remoteEndPoint = (IPEndPoint)incomingClient.RemoteEndPoint;
+            var localEndPoint = (IPEndPoint)incomingClient.LocalEndPoint;
+            var remoteEndPoint = (IPEndPoint)incomingClient.RemoteEndPoint;
 
-            TransportInformation transportInfo = new TransportInformation()
+            var transportInfo = new TransportInformation()
             {
                 LocalPort = localEndPoint.Port.ToString(CultureInfo.InvariantCulture),
                 RemotePort = remoteEndPoint.Port.ToString(CultureInfo.InvariantCulture),

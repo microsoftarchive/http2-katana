@@ -2,6 +2,9 @@
 
 namespace SharedProtocol
 {
+    /// <summary>
+    /// This class is designed for incoming settings frame processing
+    /// </summary>
     public class SettingsManager 
     {
         public void ProcessSettings(SettingsFrame settingsFrame, Http2Session session, 

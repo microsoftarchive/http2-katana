@@ -98,6 +98,10 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\Shared\SharedProtocol\SharedProtocol.csproj">
+      <Project>{e34ac310-324c-46bc-af9f-1a41df58e867}</Project>
+      <Name>SharedProtocol</Name>
+    </ProjectReference>
     <ProjectReference Include="..\ServerOwinMiddleware\ServerOwinMiddleware.csproj">
       <Project>{ae3e0df3-1e7e-4d8d-9780-78d3d1ce436f}</Project>
       <Name>ServerOwinMiddleware</Name>

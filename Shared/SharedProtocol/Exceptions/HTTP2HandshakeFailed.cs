@@ -2,9 +2,9 @@
 
 namespace SharedProtocol.Exceptions
 {
-    public class HTTP2HandshakeFailed : Exception
+    public class Http2HandshakeFailed : Exception
     {
-        public HTTP2HandshakeFailed()
+        public Http2HandshakeFailed()
             : base("Back to http11")
         {
             

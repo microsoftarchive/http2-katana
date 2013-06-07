@@ -3,10 +3,11 @@ using System.Collections.Generic;
 
 namespace SharedProtocol.ExtendedMath
 {
+    /// <summary>
+    /// Extended math class. It's partial for future extending.
+    /// </summary>
     public static partial class MathEx
     {
-        public static Int64 POSITIVE_INFINITY = (Int64) Math.Pow(2, 64) - 1;
-
         public static T Min<T>(IComparer<T> comparer, params T[] items)
         {
             if (items == null || comparer == null || items.Length <= 1)

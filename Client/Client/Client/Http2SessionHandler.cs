@@ -24,7 +24,7 @@ namespace Client
         private SecurityOptions _options;
         private Http2Session _clientSession;
         private const string _certificatePath = @"certificate.pfx";
-        private readonly Uri _requestUri;
+        private Uri _requestUri;
         private SecureSocket _socket;
         private string _selectedProtocol;
         private bool _useHttp20 = true;
@@ -68,6 +68,7 @@ namespace Client
                     return;
                 }
 
+                //Connect alpn extension, set known protocols
                 var extensions = new [] { ExtensionType.Renegotiation, ExtensionType.ALPN };
 
                 _options = port == securePort ? new SecurityOptions(SecureProtocol.Tls1, extensions, new[] { "http/2.0", "http/1.1" }, ConnectionEnd.Client)
@@ -86,6 +87,7 @@ namespace Client
                     monitor.OnProtocolSelected += (o, args) => { _selectedProtocol = args.SelectedProtocol; };
                     sessionSocket.Connect(new DnsEndPoint(_requestUri.Host, _requestUri.Port), monitor);
 
+                    //Handshake manager determines what handshake must be used: upgrade or secure
                     HandshakeManager.GetHandshakeAction(sessionSocket, _options).Invoke();
 
                     Console.WriteLine("Handshake finished");
@@ -102,63 +104,64 @@ namespace Client
                 _useHttp20 = true;
                 _clientSession = new Http2Session(_socket, ConnectionEnd.Client);
 
+                //For saving incoming data
                 _clientSession.OnFrameReceived += FrameReceivedHandler;
 
                 await _clientSession.Start();
             }
-            catch (HTTP2HandshakeFailed)
+            catch (Http2HandshakeFailed)
             {
                 _useHttp20 = false;
             }
             catch (Exception ex)
             {
                 Console.WriteLine("Unhandled session exception was caught: " + ex.Message);
-                if (sessionSocket != null)
-                {
-                    sessionSocket.Close();
-                }
-                if (_clientSession != null)
-                {
-                    _clientSession.Dispose();
-                    _clientSession = null;
-                }
+                Dispose();
             }
         }
 
-        private Http2Stream SubmitRequest()
+        private void SubmitRequest(Uri request)
         {
             var pairs = new Dictionary<string, string>(10);
             const string method = "GET";
-            string path = _requestUri.PathAndQuery;
+            string path = request.PathAndQuery;
             const string version = "HTTP/2.0";
-            string scheme = _requestUri.Scheme;
-            string host = _requestUri.Host;
+            string scheme = request.Scheme;
+            string host = request.Host;
 
             pairs.Add(":method", method);
             pairs.Add(":path", path);
             pairs.Add(":version", version);
             pairs.Add(":host", host);
             pairs.Add(":scheme", scheme);
-            
-            //TODO Calc priority
 
-            var clientStream = _clientSession.SendRequest(pairs, 3, true);
-
-            return clientStream;
+            //Sending request with average priority
+            _clientSession.SendRequest(pairs, (int)Priority.Pri3, true);
         }
         
-        public async Task SendRequestAsync()
+        public void SendRequestAsync(Uri request)
         {
+            if (_requestUri.Host != request.Host || _requestUri.Port != request.Port ||
+                _requestUri.Scheme != request.Scheme)
+            {
+                throw new InvalidOperationException("Trying to send request to non connected address");
+            }
+
+            _requestUri = request;
+
             if (_useHttp20 == false)
             {
                 Console.WriteLine("Download with Http/1.1");
-                Http11Manager.Http11DownloadResource(_socket, _requestUri);
+
+                //Download with http11 in another thread.
+                Task.Run(() => Http11Manager.Http11DownloadResource(_socket, _requestUri));
                 return;
             }
 
-            Http2Stream stream;
+            //Submit request if http2 was chosen
             Console.WriteLine("Submitting request");
-            stream = SubmitRequest();
+            //Submit request in the current thread, responce will be handled in the session thread.
+            SubmitRequest(_requestUri);
         }
 
         public TimeSpan Ping()
@@ -171,6 +174,7 @@ namespace Client
             return default(TimeSpan);
         }
 
+        //Method for future usage in server push 
         private void SendResponce(Http2Stream stream)
         {
             byte[] binaryFile = _fileHelper.GetFile(stream.Headers[":path"]);
@@ -246,7 +250,10 @@ namespace Client
             {
                 _clientSession.Dispose();
             }
-
+            else
+            {
+                _socket.Close();
+            }
             _fileHelper.Dispose();
         }
     }

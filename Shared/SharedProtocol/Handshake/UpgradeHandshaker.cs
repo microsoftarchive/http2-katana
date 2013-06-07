@@ -12,31 +12,25 @@ namespace SharedProtocol.Handshake
     public class UpgradeHandshaker
     {
         private const int HandshakeResponseSizeLimit = 1024;
-        private static readonly byte[] CRLFCRLF = new byte[] { (byte)'\r', (byte)'\n', (byte)'\r', (byte)'\n' };
-        private ConnectionEnd _end;
-        private Uri _uri;
-        private string _method;
-        private string _version;
+        private static readonly byte[] CRLFCRLF = new [] { (byte)'\r', (byte)'\n', (byte)'\r', (byte)'\n' };
+        private readonly ConnectionEnd _end;
         private IEnumerable<KeyValuePair<string, IEnumerable<string>>> _headers;
 
         public SecureSocket InternalSocket { get; private set; }
 
         public UpgradeHandshaker(SecureSocket socket, ConnectionEnd end)
         {
-            this.InternalSocket = socket;
+            InternalSocket = socket;
             _end = end;
         }
 
-        // Send a HTTP/1.1 upgrade request, expect a 101 response.
-        // TODO: Failing a 101 response, we could fall back to HTTP/1.1, but
-        // that is currently out of scope for this project.
         public void Handshake()
         {
             HandshakeResponse handshakeResponse;
             if (_end == ConnectionEnd.Client)
             {
                 // Build the request
-                StringBuilder builder = new StringBuilder();
+                var builder = new StringBuilder();
                 builder.AppendFormat("Get /text.txt HTTP/1.1\r\n");
                 builder.AppendFormat("Host: localhost:8443\r\n");
                 builder.Append("Connection: Upgrade\r\n");
@@ -64,11 +58,11 @@ namespace SharedProtocol.Handshake
 
                 if (_end == ConnectionEnd.Server && handshakeResponse.Result == HandshakeResult.Upgrade)
                 {
-                    string status = "101";
-                    string protocol = "HTTP/1.1";
-                    string postfix = "Switching Protocols";
+                    const string status = "101";
+                    const string protocol = "HTTP/1.1";
+                    const string postfix = "Switching Protocols";
 
-                    StringBuilder builder = new StringBuilder();
+                    var builder = new StringBuilder();
                     builder.AppendFormat("{0} {1} {2}\r\n", protocol, status, postfix);
                     builder.Append("Connection: Upgrade\r\n");
                     builder.Append("Upgrade: HTTP/2.0\r\n");
@@ -80,13 +74,13 @@ namespace SharedProtocol.Handshake
             }
             if (handshakeResponse.Result == HandshakeResult.NonUpgrade)
             {
-                throw new HTTP2HandshakeFailed();
+                throw new Http2HandshakeFailed();
             }
         }
 
         public HandshakeResponse Read11Headers(SecureSocket socket)
         {
-            byte[] buffer = new byte[HandshakeResponseSizeLimit];
+            var buffer = new byte[HandshakeResponseSizeLimit];
             int lastInspectionOffset = 0;
             int readOffset = 0;
             int read = -1;
@@ -98,13 +92,12 @@ namespace SharedProtocol.Handshake
                 }
                 catch (IOException)
                 {
-                    return new HandshakeResponse() { Result = HandshakeResult.UnexpectedConnectionClose };
+                    return new HandshakeResponse { Result = HandshakeResult.UnexpectedConnectionClose };
                 }
 
                 if (read == 0)
                 {
-                    // TODO: Should this be a HandshakeResult? It's similar to a SockeException, IOException, etc..
-                    return new HandshakeResponse() { Result = HandshakeResult.UnexpectedConnectionClose };
+                    return new HandshakeResponse { Result = HandshakeResult.UnexpectedConnectionClose };
                 }
 
                 readOffset += read;
@@ -118,7 +111,7 @@ namespace SharedProtocol.Handshake
 
                 if (FrameHelpers.GetHighBitAt(buffer, 0))
                 {
-                    return new HandshakeResponse()
+                    return new HandshakeResponse
                     {
                         Result = HandshakeResult.UnexpectedControlFrame,
                         ExtraData = new ArraySegment<byte>(buffer, 0, readOffset),
@@ -161,7 +154,7 @@ namespace SharedProtocol.Handshake
         // We've found a CRLFCRLF sequence.  Confirm the status code is 101 for upgrade.
         private HandshakeResponse InspectHanshake(byte[] buffer, int split, int limit)
         {
-            HandshakeResponse handshake = new HandshakeResponse()
+            var handshake = new HandshakeResponse
                 {
                     ResponseBytes = new ArraySegment<byte>(buffer, 0, split),
                     ExtraData = new ArraySegment<byte>(buffer, split, limit),

@@ -1,18 +1,25 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace SharedProtocol
 {
+    /// <summary>
+    /// This class is designed for flow control monitoring and processing.
+    /// Flow control handles only dataframes.
+    /// </summary>
     public class FlowControlManager
     {
-        private Http2Session _flowControlledSession;
-        private ActiveStreams _streamCollection;
+        private readonly Http2Session _flowControlledSession;
+        private readonly ActiveStreams _streamCollection;
         private Int32 _options;
 
+        /// <summary>
+        /// Gets or sets the flow control options property.
+        /// </summary>
+        /// <value>
+        /// The options. 
+        /// The first bit indicated all streams flow control enabled.
+        /// The second bit indicated session flow control enabled.
+        /// </value>
         public Int32 Options 
         { 
            get
@@ -71,6 +78,13 @@ namespace SharedProtocol
             IsSessionBlocked = false;
         }
 
+        /// <summary>
+        /// Check if stream is flowcontrolled.
+        /// </summary>
+        /// <param name="stream">The stream to check.</param>
+        /// <returns>
+        ///   <c>true</c> if the stream is flow controlled; otherwise, <c>false</c>.
+        /// </returns>
         public bool IsStreamFlowControlled(Http2Stream stream)
         {
             return _streamCollection.IsStreamFlowControlled(stream);
@@ -80,17 +94,28 @@ namespace SharedProtocol
         {
             _flowControlledSession.SessionWindowSize += StreamsInitialWindowSize;
         }
+
         public void StreamClosedHandler(Http2Stream stream)
         {
             _flowControlledSession.SessionWindowSize -= stream.WindowSize;
         }
 
-        //Flow control cant be enabled once disabled
+        /// <summary>
+        /// Disables the stream flow control.
+        /// Flow control cant be enabled once disabled
+        /// </summary>
+        /// <param name="stream">The stream.</param>
         public void DisableStreamFlowControl(Http2Stream stream)
         {
             _streamCollection.DisableFlowControl(stream);
         }
 
+        /// <summary>
+        /// Handles data frame sent event.
+        /// This method can set flow control block to stream exceeded window size limit.
+        /// </summary>
+        /// <param name="sender">The sender.</param>
+        /// <param name="args">The <see cref="DataFrameSentEventArgs"/> instance containing the event data.</param>
         public void DataFrameSentHandler(object sender, DataFrameSentEventArgs args)
         {
             int id = args.Id;
