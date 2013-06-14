@@ -8,6 +8,21 @@ namespace SharedProtocol.Framing
         // The number of bytes in the frame, not including the compressed headers.
         private const int InitialFrameSize = 12;
 
+        public bool IsContinues
+        {
+            get
+            {
+                return (Flags & FrameFlags.Continues) == FrameFlags.Continues;
+            }
+            set
+            {
+                if (value)
+                {
+                    Flags |= FrameFlags.Continues;
+                }
+            }
+        }
+
         // Create an outgoing frame
         public HeadersPlusPriority(int streamId, byte[] headerBytes)
             : base(new byte[InitialFrameSize + headerBytes.Length])

@@ -26,7 +26,8 @@ namespace SharedProtocol
         private int _lastId;
         private bool _wasSettingsReceived = false;
         private bool _wasPingReceived = false;
-
+        private Dictionary<string, string> _toBeContinuedHeaders = null;
+        private Frame _toBeContinuedFrame = null;
         /// <summary>
         /// Gets the active streams.
         /// </summary>
@@ -136,6 +137,18 @@ namespace SharedProtocol
             byte[] decompressedHeaders;
             Dictionary<string, string> headers;
 
+            //Spec 03 tells that frame with continues flag MUST be followed by a frame with the same type
+            //and the same stread id.
+            if (_toBeContinuedHeaders != null)
+            {
+                if (_toBeContinuedFrame.FrameType != frame.FrameType
+                    || _toBeContinuedFrame.StreamId != frame.StreamId)
+                {
+                    //If not, we must close the session.
+                    Dispose();
+                }
+            }
+
             try
             {
                 switch (frame.FrameType)
@@ -145,6 +158,22 @@ namespace SharedProtocol
                         var headersPlusPriorityFrame = (HeadersPlusPriority) frame;
                         decompressedHeaders = _comprProc.Decompress(headersPlusPriorityFrame.CompressedHeaders);
                         headers = FrameHelpers.DeserializeHeaderBlock(decompressedHeaders);
+
+                        if (headersPlusPriorityFrame.IsContinues)
+                        {
+                            var decompHeaders = _comprProc.Decompress(headersPlusPriorityFrame.CompressedHeaders);
+                            _toBeContinuedHeaders = FrameHelpers.DeserializeHeaderBlock(decompHeaders);
+                            _toBeContinuedFrame = headersPlusPriorityFrame;
+                            break;
+                        }
+
+                        if (_toBeContinuedHeaders != null)
+                        {
+                            foreach (var key in _toBeContinuedHeaders.Keys)
+                            {
+                                headers.Add(key, _toBeContinuedHeaders[key]);
+                            }
+                        }
 
                         //Remote side tries to open more streams than allowed
                         if (ActiveStreams.GetOpenedStreamsBy(_remoteEnd) + 1 > OurMaxConcurrentStreams)
@@ -166,6 +195,9 @@ namespace SharedProtocol
                                 throw new ArgumentException("Cant remove stream from ActiveStreams");
                             }
                         };
+
+                        _toBeContinuedFrame = null;
+                        _toBeContinuedHeaders = null;
                         break;
 
                     case FrameType.RstStream:
@@ -198,10 +230,10 @@ namespace SharedProtocol
                         break;
                     case FrameType.Ping:
                         var pingFrame = (PingFrame) frame;
-                        if (pingFrame.Flags == FrameFlags.Pong)
+                        if (pingFrame.IsPong)
                         {
-                            _wasPingReceived = true;
-                            _pingReceived.Set();
+                              _wasPingReceived = true;
+                              _pingReceived.Set();
                         }
                         else
                         {
@@ -240,6 +272,14 @@ namespace SharedProtocol
                         var headersFrame = (HeadersFrame) frame;
                         stream = GetStream(headersFrame.StreamId);
 
+                        if (headersFrame.IsContinues)
+                        {
+                            var decompHeaders = _comprProc.Decompress(headersFrame.CompressedHeaders);
+                            _toBeContinuedHeaders = FrameHelpers.DeserializeHeaderBlock(decompHeaders);
+                            _toBeContinuedFrame = headersFrame;
+                            break;
+                        }
+
                         //Frame came to already closed or unopened stream
                         if (stream == null || stream.Disposed)
                         {
@@ -250,11 +290,21 @@ namespace SharedProtocol
                         decompressedHeaders = _comprProc.Decompress(headersFrame.CompressedHeaders);
                         headers = FrameHelpers.DeserializeHeaderBlock(decompressedHeaders);
 
+                        if (_toBeContinuedHeaders != null)
+                        {
+                            foreach (var key in _toBeContinuedHeaders.Keys)
+                            {
+                                headers.Add(key, _toBeContinuedHeaders[key]);
+                            }
+                        }
+
                         foreach (var key in headers.Keys)
                         {
                             stream.Headers.Add(key, headers[key]);
                         }
 
+                        _toBeContinuedHeaders = null;
+                        _toBeContinuedFrame = null;
                         break;
                     case FrameType.GoAway:
                         _goAwayReceived = true;

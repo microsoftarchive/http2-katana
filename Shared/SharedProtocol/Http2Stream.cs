@@ -125,8 +125,6 @@ namespace SharedProtocol
                 //Do not dispose if unshipped frames are still here
                 if (FinSent && FinReceived && !Disposed)
                 {
-                    Console.WriteLine("Sent data {0}", SentDataAmount);
-                    Console.WriteLine("File sent: " + Headers[":path"]);
                     Dispose();
                 }
             }
@@ -179,7 +177,6 @@ namespace SharedProtocol
         public void WriteDataFrame(byte[] data, bool isFin)
         {
             var dataFrame = new DataFrame(_id, new ArraySegment<byte>(data), isFin);
-            dataFrame.IsFin = isFin;
 
             if (IsFlowControlBlocked == false)
             {
@@ -273,8 +270,17 @@ namespace SharedProtocol
 
         public void Dispose()
         {
+            if (Disposed)
+            {
+                return;
+            }
+
+            Console.WriteLine("Total data frames volume {0}", SentDataAmount);
+
             if (OnClose != null)
                 OnClose(this, new StreamClosedEventArgs(_id));
+
+            Console.WriteLine("Stream closed {0}", _id);
 
             OnClose = null;
             _flowCrtlManager.StreamClosedHandler(this);
