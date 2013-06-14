@@ -8,6 +8,25 @@ namespace SharedProtocol.Framing
     // Helpers for reading binary fields of various sizes
     public static class FrameHelpers
     {
+        public static byte SetBit(byte input, bool value, byte offset)
+        {
+            Contract.Assert(offset <= 7);
+
+            if (value == GetBit(input, offset))
+            {
+                return input;
+            }
+
+            return (byte)(input ^ (1 << offset));
+        }
+
+        public static bool GetBit(byte input, byte offset)
+        {
+            Contract.Assert(offset <= 7);
+
+            return (input >> offset) % 2 == 1;
+        }
+
         public static bool GetHighBitAt(byte[] buffer, int offset)
         {
             Contract.Assert(offset >= 0 && offset < buffer.Length);

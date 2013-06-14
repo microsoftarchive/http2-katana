@@ -76,11 +76,11 @@ namespace SharedProtocol.Framing
         {
             get
             {
-                return (FrameFlags)Buffer[3];
+                return (FrameFlags) Buffer[3];
             }
             set
             {
-                Buffer[3] = (byte)value;
+                Buffer[3] = (byte) value;
             }
         }
 
@@ -96,10 +96,6 @@ namespace SharedProtocol.Framing
                 if (value)
                 {
                     Flags |= FrameFlags.Fin;
-                }
-                else
-                {
-                    Flags = Flags & ~FrameFlags.Fin;
                 }
             }
         }

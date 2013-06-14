@@ -9,7 +9,9 @@ using System.Globalization;
 using System.IO;
 using System.Net;
 using System.Collections.Generic;
+using System.Net.Sockets;
 using System.Reflection;
+using System.Text;
 using System.Threading.Tasks;
 using Org.Mentalis;
 using Org.Mentalis.Security.Ssl;
@@ -39,6 +41,7 @@ namespace SocketServer
         private static readonly string assemblyPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
         private readonly FileHelper _fileHelper;
         private readonly object _writeLock = new object();
+        private readonly string _clientSessionHeader = @"FOO * HTTP/2.0\r\n\r\nBA\r\n\r\n";
 
         public string SelectedProtocol { get; private set; }
 
@@ -94,7 +97,25 @@ namespace SocketServer
                 return;
             }
 
+            GetSessionHeader(incomingClient);
             OpenHttp2Session(incomingClient);
+        }
+
+        private void GetSessionHeader(SecureSocket incomingClient)
+        {
+            var sessionHeaderBuffer = new byte[_clientSessionHeader.Length];
+            int received = 0;
+            while (received < _clientSessionHeader.Length)
+            {
+                received = incomingClient.Receive(sessionHeaderBuffer, received, sessionHeaderBuffer.Length - received, SocketFlags.None);
+            }
+
+            var receivedHeader = Encoding.UTF8.GetString(sessionHeaderBuffer);
+
+            if (receivedHeader != _clientSessionHeader)
+            {
+                Dispose();
+            }
         }
 
         //This method is never used, but it's useful for future
@@ -165,6 +186,9 @@ namespace SocketServer
 
                 i += chunkSize;
             }
+
+            //It was not send exactly. Some of the data frames could be pushed to the unshipped frames collection
+            Console.WriteLine("File sent: " + stream.Headers[":path"]);
         }
 
         private void SaveToFile(Http2Stream stream, DataFrame dataFrame)
@@ -180,6 +204,12 @@ namespace SocketServer
 
                 if (dataFrame.IsFin)
                 {
+                    if (!stream.FinSent)
+                    {
+                        //send terminator
+                        stream.WriteDataFrame(new byte[] { 0 }, true);
+                        Console.WriteLine("Terminator was sent");
+                    }
                     _fileHelper.Dispose();
                     Console.WriteLine("File downloaded: " + path);
                     stream.Dispose();

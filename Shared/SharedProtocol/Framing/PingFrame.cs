@@ -6,6 +6,21 @@ namespace SharedProtocol.Framing
         // The number of bytes in the frame.
         private const int InitialFrameSize = 12;
 
+        public bool IsPong 
+        {
+            get
+            {
+                return (Flags & FrameFlags.Pong) == FrameFlags.Pong;
+            }
+            set
+            {
+                if (value)
+                {
+                    Flags |= FrameFlags.Pong;
+                }
+            }
+        }
+
         // Incoming
         public PingFrame(Frame preamble)
             : base(preamble)
@@ -18,10 +33,8 @@ namespace SharedProtocol.Framing
         {
             FrameType = FrameType.Ping;
             FrameLength = InitialFrameSize - Constants.FramePreambleSize; // 4
-            if (isPong)
-            {
-                Flags = FrameFlags.Pong;
-            }
+
+            IsPong = isPong;
             StreamId = 0;
         }     
     }
