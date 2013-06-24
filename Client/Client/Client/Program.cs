@@ -44,10 +44,16 @@ namespace Client
     public class Program
     {
         private static Dictionary<string, Http2SessionHandler> _sessions;
+        private static bool useHandshake = true;
 
         public static void Main(string[] args)
         {
             _sessions = new Dictionary<string, Http2SessionHandler>();
+
+            if (!String.IsNullOrEmpty(args[0]) && args[0] == "-no-handshake")
+            {
+                useHandshake = false;
+            }
 
             HelpDisplayer.ShowMainMenuHelp();
             ThreadPool.SetMaxThreads(10, 10);
@@ -82,7 +88,7 @@ namespace Client
                                 break;
                             }
 
-                            var sessionHandler = new Http2SessionHandler(getCmd.Uri);
+                            var sessionHandler = new Http2SessionHandler(getCmd.Uri, useHandshake);
 
                             //Get cmd is equivalent for connect -> get. This means, that each get request 
                             //will open new session.

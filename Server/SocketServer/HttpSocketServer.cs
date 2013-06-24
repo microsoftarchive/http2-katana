@@ -19,6 +19,8 @@ namespace SocketServer
         private readonly int _port;
         private readonly string _scheme;
 
+        private bool _useHandshake;
+
         private bool _disposed;
         private readonly SecurityOptions _options;
         private readonly  SecureTcpListener _server;
@@ -29,7 +31,7 @@ namespace SocketServer
             _next = next;
 
             var addresses = (IList<IDictionary<string, object>>)properties[OwinConstants.CommonKeys.Addresses];
-
+            
             var address = addresses.First();
             _port = Int32.Parse(address.Get<string>("port"));
             _scheme = address.Get<string>("scheme");
@@ -60,6 +62,8 @@ namespace SocketServer
                 return;
             }
 
+            _useHandshake = ConfigurationManager.AppSettings["handshakeOptions"] != "no-handshake";
+
             var extensions = new [] { ExtensionType.Renegotiation, ExtensionType.ALPN };
 
             _options = _port == securePort ? new SecurityOptions(SecureProtocol.Tls1, extensions, new[] { "http/2.0", "http/1.1" }, ConnectionEnd.Server)
@@ -86,7 +90,7 @@ namespace SocketServer
             {
                 try
                 {
-                    var client = new HttpConnetingClient(this._server, _options, _next);
+                    var client = new HttpConnetingClient(_server, _options, _next, _useHandshake);
                     client.Accept();
                 }
                 catch (Exception ex)

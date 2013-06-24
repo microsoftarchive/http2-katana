@@ -29,9 +29,10 @@ namespace Client
         private SecureSocket _socket;
         private string _selectedProtocol;
         private bool _useHttp20 = true;
+        private readonly bool _useHandshake;
         private readonly FileHelper _fileHelper;
         private readonly object _writeLock = new object();
-        private readonly string _clientSessionHeader = @"FOO * HTTP/2.0\r\n\r\nBA\r\n\r\n";
+        private const string _clientSessionHeader = @"FOO * HTTP/2.0\r\n\r\nBA\r\n\r\n";
 
         private static readonly string assemblyPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
 
@@ -39,8 +40,9 @@ namespace Client
             get { return _useHttp20; }
         }
 
-        public Http2SessionHandler(Uri requestUri)
+        public Http2SessionHandler(Uri requestUri, bool useHandshake)
         {
+            _useHandshake = useHandshake;
             _requestUri = requestUri;
             _fileHelper = new FileHelper();
         }
@@ -71,10 +73,13 @@ namespace Client
                 }
 
                 //Connect alpn extension, set known protocols
-                var extensions = new [] { ExtensionType.Renegotiation, ExtensionType.ALPN };
+                var extensions = new[] {ExtensionType.Renegotiation, ExtensionType.ALPN};
 
-                _options = port == securePort ? new SecurityOptions(SecureProtocol.Tls1, extensions, new[] { "http/2.0", "http/1.1" }, ConnectionEnd.Client)
-                    : new SecurityOptions(SecureProtocol.None, extensions, new[] { "http/2.0", "http/1.1" }, ConnectionEnd.Client);
+                _options = port == securePort
+                               ? new SecurityOptions(SecureProtocol.Tls1, extensions, new[] {"http/2.0", "http/1.1"},
+                                                     ConnectionEnd.Client)
+                               : new SecurityOptions(SecureProtocol.None, extensions, new[] {"http/2.0", "http/1.1"},
+                                                     ConnectionEnd.Client);
 
                 _options.VerificationType = CredentialVerification.None;
                 _options.Certificate = Org.Mentalis.Security.Certificates.Certificate.CreateFromCerFile(_certificatePath);
@@ -89,21 +94,22 @@ namespace Client
                     monitor.OnProtocolSelected += (o, args) => { _selectedProtocol = args.SelectedProtocol; };
                     sessionSocket.Connect(new DnsEndPoint(_requestUri.Host, _requestUri.Port), monitor);
 
-                    //Handshake manager determines what handshake must be used: upgrade or secure
-                    HandshakeManager.GetHandshakeAction(sessionSocket, _options).Invoke();
-
-                    Console.WriteLine("Handshake finished");
-
-                    _socket = sessionSocket;
-
-                    if (_selectedProtocol == "http/1.1")
+                    if (_useHandshake)
                     {
-                        _useHttp20 = false;
-                        return;
-                    }
+                        //Handshake manager determines what handshake must be used: upgrade or secure
+                        HandshakeManager.GetHandshakeAction(sessionSocket, _options).Invoke();
 
+                        Console.WriteLine("Handshake finished");
+
+                        if (_selectedProtocol == "http/1.1")
+                        {
+                            _useHttp20 = false;
+                            return;
+                        }
+                    }
                 }
 
+                _socket = sessionSocket;
                 SendSessionHeader();
                 _useHttp20 = true;
                 _clientSession = new Http2Session(_socket, ConnectionEnd.Client);
