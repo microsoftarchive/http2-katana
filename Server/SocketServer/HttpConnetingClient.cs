@@ -42,16 +42,17 @@ namespace SocketServer
         private readonly FileHelper _fileHelper;
         private readonly object _writeLock = new object();
         private readonly string _clientSessionHeader = @"FOO * HTTP/2.0\r\n\r\nBA\r\n\r\n";
+        private readonly bool _useHandshake;
 
         public string SelectedProtocol { get; private set; }
 
-        internal HttpConnetingClient(SecureTcpListener server, SecurityOptions options, AppFunc next)
+        internal HttpConnetingClient(SecureTcpListener server, SecurityOptions options, AppFunc next, bool useHandshake)
         {
             SelectedProtocol = String.Empty;
             _server = server;
             _next = next;
             _options = options;
-
+            _useHandshake = useHandshake;
             _fileHelper = new FileHelper();
         }
 
@@ -69,19 +70,21 @@ namespace SocketServer
                 incomingClient = _server.AcceptSocket(monitor);
                 Console.WriteLine("New client accepted");
 
-                IDictionary<string, object> environment = new Dictionary<string, object>();
-
-                //Sets the handshake action depends on port.
-                environment.Add("HandshakeAction",
-                                HandshakeManager.GetHandshakeAction(incomingClient, _options));
-
-                try
+                if (_useHandshake)
                 {
-                    await _next(environment);
-                }
-                catch (Http2HandshakeFailed)
-                {
-                    backToHttp11 = true;
+                    IDictionary<string, object> environment = new Dictionary<string, object>();
+
+                    //Sets the handshake action depends on port.
+                    environment.Add("HandshakeAction", HandshakeManager.GetHandshakeAction(incomingClient, _options));
+
+                    try
+                    {
+                        await _next(environment);
+                    }
+                    catch (Http2HandshakeFailed)
+                    {
+                        backToHttp11 = true;
+                    }
                 }
 
             }
