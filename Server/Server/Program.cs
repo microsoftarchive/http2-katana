@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Configuration;
 using Microsoft.Owin.Hosting;
 
@@ -18,11 +19,12 @@ namespace Server
             {
                 connectString = ConfigurationManager.AppSettings["secureAddress"];
             }
+
             // Start socket server depends on chosen port
             using (WebApplication.Start<Startup>(options =>
                 {
                     options.Url = connectString;
-                    options.Server = "SocketServer"; 
+                    options.Server = "SocketServer";
                 }))
             {
 

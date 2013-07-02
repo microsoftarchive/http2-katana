@@ -290,9 +290,9 @@ namespace Org.Mentalis.Security.Ssl {
                         case ExtensionType.Renegotiation:
                             result.Add(new RenegotiationExtension(this.Entity));
                             break;
-                        case ExtensionType.NextNegotiation:
-                            result.Add(new NextProtocolNegotiationExtension(this.Entity));
-                            break;
+                        //case ExtensionType.NextNegotiation:
+                        //    result.Add(new NextProtocolNegotiationExtension(this.Entity));
+                        //    break;
                         case ExtensionType.ALPN:
                             result.Add(new ALPNExtension(this.Entity, KnownProtocols));
                             break;

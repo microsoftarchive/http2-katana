@@ -19,6 +19,7 @@ using ServerProtocol;
 using SharedProtocol;
 using SharedProtocol.Exceptions;
 using SharedProtocol.ExtendedMath;
+using SharedProtocol.Extensions;
 using SharedProtocol.Framing;
 using SharedProtocol.Handshake;
 using SharedProtocol.Http11;
@@ -167,7 +168,7 @@ namespace SocketServer
 
         private void SendResponce(Http2Stream stream)
         {
-            byte[] binaryFile = _fileHelper.GetFile(stream.Headers[":path"]);
+            byte[] binaryFile = _fileHelper.GetFile(stream.Headers.GetValue(":path"));
             int i = 0;
 
             Console.WriteLine("Transfer begin");
@@ -191,38 +192,28 @@ namespace SocketServer
             }
 
             //It was not send exactly. Some of the data frames could be pushed to the unshipped frames collection
-            Console.WriteLine("File sent: " + stream.Headers[":path"]);
+            Console.WriteLine("File sent: " + stream.Headers.GetValue(":path"));
         }
 
         private void SaveToFile(Http2Stream stream, DataFrame dataFrame)
         {
             lock (_writeLock)
             {
-                var path = stream.Headers[":path"];
-                _fileHelper.SaveToFile(dataFrame.Data.Array, dataFrame.Data.Offset, dataFrame.Data.Count,
-                                       assemblyPath + path,
-                                       stream.ReceivedDataAmount != 0);
+                var path = stream.Headers.GetValue(":path");
+
+                if (dataFrame.Data.Count != 0)
+                {
+                    _fileHelper.SaveToFile(dataFrame.Data.Array, dataFrame.Data.Offset, dataFrame.Data.Count,
+                                           assemblyPath + path, stream.ReceivedDataAmount != 0);
+                }
 
                 stream.ReceivedDataAmount += dataFrame.FrameLength;
-
-                if (dataFrame.IsFin)
-                {
-                    if (!stream.FinSent)
-                    {
-                        //send terminator
-                        stream.WriteDataFrame(new byte[] { 0 }, true);
-                        Console.WriteLine("Terminator was sent");
-                    }
-                    _fileHelper.Dispose();
-                    Console.WriteLine("File downloaded: " + path);
-                    stream.Dispose();
-                }
             }
         }
 
-        private void FrameReceivedHandler(object handler, FrameReceivedEventArgs args)
+        private void FrameReceivedHandler(object sender, FrameReceivedEventArgs args)
         {
-            var stream = args.Stream;  
+            var stream = args.Stream;
             try
             {
                 if (args.Frame is DataFrame)
@@ -233,7 +224,7 @@ namespace SocketServer
                 if (args.Frame is HeadersPlusPriority)
                 {
                     Task.Run(() => SendResponce(stream));
-                }               
+                }
             }
             catch (Exception)
             {

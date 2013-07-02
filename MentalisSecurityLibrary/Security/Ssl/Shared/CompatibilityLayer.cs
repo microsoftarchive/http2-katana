@@ -155,9 +155,10 @@ namespace Org.Mentalis.Security.Ssl.Shared {
 			}
 		}
 		private bool IsInvalidSsl3Hello(byte[] buffer) { // also works for TLS1 hellos
-			return (buffer.Length > 0 && buffer[0] != 22)
-						|| (buffer.Length > 1 && buffer[1] != 3)
-						|| (buffer.Length > 2 && buffer[2] != 0 && buffer[2] != 1);
+            return (buffer.Length > 0 && buffer[0] != 22)
+                        || (buffer.Length > 1 && buffer[1] != 3)
+                        //TODO Check if client hello message has correct format
+                        || (buffer.Length > 2 && buffer[2] != 0 && buffer[2] != 1 && buffer[2] != 2 && buffer[2] != 3);
 			
 		}
         private bool IsAlert(byte[] buffer) {
@@ -251,11 +252,11 @@ namespace Org.Mentalis.Security.Ssl.Shared {
 			if (SupportsSsl3(protocol))
 				return new ProtocolVersion(3, 0);
 			else
-				return new ProtocolVersion(3, 1);
+				return new ProtocolVersion(3, 3);
 		}
 		public static ProtocolVersion GetMaxProtocol(SecureProtocol protocol) {
 			if (SupportsTls1(protocol))
-				return new ProtocolVersion(3, 1);
+				return new ProtocolVersion(3, 3);
 			else
 				return new ProtocolVersion(3, 0);
 		}

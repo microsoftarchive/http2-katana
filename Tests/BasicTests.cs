@@ -1,14 +1,14 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Text;
+using SharedProtocol.Compression;
+using SharedProtocol.Extensions;
 using Org.Mentalis.Security.Ssl;
 using SharedProtocol;
-using SharedProtocol.Compression;
 using SharedProtocol.ExtendedMath;
 using SharedProtocol.Framing;
 using Xunit;
-using System.Configuration;
+using Http2HeadersCompression;
 
 namespace BasicTests
 {
@@ -121,21 +121,89 @@ namespace BasicTests
         }
 
         [Fact]
+        public void UVarIntConversionSuccessful()
+        {
+            var test1337 = 1337.ToUVarInt(5);
+            Assert.Equal(1337.FromUVarInt(test1337), 1337);
+            test1337 = 1337.ToUVarInt(3);
+            Assert.Equal(1337.FromUVarInt(test1337), 1337);
+            test1337 = 1337.ToUVarInt(0);
+            Assert.Equal(1337.FromUVarInt(test1337), 1337);
+
+            var test0 = 0.ToUVarInt(5);
+            Assert.Equal(0.FromUVarInt(test0), 0);
+            test0 = 0.ToUVarInt(0);
+            Assert.Equal(0.FromUVarInt(test0), 0);
+
+            var test0xfffff = 0xfffff.ToUVarInt(7);
+            Assert.Equal(0xfffff.FromUVarInt(test0xfffff), 0xfffff);
+            test0xfffff = 0xfffff.ToUVarInt(4);
+            Assert.Equal(0xfffff.FromUVarInt(test0xfffff), 0xfffff);
+            test0xfffff = 0xfffff.ToUVarInt(0);
+            Assert.Equal(0xfffff.FromUVarInt(test0xfffff), 0xfffff);
+        }
+
+        [Fact]
         public void CompressionSuccessful()
         {
-            var proc = new CompressionProcessor();
+            var headers = new List<Tuple<string, string, IAdditionalHeaderInfo>>
+                {
+                    new Tuple<string, string, IAdditionalHeaderInfo>(":method", "get", new Indexation(IndexationType.Indexed)),
+                    new Tuple<string, string, IAdditionalHeaderInfo>(":path", "test.txt", new Indexation(IndexationType.Substitution)),
+                    new Tuple<string, string, IAdditionalHeaderInfo>(":version", "http/2.0", new Indexation(IndexationType.Incremental)),
+                    new Tuple<string, string, IAdditionalHeaderInfo>(":host", "localhost", new Indexation(IndexationType.Substitution)),
+                    new Tuple<string, string, IAdditionalHeaderInfo>(":scheme", "https", new Indexation(IndexationType.Substitution)),
+                };
+            var compressor = new CompressionProcessor();
+            var decompressor = new CompressionProcessor();
 
-            const string helloWorld = "Hello World";
+            byte[] serialized;
+            List<Tuple<string, string, IAdditionalHeaderInfo>> decompressed = null;
 
             for (int i = 0; i < 10; i++)
             {
-                var helloWorldSerialized = Encoding.UTF8.GetBytes(helloWorld);
-                var helloWorldCompressed = proc.Compress(helloWorldSerialized);
-                var helloWorldDecompressed = proc.Decompress(helloWorldCompressed);
-
-                var helloWorldProcessed = Encoding.UTF8.GetString(helloWorldDecompressed);
-                Assert.Equal(helloWorld, helloWorldProcessed);
+                serialized = compressor.Compress(headers, false);
+                decompressed = decompressor.Decompress(serialized, false);
             }
+
+            for(int i = 0 ; i < headers.Count ; i++)
+            {
+                Assert.Equal(decompressed.GetValue(headers[i].Item1), headers[i].Item2);
+            }
+        }
+
+        [Fact]
+        public void HeadersCollectionSuccessful()
+        {
+            var collection = new HeadersCollection
+                {
+                    new KeyValuePair<string, string>("key1","value1"),
+                    new KeyValuePair<string, string>("1key","val1ue"),
+                    new KeyValuePair<string, string>("key2","value2"),
+                    new KeyValuePair<string, string>("2key", "value2"),
+                    new KeyValuePair<string, string>("my-header","my-value")
+                };
+
+            int i = 0;
+            foreach (var item in collection)
+            {
+                i++;
+            }
+
+            Assert.Equal(i, collection.Count);
+            Assert.Equal(new KeyValuePair<string, string>("my-header", "my-value"), collection[0]);
+            Assert.Equal(new KeyValuePair<string, string>("key1", "value1"), collection[1]);
+            Assert.Equal(new KeyValuePair<string, string>("1key", "val1ue"), collection[2]);
+            Assert.Equal(new KeyValuePair<string, string>("key2", "value2"), collection[3]);
+            Assert.Equal(new KeyValuePair<string, string>("2key", "value2"), collection[4]);
+
+            collection.SubstituteValue(1, "value2");
+            Assert.Equal("value2", collection[1].Value);
+            Assert.Equal(collection.IndexOf(new KeyValuePair<string, string>("my-header", "my-value")), 0);
+            Assert.Equal(collection.IndexOf(new KeyValuePair<string, string>("key1", "value2")), 1);
+            Assert.Equal(collection.IndexOf(new KeyValuePair<string, string>("1key", "val1ue")), 2);
+            Assert.Equal(collection.IndexOf(new KeyValuePair<string, string>("key2", "value2")), 3);
+            Assert.Equal(collection.IndexOf(new KeyValuePair<string, string>("2key", "value2")), 4);
         }
     }
 }

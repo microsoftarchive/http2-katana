@@ -48,15 +48,16 @@
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
-    <Reference Include="zlib.net, Version=1.0.3.0, Culture=neutral, PublicKeyToken=47d7877cb3620160">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>packages\zlib.net.dll</HintPath>
-    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ActiveStreams.cs" />
-    <Compile Include="Compression\CompressionDictionary.cs" />
-    <Compile Include="Compression\CompressionProcessor.cs" />
+    <Compile Include="Compression\HeadersDeltaCompression\CompressionInitialHeaders.cs" />
+    <Compile Include="Compression\HeadersDeltaCompression\CompressionProcessor.cs" />
+    <Compile Include="Compression\HeadersDeltaCompression\HeadersCollection.cs" />
+    <Compile Include="Compression\IAdditionalHeaderInfo.cs" />
+    <Compile Include="Compression\ICompressionProcessor.cs" />
+    <Compile Include="Compression\HeadersDeltaCompression\Indexation.cs" />
+    <Compile Include="Compression\HeadersDeltaCompression\IndexationType.cs" />
     <Compile Include="ContentTypes.cs" />
     <Compile Include="EventArgs\DataFrameReceivedEventArgs.cs" />
     <Compile Include="EventArgs\DataFrameSentEventArgs.cs" />
@@ -68,11 +69,13 @@
     <Compile Include="Exceptions\HTTP2HandshakeFailed.cs" />
     <Compile Include="Exceptions\MonitorIsBusyException.cs" />
     <Compile Include="ExtendedMath\MathEx.cs" />
+    <Compile Include="Extensions\Int32Extensions.cs" />
+    <Compile Include="Extensions\KeyValuePairExtensions.cs" />
+    <Compile Include="Extensions\ListExtensions.cs" />
     <Compile Include="FlowControl\FlowControlManager.cs" />
     <Compile Include="Handshake\HandshakeManager.cs" />
     <Compile Include="Http11\Http11Manager.cs" />
     <Compile Include="IO\FileHelper.cs" />
-    <Compile Include="Compression\ZOutputStreamExt.cs" />
     <Compile Include="Constants.cs" />
     <Compile Include="IO\PriorityQueue.cs" />
     <Compile Include="IO\PriorityQueueEntry.cs" />

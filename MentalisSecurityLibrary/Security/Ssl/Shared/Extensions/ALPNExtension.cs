@@ -87,6 +87,8 @@ namespace Org.Mentalis.Security.Ssl.Shared.Extensions
         {
             int extBeginPos = currentLen;
 
+            Int16 protocolListFullLength = BinaryHelper.Int16FromBytes(buffer[currentLen++], buffer[currentLen++]);
+
             if (ep == ConnectionEnd.Client)
             {
                 byte protoLen = buffer[currentLen++];

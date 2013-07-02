@@ -39,11 +39,11 @@ namespace Org.Mentalis.Security.Ssl.Shared.Extensions
         /// <summary>
         /// The NextProtocolNegotiation type code
         /// </summary>
-        NextNegotiation = 0x3374,
+        //NextNegotiation = 0x3374,
 
         /// <summary>
         /// The ALPN extension type code
         /// </summary>
-        ALPN = 0xffff
+        ALPN = 0x10
     }
 }

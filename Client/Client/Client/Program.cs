@@ -50,9 +50,9 @@ namespace Client
         {
             _sessions = new Dictionary<string, Http2SessionHandler>();
 
-            if (!String.IsNullOrEmpty(args[0]) && args[0] == "-no-handshake")
+            if (args.Length != 0 && !String.IsNullOrEmpty(args[0]))
             {
-                useHandshake = false;
+                useHandshake = args[0] == "-no-handshake";
             }
 
             HelpDisplayer.ShowMainMenuHelp();
