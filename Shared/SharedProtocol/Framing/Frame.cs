@@ -85,17 +85,17 @@ namespace SharedProtocol.Framing
         }
 
         // 8 bits, 24-31
-        public bool IsFin
+        public bool IsEndStream
         {
             get
             {
-                return (Flags & FrameFlags.Fin) == FrameFlags.Fin;
+                return (Flags & FrameFlags.EndStream) == FrameFlags.EndStream;
             }
             set
             {
                 if (value)
                 {
-                    Flags |= FrameFlags.Fin;
+                    Flags |= FrameFlags.EndStream;
                 }
             }
         }

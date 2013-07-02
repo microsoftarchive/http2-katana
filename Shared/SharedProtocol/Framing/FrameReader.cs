@@ -37,9 +37,6 @@ namespace SharedProtocol.Framing
                 case FrameType.GoAway:
                     return new GoAwayFrame(preamble);
 
-                case FrameType.Headers:
-                    return new HeadersFrame(preamble);
-
                 case FrameType.Ping:
                     return new PingFrame(preamble);
 
@@ -49,8 +46,8 @@ namespace SharedProtocol.Framing
                 case FrameType.Settings:
                     return new SettingsFrame(preamble);
 
-                case FrameType.HeadersPlusPriority:
-                    return new HeadersPlusPriority(preamble);
+                case FrameType.Headers:
+                    return new Headers(preamble);
 
                 case FrameType.WindowUpdate:
                     return new WindowUpdateFrame(preamble);

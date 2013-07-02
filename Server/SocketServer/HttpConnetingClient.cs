@@ -221,7 +221,7 @@ namespace SocketServer
                     Task.Run(() => SaveToFile(stream, (DataFrame)args.Frame));
                 }
 
-                if (args.Frame is HeadersPlusPriority)
+                if (args.Frame is Headers)
                 {
                     Task.Run(() => SendResponce(stream));
                 }

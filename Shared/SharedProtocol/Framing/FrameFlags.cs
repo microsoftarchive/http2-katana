@@ -6,8 +6,9 @@ namespace SharedProtocol.Framing
     public enum FrameFlags
     {
         None = 0x00,
-        Fin = 0x01,
+        EndStream = 0x01,
         Pong = 0x02,
-        Continues = 0x02
+        EndHeaders = 0x04,
+        Priority = 0x08,
     }
 }

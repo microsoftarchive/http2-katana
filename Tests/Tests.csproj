@@ -103,9 +103,6 @@
     <Compile Include="..\Shared\SharedProtocol\Compression\HeadersDeltaCompression\CompressionProcessor.cs">
       <Link>Sources\CompressionProcessor.cs</Link>
     </Compile>
-    <Compile Include="..\Shared\SharedProtocol\Compression\HeadersDeltaCompression\HeadersCollection.cs">
-      <Link>Sources\HeadersCollection.cs</Link>
-    </Compile>
     <Compile Include="..\Shared\SharedProtocol\Compression\HeadersDeltaCompression\Indexation.cs">
       <Link>Sources\Indexation.cs</Link>
     </Compile>
@@ -190,17 +187,17 @@
     <Compile Include="..\Shared\SharedProtocol\Framing\GoAwayStatusCode.cs">
       <Link>Sources\GoAwayStatusCode.cs</Link>
     </Compile>
-    <Compile Include="..\Shared\SharedProtocol\Framing\HeadersFrame.cs">
-      <Link>Sources\HeadersFrame.cs</Link>
-    </Compile>
-    <Compile Include="..\Shared\SharedProtocol\Framing\HeadersPlusPriority.cs">
-      <Link>Sources\HeadersPlusPriority.cs</Link>
+    <Compile Include="..\Shared\SharedProtocol\Framing\Headers.cs">
+      <Link>Sources\Headers.cs</Link>
     </Compile>
     <Compile Include="..\Shared\SharedProtocol\Framing\PingFrame.cs">
       <Link>Sources\PingFrame.cs</Link>
     </Compile>
     <Compile Include="..\Shared\SharedProtocol\Framing\Priority.cs">
       <Link>Sources\Priority.cs</Link>
+    </Compile>
+    <Compile Include="..\Shared\SharedProtocol\Framing\PriorityFrame.cs">
+      <Link>Sources\PriorityFrame.cs</Link>
     </Compile>
     <Compile Include="..\Shared\SharedProtocol\Framing\ResetStatusCode.cs">
       <Link>Sources\ResetStatusCode.cs</Link>
