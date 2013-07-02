@@ -7,12 +7,15 @@ using System.Net;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+using Http2HeadersCompression;
 using Org.Mentalis;
 using Org.Mentalis.Security.Ssl;
 using Org.Mentalis.Security.Ssl.Shared.Extensions;
 using SharedProtocol;
+using SharedProtocol.Compression;
 using SharedProtocol.Exceptions;
 using SharedProtocol.ExtendedMath;
+using SharedProtocol.Extensions;
 using SharedProtocol.Framing;
 using SharedProtocol.Handshake;
 using SharedProtocol.Http11;
@@ -137,21 +140,23 @@ namespace Client
 
         private void SubmitRequest(Uri request)
         {
-            var pairs = new Dictionary<string, string>(10);
-            const string method = "GET";
+            const string method = "get";
             string path = request.PathAndQuery;
-            const string version = "HTTP/2.0";
+            const string version = "http/2.0";
             string scheme = request.Scheme;
             string host = request.Host;
 
-            pairs.Add(":method", method);
-            pairs.Add(":path", path);
-            pairs.Add(":version", version);
-            pairs.Add(":host", host);
-            pairs.Add(":scheme", scheme);
+            var headers = new List<Tuple<string, string, IAdditionalHeaderInfo>>
+                {
+                    new Tuple<string, string, IAdditionalHeaderInfo>(":method", method, new Indexation(IndexationType.Indexed)),
+                    new Tuple<string, string, IAdditionalHeaderInfo>(":path", path, new Indexation(IndexationType.Substitution)),
+                    new Tuple<string, string, IAdditionalHeaderInfo>(":version", version, new Indexation(IndexationType.Incremental)),
+                    new Tuple<string, string, IAdditionalHeaderInfo>(":host", host, new Indexation(IndexationType.Substitution)),
+                    new Tuple<string, string, IAdditionalHeaderInfo>(":scheme", scheme, new Indexation(IndexationType.Substitution)),
+                };
 
             //Sending request with average priority
-            _clientSession.SendRequest(pairs, (int)Priority.Pri3, false);
+            _clientSession.SendRequest(headers, (int)Priority.Pri3, false);
         }
         
         public void SendRequestAsync(Uri request)
@@ -192,7 +197,7 @@ namespace Client
         //Method for future usage in server push 
         private void SendResponce(Http2Stream stream)
         {
-            byte[] binaryFile = _fileHelper.GetFile(stream.Headers[":path"]);
+            byte[] binaryFile = _fileHelper.GetFile(stream.Headers.GetValue(":path"));
             int i = 0;
 
             Console.WriteLine("Transfer begin");
@@ -216,17 +221,29 @@ namespace Client
             }
 
             //It was not send exactly. Some of the data frames could be pushed to the unshipped frames collection
-            Console.WriteLine("File sent: " + stream.Headers[":path"]);
+            Console.WriteLine("File sent: " + stream.Headers.GetValue(":path"));
         }
 
         private void SaveToFile(Http2Stream stream, DataFrame dataFrame)
         {
             lock (_writeLock)
             {
-                var path = stream.Headers[":path"];
-                _fileHelper.SaveToFile(dataFrame.Data.Array, dataFrame.Data.Offset, dataFrame.Data.Count,
-                                       assemblyPath + path,
-                                       stream.ReceivedDataAmount != 0);
+                var path = stream.Headers.GetValue(":path");
+
+                try
+                {
+                    if (dataFrame.Data.Count != 0)
+                    {
+                        _fileHelper.SaveToFile(dataFrame.Data.Array, dataFrame.Data.Offset, dataFrame.Data.Count,
+                                               assemblyPath + path, stream.ReceivedDataAmount != 0);
+                    }
+                }
+                catch (IOException)
+                {
+                    Console.WriteLine("File is still downloading. Repeat request later");
+                    stream.WriteDataFrame(new byte[0], true);
+                    stream.Dispose();
+                }
 
                 stream.ReceivedDataAmount += dataFrame.FrameLength;
 
@@ -235,12 +252,10 @@ namespace Client
                     if (!stream.FinSent)
                     {
                         //send terminator
-                        stream.WriteDataFrame(new byte[] {0}, true);
+                        stream.WriteDataFrame(new byte[0], true);
                         Console.WriteLine("Terminator was sent");
                     }
-                    _fileHelper.Dispose();
-                    Console.WriteLine("File downloaded: " + path);
-                    stream.Dispose();
+                    _fileHelper.CloseStream(assemblyPath + path);
                 }
             }
         }

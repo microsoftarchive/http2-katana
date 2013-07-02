@@ -77,9 +77,6 @@
     <Reference Include="xunit.extensions">
       <HintPath>..\Shared\SharedProtocol\packages\xunit-1.9.1\xunit.extensions.dll</HintPath>
     </Reference>
-    <Reference Include="zlib.net">
-      <HintPath>..\Shared\SharedProtocol\packages\zlib.net.dll</HintPath>
-    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="..\Server\SocketServer\DictionaryExtensions.cs">
@@ -100,14 +97,26 @@
     <Compile Include="..\Shared\SharedProtocol\ActiveStreams.cs">
       <Link>Sources\ActiveStreams.cs</Link>
     </Compile>
-    <Compile Include="..\Shared\SharedProtocol\Compression\CompressionDictionary.cs">
-      <Link>Sources\CompressionDictionary.cs</Link>
+    <Compile Include="..\Shared\SharedProtocol\Compression\HeadersDeltaCompression\CompressionInitialHeaders.cs">
+      <Link>Sources\CompressionInitialHeaders.cs</Link>
     </Compile>
-    <Compile Include="..\Shared\SharedProtocol\Compression\CompressionProcessor.cs">
+    <Compile Include="..\Shared\SharedProtocol\Compression\HeadersDeltaCompression\CompressionProcessor.cs">
       <Link>Sources\CompressionProcessor.cs</Link>
     </Compile>
-    <Compile Include="..\Shared\SharedProtocol\Compression\ZOutputStreamExt.cs">
-      <Link>Sources\ZOutputStreamExt.cs</Link>
+    <Compile Include="..\Shared\SharedProtocol\Compression\HeadersDeltaCompression\HeadersCollection.cs">
+      <Link>Sources\HeadersCollection.cs</Link>
+    </Compile>
+    <Compile Include="..\Shared\SharedProtocol\Compression\HeadersDeltaCompression\Indexation.cs">
+      <Link>Sources\Indexation.cs</Link>
+    </Compile>
+    <Compile Include="..\Shared\SharedProtocol\Compression\HeadersDeltaCompression\IndexationType.cs">
+      <Link>Sources\IndexationType.cs</Link>
+    </Compile>
+    <Compile Include="..\Shared\SharedProtocol\Compression\IAdditionalHeaderInfo.cs">
+      <Link>Sources\IAdditionalHeaderInfo.cs</Link>
+    </Compile>
+    <Compile Include="..\Shared\SharedProtocol\Compression\ICompressionProcessor.cs">
+      <Link>Sources\ICompressionProcessor.cs</Link>
     </Compile>
     <Compile Include="..\Shared\SharedProtocol\Constants.cs">
       <Link>Sources\Constants.cs</Link>
@@ -144,6 +153,15 @@
     </Compile>
     <Compile Include="..\Shared\SharedProtocol\ExtendedMath\MathEx.cs">
       <Link>Sources\MathEx.cs</Link>
+    </Compile>
+    <Compile Include="..\Shared\SharedProtocol\Extensions\Int32Extensions.cs">
+      <Link>Sources\Int32Extensions.cs</Link>
+    </Compile>
+    <Compile Include="..\Shared\SharedProtocol\Extensions\KeyValuePairExtensions.cs">
+      <Link>Sources\KeyValuePairExtensions.cs</Link>
+    </Compile>
+    <Compile Include="..\Shared\SharedProtocol\Extensions\ListExtensions.cs">
+      <Link>Sources\ListExtensions.cs</Link>
     </Compile>
     <Compile Include="..\Shared\SharedProtocol\FlowControl\FlowControlManager.cs">
       <Link>Sources\FlowControlManager.cs</Link>

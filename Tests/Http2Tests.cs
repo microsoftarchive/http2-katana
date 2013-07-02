@@ -7,11 +7,13 @@ using System.Reflection;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Http2HeadersCompression;
 using Org.Mentalis;
 using Org.Mentalis.Security.Ssl;
 using Org.Mentalis.Security.Ssl.Shared.Extensions;
 using Owin.Types;
 using SharedProtocol;
+using SharedProtocol.Compression;
 using SharedProtocol.Framing;
 using SharedProtocol.Handshake;
 using SocketServer;
@@ -23,6 +25,7 @@ namespace Http2Tests
     public class Http2Tests
     {
         private HttpSocketServer _http2Server;
+        private const string _clientSessionHeader = @"FOO * HTTP/2.0\r\n\r\nBA\r\n\r\n";
 
         private async Task InvokeMiddleWare(IDictionary<string, object> environment)
         {
@@ -87,6 +90,11 @@ namespace Http2Tests
             }
         }
 
+        private static void SendSessionHeader(SecureSocket socket)
+        {
+            socket.Send(Encoding.UTF8.GetBytes(_clientSessionHeader));
+        }
+
         private static SecureSocket GetHandshakedSocket(Uri uri)
         {
             string selectedProtocol = null;
@@ -112,25 +120,29 @@ namespace Http2Tests
                 HandshakeManager.GetHandshakeAction(sessionSocket, options).Invoke();
             }
 
+            SendSessionHeader(sessionSocket);
+
             return sessionSocket;
         }
 
         private static Http2Stream SubmitRequest(Http2Session session, Uri uri)
         {
-            var pairs = new Dictionary<string, string>(10);
             const string method = "GET";
             string path = uri.PathAndQuery;
             const string version = "HTTP/2.0";
             string scheme = uri.Scheme;
             string host = uri.Host;
 
-            pairs.Add(":method", method);
-            pairs.Add(":path", path);
-            pairs.Add(":version", version);
-            pairs.Add(":host", host);
-            pairs.Add(":scheme", scheme);
-            
-            session.SendRequest(pairs, 3, true);
+            var pairs = new List<Tuple<string, string, IAdditionalHeaderInfo>>
+                {
+                    new Tuple<string, string, IAdditionalHeaderInfo>(":method", method, new Indexation(IndexationType.Indexed)),
+                    new Tuple<string, string, IAdditionalHeaderInfo>(":path", path, new Indexation(IndexationType.Substitution)),
+                    new Tuple<string, string, IAdditionalHeaderInfo>(":version", version, new Indexation(IndexationType.Incremental)),
+                    new Tuple<string, string, IAdditionalHeaderInfo>(":host", host, new Indexation(IndexationType.Substitution)),
+                    new Tuple<string, string, IAdditionalHeaderInfo>(":scheme", scheme, new Indexation(IndexationType.Substitution)),
+                };
+
+            session.SendRequest(pairs, 3, false);
 
             return session.ActiveStreams[1];
         }
@@ -193,7 +205,7 @@ namespace Http2Tests
             Assert.Equal(stream.IsFlowControlBlocked, false);
             Assert.Equal(stream.Id, 1);
             Assert.Equal(stream.IsFlowControlEnabled, true);
-            Assert.Equal(stream.FinSent, true);
+            Assert.Equal(stream.FinSent, false);
             Assert.Equal(stream.Disposed, false);
             Assert.Equal(wasHeadersPlusPrioritySent, true);
             Assert.Equal(wasSettingsSent, true);
@@ -299,7 +311,7 @@ namespace Http2Tests
 
             session.OnFrameReceived += (sender, args) =>
             {
-                if (args.Frame is DataFrame && args.Frame.IsFin)
+                if (args.Frame.IsFin)
                 {
                     finalFramesCounter++;
                     if (finalFramesCounter == streamsQuantity)

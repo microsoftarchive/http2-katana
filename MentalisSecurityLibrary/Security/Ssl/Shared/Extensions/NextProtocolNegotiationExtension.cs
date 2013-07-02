@@ -42,7 +42,7 @@ namespace Org.Mentalis.Security.Ssl.Shared.Extensions
         /// </summary>
         public NextProtocolNegotiationExtension(ConnectionEnd end)
         {
-            this.Type = ExtensionType.NextNegotiation;
+            /*this.Type = ExtensionType.NextNegotiation;
             string[] protocols = new string[3] { "spdy/3", "spdy/2", "http/1.1" };
 
             if (end == ConnectionEnd.Client)
@@ -66,7 +66,7 @@ namespace Org.Mentalis.Security.Ssl.Shared.Extensions
                 this.ExtensionSize += this.ExtensionDataSize;
 
                 this.ClientKnownProtocolList = null;
-            }
+            }*/
         }
         #endregion
 

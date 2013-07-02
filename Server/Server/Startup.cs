@@ -1,15 +1,8 @@
 ﻿using Owin;
-using Owin.Types;
-using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.Text;
-using System.Threading.Tasks;
 using System.Web.Http;
 
 namespace Server
 {
-
     public class Startup
     {
         public void Configuration(IAppBuilder builder)

@@ -1,4 +1,5 @@
 ﻿using System.Threading;
+using Http2HeadersCompression;
 using Org.Mentalis.Security.Ssl;
 using SharedProtocol.Compression;
 using SharedProtocol.Framing;
@@ -19,14 +20,14 @@ namespace SharedProtocol
         private readonly ManualResetEvent _pingReceived = new ManualResetEvent(false);
         private bool _disposed;
         private readonly SettingsManager _settingsManager;
-        private readonly CompressionProcessor _comprProc;
+        private readonly ICompressionProcessor _comprProc;
         private readonly FlowControlManager _flowControlManager;
         private readonly ConnectionEnd _ourEnd;
         private readonly ConnectionEnd _remoteEnd;
         private int _lastId;
         private bool _wasSettingsReceived = false;
         private bool _wasPingReceived = false;
-        private Dictionary<string, string> _toBeContinuedHeaders = null;
+        private List<Tuple<string, string, IAdditionalHeaderInfo>> _toBeContinuedHeaders = null;
         private Frame _toBeContinuedFrame = null;
         /// <summary>
         /// Gets the active streams.
@@ -134,8 +135,8 @@ namespace SharedProtocol
         private void DispatchIncomingFrame(Frame frame)
         {
             Http2Stream stream = null;
-            byte[] decompressedHeaders;
-            Dictionary<string, string> headers;
+            List<Tuple<string, string, IAdditionalHeaderInfo>> decompressedHeaders;
+            List<Tuple<string, string, IAdditionalHeaderInfo>> headers;
 
             //Spec 03 tells that frame with continues flag MUST be followed by a frame with the same type
             //and the same stread id.
@@ -156,22 +157,28 @@ namespace SharedProtocol
                     case FrameType.HeadersPlusPriority:
                         Console.WriteLine("New headers + priority with id = " + frame.StreamId);
                         var headersPlusPriorityFrame = (HeadersPlusPriority) frame;
-                        decompressedHeaders = _comprProc.Decompress(headersPlusPriorityFrame.CompressedHeaders);
-                        headers = FrameHelpers.DeserializeHeaderBlock(decompressedHeaders);
+                        var serializedHeaders = new byte[headersPlusPriorityFrame.CompressedHeaders.Count];
+
+                        Buffer.BlockCopy(headersPlusPriorityFrame.CompressedHeaders.Array, 
+                                         headersPlusPriorityFrame.CompressedHeaders.Offset,
+                                         serializedHeaders, 0, serializedHeaders.Length);
+
+                        decompressedHeaders = _comprProc.Decompress(serializedHeaders, frame.StreamId % 2 != 0);
+                        headers = decompressedHeaders;
 
                         if (headersPlusPriorityFrame.IsContinues)
                         {
-                            var decompHeaders = _comprProc.Decompress(headersPlusPriorityFrame.CompressedHeaders);
-                            _toBeContinuedHeaders = FrameHelpers.DeserializeHeaderBlock(decompHeaders);
+                            var decompHeaders = _comprProc.Decompress(headersPlusPriorityFrame.CompressedHeaders.Array, frame.StreamId % 2 != 0);
+                            _toBeContinuedHeaders = decompHeaders;
                             _toBeContinuedFrame = headersPlusPriorityFrame;
                             break;
                         }
 
                         if (_toBeContinuedHeaders != null)
                         {
-                            foreach (var key in _toBeContinuedHeaders.Keys)
+                            foreach (var key in _toBeContinuedHeaders)
                             {
-                                headers.Add(key, _toBeContinuedHeaders[key]);
+                                headers.Add(key);
                             }
                         }
 
@@ -274,8 +281,8 @@ namespace SharedProtocol
 
                         if (headersFrame.IsContinues)
                         {
-                            var decompHeaders = _comprProc.Decompress(headersFrame.CompressedHeaders);
-                            _toBeContinuedHeaders = FrameHelpers.DeserializeHeaderBlock(decompHeaders);
+                            var decompHeaders = _comprProc.Decompress(headersFrame.CompressedHeaders.Array, frame.StreamId % 2 != 0);
+                            _toBeContinuedHeaders = decompHeaders;
                             _toBeContinuedFrame = headersFrame;
                             break;
                         }
@@ -287,20 +294,20 @@ namespace SharedProtocol
                             return;
                         }
 
-                        decompressedHeaders = _comprProc.Decompress(headersFrame.CompressedHeaders);
-                        headers = FrameHelpers.DeserializeHeaderBlock(decompressedHeaders);
+                        decompressedHeaders = _comprProc.Decompress(headersFrame.CompressedHeaders.Array, frame.StreamId % 2 != 0);
+                        headers = decompressedHeaders;
 
                         if (_toBeContinuedHeaders != null)
                         {
-                            foreach (var key in _toBeContinuedHeaders.Keys)
+                            foreach (var key in _toBeContinuedHeaders)
                             {
-                                headers.Add(key, _toBeContinuedHeaders[key]);
+                                headers.Add(key);
                             }
                         }
 
-                        foreach (var key in headers.Keys)
+                        foreach (var key in headers)
                         {
-                            stream.Headers.Add(key, headers[key]);
+                            stream.Headers.Add(key);
                         }
 
                         _toBeContinuedHeaders = null;
@@ -316,16 +323,17 @@ namespace SharedProtocol
 
                 if (stream != null)
                 {
-                    if (OnFrameReceived != null)
-                    {
-                        OnFrameReceived(this, new FrameReceivedEventArgs(stream, frame));
-                    } 
                     //Tell the stream that it was the last frame
                     if (frame.IsFin)
                     {
                         Console.WriteLine("Final frame received");
                         stream.FinReceived = true;
                     }
+
+                    if (OnFrameReceived != null)
+                    {
+                        OnFrameReceived(this, new FrameReceivedEventArgs(stream, frame));
+                    } 
                 }
             }
             //Frame came for already closed stream. Ignore it.
@@ -386,7 +394,7 @@ namespace SharedProtocol
         /// <param name="pairs">The header pairs.</param>
         /// <param name="priority">The stream priority.</param>
         /// <param name="isFin">True if initial headers+priority is also the final frame from endpoint.</param>
-        public void SendRequest(Dictionary<string, string> pairs, int priority, bool isFin)
+        public void SendRequest(List<Tuple<string, string, IAdditionalHeaderInfo>> pairs, int priority, bool isFin)
         {
             Contract.Assert(priority >= 0 && priority <= 7);
             var stream = CreateStream((Priority)priority);

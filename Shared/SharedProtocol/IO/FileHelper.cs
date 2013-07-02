@@ -1,13 +1,20 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Text;
 using System.IO;
 using System.Reflection;
+using System.Threading.Tasks;
 
 namespace SharedProtocol.IO
 {
     public class FileHelper : IDisposable
     {
-        private FileStream _iostream;
+        private Dictionary<string, FileStream> _pathStreamDict;
+
+        public FileHelper()
+        {
+            _pathStreamDict = new Dictionary<string, FileStream>(5);
+        }
 
         /// <summary>
         /// Gets file contents.
@@ -49,16 +56,23 @@ namespace SharedProtocol.IO
 
             if (!append)
             {
-                _iostream = new FileStream(path, FileMode.Append);
+                _pathStreamDict.Add(path, new FileStream(path, FileMode.Append));
             }
-            _iostream.Write(data, offset, count);
+            _pathStreamDict[path].Write(data, offset, count);
+        }
+
+        public void CloseStream(string path)
+        {
+            _pathStreamDict[path].Dispose();
+            _pathStreamDict.Remove(path);
         }
 
         public void Dispose()
         {
-            if (_iostream != null)
+            foreach (var fileStream in _pathStreamDict.Values)
             {
-                _iostream.Dispose();
+                fileStream.Flush();
+                fileStream.Dispose();
             }
         }
     }

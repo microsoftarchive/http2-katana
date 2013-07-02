@@ -1,4 +1,5 @@
-﻿using SharedProtocol.Compression;
+﻿using System.Collections;
+using SharedProtocol.Compression;
 using SharedProtocol.Framing;
 using SharedProtocol.IO;
 using System;
@@ -16,15 +17,16 @@ namespace SharedProtocol
         private StreamState _state;
         private readonly WriteQueue _writeQueue;
         private readonly Priority _priority;
-        private readonly CompressionProcessor _compressionProc;
+        private readonly ICompressionProcessor _compressionProc;
         private readonly FlowControlManager _flowCrtlManager;
 
         private readonly Queue<DataFrame> _unshippedFrames;
         private readonly object _unshippedDeliveryLock = new object();
+
         //Incoming
-        public Http2Stream(Dictionary<string, string> headers, int id,
+        public Http2Stream(List<Tuple<string, string, IAdditionalHeaderInfo>> headers, int id,
                            Priority priority, WriteQueue writeQueue,
-                           FlowControlManager flowCrtlManager, CompressionProcessor comprProc)
+                           FlowControlManager flowCrtlManager, ICompressionProcessor comprProc)
             : this(id, priority, writeQueue, flowCrtlManager, comprProc)
         {
             Headers = headers;
@@ -32,7 +34,7 @@ namespace SharedProtocol
 
         //Outgoing
         public Http2Stream(int id, Priority priority, WriteQueue writeQueue, 
-                           FlowControlManager flowCrtlManager, CompressionProcessor comprProc)
+                           FlowControlManager flowCrtlManager, ICompressionProcessor comprProc)
         {
             _id = id;
             _priority = priority;
@@ -85,7 +87,8 @@ namespace SharedProtocol
             set { Contract.Assert(value); _state |= StreamState.Disposed; }
         }
 
-        public Dictionary<string, string> Headers { get; set; }
+        public List<Tuple<string, string, IAdditionalHeaderInfo>> Headers { get; private set; }
+
         #endregion
 
         #region FlowControl
@@ -96,8 +99,6 @@ namespace SharedProtocol
             {
                 WindowSize += delta;
             }
-
-            Console.WriteLine(WindowSize);
 
             //Unblock stream if it was blocked by flowCtrlManager
             if (WindowSize > 0 && IsFlowControlBlocked)
@@ -142,12 +143,11 @@ namespace SharedProtocol
         #endregion
 
         #region WriteMethods
-        public void WriteHeadersPlusPriorityFrame(Dictionary<string, string> headers, bool isFin)
+        public void WriteHeadersPlusPriorityFrame(List<Tuple<string, string, IAdditionalHeaderInfo> > headers, bool isFin)
         {
             Headers = headers;
             // TODO: Prioritization re-ordering will also break decompression. Scrap the priority queue.
-            byte[] headerBytes = FrameHelpers.SerializeHeaderBlock(headers);
-            headerBytes = _compressionProc.Compress(headerBytes);
+            byte[] headerBytes = _compressionProc.Compress(headers, _id % 2 != 0);
 
             var frame = new HeadersPlusPriority(_id, headerBytes);
 

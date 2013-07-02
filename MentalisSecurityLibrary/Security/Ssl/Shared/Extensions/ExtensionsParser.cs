@@ -41,7 +41,7 @@ namespace Org.Mentalis.Security.Ssl.Shared.Extensions
                 Int16 extLen = BinaryHelper.Int16FromBytes(buffer[currentLen++], buffer[currentLen++]);
                
                 if (AddExtensionToResult(buffer, ref currentLen, extLen, end, knownExtensions, type, ref extsList) == false)
-                    currentLen += extsLen;
+                    currentLen += extLen;
             }
 
             return extsList;
