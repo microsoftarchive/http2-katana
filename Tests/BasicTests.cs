@@ -65,10 +65,10 @@ namespace BasicTests
             var testCollection = session.ActiveStreams;
             var fm = new FlowControlManager(session);
 
-            testCollection[1] = new Http2Stream(null, 1, Priority.Pri3, null, fm, null);
-            testCollection[2] = new Http2Stream(null, 2, Priority.Pri3, null, fm, null);
-            testCollection[3] = new Http2Stream(null, 3, Priority.Pri3, null, fm, null);
-            testCollection[4] = new Http2Stream(null, 4, Priority.Pri3, null, fm, null);
+            testCollection[1] = new Http2Stream(null, 1, null, fm, null);
+            testCollection[2] = new Http2Stream(null, 2, null, fm, null);
+            testCollection[3] = new Http2Stream(null, 3, null, fm, null);
+            testCollection[4] = new Http2Stream(null, 4, null, fm, null);
 
             fm.DisableStreamFlowControl(testCollection[2]);
             fm.DisableStreamFlowControl(testCollection[4]);
@@ -79,7 +79,7 @@ namespace BasicTests
             bool gotException = false;
             try
             {
-                testCollection[4] = new Http2Stream(null, 3, Priority.Pri3, null, fm, null);
+                testCollection[4] = new Http2Stream(null, 3, null, fm, null);
             }
             catch (ArgumentException)
             {
@@ -170,40 +170,6 @@ namespace BasicTests
             {
                 Assert.Equal(decompressed.GetValue(headers[i].Item1), headers[i].Item2);
             }
-        }
-
-        [Fact]
-        public void HeadersCollectionSuccessful()
-        {
-            var collection = new HeadersCollection
-                {
-                    new KeyValuePair<string, string>("key1","value1"),
-                    new KeyValuePair<string, string>("1key","val1ue"),
-                    new KeyValuePair<string, string>("key2","value2"),
-                    new KeyValuePair<string, string>("2key", "value2"),
-                    new KeyValuePair<string, string>("my-header","my-value")
-                };
-
-            int i = 0;
-            foreach (var item in collection)
-            {
-                i++;
-            }
-
-            Assert.Equal(i, collection.Count);
-            Assert.Equal(new KeyValuePair<string, string>("my-header", "my-value"), collection[0]);
-            Assert.Equal(new KeyValuePair<string, string>("key1", "value1"), collection[1]);
-            Assert.Equal(new KeyValuePair<string, string>("1key", "val1ue"), collection[2]);
-            Assert.Equal(new KeyValuePair<string, string>("key2", "value2"), collection[3]);
-            Assert.Equal(new KeyValuePair<string, string>("2key", "value2"), collection[4]);
-
-            collection.SubstituteValue(1, "value2");
-            Assert.Equal("value2", collection[1].Value);
-            Assert.Equal(collection.IndexOf(new KeyValuePair<string, string>("my-header", "my-value")), 0);
-            Assert.Equal(collection.IndexOf(new KeyValuePair<string, string>("key1", "value2")), 1);
-            Assert.Equal(collection.IndexOf(new KeyValuePair<string, string>("1key", "val1ue")), 2);
-            Assert.Equal(collection.IndexOf(new KeyValuePair<string, string>("key2", "value2")), 3);
-            Assert.Equal(collection.IndexOf(new KeyValuePair<string, string>("2key", "value2")), 4);
         }
     }
 }

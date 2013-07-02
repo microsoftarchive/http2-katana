@@ -3,32 +3,44 @@ using System.Diagnostics.Contracts;
 
 namespace SharedProtocol.Framing
 {
-    public class HeadersPlusPriority : Frame
+    public class Headers : Frame
     {
         // The number of bytes in the frame, not including the compressed headers.
         private const int InitialFrameSize = 12;
 
-        public bool IsContinues
+        public bool IsPriority
+        {
+            get { return (Flags & FrameFlags.Priority) == FrameFlags.Priority; }
+            set
+            {
+                if (value)
+                {
+                    Flags |= FrameFlags.Priority;
+                }
+            }
+        }
+
+        public bool IsEndHeaders
         {
             get
             {
-                return (Flags & FrameFlags.Continues) == FrameFlags.Continues;
+                return (Flags & FrameFlags.EndHeaders) == FrameFlags.EndHeaders;
             }
             set
             {
                 if (value)
                 {
-                    Flags |= FrameFlags.Continues;
+                    Flags |= FrameFlags.EndHeaders;
                 }
             }
         }
 
         // Create an outgoing frame
-        public HeadersPlusPriority(int streamId, byte[] headerBytes)
+        public Headers(int streamId, byte[] headerBytes)
             : base(new byte[InitialFrameSize + headerBytes.Length])
         {
             StreamId = streamId;
-            FrameType = FrameType.HeadersPlusPriority;
+            FrameType = FrameType.Headers;
             FrameLength = Buffer.Length - Constants.FramePreambleSize;
 
             // Copy in the headers
@@ -36,7 +48,7 @@ namespace SharedProtocol.Framing
         }
 
         // Create an incoming frame
-        public HeadersPlusPriority(Frame preamble)
+        public Headers(Frame preamble)
             : base(preamble)
         {
         }
@@ -45,7 +57,8 @@ namespace SharedProtocol.Framing
         {
             get
             {
-                return (Priority)FrameHelpers.Get32BitsAt(Buffer, 8);
+                Contract.Assert(IsPriority);
+                return (Priority) FrameHelpers.Get32BitsAt(Buffer, 8); 
             }
             set
             {

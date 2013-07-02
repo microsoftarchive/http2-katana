@@ -154,23 +154,23 @@ namespace SharedProtocol
             {
                 switch (frame.FrameType)
                 {
-                    case FrameType.HeadersPlusPriority:
+                    case FrameType.Headers:
                         Console.WriteLine("New headers + priority with id = " + frame.StreamId);
-                        var headersPlusPriorityFrame = (HeadersPlusPriority) frame;
-                        var serializedHeaders = new byte[headersPlusPriorityFrame.CompressedHeaders.Count];
+                        var HeadersFrame = (Headers) frame;
+                        var serializedHeaders = new byte[HeadersFrame.CompressedHeaders.Count];
 
-                        Buffer.BlockCopy(headersPlusPriorityFrame.CompressedHeaders.Array, 
-                                         headersPlusPriorityFrame.CompressedHeaders.Offset,
+                        Buffer.BlockCopy(HeadersFrame.CompressedHeaders.Array, 
+                                         HeadersFrame.CompressedHeaders.Offset,
                                          serializedHeaders, 0, serializedHeaders.Length);
 
                         decompressedHeaders = _comprProc.Decompress(serializedHeaders, frame.StreamId % 2 != 0);
                         headers = decompressedHeaders;
 
-                        if (headersPlusPriorityFrame.IsContinues)
+                        if (!HeadersFrame.IsEndHeaders)
                         {
-                            var decompHeaders = _comprProc.Decompress(headersPlusPriorityFrame.CompressedHeaders.Array, frame.StreamId % 2 != 0);
+                            var decompHeaders = _comprProc.Decompress(HeadersFrame.CompressedHeaders.Array, frame.StreamId % 2 != 0);
                             _toBeContinuedHeaders = decompHeaders;
-                            _toBeContinuedFrame = headersPlusPriorityFrame;
+                            _toBeContinuedFrame = HeadersFrame;
                             break;
                         }
 
@@ -189,9 +189,9 @@ namespace SharedProtocol
                             return;
                         }
 
-                        stream = new Http2Stream(headers, headersPlusPriorityFrame.StreamId,
-                                                 headersPlusPriorityFrame.Priority, _writeQueue,
-                                                 _flowControlManager, _comprProc);
+                        stream = new Http2Stream(headers, HeadersFrame.StreamId,
+                                                  _writeQueue, _flowControlManager,
+                                                  _comprProc);
 
                         ActiveStreams[stream.Id] = stream;
 
@@ -205,6 +205,15 @@ namespace SharedProtocol
 
                         _toBeContinuedFrame = null;
                         _toBeContinuedHeaders = null;
+                        break;
+
+                    case FrameType.Priority:
+                        var priorityFrame = (PriorityFrame) frame;
+                        int streamId = priorityFrame.StreamId;
+                        if (ActiveStreams.ContainsKey(streamId))
+                        {
+                            ActiveStreams[streamId].Priority = priorityFrame.Priority;
+                        }
                         break;
 
                     case FrameType.RstStream:
@@ -275,44 +284,7 @@ namespace SharedProtocol
 
                         Task.Run(() => stream.PumpUnshippedFrames());
                         break;
-                    case FrameType.Headers:
-                        var headersFrame = (HeadersFrame) frame;
-                        stream = GetStream(headersFrame.StreamId);
-
-                        if (headersFrame.IsContinues)
-                        {
-                            var decompHeaders = _comprProc.Decompress(headersFrame.CompressedHeaders.Array, frame.StreamId % 2 != 0);
-                            _toBeContinuedHeaders = decompHeaders;
-                            _toBeContinuedFrame = headersFrame;
-                            break;
-                        }
-
-                        //Frame came to already closed or unopened stream
-                        if (stream == null || stream.Disposed)
-                        {
-                            //Ignore it
-                            return;
-                        }
-
-                        decompressedHeaders = _comprProc.Decompress(headersFrame.CompressedHeaders.Array, frame.StreamId % 2 != 0);
-                        headers = decompressedHeaders;
-
-                        if (_toBeContinuedHeaders != null)
-                        {
-                            foreach (var key in _toBeContinuedHeaders)
-                            {
-                                headers.Add(key);
-                            }
-                        }
-
-                        foreach (var key in headers)
-                        {
-                            stream.Headers.Add(key);
-                        }
-
-                        _toBeContinuedHeaders = null;
-                        _toBeContinuedFrame = null;
-                        break;
+                   
                     case FrameType.GoAway:
                         _goAwayReceived = true;
                         Dispose();
@@ -324,10 +296,10 @@ namespace SharedProtocol
                 if (stream != null)
                 {
                     //Tell the stream that it was the last frame
-                    if (frame.IsFin)
+                    if (frame.IsEndStream)
                     {
                         Console.WriteLine("Final frame received");
-                        stream.FinReceived = true;
+                        stream.EndStreamReceived = true;
                     }
 
                     if (OnFrameReceived != null)
@@ -366,7 +338,7 @@ namespace SharedProtocol
                 Dispose();
                 throw new InvalidOperationException("Trying to create more streams than allowed by the remote side!");
             }
-            var stream = new Http2Stream(GetNextId(), priority, _writeQueue, _flowControlManager, _comprProc);
+            var stream = new Http2Stream(GetNextId(), _writeQueue, _flowControlManager, _comprProc);
             
             stream.OnClose += (o, args) =>
                 {
@@ -393,13 +365,13 @@ namespace SharedProtocol
         /// </summary>
         /// <param name="pairs">The header pairs.</param>
         /// <param name="priority">The stream priority.</param>
-        /// <param name="isFin">True if initial headers+priority is also the final frame from endpoint.</param>
-        public void SendRequest(List<Tuple<string, string, IAdditionalHeaderInfo>> pairs, int priority, bool isFin)
+        /// <param name="isEndStream">True if initial headers+priority is also the final frame from endpoint.</param>
+        public void SendRequest(List<Tuple<string, string, IAdditionalHeaderInfo>> pairs, int priority, bool isEndStream)
         {
             Contract.Assert(priority >= 0 && priority <= 7);
             var stream = CreateStream((Priority)priority);
 
-            stream.WriteHeadersPlusPriorityFrame(pairs, isFin);
+            stream.WriteHeadersFrame(pairs, isEndStream);
         }
 
         /// <summary>

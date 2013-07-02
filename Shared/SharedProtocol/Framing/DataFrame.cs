@@ -15,10 +15,10 @@ namespace SharedProtocol.Framing
         }
 
         // For outgoing
-        public DataFrame(int streamId, ArraySegment<byte> data, bool isFin)
+        public DataFrame(int streamId, ArraySegment<byte> data, bool isEndStream)
             : base(new byte[Constants.FramePreambleSize + data.Count])
         {
-            IsFin = isFin;
+            isEndStream = isEndStream;
             FrameLength = data.Count;
             StreamId = streamId;
             Contract.Assert(data.Array != null);

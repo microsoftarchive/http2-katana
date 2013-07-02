@@ -1,5 +1,4 @@
-﻿using System.Collections;
-using SharedProtocol.Compression;
+﻿using SharedProtocol.Compression;
 using SharedProtocol.Framing;
 using SharedProtocol.IO;
 using System;
@@ -16,7 +15,6 @@ namespace SharedProtocol
         private readonly int _id;
         private StreamState _state;
         private readonly WriteQueue _writeQueue;
-        private readonly Priority _priority;
         private readonly ICompressionProcessor _compressionProc;
         private readonly FlowControlManager _flowCrtlManager;
 
@@ -25,19 +23,20 @@ namespace SharedProtocol
 
         //Incoming
         public Http2Stream(List<Tuple<string, string, IAdditionalHeaderInfo>> headers, int id,
-                           Priority priority, WriteQueue writeQueue,
-                           FlowControlManager flowCrtlManager, ICompressionProcessor comprProc)
-            : this(id, priority, writeQueue, flowCrtlManager, comprProc)
+                           WriteQueue writeQueue, FlowControlManager flowCrtlManager, 
+                           ICompressionProcessor comprProc, Priority priority = Priority.Pri3)
+            : this(id, writeQueue, flowCrtlManager, comprProc, priority)
         {
             Headers = headers;
         }
 
         //Outgoing
-        public Http2Stream(int id, Priority priority, WriteQueue writeQueue, 
-                           FlowControlManager flowCrtlManager, ICompressionProcessor comprProc)
+        public Http2Stream(int id, WriteQueue writeQueue, 
+                           FlowControlManager flowCrtlManager, ICompressionProcessor comprProc,
+                           Priority priority = Priority.Pri3)
         {
             _id = id;
-            _priority = priority;
+            Priority = priority;
             _writeQueue = writeQueue;
             _compressionProc = comprProc;
             _flowCrtlManager = flowCrtlManager;
@@ -59,16 +58,18 @@ namespace SharedProtocol
             get { return _id; }
         }
 
-        public bool FinSent
+        public bool EndStreamSent
         {
-            get { return (_state & StreamState.FinSent) == StreamState.FinSent; }
-            set { Contract.Assert(value); _state |= StreamState.FinSent; }
+            get { return (_state & StreamState.EndStreamSent) == StreamState.EndStreamSent; }
+            set { Contract.Assert(value); _state |= StreamState.EndStreamSent; }
         }
-        public bool FinReceived
+        public bool EndStreamReceived
         {
-            get { return (_state & StreamState.FinReceived) == StreamState.FinReceived; }
-            set { Contract.Assert(value); _state |= StreamState.FinReceived; }
+            get { return (_state & StreamState.EndStreamReceived) == StreamState.EndStreamReceived; }
+            set { Contract.Assert(value); _state |= StreamState.EndStreamReceived; }
         }
+
+        public Priority Priority { get; set; }
 
         public bool ResetSent
         {
@@ -124,7 +125,7 @@ namespace SharedProtocol
                 }
 
                 //Do not dispose if unshipped frames are still here
-                if (FinSent && FinReceived && !Disposed)
+                if (EndStreamSent && EndStreamReceived && !Disposed)
                 {
                     Dispose();
                 }
@@ -143,23 +144,23 @@ namespace SharedProtocol
         #endregion
 
         #region WriteMethods
-        public void WriteHeadersPlusPriorityFrame(List<Tuple<string, string, IAdditionalHeaderInfo> > headers, bool isFin)
+        public void WriteHeadersFrame(List<Tuple<string, string, IAdditionalHeaderInfo> > headers, bool isEndStream)
         {
             Headers = headers;
             // TODO: Prioritization re-ordering will also break decompression. Scrap the priority queue.
             byte[] headerBytes = _compressionProc.Compress(headers, _id % 2 != 0);
 
-            var frame = new HeadersPlusPriority(_id, headerBytes);
+            var frame = new Headers(_id, headerBytes);
 
-            frame.IsFin = isFin;
-            frame.Priority = _priority;
+            frame.IsEndStream = isEndStream;
+            frame.Priority = Priority;
 
-            if (frame.IsFin)
+            if (frame.IsEndStream)
             {
-                FinSent = true;
+                EndStreamSent = true;
             }
 
-            _writeQueue.WriteFrameAsync(frame, _priority);
+            _writeQueue.WriteFrameAsync(frame, Priority);
 
             if (OnFrameSent != null)
             {
@@ -173,22 +174,22 @@ namespace SharedProtocol
         /// After window update for that stream they will be delivered.
         /// </summary>
         /// <param name="data">The data.</param>
-        /// <param name="isFin">if set to <c>true</c> [is fin].</param>
-        public void WriteDataFrame(byte[] data, bool isFin)
+        /// <param name="isEndStream">if set to <c>true</c> [is fin].</param>
+        public void WriteDataFrame(byte[] data, bool isEndStream)
         {
-            var dataFrame = new DataFrame(_id, new ArraySegment<byte>(data), isFin);
+            var dataFrame = new DataFrame(_id, new ArraySegment<byte>(data), isEndStream);
 
             if (IsFlowControlBlocked == false)
             {
-                _writeQueue.WriteFrameAsync(dataFrame, _priority);
+                _writeQueue.WriteFrameAsync(dataFrame, Priority);
                 SentDataAmount += dataFrame.FrameLength;
 
                 _flowCrtlManager.DataFrameSentHandler(this, new DataFrameSentEventArgs(dataFrame));
 
-                if (dataFrame.IsFin)
+                if (dataFrame.IsEndStream)
                 {
                     Console.WriteLine("Transfer end");
-                    FinSent = true;
+                    EndStreamSent = true;
                 }
 
                 if (OnFrameSent != null)
@@ -212,15 +213,15 @@ namespace SharedProtocol
         {
             if (IsFlowControlBlocked == false)
             {
-                _writeQueue.WriteFrameAsync(dataFrame, _priority);
+                _writeQueue.WriteFrameAsync(dataFrame, Priority);
                 SentDataAmount += dataFrame.FrameLength;
 
                 _flowCrtlManager.DataFrameSentHandler(this, new DataFrameSentEventArgs(dataFrame));
 
-                if (dataFrame.IsFin)
+                if (dataFrame.IsEndStream)
                 {
                     Console.WriteLine("Transfer end");
-                    FinSent = true;
+                    EndStreamSent = true;
                 }
 
                 if (OnFrameSent != null)
@@ -234,20 +235,10 @@ namespace SharedProtocol
             }
         }
 
-        public void WriteHeaders(byte[] compressedHeaders)
-        {
-            _writeQueue.WriteFrameAsync(new HeadersFrame(_id, compressedHeaders), Priority.Pri3);
-            
-            if (OnFrameSent != null)
-            {
-                OnFrameSent(this, new FrameSentArgs(new HeadersFrame(_id, compressedHeaders)));
-            }
-        }
-
         public void WriteWindowUpdate(Int32 windowSize)
         {
             var frame = new WindowUpdateFrame(_id, windowSize);
-            _writeQueue.WriteFrameAsync(frame, _priority);
+            _writeQueue.WriteFrameAsync(frame, Priority);
 
             if (OnFrameSent != null)
             {
@@ -258,7 +249,7 @@ namespace SharedProtocol
         public void WriteRst(ResetStatusCode code)
         {
             var frame = new RstStreamFrame(_id, code);
-            _writeQueue.WriteFrameAsync(frame, _priority);
+            _writeQueue.WriteFrameAsync(frame, Priority);
             ResetSent = true;
 
             if (OnFrameSent != null)

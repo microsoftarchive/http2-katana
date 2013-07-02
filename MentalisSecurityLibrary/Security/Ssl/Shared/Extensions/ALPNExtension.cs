@@ -24,6 +24,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Linq;
 
 namespace Org.Mentalis.Security.Ssl.Shared.Extensions
 {
@@ -150,6 +151,16 @@ namespace Org.Mentalis.Security.Ssl.Shared.Extensions
 
             if (end == ConnectionEnd.Client)
             {
+                Int16 serializedProtocolListSize = 0;
+
+                this.ClientKnownProtocolList.Count(protocol =>
+                    {
+                        serializedProtocolListSize += (Int16) (protocol.Length + 1);
+                        return true;
+                    });
+                byte[] serializedProtocolListSizeBytes = BinaryHelper.Int16ToBytes(serializedProtocolListSize);
+                stream.Write(serializedProtocolListSizeBytes, 0, serializedProtocolListSizeBytes.Length);
+
                 foreach (var protocol in this.ClientKnownProtocolList)
                 {
                     byte protoLen = (byte) (protocol.Length);

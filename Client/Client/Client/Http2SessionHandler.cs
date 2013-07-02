@@ -247,9 +247,9 @@ namespace Client
 
                 stream.ReceivedDataAmount += dataFrame.FrameLength;
 
-                if (dataFrame.IsFin)
+                if (dataFrame.IsEndStream)
                 {
-                    if (!stream.FinSent)
+                    if (!stream.EndStreamSent)
                     {
                         //send terminator
                         stream.WriteDataFrame(new byte[0], true);
@@ -270,7 +270,7 @@ namespace Client
                     Task.Run(() => SaveToFile(stream, (DataFrame)args.Frame));
                 }
 
-                if (args.Frame is HeadersPlusPriority)
+                if (args.Frame is Headers)
                 {
                     Task.Run(() => SendResponce(stream));
                 }

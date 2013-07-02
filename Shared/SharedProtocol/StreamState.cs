@@ -10,8 +10,8 @@ namespace SharedProtocol
         None = 0,
         RequestHeaders = 0x01, // sent (client) or received (server)
         ResponseHeaders = 0x02, // sent (server) or received (client)
-        FinSent = 0x04,
-        FinReceived = 0x08,
+        EndStreamSent = 0x04,
+        EndStreamReceived = 0x08,
         ResetSent = 0x10,
         ResetReceived = 0x20,
         Disposed = 0x40,

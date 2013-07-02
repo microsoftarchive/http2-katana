@@ -241,11 +241,11 @@ namespace Org.Mentalis.Security.Ssl.Shared {
 			retMessage.Write(bytes, 0, bytes.Length);
 
 			// Certificate message
-			/*byte[] certs = GetCertificateList(m_Options.Certificate);
+			byte[] certs = GetCertificateList(m_Options.Certificate);
 			temp.type = HandshakeType.Certificate;
 			temp.fragment = certs;
 			bytes = temp.ToBytes();
-			retMessage.Write(bytes, 0, bytes.Length);*/
+			retMessage.Write(bytes, 0, bytes.Length);
 			// ServerKeyExchange message [optional] => only with RSA_EXPORT and public key > 512 bits
 			if (m_Options.Certificate.GetPublicKeyLength() > 512 && CipherSuites.GetCipherDefinition(m_EncryptionScheme).Exportable) {
 				MemoryStream kes = new MemoryStream();

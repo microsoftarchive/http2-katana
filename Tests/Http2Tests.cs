@@ -155,7 +155,7 @@ namespace Http2Tests
             Uri.TryCreate(requestStr, UriKind.Absolute, out uri);
             
             bool wasSettingsSent = false;
-            bool wasHeadersPlusPrioritySent = false;
+            bool wasHeadersSent = false;
             bool wasSocketClosed = false;
 
             var settingsSentRaisedEventArgs = new ManualResetEvent(false);
@@ -183,9 +183,9 @@ namespace Http2Tests
 
             session.OnFrameSent += (sender, args) =>
             {
-                if (wasHeadersPlusPrioritySent == false)
+                if (wasHeadersSent == false)
                 {
-                    wasHeadersPlusPrioritySent = args.Frame is HeadersPlusPriority;
+                    wasHeadersSent = args.Frame is Headers;
 
                     headersPlusPriSentRaisedEvent.Set();
                 }
@@ -205,9 +205,9 @@ namespace Http2Tests
             Assert.Equal(stream.IsFlowControlBlocked, false);
             Assert.Equal(stream.Id, 1);
             Assert.Equal(stream.IsFlowControlEnabled, true);
-            Assert.Equal(stream.FinSent, false);
+            Assert.Equal(stream.EndStreamSent, false);
             Assert.Equal(stream.Disposed, false);
-            Assert.Equal(wasHeadersPlusPrioritySent, true);
+            Assert.Equal(wasHeadersSent, true);
             Assert.Equal(wasSettingsSent, true);
 
             headersPlusPriSentRaisedEvent.Dispose();
@@ -253,7 +253,7 @@ namespace Http2Tests
 
             session.OnFrameReceived += (sender, args) =>
             {
-                if (args.Frame.IsFin)
+                if (args.Frame.IsEndStream)
                 {
                     finalFrameReceivedRaisedEvent.Set();
                     wasFinalFrameReceived = true;
@@ -311,7 +311,7 @@ namespace Http2Tests
 
             session.OnFrameReceived += (sender, args) =>
             {
-                if (args.Frame.IsFin)
+                if (args.Frame.IsEndStream)
                 {
                     finalFramesCounter++;
                     if (finalFramesCounter == streamsQuantity)
