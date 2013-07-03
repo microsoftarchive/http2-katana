@@ -168,8 +168,7 @@ namespace SharedProtocol
 
                         if (!HeadersFrame.IsEndHeaders)
                         {
-                            var decompHeaders = _comprProc.Decompress(HeadersFrame.CompressedHeaders.Array, frame.StreamId % 2 != 0);
-                            _toBeContinuedHeaders = decompHeaders;
+                            _toBeContinuedHeaders = decompressedHeaders;
                             _toBeContinuedFrame = HeadersFrame;
                             break;
                         }

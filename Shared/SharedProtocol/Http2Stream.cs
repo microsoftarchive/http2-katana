@@ -150,7 +150,7 @@ namespace SharedProtocol
             // TODO: Prioritization re-ordering will also break decompression. Scrap the priority queue.
             byte[] headerBytes = _compressionProc.Compress(headers, _id % 2 != 0);
 
-            var frame = new Headers(_id, headerBytes);
+            var frame = new Headers(_id, headerBytes){IsEndHeaders = true, IsPriority = true};
 
             frame.IsEndStream = isEndStream;
             frame.Priority = Priority;
