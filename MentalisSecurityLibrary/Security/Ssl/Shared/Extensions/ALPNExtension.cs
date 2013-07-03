@@ -78,9 +78,11 @@ namespace Org.Mentalis.Security.Ssl.Shared.Extensions
             byte lenPrefix = sizeof(byte);
             //byte lenPrefix = sizeof(Int16);  // this is correct. Every length field is 2 bytes
 
+            result += sizeof(Int16); //alpn vector size 
             foreach (var protocol in protocolList)
+            {
                 result += (Int16) (protocol.Length + lenPrefix);
-
+            }
             return result;
         }
 
@@ -125,7 +127,7 @@ namespace Org.Mentalis.Security.Ssl.Shared.Extensions
                     if (this.ServerKnownProtocolList.Contains(protocol))
                     {
                         this.SelectedProtocol = protocol;
-                        this.ExtensionDataSize = (short) (Encoding.UTF8.GetByteCount(this.SelectedProtocol) + sizeof(byte));
+                        this.ExtensionDataSize = (short) (Encoding.UTF8.GetByteCount(this.SelectedProtocol) + sizeof(byte) + sizeof(Int16));
                         this.ExtensionSize += ExtensionDataSize;
                         break;
                     }
@@ -166,11 +168,6 @@ namespace Org.Mentalis.Security.Ssl.Shared.Extensions
                     byte protoLen = (byte) (protocol.Length);
                     stream.WriteByte(protoLen);
 
-					// every length field is 2 bytes
-					// 
-                    //byte[] protoLen = BinaryHelper.Int16ToBytes((Int16)protocol.Length);
-                    //stream.Write(protoLen, 0, protoLen.Length);
-
                     byte[] protocolData = Encoding.UTF8.GetBytes(protocol);
                     stream.Write(protocolData, 0, protocolData.Length);
                 }
@@ -181,8 +178,11 @@ namespace Org.Mentalis.Security.Ssl.Shared.Extensions
             else
             {
                 byte selectedProtoLen = (byte) (Encoding.UTF8.GetByteCount(this.SelectedProtocol));
+                Int16 protocolVectorLen = (Int16) (selectedProtoLen + 1);
+                byte[] protocolVectorBytes = BinaryHelper.Int16ToBytes(protocolVectorLen);
                 byte[] selectedProtoBytes = Encoding.UTF8.GetBytes(this.SelectedProtocol);
 
+                stream.Write(protocolVectorBytes, 0, protocolVectorBytes.Length);
                 stream.WriteByte(selectedProtoLen);
                 stream.Write(selectedProtoBytes, 0, selectedProtoBytes.Length);
             }

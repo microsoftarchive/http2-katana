@@ -18,7 +18,7 @@ namespace SharedProtocol.Framing
         public DataFrame(int streamId, ArraySegment<byte> data, bool isEndStream)
             : base(new byte[Constants.FramePreambleSize + data.Count])
         {
-            isEndStream = isEndStream;
+            IsEndStream = isEndStream;
             FrameLength = data.Count;
             StreamId = streamId;
             Contract.Assert(data.Array != null);
