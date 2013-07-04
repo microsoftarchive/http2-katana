@@ -9,6 +9,7 @@ using SharedProtocol.ExtendedMath;
 using SharedProtocol.Framing;
 using Xunit;
 using Http2HeadersCompression;
+using SharedProtocol.IO;
 
 namespace BasicTests
 {
@@ -20,6 +21,58 @@ namespace BasicTests
             {
                 return ((new CaseInsensitiveComparer()).Compare(y, x));
             }
+        }
+
+        [Fact]
+        public void PriorityTestSuccessful()
+        {
+            var itemsCollection = new List<IPriorityItem>
+                {
+                    new PriorityQueueEntry(null, Priority.Pri0),
+                    new PriorityQueueEntry(null, Priority.Pri7),
+                    new PriorityQueueEntry(null, Priority.Pri3),
+                    new PriorityQueueEntry(null, Priority.Pri5),
+                    new PriorityQueueEntry(null, Priority.Pri2),
+                    new PriorityQueueEntry(null, Priority.Pri6),
+                    new PriorityQueueEntry(null, Priority.Pri2),
+                    new PriorityQueueEntry(null, Priority.Pri4),
+                    new PriorityQueueEntry(null, Priority.Pri1),
+                    new PriorityQueueEntry(null, Priority.Pri6),
+                    new PriorityQueueEntry(null, Priority.Pri0),
+                };
+
+            var queue = new PriorityQueue(itemsCollection);
+            Assert.Equal(queue.Count, 11);
+            var firstItem1 = queue.First();
+            Assert.Equal(((PriorityQueueEntry)firstItem1).Priority, Priority.Pri0);
+            var lastItem1 = queue.Last();
+            Assert.Equal(((PriorityQueueEntry)lastItem1).Priority, Priority.Pri7);
+            var peekedItem1 = queue.Peek();
+            Assert.Equal(((PriorityQueueEntry)peekedItem1).Priority, Priority.Pri7);
+            var item1 = queue.Dequeue();
+            Assert.Equal(((PriorityQueueEntry)item1).Priority, Priority.Pri7);
+            var peekedItem2 = queue.Peek();
+            Assert.Equal(((PriorityQueueEntry)peekedItem2).Priority, Priority.Pri6);
+            var item2 = queue.Dequeue();
+            Assert.Equal(((PriorityQueueEntry)item2).Priority, Priority.Pri6);
+            var item3 = queue.Dequeue();
+            Assert.Equal(((PriorityQueueEntry)item3).Priority, Priority.Pri6);
+            var item4 = queue.Dequeue();
+            Assert.Equal(((PriorityQueueEntry)item4).Priority, Priority.Pri5);
+            var item5 = queue.Dequeue();
+            Assert.Equal(((PriorityQueueEntry)item5).Priority, Priority.Pri4);
+            var item6 = queue.Dequeue();
+            Assert.Equal(((PriorityQueueEntry)item6).Priority, Priority.Pri3);
+            var item7 = queue.Dequeue();
+            Assert.Equal(((PriorityQueueEntry)item7).Priority, Priority.Pri2);
+            var item8 = queue.Dequeue();
+            Assert.Equal(((PriorityQueueEntry)item8).Priority, Priority.Pri2);
+            var item9 = queue.Dequeue();
+            Assert.Equal(((PriorityQueueEntry)item9).Priority, Priority.Pri1);
+            var item10 = queue.Dequeue();
+            Assert.Equal(((PriorityQueueEntry)item10).Priority, Priority.Pri0);
+            var item11 = queue.Dequeue();
+            Assert.Equal(((PriorityQueueEntry)item11).Priority, Priority.Pri0);
         }
 
         [Fact]
@@ -61,7 +114,7 @@ namespace BasicTests
         [Fact]
         public void ActiveStreamsSuccessful()
         {
-            var session = new Http2Session(null, ConnectionEnd.Client);
+            var session = new Http2Session(null, ConnectionEnd.Client, true);
             var testCollection = session.ActiveStreams;
             var fm = new FlowControlManager(session);
 

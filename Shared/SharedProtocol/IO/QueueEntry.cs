@@ -2,18 +2,16 @@
 
 namespace SharedProtocol.IO
 {
-    internal class PriorityQueueEntry : IPriorityItem
+    internal class QueueEntry : IQueueItem
     {
         private readonly Frame _frame;
-        private readonly Priority _priority;
-
-        public PriorityQueueEntry(Frame frame, Priority priority)
+      
+        public QueueEntry(Frame frame)
         {
             _frame = frame;
-            _priority = priority;
         }
 
-        public Priority Priority { get { return _priority; } }
+        public bool IsFlush { get { return _frame == null; } }
 
         public Frame Frame { get { return _frame; } }
 

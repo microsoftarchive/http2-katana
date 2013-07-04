@@ -18,9 +18,8 @@ namespace SocketServer
         private readonly AppFunc _next;
         private readonly int _port;
         private readonly string _scheme;
-
-        private bool _useHandshake;
-
+        private readonly bool _useHandshake;
+        private readonly bool _usePriorities;
         private bool _disposed;
         private readonly SecurityOptions _options;
         private readonly  SecureTcpListener _server;
@@ -63,6 +62,7 @@ namespace SocketServer
             }
 
             _useHandshake = ConfigurationManager.AppSettings["handshakeOptions"] != "no-handshake";
+            _usePriorities = ConfigurationManager.AppSettings["prioritiesOptions"] != "use-priorities";
 
             var extensions = new [] { ExtensionType.Renegotiation, ExtensionType.ALPN };
 
@@ -90,7 +90,7 @@ namespace SocketServer
             {
                 try
                 {
-                    var client = new HttpConnetingClient(_server, _options, _next, _useHandshake);
+                    var client = new HttpConnetingClient(_server, _options, _next, _useHandshake, _usePriorities);
                     client.Accept();
                 }
                 catch (Exception ex)

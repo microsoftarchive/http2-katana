@@ -45,15 +45,15 @@ namespace Client
     {
         private static Dictionary<string, Http2SessionHandler> _sessions;
         private static bool useHandshake = true;
+        private static bool usePrioritization = false;
 
         public static void Main(string[] args)
         {
             _sessions = new Dictionary<string, Http2SessionHandler>();
+            var argsList = new List<string>(args);
 
-            if (args.Length != 0 && !String.IsNullOrEmpty(args[0]))
-            {
-                useHandshake = args[0] == "-no-handshake";
-            }
+            useHandshake = !argsList.Contains("-no-handshake");
+            usePrioritization = argsList.Contains("use-priorities");
 
             HelpDisplayer.ShowMainMenuHelp();
             ThreadPool.SetMaxThreads(10, 10);
@@ -88,7 +88,7 @@ namespace Client
                                 break;
                             }
 
-                            var sessionHandler = new Http2SessionHandler(getCmd.Uri, useHandshake);
+                            var sessionHandler = new Http2SessionHandler(getCmd.Uri, useHandshake, usePrioritization);
 
                             //Get cmd is equivalent for connect -> get. This means, that each get request 
                             //will open new session.

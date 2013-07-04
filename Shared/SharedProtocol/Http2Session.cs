@@ -24,6 +24,7 @@ namespace SharedProtocol
         private readonly FlowControlManager _flowControlManager;
         private readonly ConnectionEnd _ourEnd;
         private readonly ConnectionEnd _remoteEnd;
+        private readonly bool _usePriorities;
         private int _lastId;
         private bool _wasSettingsReceived = false;
         private bool _wasPingReceived = false;
@@ -57,9 +58,10 @@ namespace SharedProtocol
 
         internal Int32 SessionWindowSize { get; set; }
 
-        public Http2Session(SecureSocket sessionSocket, ConnectionEnd end)
+        public Http2Session(SecureSocket sessionSocket, ConnectionEnd end, bool usePriorities)
         {
             _ourEnd = end;
+            _usePriorities = usePriorities;
 
             if (_ourEnd == ConnectionEnd.Client)
             {
@@ -77,11 +79,11 @@ namespace SharedProtocol
             _comprProc = new CompressionProcessor();
             _sessionSocket = sessionSocket;
 
-            _writeQueue = new WriteQueue(_sessionSocket);
-
             _frameReader = new FrameReader(_sessionSocket);
 
             ActiveStreams = new ActiveStreams();
+
+            _writeQueue = new WriteQueue(_sessionSocket, ActiveStreams, _usePriorities);
 
             OurMaxConcurrentStreams = 100; //Spec recommends value 100 by default
             RemoteMaxConcurrentStreams = 100;
@@ -124,7 +126,7 @@ namespace SharedProtocol
         /// <returns></returns>
         private Task PumpOutgoingData()
         {
-            return _writeQueue.PumpToStreamAsync();
+             return Task.Run(() => _writeQueue.PumpToStream());
         }
 
         /// <summary>
@@ -253,7 +255,7 @@ namespace SharedProtocol
                         else
                         {
                             var pingResonseFrame = new PingFrame(true);
-                            _writeQueue.WriteFrameAsync(pingResonseFrame, Priority.Pri0);
+                            _writeQueue.WriteFrame(pingResonseFrame);
                         }
                         break;
                     case FrameType.Settings:
@@ -378,7 +380,7 @@ namespace SharedProtocol
         /// </summary>
         /// <param name="id">The stream id.</param>
         /// <returns></returns>
-        public Http2Stream GetStream(int id)
+        internal Http2Stream GetStream(int id)
         {
             Http2Stream stream;
             if (!ActiveStreams.TryGetValue(id, out stream))
@@ -415,7 +417,7 @@ namespace SharedProtocol
         {
             var frame = new SettingsFrame(new List<SettingsPair>(settings));
 
-            _writeQueue.WriteFrameAsync(frame, Priority.Pri3);
+            _writeQueue.WriteFrame(frame);
 
             if (OnSettingsSent != null)
             {
@@ -431,7 +433,7 @@ namespace SharedProtocol
         {
             var frame = new GoAwayFrame(_lastId, code);
 
-            _writeQueue.WriteFrameAsync(frame, Priority.Pri3);
+            _writeQueue.WriteFrame(frame);
         }
 
         /// <summary>
@@ -441,7 +443,7 @@ namespace SharedProtocol
         public TimeSpan Ping()
         {
             var pingFrame = new PingFrame(false);
-            _writeQueue.WriteFrameAsync(pingFrame, Priority.Pri0);
+            _writeQueue.WriteFrame(pingFrame);
             var now = DateTime.UtcNow;
 
             _pingReceived.WaitOne(60000);

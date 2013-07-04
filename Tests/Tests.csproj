@@ -247,11 +247,26 @@
     <Compile Include="..\Shared\SharedProtocol\IO\FileHelper.cs">
       <Link>Sources\FileHelper.cs</Link>
     </Compile>
+    <Compile Include="..\Shared\SharedProtocol\IO\IPriorityItem.cs">
+      <Link>Sources\IPriorityItem.cs</Link>
+    </Compile>
+    <Compile Include="..\Shared\SharedProtocol\IO\IQueue.cs">
+      <Link>Sources\IQueue.cs</Link>
+    </Compile>
+    <Compile Include="..\Shared\SharedProtocol\IO\IQueueItem.cs">
+      <Link>Sources\IQueueItem.cs</Link>
+    </Compile>
     <Compile Include="..\Shared\SharedProtocol\IO\PriorityQueue.cs">
       <Link>Sources\PriorityQueue.cs</Link>
     </Compile>
     <Compile Include="..\Shared\SharedProtocol\IO\PriorityQueueEntry.cs">
       <Link>Sources\PriorityQueueEntry.cs</Link>
+    </Compile>
+    <Compile Include="..\Shared\SharedProtocol\IO\QueueEntry.cs">
+      <Link>Sources\QueueEntry.cs</Link>
+    </Compile>
+    <Compile Include="..\Shared\SharedProtocol\IO\QueueWrapper.cs">
+      <Link>Sources\QueueWrapper.cs</Link>
     </Compile>
     <Compile Include="..\Shared\SharedProtocol\IO\WriteQueue.cs">
       <Link>Sources\WriteQueue.cs</Link>

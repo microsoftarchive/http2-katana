@@ -170,7 +170,7 @@ namespace Http2Tests
                     wasSocketClosed = true;
                 };
 
-            var session = new Http2Session(socket, ConnectionEnd.Client);
+            var session = new Http2Session(socket, ConnectionEnd.Client, true);
 
             session.OnSettingsSent += (o, args) =>
             {
@@ -249,7 +249,7 @@ namespace Http2Tests
                 wasSocketClosed = true;
             };
 
-            var session = new Http2Session(socket, ConnectionEnd.Client);
+            var session = new Http2Session(socket, ConnectionEnd.Client, true);
 
             session.OnFrameReceived += (sender, args) =>
             {
@@ -307,7 +307,7 @@ namespace Http2Tests
                     socketClosedRaisedEvent.Set();
                 };
 
-            var session = new Http2Session(socket, ConnectionEnd.Client);
+            var session = new Http2Session(socket, ConnectionEnd.Client, true);
 
             session.OnFrameReceived += (sender, args) =>
             {

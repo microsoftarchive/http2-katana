@@ -32,6 +32,7 @@ namespace Client
         private SecureSocket _socket;
         private string _selectedProtocol;
         private bool _useHttp20 = true;
+        private bool _usePriorities;
         private readonly bool _useHandshake;
         private readonly FileHelper _fileHelper;
         private readonly object _writeLock = new object();
@@ -43,8 +44,9 @@ namespace Client
             get { return _useHttp20; }
         }
 
-        public Http2SessionHandler(Uri requestUri, bool useHandshake)
+        public Http2SessionHandler(Uri requestUri, bool useHandshake, bool usePrioritization)
         {
+            _usePriorities = usePrioritization;
             _useHandshake = useHandshake;
             _requestUri = requestUri;
             _fileHelper = new FileHelper();
@@ -115,7 +117,7 @@ namespace Client
                 _socket = sessionSocket;
                 SendSessionHeader();
                 _useHttp20 = true;
-                _clientSession = new Http2Session(_socket, ConnectionEnd.Client);
+                _clientSession = new Http2Session(_socket, ConnectionEnd.Client, _usePriorities);
 
                 //For saving incoming data
                 _clientSession.OnFrameReceived += FrameReceivedHandler;

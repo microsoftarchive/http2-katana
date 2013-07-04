@@ -22,7 +22,7 @@ namespace SharedProtocol
         private readonly object _unshippedDeliveryLock = new object();
 
         //Incoming
-        public Http2Stream(List<Tuple<string, string, IAdditionalHeaderInfo>> headers, int id,
+        internal Http2Stream(List<Tuple<string, string, IAdditionalHeaderInfo>> headers, int id,
                            WriteQueue writeQueue, FlowControlManager flowCrtlManager, 
                            ICompressionProcessor comprProc, Priority priority = Priority.Pri3)
             : this(id, writeQueue, flowCrtlManager, comprProc, priority)
@@ -31,9 +31,8 @@ namespace SharedProtocol
         }
 
         //Outgoing
-        public Http2Stream(int id, WriteQueue writeQueue, 
-                           FlowControlManager flowCrtlManager, ICompressionProcessor comprProc,
-                           Priority priority = Priority.Pri3)
+        internal Http2Stream(int id, WriteQueue writeQueue, FlowControlManager flowCrtlManager,
+                           ICompressionProcessor comprProc, Priority priority = Priority.Pri3)
         {
             _id = id;
             Priority = priority;
@@ -160,7 +159,7 @@ namespace SharedProtocol
                 EndStreamSent = true;
             }
 
-            _writeQueue.WriteFrameAsync(frame, Priority);
+            _writeQueue.WriteFrame(frame);
 
             if (OnFrameSent != null)
             {
@@ -181,7 +180,7 @@ namespace SharedProtocol
 
             if (IsFlowControlBlocked == false)
             {
-                _writeQueue.WriteFrameAsync(dataFrame, Priority);
+                _writeQueue.WriteFrame(dataFrame);
                 SentDataAmount += dataFrame.FrameLength;
 
                 _flowCrtlManager.DataFrameSentHandler(this, new DataFrameSentEventArgs(dataFrame));
@@ -213,7 +212,7 @@ namespace SharedProtocol
         {
             if (IsFlowControlBlocked == false)
             {
-                _writeQueue.WriteFrameAsync(dataFrame, Priority);
+                _writeQueue.WriteFrame(dataFrame);
                 SentDataAmount += dataFrame.FrameLength;
 
                 _flowCrtlManager.DataFrameSentHandler(this, new DataFrameSentEventArgs(dataFrame));
@@ -238,7 +237,7 @@ namespace SharedProtocol
         public void WriteWindowUpdate(Int32 windowSize)
         {
             var frame = new WindowUpdateFrame(_id, windowSize);
-            _writeQueue.WriteFrameAsync(frame, Priority);
+            _writeQueue.WriteFrame(frame);
 
             if (OnFrameSent != null)
             {
@@ -249,7 +248,7 @@ namespace SharedProtocol
         public void WriteRst(ResetStatusCode code)
         {
             var frame = new RstStreamFrame(_id, code);
-            _writeQueue.WriteFrameAsync(frame, Priority);
+            _writeQueue.WriteFrame(frame);
             ResetSent = true;
 
             if (OnFrameSent != null)

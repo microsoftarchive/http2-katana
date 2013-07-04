@@ -1,72 +1,157 @@
-﻿using SharedProtocol.Framing;
-using System;
-using System.Collections.Concurrent;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using SharedProtocol.Framing;
 
 namespace SharedProtocol.IO
 {
-    public class PriorityQueue
+    internal class PriorityQueue : IQueue
     {
-        private readonly object _queueLock;
-        private readonly LinkedList<PriorityQueueEntry> _queue;
+        private readonly Dictionary<Priority, Queue<IPriorityItem>> _storage;
+        private const byte _possiblePriValues = 8; //0..7
+        private int _highestPri;
+        private int _lowestPri;
+        private readonly object _lock = new object();
+
+        public int Count { get; private set; }
+
+        public bool IsDataAvailable 
+        { 
+            get { return Count != 0; }
+        }
 
         public PriorityQueue()
         {
-            _queueLock = new object();
-            _queue = new LinkedList<PriorityQueueEntry>();
+            _storage = new Dictionary<Priority, Queue<IPriorityItem>>(_possiblePriValues);
+            for (int i = 0; i < _possiblePriValues; i++)
+            {
+                _storage[(Priority) i] = new Queue<IPriorityItem>(16);
+            }
+
+            _highestPri = -1;
+            _lowestPri = 1000000;
         }
 
-        // TODO: How can we make enqueue faster than O(n) and still maintain O(1) dequeue?
-        public void Enqueue(PriorityQueueEntry entry)
+        public PriorityQueue(IEnumerable<IPriorityItem> initialCollection)
         {
-            lock (_queueLock)
-            {
-                // Scan backwards, so we end up in order behind other items of the same priority.
-                LinkedListNode<PriorityQueueEntry> current = _queue.Last;
-                /* Disabled until it can be refactored. Header frames must never be re-ordered due to compression.
-                while (current != null && current.Value.Priority > entry.Priority)
-                {
-                    current = current.Previous;
-                }
-                */
+            EnqueueRange(initialCollection);
+        }
 
-                if (current == null)
+        private void RecalcHighestPriority()
+        {
+            foreach (var pri in _storage.Keys)
+            {
+                if (_storage[pri].Count != 0)
                 {
-                    // New entry is highest priority (the list may be empty).
-                    _queue.AddFirst(entry);
+                    _highestPri = (int) pri;
+                }
+            }
+        }
+
+        private void RecalcLowestPriority()
+        {
+            foreach (var pri in _storage.Keys)
+            {
+                if (_storage[pri].Count != 0)
+                {
+                    _lowestPri = (int) pri;
+                    break;
+                }
+            }
+        }
+
+        private void RecalcPriorities()
+        {
+            _lowestPri = 100000;
+            foreach (var pri in _storage.Keys)
+            {
+                if (_storage[pri].Count != 0)
+                {
+                    if (_lowestPri == 100000)
+                    {
+                        _lowestPri = (int) pri;
+                    }
+                    _highestPri = (int)pri;   
+                }
+            }
+        }
+
+        public void Enqueue(IQueueItem item)
+        {
+            lock (_lock)
+            {
+                if (!(item is IPriorityItem))
+                {
+                    throw new ArgumentException("Cant enqueue item into priority queue. Argument should be IPriorityItem");
+                }
+                var pri = (item as IPriorityItem).Priority;
+
+                if ((int) pri > _highestPri)
+                {
+                    _highestPri = (int) pri;
+                }
+                if ((int) pri < _lowestPri)
+                {
+                    _lowestPri = (int) pri;
+                }
+
+                Count++;
+
+                _storage[pri].Enqueue((IPriorityItem)item);
+            }
+        }
+
+        public void EnqueueRange(IEnumerable<IPriorityItem> items)
+        {
+            foreach (var item in items)
+            {
+                Enqueue(item);
+            }
+        }
+
+        public IQueueItem Dequeue()
+        {
+            lock (_lock)
+            {
+                if (_storage.Count == 0)
+                {
+                    return null;
+                }
+
+                var result = _storage[(Priority)_highestPri].Dequeue();
+
+                if (--Count == 0)
+                {
+                    _highestPri = -1;
+                    _lowestPri = 100000;
                 }
                 else
                 {
-                    _queue.AddAfter(current, entry);
+                    RecalcPriorities();
                 }
+
+                return result;
             }
         }
 
-        public bool TryDequeue(out PriorityQueueEntry entry)
+        public IQueueItem Peek()
         {
-            lock (_queueLock)
+            if (_storage.Count == 0)
             {
-                if (_queue.Count == 0)
-                {
-                    entry = null;
-                    return false;
-                }
-
-                entry = _queue.First.Value;
-                _queue.RemoveFirst();
-                return true;
+                return null;
             }
+
+            return _storage[(Priority) _highestPri].Peek();
         }
 
-        public bool IsDataAvailable
+        public IQueueItem First()
         {
-            get
-            {
-                return _queue.Count > 0;
-            }
+            return _storage[(Priority) _lowestPri].First();
+        }
+
+        public IQueueItem Last()
+        {
+            return _storage[(Priority)_highestPri].Last();
         }
     }
 }

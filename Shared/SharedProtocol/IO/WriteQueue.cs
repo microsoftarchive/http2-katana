@@ -1,122 +1,88 @@
 ﻿using System.Net.Sockets;
+using System.Threading.Tasks;
 using Org.Mentalis.Security.Ssl;
 using SharedProtocol.Framing;
 using System;
-using System.Threading.Tasks;
 
 namespace SharedProtocol.IO
 {
     // Queue up frames to send, including headers, body, flush, pings, etc.
-    public sealed class WriteQueue : IDisposable
+    internal sealed class WriteQueue : IDisposable
     {
-        private readonly PriorityQueue _messageQueue;
+        private readonly IQueue _messageQueue;
         private readonly SecureSocket _socket;
         private bool _disposed;
-        private TaskCompletionSource<object> _readWaitingForData;
         private readonly object _writeLock = new object();
+        private readonly ActiveStreams _streams;
 
-        public WriteQueue(SecureSocket socket)
+        public bool IsPriorityTurnedOn { get; private set; }
+
+        public WriteQueue(SecureSocket socket, ActiveStreams streams, bool isPriorityTurnedOn)
         {
-            _messageQueue = new PriorityQueue();
+            IsPriorityTurnedOn = isPriorityTurnedOn;
+            _streams = streams;
+            if (isPriorityTurnedOn)
+            {
+                _messageQueue = new PriorityQueue();
+            }
+            else
+            {
+                _messageQueue = new QueueWrapper();
+            }
             _socket = socket;
-            _readWaitingForData = new TaskCompletionSource<object>();
+            _disposed = false;
         }
 
         // Queue up a fully rendered frame to send
-        public Task WriteFrameAsync(Frame frame, Priority priority)
+        public void WriteFrame(Frame frame)
         {
-            PriorityQueueEntry entry = null;
+            Priority priority;
+            
+            if (frame.StreamId != 0)
+            {
+                priority = _streams[frame.StreamId].Priority;
+            }
+            else
+            {
+                priority = Priority.Pri7;
+            }
 
-            lock (_writeLock)
+            IQueueItem entry = null;
+
+            if (IsPriorityTurnedOn)
             {
                 entry = new PriorityQueueEntry(frame, priority);
-                Enqueue(entry);
-                SignalDataAvailable();
             }
-
-            return entry.Task;
-        }
-
-        // Completes when any frames ahead of it have been processed
-        // TODO: Have this only flush messages from one specific HTTP2Stream
-        public Task FlushAsync(/*int streamId, */ Priority priority)
-        {
-            if (!IsDataAvailable)
+            else
             {
-                return Task.FromResult<object>(null);
+                entry = new QueueEntry(frame);
             }
 
-            var entry = new PriorityQueueEntry(priority);
-            Enqueue(entry);
-            SignalDataAvailable();
-            return entry.Task;
-        }
-
-        private void Enqueue(PriorityQueueEntry entry)
-        {
             _messageQueue.Enqueue(entry);
         }
 
-        private bool TryDequeue(out PriorityQueueEntry entry)
+        public void PumpToStream()
         {
-            return _messageQueue.TryDequeue(out entry);
-        }
-
-        private bool IsDataAvailable
-        {
-            get
-            {
-                return _messageQueue.IsDataAvailable;
-            }
-        }
-
-        public async Task PumpToStreamAsync()
-        {
-            while (!_disposed)
-            {
-                // TODO: Attempt overlapped writes?
-                PriorityQueueEntry entry;
-                while (TryDequeue(out entry))
+                while (!_disposed)
                 {
-                    try
+                    //Send one at a time
+                    lock (_writeLock)
                     {
-                        _socket.Send(entry.Buffer, 0, entry.Buffer.Length,SocketFlags.None);
-
-                        entry.Complete();
-                    }
-                    catch (Exception ex)
-                    {
-                        entry.Fail(ex);
+                        if (_messageQueue.Count > 0)
+                        {
+                            var entry = _messageQueue.Dequeue();
+                            if (entry != null)
+                            {
+                                _socket.Send(entry.Buffer, 0, entry.Buffer.Length, SocketFlags.None);
+                            }
+                        }
                     }
                 }
-
-                await WaitForDataAsync();
-            }
-        }
-
-        private void SignalDataAvailable()
-        {
-            // Dispatch, as TrySetResult will synchronously execute the waiters callback and block our Write.
-            Task.Run(() => _readWaitingForData.TrySetResult(null));
-        }
-
-        private Task WaitForDataAsync()
-        {
-            _readWaitingForData = new TaskCompletionSource<object>();
-
-            if (IsDataAvailable || _disposed)
-            {
-                // Race, data could have arrived before we created the TCS.
-                _readWaitingForData.TrySetResult(null);
-            }
-
-            return _readWaitingForData.Task;
         }
 
         public void Dispose()
         {
             _disposed = true;
-            _readWaitingForData.TrySetResult(null);
         }
     }
 }
