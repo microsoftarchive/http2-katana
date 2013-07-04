@@ -77,8 +77,13 @@
     <Compile Include="Http11\Http11Manager.cs" />
     <Compile Include="IO\FileHelper.cs" />
     <Compile Include="Constants.cs" />
+    <Compile Include="IO\IPriorityItem.cs" />
+    <Compile Include="IO\IQueue.cs" />
+    <Compile Include="IO\IQueueItem.cs" />
     <Compile Include="IO\PriorityQueue.cs" />
     <Compile Include="IO\PriorityQueueEntry.cs" />
+    <Compile Include="IO\QueueEntry.cs" />
+    <Compile Include="IO\QueueWrapper.cs" />
     <Compile Include="Settings\SettingsManager.cs" />
     <Compile Include="Framing\DataFrame.cs" />
     <Compile Include="Framing\Frame.cs" />

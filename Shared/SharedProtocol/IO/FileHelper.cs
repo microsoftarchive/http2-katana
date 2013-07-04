@@ -25,7 +25,7 @@ namespace SharedProtocol.IO
         public byte[] GetFile(string localPath)
         {
             string assemblyPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-
+            
             const string rootPath = @"\root";
 
             if (!File.Exists(assemblyPath + rootPath + localPath))

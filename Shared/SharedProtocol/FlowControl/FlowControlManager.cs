@@ -6,7 +6,7 @@ namespace SharedProtocol
     /// This class is designed for flow control monitoring and processing.
     /// Flow control handles only dataframes.
     /// </summary>
-    public class FlowControlManager
+    internal class FlowControlManager
     {
         private readonly Http2Session _flowControlledSession;
         private readonly ActiveStreams _streamCollection;
