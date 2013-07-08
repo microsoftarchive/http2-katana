@@ -252,11 +252,11 @@ namespace Org.Mentalis.Security.Ssl.Shared {
 			if (SupportsSsl3(protocol))
 				return new ProtocolVersion(3, 0);
 			else
-				return new ProtocolVersion(3, 3);
+				return new ProtocolVersion(3, 1);
 		}
 		public static ProtocolVersion GetMaxProtocol(SecureProtocol protocol) {
 			if (SupportsTls1(protocol))
-				return new ProtocolVersion(3, 3);
+				return new ProtocolVersion(3, 1);
 			else
 				return new ProtocolVersion(3, 0);
 		}

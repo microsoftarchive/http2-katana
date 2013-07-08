@@ -46,6 +46,7 @@ namespace Client
         private static Dictionary<string, Http2SessionHandler> _sessions;
         private static bool useHandshake = true;
         private static bool usePrioritization = false;
+        private static bool useFlowControl = true;
 
         public static void Main(string[] args)
         {
@@ -54,7 +55,7 @@ namespace Client
 
             useHandshake = !argsList.Contains("-no-handshake");
             usePrioritization = argsList.Contains("use-priorities");
-
+            useFlowControl = argsList.Contains("-no-flowcontrol");
             HelpDisplayer.ShowMainMenuHelp();
             ThreadPool.SetMaxThreads(10, 10);
             try
@@ -88,7 +89,7 @@ namespace Client
                                 break;
                             }
 
-                            var sessionHandler = new Http2SessionHandler(getCmd.Uri, useHandshake, usePrioritization);
+                            var sessionHandler = new Http2SessionHandler(getCmd.Uri, useHandshake, usePrioritization, useFlowControl);
 
                             //Get cmd is equivalent for connect -> get. This means, that each get request 
                             //will open new session.

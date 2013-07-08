@@ -86,12 +86,7 @@ namespace Org.Mentalis.Security.Ssl.Shared {
 			m_RemoteHasher = remoteHasher;
 			m_InputSequenceNumber = 0;
 		}
-/*		public static void PrintBytes(byte[] array, int offset, int size) {
-			for(int i = 0; i < size; i++) {
-				Console.Write(array[offset + i].ToString() + "_");
-			}
-			Console.WriteLine("__");
-		}*/
+
 		protected byte[] InternalEncryptBytes2(byte[] buffer, int offset, int size, ContentType type) { // only accepts sizes of less than 16Kb; does not do any error checking
 			byte[] ret = new byte[GetEncryptedLength(size) + 5];
 			ret[0] = (byte)type;
@@ -236,7 +231,9 @@ namespace Org.Mentalis.Security.Ssl.Shared {
 			// final adjustments
 			message.messageType = MessageType.Encrypted;
 			m_OutputSequenceNumber++;
-		} //*/
+		} 
+
+
 		protected void UnwrapMessage(RecordMessage message) {
 			if (message.length != message.fragment.Length)
 				throw new SslException(AlertDescription.IllegalParameter, "Message length is invalid.");
@@ -258,9 +255,11 @@ namespace Org.Mentalis.Security.Ssl.Shared {
 					Buffer.BlockCopy(decrypted, 0, message.fragment, 0, message.fragment.Length);
 					message.length = (ushort)message.fragment.Length;
 				} else { // cipher is block cipher
+
 					decrypted = new byte[message.fragment.Length];
 					m_BulkDecryption.TransformBlock(message.fragment, 0, decrypted.Length, decrypted, 0);
 					byte padding = decrypted[decrypted.Length - 1];
+
 					if (message.length < padding + m_RemoteHasher.HashSize / 8 + 1) {
 						cipherError = true;
 						remoteMac = new byte[m_RemoteHasher.HashSize / 8];
@@ -304,7 +303,8 @@ namespace Org.Mentalis.Security.Ssl.Shared {
 				// throw cipher error, if necessary
 				if (cipherError)
 					throw new SslException(AlertDescription.BadRecordMac, "An error occurred during the decryption and verification process.");
-			}
+			
+            }
 			// decompress the message
 			if (m_RemoteCompressor != null) {
 				message.fragment = m_RemoteCompressor.Decompress(message.fragment);
@@ -314,12 +314,14 @@ namespace Org.Mentalis.Security.Ssl.Shared {
 			message.messageType = MessageType.PlainText;
 			m_InputSequenceNumber++;
 		}
+
 		protected byte[] GetULongBytes(ulong number) {
 			byte[] ret = BitConverter.GetBytes(number);
 			if (BitConverter.IsLittleEndian)
 				Array.Reverse(ret); // TLS uses big endian [network] byte order
 			return ret;
 		}
+
 		public byte[] EncryptBytes(byte[] buffer, int offset, int size, ContentType type) {
 			if (buffer == null)
 				throw new ArgumentNullException();

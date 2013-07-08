@@ -177,9 +177,10 @@ namespace Org.Mentalis.Security.Ssl.Shared {
 				throw new SslException(AlertDescription.UnexpectedMessage, "ServerHello message must be preceded by a ClientHello message.");
 			
             UpdateHashes(message, HashUpdate.All); // input message
-			
-            if (message.fragment.Length < 2 || message.fragment[0] != GetVersion().major || message.fragment[1] != GetVersion().minor)
-				throw new SslException(AlertDescription.IllegalParameter, "Unknown protocol version of the client.");
+
+            //Violation with tls spec. If remote side uses higher protocol version than your, then we must answer with your highest version
+            //if (message.fragment.Length < 2 || message.fragment[0] != GetVersion().major || message.fragment[1] != GetVersion().minor)
+				//throw new SslException(AlertDescription.IllegalParameter, "Unknown protocol version of the client.");
             
             int currentProcessedLen = 2;
             try {

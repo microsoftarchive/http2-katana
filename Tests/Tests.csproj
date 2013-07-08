@@ -163,6 +163,9 @@
     <Compile Include="..\Shared\SharedProtocol\FlowControl\FlowControlManager.cs">
       <Link>Sources\FlowControlManager.cs</Link>
     </Compile>
+    <Compile Include="..\Shared\SharedProtocol\FlowControl\FlowControlOptions.cs">
+      <Link>Sources\FlowControlOptions.cs</Link>
+    </Compile>
     <Compile Include="..\Shared\SharedProtocol\Framing\DataFrame.cs">
       <Link>Sources\DataFrame.cs</Link>
     </Compile>
