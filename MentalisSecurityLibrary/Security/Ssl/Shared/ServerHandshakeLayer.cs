@@ -142,8 +142,10 @@ namespace Org.Mentalis.Security.Ssl.Shared {
 
 			ProtocolVersion pv = new ProtocolVersion(message.fragment[currentLen++], message.fragment[currentLen++]);
 			m_MaxClientVersion = pv;
-			if (CompatibilityLayer.SupportsProtocol(m_Options.Protocol, pv) && pv.GetVersionInt() != GetVersion().GetVersionInt())
-				throw new SslException(AlertDescription.IllegalParameter, "Unknown protocol version of the client.");
+
+            //Violation with tls spec. If remote side uses higher protocol version than your, then we must answer with your highest version
+			//if (CompatibilityLayer.SupportsProtocol(m_Options.Protocol, pv) && pv.GetVersionInt() != GetVersion().GetVersionInt())
+			//	throw new SslException(AlertDescription.IllegalParameter, "Unknown protocol version of the client.");
 			
             try {
 				// extract the time from the client [== 1 uint]
@@ -245,6 +247,7 @@ namespace Org.Mentalis.Security.Ssl.Shared {
 			temp.type = HandshakeType.Certificate;
 			temp.fragment = certs;
 			bytes = temp.ToBytes();
+
 			retMessage.Write(bytes, 0, bytes.Length);
 			// ServerKeyExchange message [optional] => only with RSA_EXPORT and public key > 512 bits
 			if (m_Options.Certificate.GetPublicKeyLength() > 512 && CipherSuites.GetCipherDefinition(m_EncryptionScheme).Exportable) {
@@ -301,6 +304,7 @@ namespace Org.Mentalis.Security.Ssl.Shared {
 			temp.type = HandshakeType.ServerHelloDone;
 			temp.fragment = new byte[0];
 			bytes = temp.ToBytes();
+
 			retMessage.Write(bytes, 0, bytes.Length);
 			// final adjustments
 			ret.Status = SslStatus.ContinueNeeded;

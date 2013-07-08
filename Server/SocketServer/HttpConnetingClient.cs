@@ -45,18 +45,20 @@ namespace SocketServer
         private readonly string _clientSessionHeader = @"FOO * HTTP/2.0\r\n\r\nBA\r\n\r\n";
         private readonly bool _useHandshake;
         private readonly bool _usePriorities;
+        private readonly bool _useFlowControl;
 
         public string SelectedProtocol { get; private set; }
 
-        internal HttpConnetingClient(SecureTcpListener server, SecurityOptions options, 
-                                     AppFunc next, bool useHandshake, bool usePriorities)
+        internal HttpConnetingClient(SecureTcpListener server, SecurityOptions options,
+                                     AppFunc next, bool useHandshake, bool usePriorities, bool useFlowControl)
         {
             _usePriorities = usePriorities;
+            _useHandshake = useHandshake;
+            _useFlowControl = useFlowControl;
             SelectedProtocol = String.Empty;
             _server = server;
             _next = next;
             _options = options;
-            _useHandshake = useHandshake;
             _fileHelper = new FileHelper();
         }
 
@@ -162,7 +164,7 @@ namespace SocketServer
         private async void OpenHttp2Session(SecureSocket incomingClient)
         {
             Console.WriteLine("Handshake successful");
-            _session = new Http2Session(incomingClient, ConnectionEnd.Server, _usePriorities);
+            _session = new Http2Session(incomingClient, ConnectionEnd.Server, _usePriorities, _useFlowControl);
 
             _session.OnFrameReceived += FrameReceivedHandler;
 

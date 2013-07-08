@@ -25,6 +25,7 @@ namespace SharedProtocol
         private readonly ConnectionEnd _ourEnd;
         private readonly ConnectionEnd _remoteEnd;
         private readonly bool _usePriorities;
+        private readonly bool _useFlowControl;
         private int _lastId;
         private bool _wasSettingsReceived = false;
         private bool _wasPingReceived = false;
@@ -58,10 +59,11 @@ namespace SharedProtocol
 
         internal Int32 SessionWindowSize { get; set; }
 
-        public Http2Session(SecureSocket sessionSocket, ConnectionEnd end, bool usePriorities)
+        public Http2Session(SecureSocket sessionSocket, ConnectionEnd end, bool usePriorities, bool useFlowControl)
         {
             _ourEnd = end;
             _usePriorities = usePriorities;
+            _useFlowControl = useFlowControl;
 
             if (_ourEnd == ConnectionEnd.Client)
             {
@@ -89,6 +91,11 @@ namespace SharedProtocol
             RemoteMaxConcurrentStreams = 100;
 
             _flowControlManager = new FlowControlManager(this);
+
+            if (!_useFlowControl)
+            {
+                _flowControlManager.Options = (byte) FlowControlOptions.DontUseFlowControl;
+            }
 
             SessionWindowSize = 0;
         }
@@ -243,7 +250,10 @@ namespace SharedProtocol
                         }
 
                         //Aggressive window update
-                        stream.WriteWindowUpdate(2000000);
+                        if (stream.IsFlowControlEnabled)
+                        {
+                            stream.WriteWindowUpdate(2000000);
+                        }
                         break;
                     case FrameType.Ping:
                         var pingFrame = (PingFrame) frame;
@@ -396,9 +406,23 @@ namespace SharedProtocol
         /// <returns></returns>
         public Task Start()
         {
-            //Writing settings. Settings must be the first frame in session.
-            WriteSettings(new[] { new SettingsPair(0, SettingsIds.InitialWindowSize, 200000) });
+            //Write settings. Settings must be the first frame in session.
 
+            if (_useFlowControl)
+            {
+                WriteSettings(new[]
+                    {
+                        new SettingsPair(SettingsFlags.None, SettingsIds.InitialWindowSize, 200000)
+                    });
+            }
+            else
+            {
+                WriteSettings(new[]
+                    {
+                        new SettingsPair(SettingsFlags.None, SettingsIds.InitialWindowSize, 200000),
+                        new SettingsPair(SettingsFlags.None, SettingsIds.FlowControlOptions, (byte) FlowControlOptions.DontUseFlowControl)
+                    });
+            }
             // Listen for incoming Http/2.0 frames
             Task incomingTask = new Task(() => PumpIncommingData());
             // Send outgoing Http/2.0 frames

@@ -52,6 +52,7 @@ namespace SharedProtocol
                 return _options % 2 == 0;
             }
         }
+
         public bool IsStreamsFlowControlledEnabled
         {
             get

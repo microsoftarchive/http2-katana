@@ -99,7 +99,7 @@ namespace Org.Mentalis.Security.Ssl.Tls1 {
 			}
 		}
 		public override ProtocolVersion GetVersion() {
-			return new ProtocolVersion(3, 3);
+			return new ProtocolVersion(3, 1);
 		}
 	}
 }

@@ -114,7 +114,7 @@ namespace BasicTests
         [Fact]
         public void ActiveStreamsSuccessful()
         {
-            var session = new Http2Session(null, ConnectionEnd.Client, true);
+            var session = new Http2Session(null, ConnectionEnd.Client, true, true);
             var testCollection = session.ActiveStreams;
             var fm = new FlowControlManager(session);
 

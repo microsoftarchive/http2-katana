@@ -55,19 +55,10 @@
 */
 
 using System;
-using System.Net;
 using System.Net.Sockets;
-using System.Text;
-using System.Threading;
 using System.Collections;
 using System.IO;
-using System.Security.Cryptography;
 using Org.Mentalis.Security.Certificates;
-using Org.Mentalis.Security.Cryptography;
-using Org.Mentalis.Security.Ssl.Shared;
-using Org.Mentalis.Security.Ssl.Ssl3;
-using Org.Mentalis.Security.Ssl.Tls1;
-using Org.Mentalis.Security.Ssl.Shared.Extensions;
 
 namespace Org.Mentalis.Security.Ssl.Shared {
 	internal class SocketController : IDisposable {
@@ -154,6 +145,7 @@ namespace Org.Mentalis.Security.Ssl.Shared {
 				}
 			}
 		}
+
 		protected void OnSent(IAsyncResult ar) {
 			lock(this) {	// synchronize
 				try {

@@ -15,24 +15,14 @@ namespace SharedProtocol
 
                 switch (settingsFrame[i].Id)
                 {
-                    case SettingsIds.UploadBandwidth:
-                        break;
-                    case SettingsIds.DownloadBandwidth:
-                        break;
-                    case SettingsIds.RoundTripTime:
-                        break;
                     case SettingsIds.MaxCurrentStreams:
                         session.RemoteMaxConcurrentStreams = settingsFrame[i].Value;
-                        break;
-                    case SettingsIds.DownloadRetransRate:
                         break;
                     case SettingsIds.InitialWindowSize:
                         flCtrlManager.StreamsInitialWindowSize = settingsFrame[i].Value;
                         break;
                     case SettingsIds.FlowControlOptions:
                         flCtrlManager.Options = settingsFrame[i].Value;
-                        break;
-                    default:
                         break;
                 }
             }
