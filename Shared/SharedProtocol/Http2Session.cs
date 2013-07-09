@@ -455,6 +455,12 @@ namespace SharedProtocol
         /// <param name="code">The code.</param>
         public void WriteGoAway(GoAwayStatusCode code)
         {
+            //if there were no streams opened
+            if (_lastId == -1)
+            {
+                _lastId = 0; //then set lastId to 0 as spec tells. (See GoAway chapter)
+            }
+
             var frame = new GoAwayFrame(_lastId, code);
 
             _writeQueue.WriteFrame(frame);

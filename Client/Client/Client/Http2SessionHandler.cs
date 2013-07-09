@@ -39,6 +39,12 @@ namespace Client
         private readonly object _writeLock = new object();
         private const string _clientSessionHeader = @"FOO * HTTP/2.0\r\n\r\nBA\r\n\r\n";
 
+        private readonly string _method;
+        private readonly string _path;
+        private readonly string _version;
+        private readonly string _scheme;
+        private readonly string _host;
+
         private static readonly string assemblyPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
 
         public bool IsHttp2WillBeUsed {
@@ -47,11 +53,32 @@ namespace Client
 
         public Http2SessionHandler(Uri requestUri, bool useHandshake, bool usePrioritization, bool useFlowControl)
         {
+            _method = "get";
+            _path = requestUri.PathAndQuery;
+            _version = "http/1.1";
+            _scheme = requestUri.Scheme;
+            _host = requestUri.Host;
+
             _useFlowControl = useFlowControl;
             _usePriorities = usePrioritization;
             _useHandshake = useHandshake;
             _requestUri = requestUri;
             _fileHelper = new FileHelper();
+        }
+
+        private IDictionary<string, object> MakeHandshakeEnvironment(SecureSocket socket)
+        {
+            var result = new Dictionary<string, object>();
+            result.Add(":method", _method);
+            result.Add(":version", _version);
+            result.Add(":path", _path);
+            result.Add(":scheme", _scheme);
+            result.Add(":host", _host);
+            result.Add("securityOptions", _options);
+            result.Add("secureSocket", socket);
+            result.Add("end", ConnectionEnd.Client);
+
+            return result;
         }
 
         public async void Connect()
@@ -91,7 +118,7 @@ namespace Client
                 _options.VerificationType = CredentialVerification.None;
                 _options.Certificate = Org.Mentalis.Security.Certificates.Certificate.CreateFromCerFile(_certificatePath);
                 _options.Flags = SecurityFlags.Default;
-                _options.AllowedAlgorithms = SslAlgorithms.RSA_AES_128_SHA | SslAlgorithms.NULL_COMPRESSION;
+                _options.AllowedAlgorithms = SslAlgorithms.RSA_AES_256_SHA | SslAlgorithms.NULL_COMPRESSION;
 
                 sessionSocket = new SecureSocket(AddressFamily.InterNetwork, SocketType.Stream,
                                                  ProtocolType.Tcp, _options);
@@ -101,10 +128,12 @@ namespace Client
                     monitor.OnProtocolSelected += (o, args) => { _selectedProtocol = args.SelectedProtocol; };
                     sessionSocket.Connect(new DnsEndPoint(_requestUri.Host, _requestUri.Port), monitor);
 
+                    var handshakeEnvironment = MakeHandshakeEnvironment(sessionSocket);
+
                     if (_useHandshake)
                     {
                         //Handshake manager determines what handshake must be used: upgrade or secure
-                        HandshakeManager.GetHandshakeAction(sessionSocket, _options).Invoke();
+                        HandshakeManager.GetHandshakeAction(handshakeEnvironment).Invoke();
 
                         Console.WriteLine("Handshake finished");
 
@@ -144,19 +173,13 @@ namespace Client
 
         private void SubmitRequest(Uri request)
         {
-            const string method = "get";
-            string path = request.PathAndQuery;
-            const string version = "http/2.0";
-            string scheme = request.Scheme;
-            string host = request.Host;
-
             var headers = new List<Tuple<string, string, IAdditionalHeaderInfo>>
                 {
-                    new Tuple<string, string, IAdditionalHeaderInfo>(":method", method, new Indexation(IndexationType.Indexed)),
-                    new Tuple<string, string, IAdditionalHeaderInfo>(":path", path, new Indexation(IndexationType.Substitution)),
-                    new Tuple<string, string, IAdditionalHeaderInfo>(":version", version, new Indexation(IndexationType.Incremental)),
-                    new Tuple<string, string, IAdditionalHeaderInfo>(":host", host, new Indexation(IndexationType.Substitution)),
-                    new Tuple<string, string, IAdditionalHeaderInfo>(":scheme", scheme, new Indexation(IndexationType.Substitution)),
+                    new Tuple<string, string, IAdditionalHeaderInfo>(":method", _method, new Indexation(IndexationType.Indexed)),
+                    new Tuple<string, string, IAdditionalHeaderInfo>(":path", _path, new Indexation(IndexationType.Substitution)),
+                    new Tuple<string, string, IAdditionalHeaderInfo>(":version", _version, new Indexation(IndexationType.Incremental)),
+                    new Tuple<string, string, IAdditionalHeaderInfo>(":host", _host, new Indexation(IndexationType.Substitution)),
+                    new Tuple<string, string, IAdditionalHeaderInfo>(":scheme", _scheme, new Indexation(IndexationType.Substitution)),
                 };
 
             //Sending request with average priority

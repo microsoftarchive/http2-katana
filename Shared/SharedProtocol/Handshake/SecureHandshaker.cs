@@ -21,6 +21,7 @@
 // </copyright>
 //-----------------------------------------------------------------------
 
+using System.Collections.Generic;
 using Org.Mentalis.Security.Ssl;
 using System;
 using System.Threading;
@@ -38,12 +39,12 @@ namespace SharedProtocol.Handshake
         public SecurityOptions Options { get; private set; }
         public SecureSocket InternalSocket { get; private set; }
 
-        public SecureHandshaker(SecureSocket secureSocket, SecurityOptions options)
+        public SecureHandshaker(IDictionary<string, object> handshakeEnvironment)
         {
-            InternalSocket = secureSocket;
+            InternalSocket = (SecureSocket) handshakeEnvironment["secureSocket"];
             InternalSocket.OnHandshakeFinish += HandshakeFinishedHandler;
 
-            Options = options;
+            Options = (SecurityOptions) handshakeEnvironment["securityOptions"];
             _handshakeFinishedEventRaised = new ManualResetEvent(false);
 
             if (Options.Protocol == SecureProtocol.None)
@@ -52,13 +53,21 @@ namespace SharedProtocol.Handshake
 
         public void Handshake()
         {
-            InternalSocket.StartHandshake();
+            try
+            {
+                InternalSocket.StartHandshake();
+            }
+            catch (Exception)
+            {
+                throw new Http2HandshakeFailed();
+            }
+
             _handshakeFinishedEventRaised.WaitOne(60000);
             InternalSocket.OnHandshakeFinish -= HandshakeFinishedHandler;
 
             if (!InternalSocket.Connected)
             {
-                throw new Exception("Connection was lost!");
+                throw new Exception("Connection was lost after the handshake!");
             }
 
             if (Options.Protocol != SecureProtocol.None && !InternalSocket.IsNegotiationCompleted)

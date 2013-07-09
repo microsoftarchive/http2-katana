@@ -106,7 +106,7 @@ namespace Http2Tests
             options.VerificationType = CredentialVerification.None;
             options.Certificate = Org.Mentalis.Security.Certificates.Certificate.CreateFromCerFile(@"certificate.pfx");
             options.Flags = SecurityFlags.Default;
-            options.AllowedAlgorithms = SslAlgorithms.RSA_AES_128_SHA | SslAlgorithms.NULL_COMPRESSION;
+            options.AllowedAlgorithms = SslAlgorithms.RSA_AES_256_SHA | SslAlgorithms.NULL_COMPRESSION;
 
             var sessionSocket = new SecureSocket(AddressFamily.InterNetwork, SocketType.Stream,
                                                 ProtocolType.Tcp, options);
@@ -117,7 +117,17 @@ namespace Http2Tests
 
                 sessionSocket.Connect(new DnsEndPoint(uri.Host, uri.Port), monitor);
 
-                HandshakeManager.GetHandshakeAction(sessionSocket, options).Invoke();
+                var handshakeEnv = new Dictionary<string, object>();
+                handshakeEnv.Add(":method", "get");
+                handshakeEnv.Add(":version", "http/1.1");
+                handshakeEnv.Add(":path", uri.PathAndQuery);
+                handshakeEnv.Add(":scheme", uri.Scheme);
+                handshakeEnv.Add(":host", uri.Host);
+                handshakeEnv.Add("securityOptions", options);
+                handshakeEnv.Add("secureSocket", sessionSocket);
+                handshakeEnv.Add("end", ConnectionEnd.Client);
+
+                HandshakeManager.GetHandshakeAction(handshakeEnv).Invoke();
             }
 
             SendSessionHeader(sessionSocket);
@@ -218,6 +228,40 @@ namespace Http2Tests
 
             Assert.Equal(wasSocketClosed, true);
         }
+
+        [Fact]
+        public void StartAndSuddenlyCloseSessionSuccessful()
+        {
+            string requestStr = ConfigurationManager.AppSettings["secureAddress"] + ConfigurationManager.AppSettings["smallTestFile"];
+            Uri uri;
+            Uri.TryCreate(requestStr, UriKind.Absolute, out uri);
+
+            bool wasSocketClosed = false;
+            bool gotException = false;
+
+            var socketClosedRaisedEvent = new ManualResetEvent(false);
+            var socket = GetHandshakedSocket(uri);
+
+            socket.OnClose += (sender, args) =>
+            {
+                socketClosedRaisedEvent.Set();
+                wasSocketClosed = true;
+            };
+
+            try
+            {
+                var session = new Http2Session(socket, ConnectionEnd.Client, true, true);
+                session.Start();
+                session.Dispose();
+            }
+            catch (Exception)
+            {
+                gotException = true;
+            }
+
+            Assert.Equal(gotException, false);
+        }
+
 
         [Fact]
         public void StartMultipleSessionAndSendMultipleRequests()
