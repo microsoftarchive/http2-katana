@@ -33,6 +33,7 @@ namespace SharedProtocol.IO
         }
 
         public PriorityQueue(IEnumerable<IPriorityItem> initialCollection)
+            : this()
         {
             EnqueueRange(initialCollection);
         }

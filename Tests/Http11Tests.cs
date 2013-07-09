@@ -98,7 +98,7 @@ namespace Http11Tests
             options.VerificationType = CredentialVerification.None;
             options.Certificate = Org.Mentalis.Security.Certificates.Certificate.CreateFromCerFile(@"certificate.pfx");
             options.Flags = SecurityFlags.Default;
-            options.AllowedAlgorithms = SslAlgorithms.RSA_AES_128_SHA | SslAlgorithms.NULL_COMPRESSION;
+            options.AllowedAlgorithms = SslAlgorithms.RSA_AES_256_SHA | SslAlgorithms.NULL_COMPRESSION;
 
             var sessionSocket = new SecureSocket(AddressFamily.InterNetwork, SocketType.Stream,
                                                 ProtocolType.Tcp, options);
@@ -108,7 +108,18 @@ namespace Http11Tests
                 monitor.OnProtocolSelected += (sender, args) => { selectedProtocol = args.SelectedProtocol; };
 
                 sessionSocket.Connect(new DnsEndPoint(uri.Host, uri.Port), monitor);
-                HandshakeManager.GetHandshakeAction(sessionSocket, options).Invoke();
+
+                var handshakeEnv = new Dictionary<string, object>();
+                handshakeEnv.Add(":method", "get");
+                handshakeEnv.Add(":version", "http/1.1");
+                handshakeEnv.Add(":path", uri.PathAndQuery);
+                handshakeEnv.Add(":scheme", uri.Scheme);
+                handshakeEnv.Add(":host", uri.Host);
+                handshakeEnv.Add("securityOptions", options);
+                handshakeEnv.Add("secureSocket", sessionSocket);
+                handshakeEnv.Add("end", ConnectionEnd.Client);
+
+                HandshakeManager.GetHandshakeAction(handshakeEnv).Invoke();
             }
 
             return sessionSocket;

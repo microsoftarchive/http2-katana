@@ -74,7 +74,7 @@ namespace SocketServer
             _options.VerificationType = CredentialVerification.None;
             _options.Certificate = Certificate.CreateFromCerFile(_certificateFilename);
             _options.Flags = SecurityFlags.Default;
-            _options.AllowedAlgorithms = SslAlgorithms.RSA_AES_128_SHA | SslAlgorithms.NULL_COMPRESSION;
+            _options.AllowedAlgorithms = SslAlgorithms.RSA_AES_256_SHA | SslAlgorithms.NULL_COMPRESSION;
 
             _server = new SecureTcpListener(_port, _options);
 

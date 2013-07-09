@@ -14,14 +14,34 @@ namespace SharedProtocol.Handshake
         private const int HandshakeResponseSizeLimit = 1024;
         private static readonly byte[] CRLFCRLF = new [] { (byte)'\r', (byte)'\n', (byte)'\r', (byte)'\n' };
         private readonly ConnectionEnd _end;
-        private IEnumerable<KeyValuePair<string, IEnumerable<string>>> _headers;
+        private Dictionary<string, string> _headers;
 
         public SecureSocket InternalSocket { get; private set; }
 
-        public UpgradeHandshaker(SecureSocket socket, ConnectionEnd end)
+        public UpgradeHandshaker(IDictionary<string, object> handshakeEnvironment)
         {
-            InternalSocket = socket;
-            _end = end;
+            InternalSocket = (SecureSocket) handshakeEnvironment["secureSocket"];
+            _end = (ConnectionEnd) handshakeEnvironment["end"];
+
+            if (_end == ConnectionEnd.Client)
+            {
+                if (handshakeEnvironment.ContainsKey(":path") || (handshakeEnvironment[":path"] is string)
+                    || handshakeEnvironment.ContainsKey(":method") || (handshakeEnvironment[":method"] is string)
+                    || handshakeEnvironment.ContainsKey(":host") || (handshakeEnvironment[":host"] is string)
+                    || handshakeEnvironment.ContainsKey(":version") || (handshakeEnvironment[":version"] is string))
+                {
+                    _headers = new Dictionary<string, string>();
+
+                    _headers.Add(":path", (string)handshakeEnvironment[":path"]);
+                    _headers.Add(":method", (string)handshakeEnvironment[":method"]);
+                    _headers.Add(":host", (string)handshakeEnvironment[":host"]);
+                    _headers.Add(":version", (string)handshakeEnvironment[":version"]);       
+                }
+                else
+                {
+                    throw new ArgumentException("Incorrect header for upgrade handshake");
+                }
+            }
         }
 
         public void Handshake()
@@ -31,19 +51,16 @@ namespace SharedProtocol.Handshake
             {
                 // Build the request
                 var builder = new StringBuilder();
-                builder.AppendFormat("Get /text.txt HTTP/1.1\r\n");
-                builder.AppendFormat("Host: localhost:8443\r\n");
+                builder.AppendFormat("{0} {1} {2}\r\n", _headers[":method"], _headers[":path"], _headers[":version"]);
+                builder.AppendFormat("Host: {0}\r\n", _headers[":host"]);
                 builder.Append("Connection: Upgrade\r\n");
                 builder.Append("Upgrade: HTTP/2.0\r\n");
 
                 if (_headers != null)
                 {
-                    foreach (KeyValuePair<string, IEnumerable<string>> headerPair in _headers)
+                    foreach (var key in _headers.Keys)
                     {
-                        foreach (string value in headerPair.Value)
-                        {
-                            builder.AppendFormat("{0}: {1}\r\n", headerPair.Key, value);
-                        }
+                        builder.AppendFormat("{0}: {1}\r\n", key, _headers[key]);
                     }
                 }
                 builder.Append("\r\n");

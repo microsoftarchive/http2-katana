@@ -141,7 +141,12 @@ namespace Org.Mentalis.Security.Ssl
 
         public void StartHandshake()
         {
-            if (m_Options.Protocol != SecureProtocol.None && this.Connected)
+            if (!this.Connected)
+            {
+                throw new Exception("Cant perform handshake because connection was not established");
+            }
+
+            if (m_Options.Protocol != SecureProtocol.None)
             {
                 this.m_Controller = new SocketController(this, base.InternalSocket, m_Options);
             }

@@ -62,6 +62,17 @@ namespace SocketServer
             _fileHelper = new FileHelper();
         }
 
+        private IDictionary<string, object> MakeHandshakeEnvironment(SecureSocket incomingClient)
+        {
+            var result = new Dictionary<string, object>();
+
+            result.Add("securityOptions", _options);
+            result.Add("secureSocket", incomingClient);
+            result.Add("end", ConnectionEnd.Server);
+
+            return result;
+        }
+
         /// <summary>
         /// Accepts client and deals handshake with it.
         /// </summary>
@@ -76,12 +87,14 @@ namespace SocketServer
                 incomingClient = _server.AcceptSocket(monitor);
                 Console.WriteLine("New client accepted");
 
+                var handshakeEnvironment = MakeHandshakeEnvironment(incomingClient);
+
                 if (_useHandshake)
                 {
                     IDictionary<string, object> environment = new Dictionary<string, object>();
 
                     //Sets the handshake action depends on port.
-                    environment.Add("HandshakeAction", HandshakeManager.GetHandshakeAction(incomingClient, _options));
+                    environment.Add("HandshakeAction", HandshakeManager.GetHandshakeAction(handshakeEnvironment));
 
                     try
                     {
