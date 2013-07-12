@@ -24,7 +24,8 @@ namespace SharedProtocol.IO
         /// <exception cref="System.IO.FileNotFoundException">Requested file not found</exception>
         public byte[] GetFile(string localPath)
         {
-            string assemblyPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+            //Remove file:// from Assembly.GetExecutingAssembly().CodeBase
+            string assemblyPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().CodeBase.Substring(8));
             
             const string rootPath = @"\root";
 
@@ -33,8 +34,7 @@ namespace SharedProtocol.IO
                 throw new FileNotFoundException("Requested file not found");
             }
 
-            string content = File.ReadAllText(assemblyPath + rootPath + localPath);
-            return Encoding.ASCII.GetBytes(content);
+            return File.ReadAllBytes(assemblyPath + rootPath + localPath);
         }
 
         /// <summary>
@@ -59,11 +59,12 @@ namespace SharedProtocol.IO
                 _pathStreamDict.Add(path, new FileStream(path, FileMode.Append));
             }
             _pathStreamDict[path].Write(data, offset, count);
+            _pathStreamDict[path].Flush();
         }
 
-        public void CloseStream(string path)
+        public void RemoveStream(string path)
         {
-            _pathStreamDict[path].Dispose();
+            _pathStreamDict[path].Close();
             _pathStreamDict.Remove(path);
         }
 

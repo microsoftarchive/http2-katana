@@ -19,7 +19,7 @@ namespace Client
         {
             if (String.IsNullOrEmpty(cmdBody))
             {
-                HelpDisplayer.ShowMainMenuHelp();
+                ShowHelp = HelpDisplayer.ShowMainMenuHelp;
                 return;
             }
 

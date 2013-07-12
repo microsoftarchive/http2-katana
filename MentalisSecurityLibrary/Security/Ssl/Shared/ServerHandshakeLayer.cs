@@ -91,8 +91,8 @@ namespace Org.Mentalis.Security.Ssl.Shared {
 	*/
 	internal abstract class ServerHandshakeLayer : HandshakeLayer {
 		public ServerHandshakeLayer(RecordLayer recordLayer, SecurityOptions options) 
-            : base(recordLayer, options) 
-        {
+            : base(recordLayer, options)
+		{
             this.serverHelloExts = options.ExtensionList;
         }
 

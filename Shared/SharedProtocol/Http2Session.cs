@@ -13,7 +13,7 @@ namespace SharedProtocol
 {
     public class Http2Session : IDisposable
     {
-        private bool _goAwayReceived; 
+        private bool _goAwayReceived;
         private readonly FrameReader _frameReader;
         private readonly WriteQueue _writeQueue;
         private readonly SecureSocket _sessionSocket;
@@ -309,7 +309,7 @@ namespace SharedProtocol
                     //Tell the stream that it was the last frame
                     if (frame.IsEndStream)
                     {
-                        Console.WriteLine("Final frame received");
+                        Console.WriteLine("Final frame received for stream with id = " + stream.Id);
                         stream.EndStreamReceived = true;
                     }
 
@@ -498,16 +498,12 @@ namespace SharedProtocol
 
         private void Dispose(bool disposing)
         {
-            _disposed = true;
-            if (!disposing)
+            if (!disposing || _disposed)
             {
                 return;
             }
 
-            if (_writeQueue != null)
-            {
-                _writeQueue.Dispose();
-            }
+            _disposed = true;
 
             // Dispose of all streams
             foreach (Http2Stream stream in ActiveStreams.Values)
@@ -522,6 +518,11 @@ namespace SharedProtocol
             OnSettingsSent = null;
             OnFrameReceived = null;
             OnFrameSent = null;
+
+            if (_writeQueue != null)
+            {
+                _writeQueue.Dispose();
+            }
 
             _comprProc.Dispose();
             _sessionSocket.Close();

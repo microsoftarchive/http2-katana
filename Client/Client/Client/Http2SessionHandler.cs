@@ -40,7 +40,7 @@ namespace Client
         private const string _clientSessionHeader = @"FOO * HTTP/2.0\r\n\r\nBA\r\n\r\n";
 
         private readonly string _method;
-        private readonly string _path;
+        private string _path;
         private readonly string _version;
         private readonly string _scheme;
         private readonly string _host;
@@ -81,11 +81,12 @@ namespace Client
             return result;
         }
 
-        public async void Connect()
+        public bool Connect()
         {
+            bool gotException = false;
             if (_clientSession != null)
             {
-                return;
+                return gotException;
             }
 
             SecureSocket sessionSocket = null;
@@ -102,8 +103,9 @@ namespace Client
                 }
                 catch (Exception)
                 {
+                    gotException = true;
                     Console.WriteLine("Incorrect port in the config file!");
-                    return;
+                    return gotException;
                 }
 
                 //Connect alpn extension, set known protocols
@@ -120,18 +122,17 @@ namespace Client
                 _options.Flags = SecurityFlags.Default;
                 _options.AllowedAlgorithms = SslAlgorithms.RSA_AES_256_SHA | SslAlgorithms.NULL_COMPRESSION;
 
-                sessionSocket = new SecureSocket(AddressFamily.InterNetwork, SocketType.Stream,
-                                                 ProtocolType.Tcp, _options);
+                sessionSocket = new SecureSocket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp,
+                                                 _options);
 
                 using (var monitor = new ALPNExtensionMonitor())
                 {
                     monitor.OnProtocolSelected += (o, args) => { _selectedProtocol = args.SelectedProtocol; };
                     sessionSocket.Connect(new DnsEndPoint(_requestUri.Host, _requestUri.Port), monitor);
 
-                    var handshakeEnvironment = MakeHandshakeEnvironment(sessionSocket);
-
                     if (_useHandshake)
                     {
+                        var handshakeEnvironment = MakeHandshakeEnvironment(sessionSocket);
                         //Handshake manager determines what handshake must be used: upgrade or secure
                         HandshakeManager.GetHandshakeAction(handshakeEnvironment).Invoke();
 
@@ -139,8 +140,9 @@ namespace Client
 
                         if (_selectedProtocol == "http/1.1")
                         {
+                            gotException = false;
                             _useHttp20 = false;
-                            return;
+                            return gotException;
                         }
                     }
                 }
@@ -152,18 +154,32 @@ namespace Client
 
                 //For saving incoming data
                 _clientSession.OnFrameReceived += FrameReceivedHandler;
-
-                await _clientSession.Start();
             }
             catch (Http2HandshakeFailed)
             {
                 _useHttp20 = false;
             }
+            catch (SocketException)
+            {
+                gotException = true;
+                Console.WriteLine("Check if any server listens port " + _requestUri.Port);
+                Dispose();
+                return gotException;
+            }
             catch (Exception ex)
             {
-                Console.WriteLine("Unhandled session exception was caught: " + ex.Message);
+                gotException = true;
+                Console.WriteLine("Unknown connection exception was caught: " + ex.Message);
                 Dispose();
+                return gotException;
             }
+
+            return gotException;
+        }
+
+        public async void StartConnection()
+        {
+            await _clientSession.Start();
         }
 
         private void SendSessionHeader()
@@ -173,6 +189,7 @@ namespace Client
 
         private void SubmitRequest(Uri request)
         {
+            _path = request.PathAndQuery;
             var headers = new List<Tuple<string, string, IAdditionalHeaderInfo>>
                 {
                     new Tuple<string, string, IAdditionalHeaderInfo>(":method", _method, new Indexation(IndexationType.Indexed)),
@@ -282,7 +299,7 @@ namespace Client
                         stream.WriteDataFrame(new byte[0], true);
                         Console.WriteLine("Terminator was sent");
                     }
-                    _fileHelper.CloseStream(assemblyPath + path);
+                    _fileHelper.RemoveStream(assemblyPath + path);
                 }
             }
         }
@@ -316,11 +333,14 @@ namespace Client
             {
                 _clientSession.Dispose();
             }
-            else
+            if (_socket != null)
             {
                 _socket.Close();
             }
-            _fileHelper.Dispose();
+            if (_fileHelper != null)
+            {
+                _fileHelper.Dispose();
+            }
         }
     }
 }

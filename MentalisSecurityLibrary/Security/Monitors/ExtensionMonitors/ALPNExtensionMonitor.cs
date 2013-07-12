@@ -32,10 +32,6 @@ namespace Org.Mentalis
 	{
         internal ALPNExtension AlpnExtension { get; private set; }
 
-        public ALPNExtensionMonitor()
-        {
-        }
-
         public override void Attach(SecureSocket socket)
         {
             this.Socket = socket;

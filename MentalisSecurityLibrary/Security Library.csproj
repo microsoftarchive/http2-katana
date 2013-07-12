@@ -189,7 +189,6 @@
     <Compile Include="Security\EventArgs\SocketEventArgs\SocketCloseEventArgs.cs" />
     <Compile Include="Security\Monitors\ExtensionMonitors\ALPNExtensionMonitor.cs" />
     <Compile Include="Security\Monitors\ExtensionMonitors\ExtensionMonitor.cs" />
-    <Compile Include="Security\Monitors\ExtensionMonitors\NPNExtensionMonitor.cs" />
     <Compile Include="Security\Monitors\ISocketMonitor.cs" />
     <Compile Include="Security\Monitors\SslTlsHandshakeMonitor.cs" />
     <Compile Include="Security\SecurityConstants.cs">
@@ -243,7 +242,6 @@
     <Compile Include="Security\Ssl\Shared\Extensions\Extension.cs" />
     <Compile Include="Security\Ssl\Shared\Extensions\ExtensionList.cs" />
     <Compile Include="Security\Ssl\Shared\Extensions\IProtocolSelectionExtension.cs" />
-    <Compile Include="Security\Ssl\Shared\Extensions\NextProtocolNegotiationExtension.cs" />
     <Compile Include="Security\Ssl\Shared\Extensions\ExtensionMessages\NextProtocolNegotiationMessage.cs" />
     <Compile Include="Security\Ssl\Shared\Extensions\Enums.cs" />
     <Compile Include="Security\Ssl\Shared\Extensions\ExtensionsParser.cs" />

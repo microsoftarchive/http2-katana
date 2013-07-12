@@ -15,6 +15,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Org.Mentalis;
 using Org.Mentalis.Security.Ssl;
+using Org.Mentalis.Security.Ssl.Shared;
 using ServerProtocol;
 using SharedProtocol;
 using SharedProtocol.Exceptions;
@@ -85,6 +86,7 @@ namespace SocketServer
                 monitor.OnProtocolSelected += (sender, args) => { _alpnSelectedProtocol = args.SelectedProtocol; };
 
                 incomingClient = _server.AcceptSocket(monitor);
+
                 Console.WriteLine("New client accepted");
 
                 var handshakeEnvironment = MakeHandshakeEnvironment(incomingClient);
@@ -181,7 +183,14 @@ namespace SocketServer
 
             _session.OnFrameReceived += FrameReceivedHandler;
 
-            await _session.Start();
+            try
+            {
+                await _session.Start();
+            }
+            catch (Exception)
+            {
+                Console.WriteLine("Client was disconnected");
+            }
         }
 
         private void SendResponce(Http2Stream stream)

@@ -36,8 +36,11 @@ namespace ServerOwinMiddleware
         /// <returns></returns>
         public async Task Invoke(IDictionary<string, object> environment)
         {
-            var handshakeAction = (Action)environment["HandshakeAction"];
-            handshakeAction.Invoke();
+            if (environment["HandshakeAction"] is Action)
+            {
+                var handshakeAction = (Action) environment["HandshakeAction"];
+                handshakeAction.Invoke();
+            }
         }
     }
 }

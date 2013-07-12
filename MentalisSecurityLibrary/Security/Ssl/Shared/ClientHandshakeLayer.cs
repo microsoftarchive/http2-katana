@@ -93,7 +93,7 @@ namespace Org.Mentalis.Security.Ssl.Shared {
 	internal abstract class ClientHandshakeLayer : HandshakeLayer
     {
         public ClientHandshakeLayer(RecordLayer recordLayer, SecurityOptions options) 
-            : base(recordLayer, options) 
+            : base(recordLayer, options)
         {
             this.clientHelloExts = options.ExtensionList;
         }
@@ -101,7 +101,7 @@ namespace Org.Mentalis.Security.Ssl.Shared {
 		public ClientHandshakeLayer(HandshakeLayer handshakeLayer) 
             : base(handshakeLayer) 
         {
-            this.clientHelloExts = base.m_Options.ExtensionList;
+            this.clientHelloExts = m_Options.ExtensionList;
         }
 
         public event EventHandler<EventArgs> OnHandshakeFinished;
