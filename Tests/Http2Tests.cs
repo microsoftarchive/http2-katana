@@ -19,13 +19,22 @@ using SharedProtocol.Handshake;
 using SocketServer;
 using Xunit;
 using System.Configuration;
+using Xunit.Extensions;
 
 namespace Http2Tests
 {
-    public class Http2Tests
+    //This class is a server setup for a future interaction
+    //No handshake can be switched on by changing config file handshakeOptions to no-handshake
+    //If this setting was set to no-handshake then server and incoming client created by test methods
+    //will work in the no handshake mode.
+    //No priority and no flow control modes can be switched on in the .config file
+    //ONLY for server. Clients and server can interact even if these modes are different 
+    //for client and server.
+    public class Http2Setup : IDisposable
     {
-        private HttpSocketServer _http2Server;
-        private const string _clientSessionHeader = @"FOO * HTTP/2.0\r\n\r\nBA\r\n\r\n";
+        public Thread ServerThread { get; private set; }
+        public bool UseSecurePort { get; private set; }
+        public bool UseHandshake { get; private set; }
 
         private async Task InvokeMiddleWare(IDictionary<string, object> environment)
         {
@@ -33,13 +42,25 @@ namespace Http2Tests
             handshakeAction.Invoke();
         }
 
-        public Http2Tests()
+        public Http2Setup()
         {
             var appSettings = ConfigurationManager.AppSettings;
 
-            var secureAddress = appSettings["secureAddress"];
+            UseSecurePort = appSettings["useSecurePort"] == "true";
+            UseHandshake = appSettings["handshakeOptions"] != "no-handshake";
+
+            string address;
+            if (UseSecurePort)
+            {
+                address = appSettings["secureAddress"];
+            }
+            else
+            {
+                address = appSettings["unsecureAddress"];
+            }
+
             Uri uri;
-            Uri.TryCreate(secureAddress, UriKind.Absolute, out uri);
+            Uri.TryCreate(address, UriKind.Absolute, out uri);
 
             var properties = new Dictionary<string, object>();
             var addresses = new List<IDictionary<string, object>>()
@@ -55,53 +76,81 @@ namespace Http2Tests
 
             properties.Add(OwinConstants.CommonKeys.Addresses, addresses);
 
-            var assemblyPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-            var rootPath = @"\root";
-            var serverRootDir = assemblyPath + rootPath;
-            var serverSmallRootFile = serverRootDir + ConfigurationManager.AppSettings["smallTestFile"];
-            var server10mbRootFile = serverRootDir + ConfigurationManager.AppSettings["10mbTestFile"];
+            bool useHandshake = ConfigurationManager.AppSettings["handshakeOptions"] != "no-handshake";
+            bool usePriorities = ConfigurationManager.AppSettings["prioritiesOptions"] != "no-priorities";
+            bool useFlowControl = ConfigurationManager.AppSettings["flowcontrolOptions"] != "no-flowcontrol";
 
-            Directory.CreateDirectory(serverRootDir);
+            properties.Add("use-handshake", useHandshake);
+            properties.Add("use-priorities", usePriorities);
+            properties.Add("use-flowControl", useFlowControl);
 
-            var content = Encoding.UTF8.GetBytes("HelloWorld"); //10 bytes
-
-            using (var stream = new FileStream(server10mbRootFile, FileMode.Create))
-            {
-                //Write 10 000 000 bytes or 10 mb
-                for (int i = 0; i < 1000000; i++)
+            ServerThread = new Thread((ThreadStart)delegate
                 {
-                    stream.Write(content, 0, content.Length);
-                }
-            }
-
-            using (var stream = new FileStream(serverSmallRootFile, FileMode.Create))
-            {
-                stream.Write(content, 0, content.Length);
-            }
-
-            new Thread((ThreadStart)delegate
-                {
-                    _http2Server = new HttpSocketServer(InvokeMiddleWare, properties);
-                }).Start();
+                    new HttpSocketServer(InvokeMiddleWare, properties);
+                }){Name = "Http2ServerThread"};
+            ServerThread.Start();
 
             using (var waitForServersStart = new ManualResetEvent(false))
             {
                 waitForServersStart.WaitOne(3000);
             }
         }
+   
+        public void Dispose()
+        {
+            if (ServerThread.IsAlive)
+            {
+                ServerThread.Abort();
+            }
+        }
+    }
 
-        private static void SendSessionHeader(SecureSocket socket)
+    public class Http2TestSuite : IUseFixture<Http2Setup>, IDisposable
+    {
+        private Thread _serverThread;
+        private const string _clientSessionHeader = @"FOO * HTTP/2.0\r\n\r\nBA\r\n\r\n";
+        private static bool _useSecurePort;
+        private static bool _useHandshake;
+
+        public Http2TestSuite()
+        {
+            
+        }
+
+        void IUseFixture<Http2Setup>.SetFixture(Http2Setup setupInstance)
+        {
+            _serverThread = setupInstance.ServerThread;
+            _useSecurePort = setupInstance.UseSecurePort;
+            _useHandshake = setupInstance.UseHandshake;
+        }
+
+        protected static string GetAddress()
+        {
+
+            if (_useSecurePort)
+            {
+                return ConfigurationManager.AppSettings["secureAddress"];
+            }
+
+            return ConfigurationManager.AppSettings["unsecureAddress"];
+        }
+
+        protected static void SendSessionHeader(SecureSocket socket)
         {
             socket.Send(Encoding.UTF8.GetBytes(_clientSessionHeader));
         }
 
-        private static SecureSocket GetHandshakedSocket(Uri uri)
+        protected static SecureSocket GetHandshakedSocket(Uri uri)
         {
             string selectedProtocol = null;
 
-            var extensions = new [] { ExtensionType.Renegotiation, ExtensionType.ALPN };
+            var extensions = new[] { ExtensionType.Renegotiation, ExtensionType.ALPN };
 
-            var options = new SecurityOptions(SecureProtocol.Tls1, extensions, new[] { "http/2.0", "http/1.1" }, ConnectionEnd.Client);
+            var options = _useSecurePort
+                              ? new SecurityOptions(SecureProtocol.Tls1, extensions, new[] { "http/2.0", "http/1.1" },
+                                                    ConnectionEnd.Client)
+                              : new SecurityOptions(SecureProtocol.None, extensions, new[] { "http/2.0", "http/1.1" },
+                                                    ConnectionEnd.Client);
 
             options.VerificationType = CredentialVerification.None;
             options.Certificate = Org.Mentalis.Security.Certificates.Certificate.CreateFromCerFile(@"certificate.pfx");
@@ -117,17 +166,20 @@ namespace Http2Tests
 
                 sessionSocket.Connect(new DnsEndPoint(uri.Host, uri.Port), monitor);
 
-                var handshakeEnv = new Dictionary<string, object>();
-                handshakeEnv.Add(":method", "get");
-                handshakeEnv.Add(":version", "http/1.1");
-                handshakeEnv.Add(":path", uri.PathAndQuery);
-                handshakeEnv.Add(":scheme", uri.Scheme);
-                handshakeEnv.Add(":host", uri.Host);
-                handshakeEnv.Add("securityOptions", options);
-                handshakeEnv.Add("secureSocket", sessionSocket);
-                handshakeEnv.Add("end", ConnectionEnd.Client);
+                if (_useHandshake)
+                {
+                    var handshakeEnv = new Dictionary<string, object>();
+                    handshakeEnv.Add(":method", "get");
+                    handshakeEnv.Add(":version", "http/1.1");
+                    handshakeEnv.Add(":path", uri.PathAndQuery);
+                    handshakeEnv.Add(":scheme", uri.Scheme);
+                    handshakeEnv.Add(":host", uri.Host);
+                    handshakeEnv.Add("securityOptions", options);
+                    handshakeEnv.Add("secureSocket", sessionSocket);
+                    handshakeEnv.Add("end", ConnectionEnd.Client);
 
-                HandshakeManager.GetHandshakeAction(handshakeEnv).Invoke();
+                    HandshakeManager.GetHandshakeAction(handshakeEnv).Invoke();
+                 }
             }
 
             SendSessionHeader(sessionSocket);
@@ -135,7 +187,7 @@ namespace Http2Tests
             return sessionSocket;
         }
 
-        private static Http2Stream SubmitRequest(Http2Session session, Uri uri)
+        protected static Http2Stream SubmitRequest(Http2Session session, Uri uri)
         {
             const string method = "GET";
             string path = uri.PathAndQuery;
@@ -156,14 +208,14 @@ namespace Http2Tests
 
             return session.ActiveStreams[1];
         }
-   
+
         [Fact]
         public void StartSessionAndSendRequestSuccessful()
         {
-            string requestStr = ConfigurationManager.AppSettings["secureAddress"] + ConfigurationManager.AppSettings["smallTestFile"];
+            string requestStr = GetAddress() + ConfigurationManager.AppSettings["smallTestFile"];
             Uri uri;
             Uri.TryCreate(requestStr, UriKind.Absolute, out uri);
-            
+
             bool wasSettingsSent = false;
             bool wasHeadersSent = false;
             bool wasSocketClosed = false;
@@ -175,10 +227,10 @@ namespace Http2Tests
             var socket = GetHandshakedSocket(uri);
 
             socket.OnClose += (sender, args) =>
-                {
-                    socketClosedRaisedEvent.Set();
-                    wasSocketClosed = true;
-                };
+            {
+                socketClosedRaisedEvent.Set();
+                wasSocketClosed = true;
+            };
 
             var session = new Http2Session(socket, ConnectionEnd.Client, true, true);
 
@@ -208,7 +260,7 @@ namespace Http2Tests
             var stream = SubmitRequest(session, uri);
 
             headersPlusPriSentRaisedEvent.WaitOne(60000);
-            
+
             //Settings frame does not contain flow control settings in this test. 
             Assert.Equal(session.ActiveStreams.Count, 1);
             Assert.Equal(session.ActiveStreams.FlowControlledStreams.Count, 1);
@@ -232,7 +284,7 @@ namespace Http2Tests
         [Fact]
         public void StartAndSuddenlyCloseSessionSuccessful()
         {
-            string requestStr = ConfigurationManager.AppSettings["secureAddress"] + ConfigurationManager.AppSettings["smallTestFile"];
+            string requestStr = GetAddress() + ConfigurationManager.AppSettings["smallTestFile"];
             Uri uri;
             Uri.TryCreate(requestStr, UriKind.Absolute, out uri);
 
@@ -262,20 +314,19 @@ namespace Http2Tests
             Assert.Equal(gotException, false);
         }
 
-
         [Fact]
         public void StartMultipleSessionAndSendMultipleRequests()
         {
             for (int i = 0; i < 5; i++)
             {
-                StartSessionAndSendRequestSuccessful();
+                Task.Run(() => StartSessionAndSendRequestSuccessful());
             }
         }
 
         [Fact]
         public void StartSessionAndGet10MbDataSuccessful()
         {
-            string requestStr = ConfigurationManager.AppSettings["secureAddress"] + ConfigurationManager.AppSettings["10mbTestFile"];
+            string requestStr = GetAddress() + ConfigurationManager.AppSettings["10mbTestFile"];
             Uri uri;
             Uri.TryCreate(requestStr, UriKind.Absolute, out uri);
 
@@ -308,7 +359,7 @@ namespace Http2Tests
 
             SubmitRequest(session, uri);
 
-            finalFrameReceivedRaisedEvent.WaitOne(60000);
+            finalFrameReceivedRaisedEvent.WaitOne(120000);
 
             session.Dispose();
 
@@ -319,18 +370,22 @@ namespace Http2Tests
         }
 
         [Fact]
-        public void StartMultipleSessionsAndGet50MbDataSuccessful()
+        public void StartMultipleSessionsAndGet40MbDataSuccessful()
         {
-            for (int i = 0; i < 5; i++ )
+            for (int i = 0; i < 4; i++)
             {
-                StartSessionAndGet10MbDataSuccessful();
+                Task.Run(() => StartSessionAndGet10MbDataSuccessful());
             }
         }
 
-        [Fact]
-        public void StartMultipleStreamsInOneSessionSuccessful()
+        [Theory]
+        [InlineData(true, true)]
+        [InlineData(true, false)]
+        [InlineData(false, true)]
+        [InlineData(false, false)]
+        public void StartMultipleStreamsInOneSessionSuccessful(bool usePriorities, bool useFlowControl)
         {
-            string requestStr = ConfigurationManager.AppSettings["secureAddress"] + ConfigurationManager.AppSettings["smallTestFile"];
+            string requestStr = GetAddress() + ConfigurationManager.AppSettings["smallTestFile"];
             Uri uri;
             Uri.TryCreate(requestStr, UriKind.Absolute, out uri);
             int finalFramesCounter = 0;
@@ -346,12 +401,12 @@ namespace Http2Tests
             var socket = GetHandshakedSocket(uri);
 
             socket.OnClose += (sender, args) =>
-                {
-                    wasSocketClosed = true;
-                    socketClosedRaisedEvent.Set();
-                };
+            {
+                wasSocketClosed = true;
+                socketClosedRaisedEvent.Set();
+            };
 
-            var session = new Http2Session(socket, ConnectionEnd.Client, true, true);
+            var session = new Http2Session(socket, ConnectionEnd.Client, usePriorities, useFlowControl);
 
             session.OnFrameReceived += (sender, args) =>
             {
@@ -373,7 +428,7 @@ namespace Http2Tests
                 SubmitRequest(session, uri);
             }
 
-            allResourcesDowloadedRaisedEvent.WaitOne(60000);
+            allResourcesDowloadedRaisedEvent.WaitOne(120000);
 
             Assert.Equal(session.ActiveStreams.Count, streamsQuantity);
 
@@ -385,5 +440,9 @@ namespace Http2Tests
             Assert.Equal(wasSocketClosed, true);
         }
 
+        public void Dispose()
+        {
+
+        }
     }
 }

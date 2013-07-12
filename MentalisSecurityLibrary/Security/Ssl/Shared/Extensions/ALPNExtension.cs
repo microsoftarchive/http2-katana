@@ -32,6 +32,14 @@ namespace Org.Mentalis.Security.Ssl.Shared.Extensions
     using Org.Mentalis.Security.BinaryHelper;
     using System.IO;
 
+    //ALPNExtension creates for each new socket. 
+    //This means that each new connection will create it's own ALPNExtension, 
+    //but server will have only one instance of an ALPNExtension class.
+    //This is necessary because Listener needs SecurityOptions for creating incoming client sockets
+    //and alpnMonitor needs already created Extensions for successful attaching.
+    //Attaching is needed for a protocol selection.
+    //This is not so good code of course.
+    //TODO Fix that.
     internal sealed class ALPNExtension : Extension, IProtocolSelectionExtension
 	{
         private string selectedProtocol;
@@ -128,7 +136,7 @@ namespace Org.Mentalis.Security.Ssl.Shared.Extensions
                     {
                         this.SelectedProtocol = protocol;
                         this.ExtensionDataSize = (short) (Encoding.UTF8.GetByteCount(this.SelectedProtocol) + sizeof(byte) + sizeof(Int16));
-                        this.ExtensionSize += ExtensionDataSize;
+                        this.ExtensionSize = (Int16)(sizeof(Int16) * 2 + this.ExtensionDataSize); //type + length + data length
                         break;
                     }
                 }

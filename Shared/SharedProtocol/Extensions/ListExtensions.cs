@@ -9,9 +9,9 @@ namespace SharedProtocol.Extensions
     {
         public static int GetIndex(this List<KeyValuePair<string, string>> list, Func<KeyValuePair<string, string>, bool> predicate)
         {
-            var predicatePositive = list.Where(predicate);
+            var predicatePositive = list.Where(predicate).ToList();
 
-            if (predicatePositive.Count() == 0)
+            if (predicatePositive.Count == 0)
             {
                 return -1;
             }

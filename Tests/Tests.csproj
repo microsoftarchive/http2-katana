@@ -299,14 +299,15 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <None Include="App.config" />
+    <None Include="App.config">
+      <SubType>Designer</SubType>
+    </None>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>copy /y "$(SolutionDir)Drop\certificate.pfx"  "$(TargetDir)"
-mkdir "$(TargetDir)root"
-copy /y "$(SolutionDir)Drop\root\10mbTest.txt"  "$(TargetDir)root\10mbTest.txt"
-copy /y "$(SolutionDir)Drop\root\test.txt"  "$(TargetDir)root\simpleTest.txt"</PostBuildEvent>
+    <PostBuildEvent>copy /y "$(SolutionDir)Drop\certificate.pfx"  "$(TargetDir)\certificate.pfx"
+
+xcopy "$(ProjectDir)root"  "$(TargetDir)root" /S /F /R /Y /I</PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

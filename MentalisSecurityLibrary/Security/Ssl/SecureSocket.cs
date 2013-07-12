@@ -86,11 +86,13 @@ namespace Org.Mentalis.Security.Ssl
         /// <param name="protocolType">One of the <see cref="ProtocolType"/> values.</param>
         /// <param name="options">The <see cref="SecurityOptions"/> to use.</param>
         /// <exception cref="SecurityException">An error occurs while changing the security protocol.</exception>
-        public SecureSocket(AddressFamily addressFamily, SocketType socketType, ProtocolType protocolType, SecurityOptions options)
+        public SecureSocket(AddressFamily addressFamily, SocketType socketType, 
+                            ProtocolType protocolType, SecurityOptions options)
             : base(addressFamily, socketType, protocolType)
         {
             m_SentShutdownNotification = false;
             ChangeSecurityProtocol(options);
+            this.m_Controller = new SocketController(this, base.InternalSocket, m_Options);
         }
 
         /// <summary>
@@ -104,6 +106,7 @@ namespace Org.Mentalis.Security.Ssl
         {
             m_SentShutdownNotification = false;
             ChangeSecurityProtocol(options);
+            this.m_Controller = new SocketController(this, base.InternalSocket, m_Options);
         }
 
         /// <summary>
@@ -148,7 +151,7 @@ namespace Org.Mentalis.Security.Ssl
 
             if (m_Options.Protocol != SecureProtocol.None)
             {
-                this.m_Controller = new SocketController(this, base.InternalSocket, m_Options);
+                this.m_Controller.StartHandshake();
             }
         }
 
@@ -156,8 +159,6 @@ namespace Org.Mentalis.Security.Ssl
         {
             if (this.OnClose != null)
                 this.OnClose(this, args);
-
-            //this.Close();
         }
         /// <summary>
         /// Establishes a connection to a remote device and optionally negotiates a secure transport protocol.

@@ -55,6 +55,7 @@
 */
 
 using System;
+using System.Collections.Generic;
 using System.Security.Cryptography;
 using Org.Mentalis.Security.Cryptography;
 using Org.Mentalis.Security.Certificates;
@@ -96,12 +97,12 @@ namespace Org.Mentalis.Security.Ssl.Shared {
             ExtensionList extList;
             if (end == ConnectionEnd.Client)
             {
-                extList = ExtensionsParser.Parse(buffer, ref currentLen, m_Options.ExtensionList, ConnectionEnd.Client);
+                extList = ExtensionsParser.Parse(buffer, ref currentLen, this.clientHelloExts, ConnectionEnd.Client);
                 this.serverHelloExts = extList;
             }
             else
             {
-                extList = ExtensionsParser.Parse(buffer, ref currentLen, m_Options.ExtensionList, ConnectionEnd.Server);
+                extList = ExtensionsParser.Parse(buffer, ref currentLen, this.serverHelloExts, ConnectionEnd.Server);
                 this.clientHelloExts = extList;
             }
 
@@ -151,6 +152,7 @@ namespace Org.Mentalis.Security.Ssl.Shared {
 			m_ClientRandom = handshakeLayer.m_ClientRandom;
 			handshakeLayer.Dispose(false);
 		}
+
 		// processes Handshake & ChangeCipherSpec messages
 		public SslHandshakeStatus ProcessMessages(RecordMessage message) {
 			if (message == null)

@@ -34,7 +34,9 @@
 //-----------------------------------------------------------------------
 using System;
 using System.Collections.Generic;
+using System.Net.Sockets;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace Client
 {
@@ -54,8 +56,9 @@ namespace Client
             var argsList = new List<string>(args);
 
             useHandshake = !argsList.Contains("-no-handshake");
-            usePrioritization = argsList.Contains("use-priorities");
-            useFlowControl = argsList.Contains("-no-flowcontrol");
+            usePrioritization = !argsList.Contains("-no-priorities");
+            useFlowControl = !argsList.Contains("-no-flowcontrol");
+
             HelpDisplayer.ShowMainMenuHelp();
             ThreadPool.SetMaxThreads(10, 10);
             try
@@ -93,12 +96,21 @@ namespace Client
 
                             //Get cmd is equivalent for connect -> get. This means, that each get request 
                             //will open new session.
-                            ThreadPool.QueueUserWorkItem(delegate
+                            bool wasConnectFailed = sessionHandler.Connect();
+                            if (wasConnectFailed)
                             {
-                                sessionHandler.Connect();
-                                sessionHandler.SendRequestAsync(getCmd.Uri);
-                            });
+                                Console.WriteLine("Connection failed");
+                                break;
+                            }
 
+                            Task.Run(() => sessionHandler.StartConnection());
+
+                            using (var waitForConnectionStart = new ManualResetEvent(false))
+                            {
+                                waitForConnectionStart.WaitOne(200);
+                            }
+
+                            sessionHandler.SendRequestAsync(getCmd.Uri);
                             _sessions.Add(getCmd.Uri.Authority, sessionHandler);
                             break;
                         case CommandType.Help:

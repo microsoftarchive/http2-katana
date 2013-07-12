@@ -16,7 +16,9 @@ namespace SharedProtocol.Http11
     /// </summary>
     public static class Http11Manager
     {
-        private static readonly string assemblyPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+        //Remove file:// from Assembly.GetExecutingAssembly().CodeBase
+        private static readonly string assemblyPath =
+            Path.GetDirectoryName(Assembly.GetExecutingAssembly().CodeBase.Substring(8));
         
         private static string GetFileName(string[] headers)
         {
@@ -173,6 +175,12 @@ namespace SharedProtocol.Http11
         {
             string[] headers = GetHttp11Headers(socket);
             string filename = GetFileName(headers);
+
+            //No headers where received
+            if (headers.Length == 0)
+            {
+                socket.Close();
+            }
 
             string path = Path.GetFullPath(assemblyPath + @"\root" + filename);
 

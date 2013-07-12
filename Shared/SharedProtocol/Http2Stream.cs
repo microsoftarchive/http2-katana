@@ -60,12 +60,30 @@ namespace SharedProtocol
         public bool EndStreamSent
         {
             get { return (_state & StreamState.EndStreamSent) == StreamState.EndStreamSent; }
-            set { Contract.Assert(value); _state |= StreamState.EndStreamSent; }
+            set
+            {
+                Contract.Assert(value); 
+                _state |= StreamState.EndStreamSent;
+
+                if (EndStreamReceived)
+                {
+                    Dispose();
+                }
+            }
         }
         public bool EndStreamReceived
         {
             get { return (_state & StreamState.EndStreamReceived) == StreamState.EndStreamReceived; }
-            set { Contract.Assert(value); _state |= StreamState.EndStreamReceived; }
+            set
+            {
+                Contract.Assert(value); 
+                _state |= StreamState.EndStreamReceived;
+
+                if (EndStreamSent)
+                {
+                    Dispose();
+                }
+            }
         }
 
         public Priority Priority { get; set; }
@@ -265,7 +283,7 @@ namespace SharedProtocol
                 return;
             }
 
-            Console.WriteLine("Total data frames volume {0}", SentDataAmount);
+            Console.WriteLine("Total outgoing data frames volume {0}", SentDataAmount);
 
             if (OnClose != null)
                 OnClose(this, new StreamClosedEventArgs(_id));

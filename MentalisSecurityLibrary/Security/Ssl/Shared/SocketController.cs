@@ -62,7 +62,8 @@ using Org.Mentalis.Security.Certificates;
 
 namespace Org.Mentalis.Security.Ssl.Shared {
 	internal class SocketController : IDisposable {
-		public SocketController(SecureSocket parent, Socket socket, SecurityOptions options) {
+        public SocketController(SecureSocket parent, Socket socket, SecurityOptions options)
+        {
             this.m_Parent = parent;
             this.m_Socket = socket;
             this.m_IsDisposed = false;
@@ -72,72 +73,66 @@ namespace Org.Mentalis.Security.Ssl.Shared {
             this.m_ToSendList = new ArrayList(2);
             this.m_SentList = new ArrayList(2);
             this.m_ReceiveBuffer = new byte[m_ReceiveBufferLength];
+		    this.m_End = options.Entity;
 
             this.OnConnectionClose += new EventHandler<SocketCloseEventArgs>(parent.ConnectionCloseHandler);
 
 			this.m_Compatibility = new CompatibilityLayer(this, options);
-
-            try 
-            {
-				m_Socket.BeginReceive(m_ReceiveBuffer, 0, m_ReceiveBufferLength, SocketFlags.None, new AsyncCallback(this.OnReceive), null);
-			} 
-            catch (Exception e) 
-            {
-				CloseConnection(e);
-			}
-			if (options.Entity == ConnectionEnd.Client) 
-            {
-				//				byte[] hello = m_RecordLayer.GetControlBytes(ControlType.ClientHello);
-				byte[] hello = m_Compatibility.GetClientHello();
-				BeginSend(hello, 0, hello.Length, null, DataType.ProtocolData);
-			}
 		}
 
-        public event EventHandler<SocketCloseEventArgs> OnConnectionClose;
+	    internal void StartHandshake()
+	    {            
+            try
+            {
+                m_Socket.BeginReceive(m_ReceiveBuffer, 0, m_ReceiveBufferLength, SocketFlags.None, new AsyncCallback(this.OnReceive), null);
+            }
+            catch (Exception e)
+            {
+                CloseConnection(e);
+            }
+            if (m_End == ConnectionEnd.Client)
+            {
+                //				byte[] hello = m_RecordLayer.GetControlBytes(ControlType.ClientHello);
+                byte[] hello = m_Compatibility.GetClientHello();
+                BeginSend(hello, 0, hello.Length, null, DataType.ProtocolData);
+            }
+	    }
+
+	    public event EventHandler<SocketCloseEventArgs> OnConnectionClose;
 
 		protected void OnReceive(IAsyncResult ar) {
 			lock(this) {	// synchronize
 				try {
-					//MsgMe("OnReceive", "client calls EndReceive()");
 					int size = m_Socket.EndReceive(ar);
 					if (size == 0) {
 						CloseConnection(null); // connection has been shut down
 					} else {
-						//MsgMe("OnReceive", "client got from socket", size);
 						SslRecordStatus status;
 						if (m_RecordLayer == null) {
-							//MsgMe("OnReceive", "client calls ProcessHello()", true, m_ReceiveBuffer, size);
-							CompatibilityResult ret = m_Compatibility.ProcessHello(m_ReceiveBuffer, 0, size);
+                            CompatibilityResult ret = m_Compatibility.ProcessHello(m_ReceiveBuffer, 0, size);
 							m_RecordLayer = ret.RecordLayer;
 							status = ret.Status;
 							if (m_RecordLayer != null)
 							{
-								//MsgMe("OnReceive", "client sets m_Compatibility == null because m_RecordLayer != null");
-								//m_Compatibility = null;
+                                //m_Compatibility = null;
 							}
 						} else {
-							//MsgMe("OnReceive", "client calls ProcessBytes()");
 							status = m_RecordLayer.ProcessBytes(m_ReceiveBuffer, 0, size);
 						}
 						if (status.Buffer != null) {
 							if (status.Status == SslStatus.Close) { // shut down the connection after the send
-								//MsgMe("OnReceive", "client sets calls m_IsShuttingDown = true because Status == SslStatus.Close");
 								m_IsShuttingDown = true;
 							}
-							//MsgMe("OnReceive", "client calls BeginSend()");
 							BeginSend(status.Buffer, 0, status.Buffer.Length, null, DataType.ProtocolData);
 						} else if (status.Status == SslStatus.Close) { // Record Layer instructs us to shut down
 							m_Socket.Shutdown(SocketShutdown.Both);
-							//MsgMe("OnReceive", "client calls CloseConnection() because Status == SslStatus.Close");
 							CloseConnection(null);
 						} else if (status.Status == SslStatus.OK) {
-							//MsgMe("OnReceive", "client calls ResumeSending()");
 							ResumeSending();
 						}
 						if (status.Decrypted != null)
 							ProcessDecryptedBytes(status.Decrypted);
 						if (!m_IsDisposed && !m_IsShuttingDown)
-							//MsgMe("OnReceive", "client calls BeginReceive()");
 							m_Socket.BeginReceive(m_ReceiveBuffer, 0, m_ReceiveBufferLength, SocketFlags.None, new AsyncCallback(this.OnReceive), null);
 					}
 				} catch (Exception e) {
@@ -346,6 +341,7 @@ namespace Org.Mentalis.Security.Ssl.Shared {
 					m_ActiveSend.Offset = 0;
 					m_ActiveSend.Size = m_ActiveSend.Buffer.Length;
 				}
+                
 				//MsgMe("ResumeSending", "client calls Socket.BeginSend", m_ActiveSend);
 				m_Socket.BeginSend(m_ActiveSend.Buffer, m_ActiveSend.Offset, m_ActiveSend.Size, SocketFlags.None, new AsyncCallback(this.OnSent), null);
 			} catch (Exception e) {
@@ -381,7 +377,8 @@ namespace Org.Mentalis.Security.Ssl.Shared {
 				for(int i = 0; i < m_ToSendList.Count; i++) {
 					m_ActiveSend = (TransferItem)m_ToSendList[i];
 					m_SentList.Add(m_ActiveSend);
-					m_ActiveSend.AsyncResult.Notify(f);
+                    if (m_ActiveSend.AsyncResult != null)
+					    m_ActiveSend.AsyncResult.Notify(f);
 				}
 				m_ToSendList.Clear();
 				if (m_ActiveReceive != null && m_ActiveReceive.AsyncResult != null) {
@@ -474,6 +471,7 @@ namespace Org.Mentalis.Security.Ssl.Shared {
             }
         }
 
+	    private ConnectionEnd m_End;
 		private SecureSocket m_Parent;
 		private Socket m_Socket;
 		private RecordLayer m_RecordLayer;
@@ -483,118 +481,12 @@ namespace Org.Mentalis.Security.Ssl.Shared {
 		private TransferItem m_ActiveSend;
 		private TransferItem m_ActiveReceive;
 		private AsyncResult m_ShutdownCallback;
+	    private AsyncResult m_ReceiveAsyncResult;
 		private bool m_IsDisposed;
 		private bool m_IsSending;
 		private bool m_IsShuttingDown;
 		private byte[] m_ReceiveBuffer;
 		private XBuffer m_DecryptedBuffer;
 		private const int m_ReceiveBufferLength = 4096;
-/*
-		public static void MsgMe(string where, string action, int size)
-		{
-			int id = System.Threading.Thread.CurrentThread.ManagedThreadId;
-			Console.WriteLine("[{0}] {1}::{2} size={3}", id, where, action, size);
-		}
-
-
-		public static void MsgMe(string where, string action)
-		{
-			byte[] ddd = new byte[1];
- 			MsgMe(where, action, false, ddd);
-		}
-
-		public static void MsgMe(string where, string action, TransferItem ti)
-		{
-			MsgMe(where, action, true, ti.Buffer);
-		}
-
-		public static void MsgMe(string where, string action, bool dumpit, byte[] todump)
-		{
-			int id = System.Threading.Thread.CurrentThread.ManagedThreadId;
-			Console.WriteLine("[{0}] {1}::{2}", id, where, action);
-			if (dumpit)
-			{
-				Console.WriteLine("{0}", HexDump(todump));
-			}
-		}
-
-		public static void MsgMe(string where, string action, bool dumpit, byte[] todump, int size)
-		{
-			int id = System.Threading.Thread.CurrentThread.ManagedThreadId;
-			Console.WriteLine("[{0}] {1}::{2} with buffer size {3}", id, where, action, size);
-			if (dumpit)
-			{
-				Console.WriteLine("{0}", HexDump(todump, size));
-			}
-		}
-		
-
-		public static string HexDump(byte[] bytes, int length = -1, int bytesPerLine = 16)
-		{
-			if (bytes == null) return "<null>";
-			int bytesLength = bytes.Length;
-			if (length >= 0)
-			{
-				bytesLength = length;
-			}
-
-			char[] HexChars = "0123456789ABCDEF".ToCharArray();
-
-			int firstHexColumn =
-				  8                   // 8 characters for the address
-				+ 3;                  // 3 spaces
-
-			int firstCharColumn = firstHexColumn
-				+ bytesPerLine * 3       // - 2 digit for the hexadecimal value and 1 space
-				+ (bytesPerLine - 1) / 8 // - 1 extra space every 8 characters from the 9th
-				+ 2;                  // 2 spaces 
-
-			int lineLength = firstCharColumn
-				+ bytesPerLine           // - characters to show the ascii value
-				+ Environment.NewLine.Length; // Carriage return and line feed (should normally be 2)
-
-			char[] line = (new String(' ', lineLength - 2) + Environment.NewLine).ToCharArray();
-			int expectedLines = (bytesLength + bytesPerLine - 1) / bytesPerLine;
-			StringBuilder result = new StringBuilder(expectedLines * lineLength);
-
-			for (int i = 0; i < bytesLength; i += bytesPerLine)
-			{
-				line[0] = HexChars[(i >> 28) & 0xF];
-				line[1] = HexChars[(i >> 24) & 0xF];
-				line[2] = HexChars[(i >> 20) & 0xF];
-				line[3] = HexChars[(i >> 16) & 0xF];
-				line[4] = HexChars[(i >> 12) & 0xF];
-				line[5] = HexChars[(i >> 8) & 0xF];
-				line[6] = HexChars[(i >> 4) & 0xF];
-				line[7] = HexChars[(i >> 0) & 0xF];
-
-				int hexColumn = firstHexColumn;
-				int charColumn = firstCharColumn;
-
-				for (int j = 0; j < bytesPerLine; j++)
-				{
-					if (j > 0 && (j & 7) == 0) hexColumn++;
-					if (i + j >= bytesLength)
-					{
-						line[hexColumn] = ' ';
-						line[hexColumn + 1] = ' ';
-						line[charColumn] = ' ';
-					}
-					else
-					{
-						byte b = bytes[i + j];
-						line[hexColumn] = HexChars[(b >> 4) & 0xF];
-						line[hexColumn + 1] = HexChars[b & 0xF];
-						line[charColumn] = (b < 32 ? '·' : (char)b);
-					}
-					hexColumn += 3;
-					charColumn++;
-				}
-				result.Append(line);
-			}
-			return result.ToString();
-		}
-*/
-
 	}
 }

@@ -35,6 +35,10 @@ namespace SocketServer
             var address = addresses.First();
             _port = Int32.Parse(address.Get<string>("port"));
             _scheme = address.Get<string>("scheme");
+           
+            _useHandshake = (bool) properties["use-handshake"];
+            _usePriorities = (bool) properties["use-priorities"];
+            _useFlowControl = (bool) properties["use-flowControl"];
 
             int securePort;
 
@@ -62,14 +66,10 @@ namespace SocketServer
                 return;
             }
 
-            _useHandshake = ConfigurationManager.AppSettings["handshakeOptions"] != "no-handshake";
-            _usePriorities = ConfigurationManager.AppSettings["prioritiesOptions"] == "use-priorities";
-            _useFlowControl = ConfigurationManager.AppSettings["flowcontrolOptions"] != "no-flowcontrol";
-
             var extensions = new [] { ExtensionType.Renegotiation, ExtensionType.ALPN };
 
             _options = _port == securePort ? new SecurityOptions(SecureProtocol.Tls1, extensions, new[] { "http/2.0", "http/1.1" }, ConnectionEnd.Server)
-                                : new SecurityOptions(SecureProtocol.None, extensions, new [] { "http/2.0", "http/1.1" }, ConnectionEnd.Server);
+                                : new SecurityOptions(SecureProtocol.None, extensions, new[] { "http/2.0", "http/1.1" }, ConnectionEnd.Server);
 
             _options.VerificationType = CredentialVerification.None;
             _options.Certificate = Certificate.CreateFromCerFile(_certificateFilename);
@@ -78,7 +78,7 @@ namespace SocketServer
 
             _server = new SecureTcpListener(_port, _options);
 
-            ThreadPool.SetMaxThreads(10,10);
+            ThreadPool.SetMaxThreads(5,5);
 
             Listen();
         }

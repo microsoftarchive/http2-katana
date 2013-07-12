@@ -48,32 +48,15 @@ namespace Http11Tests
                             {"path", uri.AbsolutePath}
                         }
                 };
+            bool useHandshake = ConfigurationManager.AppSettings["handshakeOptions"] != "no-handshake";
+            bool usePriorities = ConfigurationManager.AppSettings["prioritiesOptions"] != "no-priorities";
+            bool useFlowControl = ConfigurationManager.AppSettings["flowcontrolOptions"] != "no-flowcontrol";
+
+            properties.Add("use-handshake", useHandshake);
+            properties.Add("use-priorities", usePriorities);
+            properties.Add("use-flowControl", useFlowControl);
 
             properties.Add(OwinConstants.CommonKeys.Addresses, addresses);
-
-            var assemblyPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-            var rootPath = @"\root";
-            var serverRootDir = assemblyPath + rootPath;
-            var serverSmallRootFile = serverRootDir + ConfigurationManager.AppSettings["smallTestFile"];
-            var server10mbRootFile = serverRootDir + ConfigurationManager.AppSettings["10mbTestFile"];
-
-            Directory.CreateDirectory(serverRootDir);
-
-            var content = Encoding.UTF8.GetBytes("HelloWorld"); //10 bytes
-
-            using (var stream = new FileStream(server10mbRootFile, FileMode.Create))
-            {
-                //Write 10 000 000 bytes or 10 mb
-                for (int i = 0; i < 1000000; i++)
-                {
-                    stream.Write(content, 0, content.Length);
-                }
-            }
-
-            using (var stream = new FileStream(serverSmallRootFile, FileMode.Create))
-            {
-                stream.Write(content, 0, content.Length);
-            }
 
             new Thread((ThreadStart)delegate
                 {
@@ -178,7 +161,7 @@ namespace Http11Tests
         {
             for (int i = 0; i < 10; i++)
             {
-                GetHttp11ResourceSuccessful();
+                Task.Run(() => GetHttp11ResourceSuccessful());
             }
         }
     }

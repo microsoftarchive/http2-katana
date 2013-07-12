@@ -99,7 +99,6 @@ namespace Org.Mentalis.Security.Ssl {
             this.RequestHandler = requestHandler;
             this.KnownProtocols = knownProtocols;
             this.Extensions = extensions;
-           
             this.ExtensionList = FormExtsList(extensions);
         }
 
@@ -113,7 +112,7 @@ namespace Org.Mentalis.Security.Ssl {
         /// All other members of the structure will be instantiated with default values.
         /// </remarks>
         [CLSCompliant(false)]
-        public SecurityOptions(SecureProtocol protocol, ExtensionType[] extensions, Certificate cert, 
+        public SecurityOptions(SecureProtocol protocol, ExtensionType[] extensions, Certificate cert,
             IEnumerable<string> knownProtocols, ConnectionEnd entity)
             : this(protocol, extensions, cert, entity, knownProtocols, CredentialVerification.Auto, null, null,
                    SecurityFlags.Default, SslAlgorithms.ALL, null)
@@ -135,31 +134,13 @@ namespace Org.Mentalis.Security.Ssl {
         {
         }
 
+        internal ExtensionList ExtensionList { get; private set; }
+
         /// <summary>
         /// Gets or sets the secure protocol that the <see cref="SecureSocket"/> should use.
         /// </summary>
         /// <value>A bitwise combination of the <see cref="SecureProtocol"/> values.</value>
-
-        internal ExtensionList ExtensionList { get; private set; }
-
-        public string GetSelectedProtocol()
-        {
-            var alpnExt = ExtensionList.GetExtesionOfType<ALPNExtension>();
-            if (alpnExt != null)
-            {
-                return alpnExt.SelectedProtocol;
-            }
-            
-            var npnExt = ExtensionList.GetExtesionOfType<NextProtocolNegotiationExtension>();
-            if (npnExt != null)
-            {
-                return npnExt.SelectedProtocol;
-            }
-
-            return String.Empty;
-        }
-
-    public SecureProtocol Protocol {
+        public SecureProtocol Protocol {
 			get {
 				return m_Protocol;
 			}
@@ -290,13 +271,9 @@ namespace Org.Mentalis.Security.Ssl {
                         case ExtensionType.Renegotiation:
                             result.Add(new RenegotiationExtension(this.Entity));
                             break;
-                        //case ExtensionType.NextNegotiation:
-                        //    result.Add(new NextProtocolNegotiationExtension(this.Entity));
-                        //    break;
                         case ExtensionType.ALPN:
                             result.Add(new ALPNExtension(this.Entity, KnownProtocols));
                             break;
-                        default: break;
                     }
                 }
                 return result;

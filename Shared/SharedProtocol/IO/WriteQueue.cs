@@ -36,8 +36,17 @@ namespace SharedProtocol.IO
         // Queue up a fully rendered frame to send
         public void WriteFrame(Frame frame)
         {
+            //Do not write to already closed stream
+            if (frame.FrameType != FrameType.Settings
+                && frame.FrameType != FrameType.GoAway
+                && frame.FrameType != FrameType.Ping
+                && _streams[frame.StreamId] == null)
+            {
+                return;
+            }
+
             Priority priority;
-            
+
             if (frame.StreamId != 0)
             {
                 priority = _streams[frame.StreamId].Priority;
@@ -73,7 +82,15 @@ namespace SharedProtocol.IO
                             var entry = _messageQueue.Dequeue();
                             if (entry != null)
                             {
-                                _socket.Send(entry.Buffer, 0, entry.Buffer.Length, SocketFlags.None);
+                                try
+                                {
+                                    _socket.Send(entry.Buffer, 0, entry.Buffer.Length, SocketFlags.None);
+                                }
+                                //TODO handle different exception types
+                                catch (Exception)
+                                {
+                                    Console.WriteLine("Sending frame was cancelled because connction was lost");
+                                }
                             }
                         }
                     }

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Threading.Tasks;
 
 [assembly: SocketServer.OwinServerFactoryAttribute]
@@ -21,6 +22,14 @@ namespace SocketServer
 
         public static IDisposable Create(AppFunc app, IDictionary<string, object> properties)
         {
+            bool useHandshake = ConfigurationManager.AppSettings["handshakeOptions"] != "no-handshake";
+            bool usePriorities = ConfigurationManager.AppSettings["prioritiesOptions"] != "no-priorities";
+            bool useFlowControl = ConfigurationManager.AppSettings["flowcontrolOptions"] != "no-flowcontrol";
+
+            properties.Add("use-handshake", useHandshake);
+            properties.Add("use-priorities", usePriorities);
+            properties.Add("use-flowControl", useFlowControl);
+
             return new HttpSocketServer(app, properties);
         }
     }
