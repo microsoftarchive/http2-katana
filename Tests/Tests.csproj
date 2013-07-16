@@ -145,6 +145,9 @@
     <Compile Include="..\Shared\SharedProtocol\Exceptions\HTTP2HandshakeFailed.cs">
       <Link>Sources\HTTP2HandshakeFailed.cs</Link>
     </Compile>
+    <Compile Include="..\Shared\SharedProtocol\Exceptions\InvalidHeaderException.cs">
+      <Link>Sources\InvalidHeaderException.cs</Link>
+    </Compile>
     <Compile Include="..\Shared\SharedProtocol\Exceptions\MonitorIsBusyException.cs">
       <Link>Sources\MonitorIsBusyException.cs</Link>
     </Compile>
@@ -192,6 +195,9 @@
     </Compile>
     <Compile Include="..\Shared\SharedProtocol\Framing\Headers.cs">
       <Link>Sources\Headers.cs</Link>
+    </Compile>
+    <Compile Include="..\Shared\SharedProtocol\Framing\IEndStreamFrames.cs">
+      <Link>Sources\IEndStreamFrames.cs</Link>
     </Compile>
     <Compile Include="..\Shared\SharedProtocol\Framing\PingFrame.cs">
       <Link>Sources\PingFrame.cs</Link>

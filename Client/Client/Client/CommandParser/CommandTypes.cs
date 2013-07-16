@@ -13,6 +13,7 @@
         Help = 8,
         Unknown = 9,
         Empty = 10,
-        Ping = 11
+        Ping = 11,
+        Post = 12
     }
 }

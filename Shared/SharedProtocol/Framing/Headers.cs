@@ -3,10 +3,26 @@ using System.Diagnostics.Contracts;
 
 namespace SharedProtocol.Framing
 {
-    public class Headers : Frame
+    public class Headers : Frame, IEndStreamFrame
     {
         // The number of bytes in the frame, not including the compressed headers.
         private const int InitialFrameSize = 12;
+
+        // 8 bits, 24-31
+        public bool IsEndStream
+        {
+            get
+            {
+                return (Flags & FrameFlags.EndStream) == FrameFlags.EndStream;
+            }
+            set
+            {
+                if (value)
+                {
+                    Flags |= FrameFlags.EndStream;
+                }
+            }
+        }
 
         public bool IsPriority
         {

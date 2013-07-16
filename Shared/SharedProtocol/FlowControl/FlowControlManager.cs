@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace SharedProtocol
+namespace SharedProtocol.FlowControl
 {
     /// <summary>
     /// This class is designed for flow control monitoring and processing.

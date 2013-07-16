@@ -1,5 +1,4 @@
 ﻿using System.Net.Sockets;
-using System.Threading.Tasks;
 using Org.Mentalis.Security.Ssl;
 using SharedProtocol.Framing;
 using System;

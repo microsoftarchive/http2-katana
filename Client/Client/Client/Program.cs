@@ -37,6 +37,7 @@ using System.Collections.Generic;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
+using Client.Commands;
 
 namespace Client
 {
@@ -46,18 +47,19 @@ namespace Client
     public class Program
     {
         private static Dictionary<string, Http2SessionHandler> _sessions;
-        private static bool useHandshake = true;
-        private static bool usePrioritization = false;
-        private static bool useFlowControl = true;
+        private static IDictionary<string, object> environment;
 
         public static void Main(string[] args)
         {
             _sessions = new Dictionary<string, Http2SessionHandler>();
             var argsList = new List<string>(args);
 
-            useHandshake = !argsList.Contains("-no-handshake");
-            usePrioritization = !argsList.Contains("-no-priorities");
-            useFlowControl = !argsList.Contains("-no-flowcontrol");
+            environment = new Dictionary<string, object>
+                {
+                    {"useHandshake", !argsList.Contains("-no-handshake")},
+                    {"usePriorities", !argsList.Contains("-no-priorities")},
+                    {"useFlowControl", !argsList.Contains("-no-flowcontrol")},
+                };
 
             HelpDisplayer.ShowMainMenuHelp();
             ThreadPool.SetMaxThreads(10, 10);
@@ -82,25 +84,36 @@ namespace Client
                     //Scheme and port were checked during parsing get cmd.
                     switch (cmd.GetCmdType())
                     {
+                        case CommandType.Post:
                         case CommandType.Get:
-                            var getCmd = (GetCommand) cmd;
+                            var uriCmd = (IUriCommand) cmd;
 
-                            //Only unique sessions can be opened
-                            if (_sessions.ContainsKey(getCmd.Uri.Authority))
+                            string method = uriCmd.Method;
+                            string localPath = null;
+                            string serverPostAct = null;
+
+                            if (cmd is PostCommand)
                             {
-                                _sessions[getCmd.Uri.Authority].SendRequestAsync(getCmd.Uri);
-                                break;
+                                localPath = (cmd as PostCommand).LocalPath;
+                                serverPostAct = (cmd as PostCommand).ServerPostAct;
                             }
 
-                            var sessionHandler = new Http2SessionHandler(getCmd.Uri, useHandshake, usePrioritization, useFlowControl);
+                            //Only unique sessions can be opened
+                            if (_sessions.ContainsKey(uriCmd.Uri.Authority))
+                            {
+                                _sessions[uriCmd.Uri.Authority].SendRequestAsync(uriCmd.Uri, method, localPath, serverPostAct);
+                                return;
+                            }
+
+                            var sessionHandler = new Http2SessionHandler(environment);
 
                             //Get cmd is equivalent for connect -> get. This means, that each get request 
                             //will open new session.
-                            bool wasConnectFailed = sessionHandler.Connect();
+                            bool wasConnectFailed = sessionHandler.Connect(uriCmd.Uri);
                             if (wasConnectFailed)
                             {
                                 Console.WriteLine("Connection failed");
-                                break;
+                                return;
                             }
 
                             Task.Run(() => sessionHandler.StartConnection());
@@ -110,8 +123,8 @@ namespace Client
                                 waitForConnectionStart.WaitOne(200);
                             }
 
-                            sessionHandler.SendRequestAsync(getCmd.Uri);
-                            _sessions.Add(getCmd.Uri.Authority, sessionHandler);
+                            sessionHandler.SendRequestAsync(uriCmd.Uri, method, localPath, serverPostAct);
+                            _sessions.Add(uriCmd.Uri.Authority, sessionHandler);
                             break;
                         case CommandType.Help:
                             ((HelpCommand)cmd).ShowHelp.Invoke();
