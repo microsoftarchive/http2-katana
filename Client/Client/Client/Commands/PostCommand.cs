@@ -1,10 +1,10 @@
 ﻿using System;
 using System.Configuration;
-using Client.Commands;
+using System.IO;
 
-namespace Client
+namespace Client.Commands
 {
-    internal sealed class GetCommand : Command, IUriCommand
+    internal sealed class PostCommand : Command, IUriCommand
     {
         private Uri _uri;
         private readonly string _method;
@@ -16,23 +16,27 @@ namespace Client
 
         public string Path { get { return _uri.PathAndQuery; } }
         public string Method { get { return _method; } }
+        public string LocalPath { get; private set; }
+        public string ServerPostAct { get; private set; }
 
-        internal GetCommand(string cmdBody)
+        internal PostCommand(string cmdBody)
         {
-            _method = "get";
+            _method = "post";
             Parse(cmdBody);
         }
 
         protected override void Parse(string cmd)
         {
-            if (!cmd.Substring(7).Contains(":"))
+            if (!cmd.Substring(7, cmd.IndexOf('/', 7) - 7).Contains(":"))
                 throw new InvalidOperationException("Specify the port!");
 
             if (Uri.TryCreate(cmd, UriKind.Absolute, out _uri) == false)
             {
                 throw new InvalidOperationException("Invalid Get command!");
             }
+
             int securePort;
+
             try
             {
                 securePort = int.Parse(ConfigurationManager.AppSettings["securePort"]);
@@ -52,11 +56,22 @@ namespace Client
             {
                 throw new InvalidOperationException("Invalid scheme on port! Use https for secure port");
             }
+
+            var tmpPosition = cmd.IndexOf("\\", StringComparison.Ordinal) - 2;
+            var localPath = cmd.Substring(tmpPosition, cmd.IndexOf('-') - tmpPosition);
+
+            if (!File.Exists(localPath))
+            {
+                throw new FileNotFoundException("The file " + cmd + "doesn't exists!");
+            }
+
+            LocalPath = localPath;
+            ServerPostAct = cmd.Substring(tmpPosition);
         }
 
         internal override CommandType GetCmdType()
         {
-            return CommandType.Get;
+            return CommandType.Post;
         }
     }
 }

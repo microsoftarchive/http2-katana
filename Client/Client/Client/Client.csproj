@@ -70,7 +70,9 @@
     <Compile Include="Commands\GetCommand.cs" />
     <Compile Include="CommandParser\CommandTypes.cs" />
     <Compile Include="Commands\HelpCommand.cs" />
+    <Compile Include="Commands\IUriCommand.cs" />
     <Compile Include="Commands\PingCommand.cs" />
+    <Compile Include="Commands\PostCommand.cs" />
     <Compile Include="Commands\UnknownCommand.cs" />
     <Compile Include="GlobalSuppressions.cs" />
     <Compile Include="Http2SessionHandler.cs" />

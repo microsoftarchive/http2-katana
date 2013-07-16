@@ -1,4 +1,4 @@
-﻿namespace SharedProtocol
+﻿namespace SharedProtocol.FlowControl
 {
     enum FlowControlOptions : byte
     {

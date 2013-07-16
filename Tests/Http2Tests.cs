@@ -1,13 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Net;
 using System.Net.Sockets;
-using System.Reflection;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Http2HeadersCompression;
+using SharedProtocol.Http2HeadersCompression;
 using Org.Mentalis;
 using Org.Mentalis.Security.Ssl;
 using Org.Mentalis.Security.Ssl.Shared.Extensions;
@@ -348,7 +346,7 @@ namespace Http2Tests
 
             session.OnFrameReceived += (sender, args) =>
             {
-                if (args.Frame.IsEndStream)
+                if (args.Frame is IEndStreamFrame && ((IEndStreamFrame)args.Frame).IsEndStream)
                 {
                     finalFrameReceivedRaisedEvent.Set();
                     wasFinalFrameReceived = true;
@@ -410,7 +408,7 @@ namespace Http2Tests
 
             session.OnFrameReceived += (sender, args) =>
             {
-                if (args.Frame.IsEndStream)
+                if (args.Frame is IEndStreamFrame && ((IEndStreamFrame)args.Frame).IsEndStream)
                 {
                     finalFramesCounter++;
                     if (finalFramesCounter == streamsQuantity)
