@@ -25,15 +25,11 @@ namespace SharedProtocol.Handshake
 
             if (_end == ConnectionEnd.Client)
             {
-                if (handshakeEnvironment.ContainsKey(":path") || (handshakeEnvironment[":path"] is string)
-                    || handshakeEnvironment.ContainsKey(":method") || (handshakeEnvironment[":method"] is string)
-                    || handshakeEnvironment.ContainsKey(":host") || (handshakeEnvironment[":host"] is string)
+                if (handshakeEnvironment.ContainsKey(":host") || (handshakeEnvironment[":host"] is string)
                     || handshakeEnvironment.ContainsKey(":version") || (handshakeEnvironment[":version"] is string))
                 {
                     _headers = new Dictionary<string, string>();
 
-                    _headers.Add(":path", (string)handshakeEnvironment[":path"]);
-                    _headers.Add(":method", (string)handshakeEnvironment[":method"]);
                     _headers.Add(":host", (string)handshakeEnvironment[":host"]);
                     _headers.Add(":version", (string)handshakeEnvironment[":version"]);       
                 }
@@ -51,7 +47,7 @@ namespace SharedProtocol.Handshake
             {
                 // Build the request
                 var builder = new StringBuilder();
-                builder.AppendFormat("{0} {1} {2}\r\n", _headers[":method"], _headers[":path"], _headers[":version"]);
+                builder.AppendFormat("{0} {1} {2}\r\n", "get", "/default.html", _headers[":version"]);
                 builder.AppendFormat("Host: {0}\r\n", _headers[":host"]);
                 builder.Append("Connection: Upgrade\r\n");
                 builder.Append("Upgrade: HTTP/2.0\r\n");

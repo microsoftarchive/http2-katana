@@ -1,9 +1,11 @@
 ﻿using System.Threading;
-using Http2HeadersCompression;
+using SharedProtocol.Http2HeadersCompression;
 using Org.Mentalis.Security.Ssl;
 using SharedProtocol.Compression;
 using SharedProtocol.Framing;
 using SharedProtocol.IO;
+using SharedProtocol.Settings;
+using SharedProtocol.FlowControl;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
@@ -31,6 +33,7 @@ namespace SharedProtocol
         private bool _wasPingReceived = false;
         private List<Tuple<string, string, IAdditionalHeaderInfo>> _toBeContinuedHeaders = null;
         private Frame _toBeContinuedFrame = null;
+
         /// <summary>
         /// Gets the active streams.
         /// </summary>
@@ -304,25 +307,38 @@ namespace SharedProtocol
                         throw new NotImplementedException(frame.FrameType.ToString());
                 }
 
-                if (stream != null)
+                if (stream != null && frame is IEndStreamFrame && ((IEndStreamFrame)frame).IsEndStream)
                 {
                     //Tell the stream that it was the last frame
-                    if (frame.IsEndStream)
-                    {
-                        Console.WriteLine("Final frame received for stream with id = " + stream.Id);
-                        stream.EndStreamReceived = true;
-                    }
-
-                    if (OnFrameReceived != null)
-                    {
-                        OnFrameReceived(this, new FrameReceivedEventArgs(stream, frame));
-                    } 
+                    Console.WriteLine("Final frame received for stream with id = " + stream.Id);
+                    stream.EndStreamReceived = true;
                 }
+
+                if (OnFrameReceived != null)
+                {
+                    OnFrameReceived(this, new FrameReceivedEventArgs(stream, frame));
+                } 
             }
+
             //Frame came for already closed stream. Ignore it.
+            //Spec:
+            //An endpoint that sends RST_STREAM MUST ignore
+            //frames that it receives on closed streams if it sends RST_STREAM.
+            //
+            //An endpoint MUST NOT send frames on a closed stream.  An endpoint
+            //that receives a frame after receiving a RST_STREAM or a frame
+            //containing a END_STREAM flag on that stream MUST treat that as a
+            //stream error (Section 5.4.2) of type PROTOCOL_ERROR.
             catch (KeyNotFoundException)
             {
-                
+                if (stream != null)
+                {
+                    stream.WriteRst(ResetStatusCode.ProtocolError);
+                }
+                else
+                {
+                    //GoAway?
+                }
             }
         }
 
@@ -372,7 +388,7 @@ namespace SharedProtocol
         }
 
         /// <summary>
-        /// Sends the headers+priority with request headers.
+        /// Sends the headers with request headers.
         /// </summary>
         /// <param name="pairs">The header pairs.</param>
         /// <param name="priority">The stream priority.</param>

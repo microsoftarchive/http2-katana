@@ -6,9 +6,10 @@ using SharedProtocol.Extensions;
 using Org.Mentalis.Security.Ssl;
 using SharedProtocol;
 using SharedProtocol.ExtendedMath;
+using SharedProtocol.FlowControl;
 using SharedProtocol.Framing;
 using Xunit;
-using Http2HeadersCompression;
+using SharedProtocol.Http2HeadersCompression;
 using SharedProtocol.IO;
 
 namespace BasicTests
