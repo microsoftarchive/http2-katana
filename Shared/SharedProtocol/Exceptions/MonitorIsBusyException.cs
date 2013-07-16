@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace SharedProtocol
+namespace SharedProtocol.Exceptions
 {
     public class MonitorIsBusyException : Exception
     {

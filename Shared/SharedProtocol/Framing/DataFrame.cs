@@ -6,7 +6,7 @@ namespace SharedProtocol.Framing
     // |C|       Stream-ID (31bits)       |
     // +----------------------------------+
     // | Flags (8)  |  Length (24 bits)   |
-    public class DataFrame : Frame
+    public class DataFrame : Frame, IEndStreamFrame
     {
         // For incoming
         public DataFrame(Frame preamble)
@@ -23,6 +23,22 @@ namespace SharedProtocol.Framing
             StreamId = streamId;
             Contract.Assert(data.Array != null);
             System.Buffer.BlockCopy(data.Array, data.Offset, Buffer, Constants.FramePreambleSize, data.Count);
+        }
+
+        // 8 bits, 24-31
+        public bool IsEndStream
+        {
+            get
+            {
+                return (Flags & FrameFlags.EndStream) == FrameFlags.EndStream;
+            }
+            set
+            {
+                if (value)
+                {
+                    Flags |= FrameFlags.EndStream;
+                }
+            }
         }
 
         public ArraySegment<byte> Data

@@ -1,6 +1,7 @@
-﻿using SharedProtocol.Framing;
+﻿using SharedProtocol.FlowControl;
+using SharedProtocol.Framing;
 
-namespace SharedProtocol
+namespace SharedProtocol.Settings
 {
     /// <summary>
     /// This class is designed for incoming settings frame processing

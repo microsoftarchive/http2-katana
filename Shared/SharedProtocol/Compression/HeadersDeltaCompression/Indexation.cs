@@ -1,6 +1,6 @@
 ﻿using SharedProtocol.Compression;
 
-namespace Http2HeadersCompression
+namespace SharedProtocol.Http2HeadersCompression
 {
     public class Indexation : IAdditionalHeaderInfo
     {

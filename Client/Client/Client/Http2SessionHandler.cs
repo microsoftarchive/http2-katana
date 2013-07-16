@@ -7,7 +7,7 @@ using System.Net;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
-using Http2HeadersCompression;
+using SharedProtocol.Http2HeadersCompression;
 using Org.Mentalis;
 using Org.Mentalis.Security.Ssl;
 using Org.Mentalis.Security.Ssl.Shared.Extensions;
@@ -28,7 +28,6 @@ namespace Client
         private SecurityOptions _options;
         private Http2Session _clientSession;
         private const string _certificatePath = @"certificate.pfx";
-        private Uri _requestUri;
         private SecureSocket _socket;
         private string _selectedProtocol;
         private bool _useHttp20 = true;
@@ -39,11 +38,10 @@ namespace Client
         private readonly object _writeLock = new object();
         private const string _clientSessionHeader = @"FOO * HTTP/2.0\r\n\r\nBA\r\n\r\n";
 
-        private readonly string _method;
-        private string _path;
-        private readonly string _version;
-        private readonly string _scheme;
-        private readonly string _host;
+        private int _port;
+        private string _version;
+        private string _scheme;
+        private string _host;
 
         private static readonly string assemblyPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
 
@@ -51,27 +49,42 @@ namespace Client
             get { return _useHttp20; }
         }
 
-        public Http2SessionHandler(Uri requestUri, bool useHandshake, bool usePrioritization, bool useFlowControl)
+        public Http2SessionHandler(IDictionary<string, object> environment)
         {
-            _method = "get";
-            _path = requestUri.PathAndQuery;
-            _version = "http/1.1";
-            _scheme = requestUri.Scheme;
-            _host = requestUri.Host;
+            if (environment["useFlowControl"] is bool)
+            {
+                _useFlowControl = (bool) environment["useFlowControl"];
+            }
+            else
+            {
+                _useFlowControl = true;
+            }
+            if (environment["usePriorities"] is bool)
+            {
+                _usePriorities = (bool) environment["usePriorities"];
+            }
+            else
+            {
+                _usePriorities = true;
+            }
+            if (environment["useHandshake"] is bool)
+            {
+                _useHandshake = (bool) environment["useHandshake"];
+            }
+            else
+            {
+                _useHandshake = true;
+            }
 
-            _useFlowControl = useFlowControl;
-            _usePriorities = usePrioritization;
-            _useHandshake = useHandshake;
-            _requestUri = requestUri;
             _fileHelper = new FileHelper();
         }
 
         private IDictionary<string, object> MakeHandshakeEnvironment(SecureSocket socket)
         {
             var result = new Dictionary<string, object>();
-            result.Add(":method", _method);
+            //result.Add(":method", _method);
             result.Add(":version", _version);
-            result.Add(":path", _path);
+           // result.Add(":path", _path);
             result.Add(":scheme", _scheme);
             result.Add(":host", _host);
             result.Add("securityOptions", _options);
@@ -81,8 +94,13 @@ namespace Client
             return result;
         }
 
-        public bool Connect()
+        public bool Connect(Uri connectUri)
         {
+            _version = "http/1.1";
+            _scheme = connectUri.Scheme;
+            _host = connectUri.Host;
+            _port = connectUri.Port;
+
             bool gotException = false;
             if (_clientSession != null)
             {
@@ -93,7 +111,7 @@ namespace Client
 
             try
             {
-                int port = _requestUri.Port;
+                int port = connectUri.Port;
 
                 int securePort;
 
@@ -122,13 +140,12 @@ namespace Client
                 _options.Flags = SecurityFlags.Default;
                 _options.AllowedAlgorithms = SslAlgorithms.RSA_AES_256_SHA | SslAlgorithms.NULL_COMPRESSION;
 
-                sessionSocket = new SecureSocket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp,
-                                                 _options);
+                sessionSocket = new SecureSocket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp, _options);
 
                 using (var monitor = new ALPNExtensionMonitor())
                 {
                     monitor.OnProtocolSelected += (o, args) => { _selectedProtocol = args.SelectedProtocol; };
-                    sessionSocket.Connect(new DnsEndPoint(_requestUri.Host, _requestUri.Port), monitor);
+                    sessionSocket.Connect(new DnsEndPoint(connectUri.Host, connectUri.Port), monitor);
 
                     if (_useHandshake)
                     {
@@ -162,7 +179,7 @@ namespace Client
             catch (SocketException)
             {
                 gotException = true;
-                Console.WriteLine("Check if any server listens port " + _requestUri.Port);
+                Console.WriteLine("Check if any server listens port " + connectUri.Port);
                 Dispose();
                 return gotException;
             }
@@ -187,45 +204,63 @@ namespace Client
             _socket.Send(Encoding.UTF8.GetBytes(_clientSessionHeader));
         }
 
-        private void SubmitRequest(Uri request)
+        //localPath should be provided only for post and put cmds
+        //serverPostAct should be provided only for post cmd
+        private void SubmitRequest(Uri request, string method, string localPath = null, string serverPostAct = null)
         {
-            _path = request.PathAndQuery;
             var headers = new List<Tuple<string, string, IAdditionalHeaderInfo>>
                 {
-                    new Tuple<string, string, IAdditionalHeaderInfo>(":method", _method, new Indexation(IndexationType.Indexed)),
-                    new Tuple<string, string, IAdditionalHeaderInfo>(":path", _path, new Indexation(IndexationType.Substitution)),
-                    new Tuple<string, string, IAdditionalHeaderInfo>(":version", _version, new Indexation(IndexationType.Incremental)),
-                    new Tuple<string, string, IAdditionalHeaderInfo>(":host", _host, new Indexation(IndexationType.Substitution)),
-                    new Tuple<string, string, IAdditionalHeaderInfo>(":scheme", _scheme, new Indexation(IndexationType.Substitution)),
+                    new Tuple<string, string, IAdditionalHeaderInfo>(":method", method,
+                                                                     new Indexation(IndexationType.Indexed)),
+                    new Tuple<string, string, IAdditionalHeaderInfo>(":path", request.PathAndQuery,
+                                                                     new Indexation(IndexationType.Substitution)),
+                    new Tuple<string, string, IAdditionalHeaderInfo>(":version", _version,
+                                                                     new Indexation(IndexationType.Incremental)),
+                    new Tuple<string, string, IAdditionalHeaderInfo>(":host", _host,
+                                                                     new Indexation(IndexationType.Substitution)),
+                    new Tuple<string, string, IAdditionalHeaderInfo>(":scheme", _scheme,
+                                                                     new Indexation(IndexationType.Substitution)),
                 };
+
+            if (method == "post" && !String.IsNullOrEmpty(localPath) && !String.IsNullOrEmpty(serverPostAct))
+            {
+                headers.Add(new Tuple<string, string, IAdditionalHeaderInfo>(":localpath", localPath,
+                                                                     new Indexation(IndexationType.Substitution)));
+                headers.Add(new Tuple<string, string, IAdditionalHeaderInfo>(":serverPostAct", serverPostAct,
+                                                                     new Indexation(IndexationType.Substitution)));
+            }
+
+            if (method == "put" && !String.IsNullOrEmpty(localPath))
+            {
+                headers.Add(new Tuple<string, string, IAdditionalHeaderInfo>(":localpath", localPath,
+                                                                     new Indexation(IndexationType.Substitution)));
+            }
 
             //Sending request with average priority
             _clientSession.SendRequest(headers, (int)Priority.Pri3, false);
         }
-        
-        public void SendRequestAsync(Uri request)
+
+        public void SendRequestAsync(Uri request, string method, string localPath = null, string serverPostAct = null)
         {
-            if (_requestUri.Host != request.Host || _requestUri.Port != request.Port ||
-                _requestUri.Scheme != request.Scheme)
+            if (_host != request.Host || _port != request.Port || _scheme != request.Scheme)
             {
                 throw new InvalidOperationException("Trying to send request to non connected address");
             }
-
-            _requestUri = request;
 
             if (_useHttp20 == false)
             {
                 Console.WriteLine("Download with Http/1.1");
 
                 //Download with http11 in another thread.
-                Task.Run(() => Http11Manager.Http11DownloadResource(_socket, _requestUri));
+                Task.Run(() => Http11Manager.Http11DownloadResource(_socket, request));
                 return;
             }
 
             //Submit request if http2 was chosen
             Console.WriteLine("Submitting request");
+
             //Submit request in the current thread, responce will be handled in the session thread.
-            SubmitRequest(_requestUri);
+            SubmitRequest(request, method, localPath, serverPostAct);
         }
 
         public TimeSpan Ping()
@@ -239,7 +274,7 @@ namespace Client
         }
 
         //Method for future usage in server push 
-        private void SendResponce(Http2Stream stream)
+        private void SendDataTo(Http2Stream stream)
         {
             byte[] binaryFile = _fileHelper.GetFile(stream.Headers.GetValue(":path"));
             int i = 0;
@@ -268,7 +303,7 @@ namespace Client
             Console.WriteLine("File sent: " + stream.Headers.GetValue(":path"));
         }
 
-        private void SaveToFile(Http2Stream stream, DataFrame dataFrame)
+        private void SaveDataFrame(Http2Stream stream, DataFrame dataFrame)
         {
             lock (_writeLock)
             {
@@ -311,12 +346,12 @@ namespace Client
             {
                 if (args.Frame is DataFrame)
                 {
-                    Task.Run(() => SaveToFile(stream, (DataFrame)args.Frame));
+                    Task.Run(() => SaveDataFrame(stream, (DataFrame)args.Frame));
                 }
 
                 if (args.Frame is Headers)
                 {
-                    Task.Run(() => SendResponce(stream));
+                    Task.Run(() => SendDataTo(stream));
                 }
             }
             catch (Exception)

@@ -1,4 +1,5 @@
 ﻿using System;
+using Client.Commands;
 
 namespace Client
 {
@@ -20,6 +21,8 @@ namespace Client
 
             switch (splittedCmd[0].ToLower())
             {
+                case "post":
+                    return  new PostCommand(cmdBody);
                 case "get":
                     return new GetCommand(cmdBody);
                 case "connect":

@@ -1,4 +1,5 @@
 ﻿using SharedProtocol.Compression;
+using SharedProtocol.FlowControl;
 using SharedProtocol.Framing;
 using SharedProtocol.IO;
 using System;
@@ -164,9 +165,10 @@ namespace SharedProtocol
         public void WriteHeadersFrame(List<Tuple<string, string, IAdditionalHeaderInfo> > headers, bool isEndStream)
         {
             Headers = headers;
-            // TODO: Prioritization re-ordering will also break decompression. Scrap the priority queue.
-            byte[] headerBytes = _compressionProc.Compress(headers, _id % 2 != 0);
+            byte[] headerBytes = null;
 
+            headerBytes = _compressionProc.Compress(headers, _id % 2 != 0);
+            
             var frame = new Headers(_id, headerBytes){IsEndHeaders = true, IsPriority = true};
 
             frame.IsEndStream = isEndStream;
