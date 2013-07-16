@@ -84,22 +84,6 @@ namespace SharedProtocol.Framing
             }
         }
 
-        // 8 bits, 24-31
-        public bool IsEndStream
-        {
-            get
-            {
-                return (Flags & FrameFlags.EndStream) == FrameFlags.EndStream;
-            }
-            set
-            {
-                if (value)
-                {
-                    Flags |= FrameFlags.EndStream;
-                }
-            }
-        }
-
         /// <summary>
         /// Gets or sets the stream id.
         /// All frames have stream Id field.

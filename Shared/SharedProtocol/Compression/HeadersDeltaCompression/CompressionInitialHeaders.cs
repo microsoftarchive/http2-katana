@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace Http2HeadersCompression
+namespace SharedProtocol.Http2HeadersCompression
 {
     internal static class CompressionInitialHeaders
     {

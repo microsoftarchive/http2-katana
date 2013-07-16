@@ -48,7 +48,9 @@ namespace SharedProtocol.Handshake
             _handshakeFinishedEventRaised = new ManualResetEvent(false);
 
             if (Options.Protocol == SecureProtocol.None)
+            {
                 HandshakeFinishedHandler(this, null);
+            }
         }
 
         public void Handshake()

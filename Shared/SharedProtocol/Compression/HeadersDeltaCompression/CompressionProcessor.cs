@@ -2,10 +2,11 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using SharedProtocol.Exceptions;
 using SharedProtocol.Extensions;
 using SharedProtocol.Compression;
 
-namespace Http2HeadersCompression
+namespace SharedProtocol.Http2HeadersCompression
 {
     //This headers compression algorithm is described in
     // https://github.com/yoavnir/compression-spec/blob/7f67f0dbecdbe65bc22f3e3b57e2d5adefeb08dd/compression-spec.txt
@@ -189,6 +190,11 @@ namespace Http2HeadersCompression
 
             foreach (var header in headersCopy)
             {
+                if (header.Item1 == null || header.Item2 == null || header.Item3 == null)
+                {
+                    throw new InvalidHeaderException(header);
+                }
+
                 CompressHeader(header, useHeadersTable);
             }
 

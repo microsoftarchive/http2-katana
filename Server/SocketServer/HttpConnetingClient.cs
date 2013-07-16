@@ -48,7 +48,7 @@ namespace SocketServer
         private readonly bool _usePriorities;
         private readonly bool _useFlowControl;
 
-        public string SelectedProtocol { get; private set; }
+        internal string SelectedProtocol { get; private set; }
 
         internal HttpConnetingClient(SecureTcpListener server, SecurityOptions options,
                                      AppFunc next, bool useHandshake, bool usePriorities, bool useFlowControl)
@@ -193,7 +193,7 @@ namespace SocketServer
             }
         }
 
-        private void SendResponce(Http2Stream stream)
+        private void SendDataTo(Http2Stream stream)
         {
             byte[] binaryFile = _fileHelper.GetFile(stream.Headers.GetValue(":path"));
             int i = 0;
@@ -222,7 +222,7 @@ namespace SocketServer
             Console.WriteLine("File sent: " + stream.Headers.GetValue(":path"));
         }
 
-        private void SaveToFile(Http2Stream stream, DataFrame dataFrame)
+        private void SaveDataFrame(Http2Stream stream, DataFrame dataFrame)
         {
             lock (_writeLock)
             {
@@ -245,12 +245,12 @@ namespace SocketServer
             {
                 if (args.Frame is DataFrame)
                 {
-                    Task.Run(() => SaveToFile(stream, (DataFrame)args.Frame));
+                    Task.Run(() => SaveDataFrame(stream, (DataFrame)args.Frame));
                 }
 
                 if (args.Frame is Headers)
                 {
-                    Task.Run(() => SendResponce(stream));
+                    Task.Run(() => SendDataTo(stream));
                 }
             }
             catch (Exception)
