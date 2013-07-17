@@ -1,28 +1,24 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace Client
+namespace Client.Commands
 {
-    internal class PingCommand : Command
+    internal sealed class PingCommand : Command
     {
         public Uri Uri { get; private set; }
 
-        internal PingCommand(string cmd)
+        internal PingCommand(string[] cmdArgs)
         {
-            Parse(cmd);
+            Parse(cmdArgs);
         }
 
         internal override CommandType GetCmdType()
         {
             return CommandType.Ping;
         }
-        protected override void Parse(string cmd)
+        protected override void Parse(string[] cmdArgs)
         {
             Uri uri;
-            if (!Uri.TryCreate(cmd, UriKind.Absolute, out uri))
+            if (!Uri.TryCreate(cmdArgs[0], UriKind.Absolute, out uri))
             {
                 throw new InvalidOperationException("Invalid ping command!");
             }

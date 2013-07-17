@@ -14,6 +14,8 @@
         Unknown = 9,
         Empty = 10,
         Ping = 11,
-        Post = 12
+        Post = 12,
+        Put = 13,
+        Delete = 14,
     }
 }

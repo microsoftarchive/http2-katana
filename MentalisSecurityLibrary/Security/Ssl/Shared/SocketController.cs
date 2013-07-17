@@ -481,7 +481,6 @@ namespace Org.Mentalis.Security.Ssl.Shared {
 		private TransferItem m_ActiveSend;
 		private TransferItem m_ActiveReceive;
 		private AsyncResult m_ShutdownCallback;
-	    private AsyncResult m_ReceiveAsyncResult;
 		private bool m_IsDisposed;
 		private bool m_IsSending;
 		private bool m_IsShuttingDown;

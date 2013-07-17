@@ -14,17 +14,19 @@ namespace Client
                 return new EmptyCommand();
             }
 
-            var joinedCmd = new string[splittedCmd.Length - 1];
-            Array.Copy(splittedCmd, 1, joinedCmd, 0, joinedCmd.Length);
-
-            var cmdBody = String.Concat(joinedCmd).Trim();
+            var cmdArgs = new string[splittedCmd.Length - 1];
+            Array.Copy(splittedCmd, 1, cmdArgs, 0, cmdArgs.Length);
 
             switch (splittedCmd[0].ToLower())
             {
                 case "post":
-                    return  new PostCommand(cmdBody);
+                    return new PostCommand(cmdArgs);
+                case "put":
+                    return new PutCommand(cmdArgs);
                 case "get":
-                    return new GetCommand(cmdBody);
+                    return new GetCommand(cmdArgs);
+                case "delete":
+                    return new DeleteCommand(cmdArgs);
                 case "connect":
                     break;
                 case "disconnect":
@@ -36,11 +38,11 @@ namespace Client
                 case "dir":
                     break;
                 case "help":
-                    return new HelpCommand(cmdBody);
+                    return new HelpCommand(cmdArgs);
                 case "exit":
                     return new ExitCommand();
                 case "ping":
-                    return new PingCommand(cmdBody);
+                    return new PingCommand(cmdArgs);
             }
             return new UnknownCommand(splittedCmd[0]);
         }

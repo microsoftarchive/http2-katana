@@ -63,6 +63,7 @@
     <Compile Include="EventArgs\FrameReceivedEventArgs.cs" />
     <Compile Include="EventArgs\FrameSentArgs.cs" />
     <Compile Include="EventArgs\Http11ResourceDownloadedEventArgs.cs" />
+    <Compile Include="EventArgs\RequestSentEventArgs.cs" />
     <Compile Include="EventArgs\SettingsSentEventArgs.cs" />
     <Compile Include="EventArgs\StreamClosedEventArgs.cs" />
     <Compile Include="Exceptions\HTTP2HandshakeFailed.cs" />
@@ -70,7 +71,6 @@
     <Compile Include="Exceptions\MonitorIsBusyException.cs" />
     <Compile Include="ExtendedMath\MathEx.cs" />
     <Compile Include="Extensions\Int32Extensions.cs" />
-    <Compile Include="Extensions\KeyValuePairExtensions.cs" />
     <Compile Include="Extensions\ListExtensions.cs" />
     <Compile Include="FlowControl\FlowControlManager.cs" />
     <Compile Include="FlowControl\FlowControlOptions.cs" />
@@ -87,6 +87,8 @@
     <Compile Include="IO\PriorityQueueEntry.cs" />
     <Compile Include="IO\QueueEntry.cs" />
     <Compile Include="IO\QueueWrapper.cs" />
+    <Compile Include="Pages\AccessDenied401.cs" />
+    <Compile Include="Pages\NotFound404.cs" />
     <Compile Include="Settings\SettingsManager.cs" />
     <Compile Include="Framing\DataFrame.cs" />
     <Compile Include="Framing\Frame.cs" />

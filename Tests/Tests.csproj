@@ -136,6 +136,9 @@
     <Compile Include="..\Shared\SharedProtocol\EventArgs\Http11ResourceDownloadedEventArgs.cs">
       <Link>Sources\Http11ResourceDownloadedEventArgs.cs</Link>
     </Compile>
+    <Compile Include="..\Shared\SharedProtocol\EventArgs\RequestSentEventArgs.cs">
+      <Link>Sources\RequestSentEventArgs.cs</Link>
+    </Compile>
     <Compile Include="..\Shared\SharedProtocol\EventArgs\SettingsSentEventArgs.cs">
       <Link>Sources\SettingsSentEventArgs.cs</Link>
     </Compile>
@@ -156,9 +159,6 @@
     </Compile>
     <Compile Include="..\Shared\SharedProtocol\Extensions\Int32Extensions.cs">
       <Link>Sources\Int32Extensions.cs</Link>
-    </Compile>
-    <Compile Include="..\Shared\SharedProtocol\Extensions\KeyValuePairExtensions.cs">
-      <Link>Sources\KeyValuePairExtensions.cs</Link>
     </Compile>
     <Compile Include="..\Shared\SharedProtocol\Extensions\ListExtensions.cs">
       <Link>Sources\ListExtensions.cs</Link>
@@ -280,6 +280,12 @@
     <Compile Include="..\Shared\SharedProtocol\IO\WriteQueue.cs">
       <Link>Sources\WriteQueue.cs</Link>
     </Compile>
+    <Compile Include="..\Shared\SharedProtocol\Pages\AccessDenied401.cs">
+      <Link>Sources\AccessDenied401.cs</Link>
+    </Compile>
+    <Compile Include="..\Shared\SharedProtocol\Pages\NotFound404.cs">
+      <Link>Sources\NotFound404.cs</Link>
+    </Compile>
     <Compile Include="..\Shared\SharedProtocol\Settings\SettingsManager.cs">
       <Link>Sources\SettingsManager.cs</Link>
     </Compile>
@@ -313,7 +319,7 @@
   <PropertyGroup>
     <PostBuildEvent>copy /y "$(SolutionDir)Drop\certificate.pfx"  "$(TargetDir)\certificate.pfx"
 
-xcopy "$(ProjectDir)root"  "$(TargetDir)root" /S /F /R /Y /I</PostBuildEvent>
+xcopy "$(ProjectDir)Root"  "$(TargetDir)Root" /S /F /R /Y /I</PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

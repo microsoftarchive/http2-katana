@@ -1,6 +1,6 @@
-﻿namespace Client
+﻿namespace Client.Commands
 {
-    internal class UnknownCommand : Command
+    internal sealed class UnknownCommand : Command
     {
         public string UnknownCmd { get; private set; }
 
@@ -14,7 +14,7 @@
             return CommandType.Unknown;
         }
 
-        protected override void Parse(string cmd)
+        protected override void Parse(string[] cmdArgs)
         {
             
         }

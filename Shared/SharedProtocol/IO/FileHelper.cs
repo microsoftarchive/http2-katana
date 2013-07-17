@@ -2,16 +2,19 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
+using Org.Mentalis.Security.Ssl;
 
 namespace SharedProtocol.IO
 {
     public class FileHelper : IDisposable
     {
-        private Dictionary<string, FileStream> _pathStreamDict;
+        private readonly Dictionary<string, FileStream> _pathStreamDict;
+        private readonly ConnectionEnd _end;
 
-        public FileHelper()
+        public FileHelper(ConnectionEnd end)
         {
             _pathStreamDict = new Dictionary<string, FileStream>(5);
+            _end = end;
         }
 
         /// <summary>
@@ -25,14 +28,24 @@ namespace SharedProtocol.IO
             //Remove file:// from Assembly.GetExecutingAssembly().CodeBase
             string assemblyPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().CodeBase.Substring(8));
             
-            const string rootPath = @"\root";
+            const string rootPath = @"\Root";
 
-            if (!File.Exists(assemblyPath + rootPath + localPath))
+            string path = null;
+
+            if (_end == ConnectionEnd.Server)
+            {
+                path = assemblyPath + rootPath + localPath;
+            }
+            else
+            {
+                path = localPath;
+            }
+
+            if (!File.Exists(path))
             {
                 throw new FileNotFoundException("Requested file not found");
             }
-
-            return File.ReadAllBytes(assemblyPath + rootPath + localPath);
+            return File.ReadAllBytes(path);
         }
 
         /// <summary>
@@ -62,8 +75,11 @@ namespace SharedProtocol.IO
 
         public void RemoveStream(string path)
         {
-            _pathStreamDict[path].Close();
-            _pathStreamDict.Remove(path);
+            if (_pathStreamDict.ContainsKey(path))
+            {            
+                _pathStreamDict[path].Close();
+                _pathStreamDict.Remove(path);
+            }
         }
 
         public void Dispose()

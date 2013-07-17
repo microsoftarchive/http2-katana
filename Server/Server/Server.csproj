@@ -112,9 +112,9 @@
   <PropertyGroup>
     <PostBuildEvent>copy /y "$(TargetPath)" "$(SolutionDir)Drop\$(TargetFileName)"
 copy /y "$(ProjectDir)\certificate.pfx" "$(SolutionDir)Drop\certificate.pfx"
-mkdir "$(SolutionDir)Drop\root"
-copy /y "$(ProjectDir)\root\test.txt" "$(SolutionDir)Drop\root\test.txt"
-copy /y "$(ProjectDir)\root\10mbTest.txt" "$(SolutionDir)Drop\root\10mbTest.txt"
+mkdir "$(SolutionDir)Drop\Root"
+copy /y "$(ProjectDir)\Root\test.txt" "$(SolutionDir)Drop\Root\test.txt"
+copy /y "$(ProjectDir)\Root\10mbTest.txt" "$(SolutionDir)Drop\Root\10mbTest.txt"
 copy /y "$(ProjectDir)\certificate.pfx" "$(TargetDir)\certificate.pfx"
 copy /y "$(TargetDir)\Server.exe.config" "$(SolutionDir)Drop\Server.exe.config"
 mkdir "$(TargetDir)\root"
