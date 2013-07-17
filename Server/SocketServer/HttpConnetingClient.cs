@@ -15,7 +15,6 @@ using System.Text;
 using System.Threading.Tasks;
 using Org.Mentalis;
 using Org.Mentalis.Security.Ssl;
-using Org.Mentalis.Security.Ssl.Shared;
 using ServerProtocol;
 using SharedProtocol;
 using SharedProtocol.Exceptions;
@@ -25,6 +24,7 @@ using SharedProtocol.Framing;
 using SharedProtocol.Handshake;
 using SharedProtocol.Http11;
 using SharedProtocol.IO;
+using SharedProtocol.Pages;
 
 namespace SocketServer
 {
@@ -60,7 +60,7 @@ namespace SocketServer
             _server = server;
             _next = next;
             _options = options;
-            _fileHelper = new FileHelper();
+            _fileHelper = new FileHelper(ConnectionEnd.Server);
         }
 
         private IDictionary<string, object> MakeHandshakeEnvironment(SecureSocket incomingClient)
@@ -193,25 +193,24 @@ namespace SocketServer
             }
         }
 
-        private void SendDataTo(Http2Stream stream)
+        private void SendDataTo(Http2Stream stream, byte[] binaryData)
         {
-            byte[] binaryFile = _fileHelper.GetFile(stream.Headers.GetValue(":path"));
             int i = 0;
 
             Console.WriteLine("Transfer begin");
 
-            while (binaryFile.Length > i)
+            while (binaryData.Length > i)
             {
-                bool isLastData = binaryFile.Length - i < Constants.MaxDataFrameContentSize;
+                bool isLastData = binaryData.Length - i < Constants.MaxDataFrameContentSize;
 
                 int chunkSize = stream.WindowSize > 0
                                 ?
-                                    MathEx.Min(binaryFile.Length - i, Constants.MaxDataFrameContentSize, stream.WindowSize)
+                                    MathEx.Min(binaryData.Length - i, Constants.MaxDataFrameContentSize, stream.WindowSize)
                                 :
-                                    MathEx.Min(binaryFile.Length - i, Constants.MaxDataFrameContentSize);
+                                    MathEx.Min(binaryData.Length - i, Constants.MaxDataFrameContentSize);
 
                 var chunk = new byte[chunkSize];
-                Buffer.BlockCopy(binaryFile, i, chunk, 0, chunk.Length);
+                Buffer.BlockCopy(binaryData, i, chunk, 0, chunk.Length);
 
                 stream.WriteDataFrame(chunk, isLastData);
 
@@ -226,31 +225,85 @@ namespace SocketServer
         {
             lock (_writeLock)
             {
-                var path = stream.Headers.GetValue(":path");
+                string path = stream.Headers.GetValue(":path".ToLower());
 
-                if (dataFrame.Data.Count != 0)
+                try
                 {
-                    _fileHelper.SaveToFile(dataFrame.Data.Array, dataFrame.Data.Offset, dataFrame.Data.Count,
-                                           assemblyPath + path, stream.ReceivedDataAmount != 0);
+                    if (dataFrame.Data.Count != 0)
+                    {
+                        _fileHelper.SaveToFile(dataFrame.Data.Array, dataFrame.Data.Offset, dataFrame.Data.Count,
+                                               assemblyPath + @"\Root" + path, stream.ReceivedDataAmount != 0);
+                    }
+                }
+                catch (IOException)
+                {
+                    Console.WriteLine("File is still downloading. Repeat request later");
+                    stream.WriteDataFrame(new byte[0], true);
+                    stream.Dispose();
                 }
 
                 stream.ReceivedDataAmount += dataFrame.FrameLength;
+
+                if (dataFrame.IsEndStream)
+                {
+                    if (!stream.EndStreamSent)
+                    {
+                        //send terminator
+                        stream.WriteDataFrame(new byte[0], true);
+                        Console.WriteLine("Terminator was sent");
+                    }
+                    _fileHelper.RemoveStream(assemblyPath + @"\Root" + path);
+                }
             }
         }
 
         private void FrameReceivedHandler(object sender, FrameReceivedEventArgs args)
         {
             var stream = args.Stream;
+            var method = stream.Headers.GetValue(":method");
+
             try
             {
                 if (args.Frame is DataFrame)
                 {
-                    Task.Run(() => SaveDataFrame(stream, (DataFrame)args.Frame));
-                }
-
-                if (args.Frame is Headers)
+                    switch (method)
+                    {
+                        case "post":
+                            //Task.Run(() => PerformPostAction(stream, (DataFrame)args.Frame));
+                            //break;
+                        case "put":
+                            Task.Run(() => SaveDataFrame(stream, (DataFrame)args.Frame));
+                            break;
+                    }
+                } 
+                else if (args.Frame is Headers)
                 {
-                    Task.Run(() => SendDataTo(stream));
+                    switch (method)
+                    {
+                        case "get":
+                            Task.Run(() =>
+                                {
+                                    byte[] binary = null;
+
+                                    try
+                                    {
+                                        binary = _fileHelper.GetFile(stream.Headers.GetValue(":path"));
+                                    }
+                                    catch (FileNotFoundException)
+                                    {
+                                        binary = new NotFound404().Bytes;
+                                    }
+                                    SendDataTo(stream, binary);
+                                });
+                            break;
+                        case "delete":
+                            Task.Run(() =>
+                            {
+                                var binary = new AccessDenied401().Bytes;
+                                SendDataTo(stream, binary);
+                            });
+                            break;
+                    }
                 }
             }
             catch (Exception)

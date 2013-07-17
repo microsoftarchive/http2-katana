@@ -1,9 +1,10 @@
 ﻿using System;
 using System.Configuration;
+using System.IO;
 
 namespace Client.Commands
 {
-    internal sealed class GetCommand : Command, IUriCommand
+    internal sealed class PutCommand : Command, IUriCommand
     {
         private Uri _uri;
         private readonly string _method;
@@ -14,20 +15,21 @@ namespace Client.Commands
         }
 
         public string Path { get { return _uri.PathAndQuery; } }
+        public string LocalPath { get; private set; }
         public string Method { get { return _method; } }
 
-        internal GetCommand(string[] cmdArgs)
+        internal PutCommand(string[] cmdArgs)
         {
-            _method = "get";
+            _method = "put";
             Parse(cmdArgs);
         }
 
         protected override void Parse(string[] cmdArgs)
         {
             //If port wasn't specified then it will be 80.
-            if (cmdArgs.Length != 1 || Uri.TryCreate(cmdArgs[0], UriKind.Absolute, out _uri) == false)
+            if (cmdArgs.Length != 2 || Uri.TryCreate(cmdArgs[0], UriKind.Absolute, out _uri) == false)
             {
-                throw new InvalidOperationException("Invalid Get command!");
+                throw new InvalidOperationException("Invalid Put command!");
             }
 
             int securePort;
@@ -50,11 +52,18 @@ namespace Client.Commands
             {
                 throw new InvalidOperationException("Invalid scheme on port! Use https for secure port");
             }
+
+            LocalPath = cmdArgs[1];
+
+            if (!File.Exists(LocalPath))
+            {
+                throw new FileNotFoundException(String.Format("The file {0} doesn't exists!", LocalPath));
+            }
         }
 
         internal override CommandType GetCmdType()
         {
-            return CommandType.Get;
+            return CommandType.Put;
         }
     }
 }

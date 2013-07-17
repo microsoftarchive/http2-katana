@@ -46,12 +46,14 @@ namespace Client
     /// </summary>   
     public class Program
     {
-        private static Dictionary<string, Http2SessionHandler> _sessions;
+        private static Dictionary<string, Http2SessionHandler> sessions;
         private static IDictionary<string, object> environment;
 
         public static void Main(string[] args)
         {
-            _sessions = new Dictionary<string, Http2SessionHandler>();
+            Console.SetWindowSize(125, 29);
+
+            sessions = new Dictionary<string, Http2SessionHandler>();
             var argsList = new List<string>(args);
 
             environment = new Dictionary<string, object>
@@ -76,7 +78,7 @@ namespace Client
                     {
                         cmd = CommandParser.Parse(command);
                     }
-                    catch (InvalidOperationException ex)
+                    catch (Exception ex)
                     {
                         Console.WriteLine(ex.Message);
                         continue;
@@ -84,8 +86,10 @@ namespace Client
                     //Scheme and port were checked during parsing get cmd.
                     switch (cmd.GetCmdType())
                     {
+                        case CommandType.Put:
                         case CommandType.Post:
                         case CommandType.Get:
+                        case CommandType.Delete:
                             var uriCmd = (IUriCommand) cmd;
 
                             string method = uriCmd.Method;
@@ -97,12 +101,16 @@ namespace Client
                                 localPath = (cmd as PostCommand).LocalPath;
                                 serverPostAct = (cmd as PostCommand).ServerPostAct;
                             }
+                            else if (cmd is PutCommand)
+                            {
+                                localPath = (cmd as PutCommand).LocalPath;
+                            }
 
                             //Only unique sessions can be opened
-                            if (_sessions.ContainsKey(uriCmd.Uri.Authority))
+                            if (sessions.ContainsKey(uriCmd.Uri.Authority))
                             {
-                                _sessions[uriCmd.Uri.Authority].SendRequestAsync(uriCmd.Uri, method, localPath, serverPostAct);
-                                return;
+                                sessions[uriCmd.Uri.Authority].SendRequestAsync(uriCmd.Uri, method, localPath, serverPostAct);
+                                break;
                             }
 
                             var sessionHandler = new Http2SessionHandler(environment);
@@ -113,7 +121,7 @@ namespace Client
                             if (wasConnectFailed)
                             {
                                 Console.WriteLine("Connection failed");
-                                return;
+                                break;
                             }
 
                             Task.Run(() => sessionHandler.StartConnection());
@@ -124,19 +132,19 @@ namespace Client
                             }
 
                             sessionHandler.SendRequestAsync(uriCmd.Uri, method, localPath, serverPostAct);
-                            _sessions.Add(uriCmd.Uri.Authority, sessionHandler);
+                            sessions.Add(uriCmd.Uri.Authority, sessionHandler);
                             break;
                         case CommandType.Help:
                             ((HelpCommand)cmd).ShowHelp.Invoke();
                             break;
                         case CommandType.Ping:
-                            _sessions[((PingCommand)cmd).Uri.Authority].Ping();
+                            sessions[((PingCommand)cmd).Uri.Authority].Ping();
                             break;
                         case CommandType.Exit:
-                            foreach (var sessionUri in _sessions.Keys)
+                            foreach (var sessionUri in sessions.Keys)
                             {
-                                _sessions[sessionUri].Dispose();
-                                _sessions.Remove(sessionUri);
+                                sessions[sessionUri].Dispose();
+                                sessions.Remove(sessionUri);
                             }
                             return;
                     }

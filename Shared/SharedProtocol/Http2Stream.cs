@@ -168,11 +168,14 @@ namespace SharedProtocol
             byte[] headerBytes = null;
 
             headerBytes = _compressionProc.Compress(headers, _id % 2 != 0);
-            
-            var frame = new Headers(_id, headerBytes){IsEndHeaders = true, IsPriority = true};
 
-            frame.IsEndStream = isEndStream;
-            frame.Priority = Priority;
+            var frame = new Headers(_id, headerBytes)
+                {
+                    IsEndHeaders = true,
+                    IsPriority = true,
+                    IsEndStream = isEndStream,
+                    Priority = Priority
+                };
 
             if (frame.IsEndStream)
             {

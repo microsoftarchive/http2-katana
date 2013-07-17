@@ -315,10 +315,12 @@ namespace Http2Tests
         [Fact]
         public void StartMultipleSessionAndSendMultipleRequests()
         {
-            for (int i = 0; i < 5; i++)
+            var tests = new List<Task>();
+            for (int i = 0; i < 4; i++)
             {
-                Task.Run(() => StartSessionAndSendRequestSuccessful());
+                tests.Add(Task.Run(() => StartSessionAndSendRequestSuccessful()));
             }
+            Task.WhenAll(tests).Wait();
         }
 
         [Fact]
@@ -370,10 +372,12 @@ namespace Http2Tests
         [Fact]
         public void StartMultipleSessionsAndGet40MbDataSuccessful()
         {
+            var tests = new List<Task>();
             for (int i = 0; i < 4; i++)
             {
-                Task.Run(() => StartSessionAndGet10MbDataSuccessful());
+                tests.Add(Task.Run(() => StartSessionAndGet10MbDataSuccessful()));
             }
+            Task.WhenAll(tests).Wait();
         }
 
         [Theory]

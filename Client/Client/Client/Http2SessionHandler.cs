@@ -20,6 +20,7 @@ using SharedProtocol.Framing;
 using SharedProtocol.Handshake;
 using SharedProtocol.Http11;
 using SharedProtocol.IO;
+using SharedProtocol.Pages;
 
 namespace Client
 {
@@ -28,6 +29,7 @@ namespace Client
         private SecurityOptions _options;
         private Http2Session _clientSession;
         private const string _certificatePath = @"certificate.pfx";
+        private const string _notFound = @"notFound.html";
         private SecureSocket _socket;
         private string _selectedProtocol;
         private bool _useHttp20 = true;
@@ -76,20 +78,20 @@ namespace Client
                 _useHandshake = true;
             }
 
-            _fileHelper = new FileHelper();
+            _fileHelper = new FileHelper(ConnectionEnd.Client);
         }
 
         private IDictionary<string, object> MakeHandshakeEnvironment(SecureSocket socket)
         {
-            var result = new Dictionary<string, object>();
-            //result.Add(":method", _method);
-            result.Add(":version", _version);
-           // result.Add(":path", _path);
-            result.Add(":scheme", _scheme);
-            result.Add(":host", _host);
-            result.Add("securityOptions", _options);
-            result.Add("secureSocket", socket);
-            result.Add("end", ConnectionEnd.Client);
+            var result = new Dictionary<string, object>
+			{
+					{":version", _version},
+                    {":scheme", _scheme},
+                    {":host", _host},
+                    {"securityOptions", _options},
+                    {"secureSocket", socket},
+                    {"end", ConnectionEnd.Client}
+			};
 
             return result;
         }
@@ -102,12 +104,11 @@ namespace Client
             _port = connectUri.Port;
 
             bool gotException = false;
+
             if (_clientSession != null)
             {
                 return gotException;
             }
-
-            SecureSocket sessionSocket = null;
 
             try
             {
@@ -140,7 +141,7 @@ namespace Client
                 _options.Flags = SecurityFlags.Default;
                 _options.AllowedAlgorithms = SslAlgorithms.RSA_AES_256_SHA | SslAlgorithms.NULL_COMPRESSION;
 
-                sessionSocket = new SecureSocket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp, _options);
+                var sessionSocket = new SecureSocket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp, _options);
 
                 using (var monitor = new ALPNExtensionMonitor())
                 {
@@ -157,7 +158,6 @@ namespace Client
 
                         if (_selectedProtocol == "http/1.1")
                         {
-                            gotException = false;
                             _useHttp20 = false;
                             return gotException;
                         }
@@ -171,6 +171,7 @@ namespace Client
 
                 //For saving incoming data
                 _clientSession.OnFrameReceived += FrameReceivedHandler;
+                _clientSession.OnRequestSent += RequestSentHandler;
             }
             catch (Http2HandshakeFailed)
             {
@@ -222,17 +223,15 @@ namespace Client
                                                                      new Indexation(IndexationType.Substitution)),
                 };
 
-            if (method == "post" && !String.IsNullOrEmpty(localPath) && !String.IsNullOrEmpty(serverPostAct))
+            if (!String.IsNullOrEmpty(localPath))
             {
-                headers.Add(new Tuple<string, string, IAdditionalHeaderInfo>(":localpath", localPath,
-                                                                     new Indexation(IndexationType.Substitution)));
-                headers.Add(new Tuple<string, string, IAdditionalHeaderInfo>(":serverPostAct", serverPostAct,
+                headers.Add(new Tuple<string, string, IAdditionalHeaderInfo>(":localPath".ToLower(), localPath,
                                                                      new Indexation(IndexationType.Substitution)));
             }
 
-            if (method == "put" && !String.IsNullOrEmpty(localPath))
+            if (!String.IsNullOrEmpty(serverPostAct))
             {
-                headers.Add(new Tuple<string, string, IAdditionalHeaderInfo>(":localpath", localPath,
+                headers.Add(new Tuple<string, string, IAdditionalHeaderInfo>(":serverPostAct".ToLower(), serverPostAct,
                                                                      new Indexation(IndexationType.Substitution)));
             }
 
@@ -274,25 +273,24 @@ namespace Client
         }
 
         //Method for future usage in server push 
-        private void SendDataTo(Http2Stream stream)
+        private void SendDataTo(Http2Stream stream, byte[] binaryData)
         {
-            byte[] binaryFile = _fileHelper.GetFile(stream.Headers.GetValue(":path"));
             int i = 0;
 
             Console.WriteLine("Transfer begin");
 
-            while (binaryFile.Length > i)
+            while (binaryData.Length > i)
             {
-                bool isLastData = binaryFile.Length - i < Constants.MaxDataFrameContentSize;
+                bool isLastData = binaryData.Length - i < Constants.MaxDataFrameContentSize;
 
                 int chunkSize = stream.WindowSize > 0
                                 ?
-                                    MathEx.Min(binaryFile.Length - i, Constants.MaxDataFrameContentSize, stream.WindowSize)
+                                    MathEx.Min(binaryData.Length - i, Constants.MaxDataFrameContentSize, stream.WindowSize)
                                 :
-                                    MathEx.Min(binaryFile.Length - i, Constants.MaxDataFrameContentSize);
+                                    MathEx.Min(binaryData.Length - i, Constants.MaxDataFrameContentSize);
 
                 var chunk = new byte[chunkSize];
-                Buffer.BlockCopy(binaryFile, i, chunk, 0, chunk.Length);
+                Buffer.BlockCopy(binaryData, i, chunk, 0, chunk.Length);
 
                 stream.WriteDataFrame(chunk, isLastData);
 
@@ -307,7 +305,7 @@ namespace Client
         {
             lock (_writeLock)
             {
-                var path = stream.Headers.GetValue(":path");
+                string path = stream.Headers.GetValue(":path".ToLower());
 
                 try
                 {
@@ -339,19 +337,62 @@ namespace Client
             }
         }
 
-        private void FrameReceivedHandler(object handler, FrameReceivedEventArgs args)
+        private void RequestSentHandler(object sender, RequestSentEventArgs args)
         {
             var stream = args.Stream;
+            var method = stream.Headers.GetValue(":method");
+            if (method == "put" || method == "post")
+            {
+                var localPath = stream.Headers.GetValue(":localPath".ToLower());
+                Task.Run(() =>
+                    {
+                        byte[] binary = null;
+                        bool gotException = false;
+                        try
+                        {
+                            binary = _fileHelper.GetFile(localPath);
+                        }
+                        catch (FileNotFoundException)
+                        {
+                            gotException = true;
+                            Console.WriteLine("Specified file not found: {0}", localPath);
+                        }
+                        if (!gotException)
+                        {
+                            SendDataTo(args.Stream, binary);
+                        }
+                    });
+            }
+        }
+
+        private void FrameReceivedHandler(object sender, FrameReceivedEventArgs args)
+        {
+            var stream = args.Stream;
+            var method = stream.Headers.GetValue(":method");
+
             try
             {
                 if (args.Frame is DataFrame)
                 {
                     Task.Run(() => SaveDataFrame(stream, (DataFrame)args.Frame));
                 }
-
-                if (args.Frame is Headers)
+                else if (args.Frame is Headers && method == "get")
                 {
-                    Task.Run(() => SendDataTo(stream));
+                    Task.Run(() =>
+                    {
+                        string path = stream.Headers.GetValue(":path".ToLower());
+                        byte[] binary = null;
+
+                        try
+                        {
+                            binary = _fileHelper.GetFile(path);
+                        }
+                        catch (FileNotFoundException)
+                        {
+                            binary = new NotFound404().Bytes;
+                        }
+                        SendDataTo(stream, binary);
+                    });
                 }
             }
             catch (Exception)

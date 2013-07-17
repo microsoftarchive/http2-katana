@@ -47,7 +47,7 @@ namespace SharedProtocol.Handshake
             {
                 // Build the request
                 var builder = new StringBuilder();
-                builder.AppendFormat("{0} {1} {2}\r\n", "get", "/default.html", _headers[":version"]);
+                builder.AppendFormat("{0} {1} {2}\r\n", "get", "/default.html", "HTTP/1.1");
                 builder.AppendFormat("Host: {0}\r\n", _headers[":host"]);
                 builder.Append("Connection: Upgrade\r\n");
                 builder.Append("Upgrade: HTTP/2.0\r\n");

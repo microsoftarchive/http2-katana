@@ -19,20 +19,17 @@ namespace Client.Commands
         public string LocalPath { get; private set; }
         public string ServerPostAct { get; private set; }
 
-        internal PostCommand(string cmdBody)
+        internal PostCommand(string[] cmdArgs)
         {
             _method = "post";
-            Parse(cmdBody);
+            Parse(cmdArgs);
         }
 
-        protected override void Parse(string cmd)
+        protected override void Parse(string[] cmdArgs)
         {
-            if (!cmd.Substring(7, cmd.IndexOf('/', 7) - 7).Contains(":"))
-                throw new InvalidOperationException("Specify the port!");
-
-            if (Uri.TryCreate(cmd, UriKind.Absolute, out _uri) == false)
+            if (cmdArgs.Length != 2 || Uri.TryCreate(cmdArgs[0], UriKind.Absolute, out _uri) == false)
             {
-                throw new InvalidOperationException("Invalid Get command!");
+                throw new InvalidOperationException("Invalid Post command!");
             }
 
             int securePort;
@@ -57,16 +54,14 @@ namespace Client.Commands
                 throw new InvalidOperationException("Invalid scheme on port! Use https for secure port");
             }
 
-            var tmpPosition = cmd.IndexOf("\\", StringComparison.Ordinal) - 2;
-            var localPath = cmd.Substring(tmpPosition, cmd.IndexOf('-') - tmpPosition);
+            ServerPostAct = _uri.PathAndQuery;
 
-            if (!File.Exists(localPath))
+            LocalPath = cmdArgs[1];
+
+            if (!File.Exists(LocalPath))
             {
-                throw new FileNotFoundException("The file " + cmd + "doesn't exists!");
+                throw new FileNotFoundException(String.Format("The file {0} doesn't exists!", LocalPath));
             }
-
-            LocalPath = localPath;
-            ServerPostAct = cmd.Substring(tmpPosition);
         }
 
         internal override CommandType GetCmdType()

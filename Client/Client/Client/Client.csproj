@@ -65,6 +65,7 @@
     <Compile Include="CommandParser\CommandParser.cs" />
     <Compile Include="CommandParser\HelpDisplayer.cs" />
     <Compile Include="Commands\Command.cs" />
+    <Compile Include="Commands\DeleteCommand.cs" />
     <Compile Include="Commands\EmptyCommand.cs" />
     <Compile Include="Commands\ExitCommand.cs" />
     <Compile Include="Commands\GetCommand.cs" />
@@ -73,6 +74,7 @@
     <Compile Include="Commands\IUriCommand.cs" />
     <Compile Include="Commands\PingCommand.cs" />
     <Compile Include="Commands\PostCommand.cs" />
+    <Compile Include="Commands\PutCommand.cs" />
     <Compile Include="Commands\UnknownCommand.cs" />
     <Compile Include="GlobalSuppressions.cs" />
     <Compile Include="Http2SessionHandler.cs" />

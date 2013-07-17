@@ -1,14 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Client
+﻿namespace Client.Commands
 {
-    internal class EmptyCommand : Command
+    internal sealed class EmptyCommand : Command
     {
-        protected override void Parse(string cmd)
+        protected override void Parse(string[] cmdArgs)
         {
         }
 

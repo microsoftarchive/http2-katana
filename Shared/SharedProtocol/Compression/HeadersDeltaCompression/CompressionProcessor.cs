@@ -90,7 +90,8 @@ namespace SharedProtocol.Http2HeadersCompression
         private void CompressNonIndexed(string headerName, string headerValue, IndexationType headerType, byte prefix,
                                         List<KeyValuePair<string, string>> useHeadersTable)
         {
-            int index = useHeadersTable.GetIndex(kv => kv.Key == headerName);
+            Predicate<KeyValuePair<string, string>> predicate = kv => kv.Key == headerName;
+            int index = useHeadersTable.FindIndex(predicate);
 
             byte nameLenBinary = 0; // headers cant be more then 255 characters length
             byte[] nameBinary = new byte[0];
@@ -144,7 +145,8 @@ namespace SharedProtocol.Http2HeadersCompression
 
         private void CompressIndexed(KeyValuePair<string, string> header, List<KeyValuePair<string, string>> useHeadersTable)
         {
-            int index = useHeadersTable.GetIndex(kv => kv.Key == header.Key && kv.Value == header.Value);
+            Predicate<KeyValuePair<string, string>> predicate = kv => kv.Key == header.Key;
+            int index = useHeadersTable.FindIndex(predicate);
             const byte prefix = 7;
             var bytes = index.ToUVarInt(prefix);
 

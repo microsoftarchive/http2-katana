@@ -1,30 +1,37 @@
 ﻿using System;
 
-namespace Client
+namespace Client.Commands
 {
-    internal class HelpCommand : Command
+    internal sealed class HelpCommand : Command
     {
         public Action ShowHelp { get; private set; }
 
-        internal HelpCommand(string cmdBody)
+        internal HelpCommand(string[] cmdArgs)
         {
-            Parse(cmdBody);
+            Parse(cmdArgs);
         }
+
         internal override CommandType GetCmdType()
         {
             return CommandType.Help;
         }
 
-        protected override void Parse(string cmdBody)
+        protected override void Parse(string[] cmdArgs)
         {
-            if (String.IsNullOrEmpty(cmdBody))
+            if (cmdArgs.Length == 0)
             {
                 ShowHelp = HelpDisplayer.ShowMainMenuHelp;
                 return;
             }
 
-            switch (cmdBody.ToLower())
+            switch (cmdArgs[0].ToLower())
             {
+                case "put":
+                    ShowHelp = HelpDisplayer.ShowPutCommandHelp;
+                    break;
+                case "post":
+                    ShowHelp = HelpDisplayer.ShowPostCommandHelp;
+                    break;
                 case "get":
                     ShowHelp = HelpDisplayer.ShowGetCommandHelp;
                     break;
