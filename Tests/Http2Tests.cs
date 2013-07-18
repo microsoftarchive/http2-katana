@@ -187,9 +187,9 @@ namespace Http2Tests
 
         protected static Http2Stream SubmitRequest(Http2Session session, Uri uri)
         {
-            const string method = "GET";
+            const string method = "get";
             string path = uri.PathAndQuery;
-            const string version = "HTTP/2.0";
+            const string version = "http/1.1";
             string scheme = uri.Scheme;
             string host = uri.Host;
 

@@ -69,8 +69,15 @@ namespace SharedProtocol.IO
             {
                 _pathStreamDict.Add(path, new FileStream(path, FileMode.Append));
             }
-            _pathStreamDict[path].Write(data, offset, count);
-            _pathStreamDict[path].Flush();
+            if (_pathStreamDict.ContainsKey(path))
+            {
+                _pathStreamDict[path].Write(data, offset, count);
+                //_pathStreamDict[path].Flush();
+            }
+            else
+            {
+                throw new KeyNotFoundException("");
+            }
         }
 
         public void RemoveStream(string path)

@@ -374,7 +374,8 @@ namespace Client
             {
                 if (args.Frame is DataFrame)
                 {
-                    Task.Run(() => SaveDataFrame(stream, (DataFrame)args.Frame));
+                    //Task.Run(() => SaveDataFrame(stream, (DataFrame)args.Frame));
+                    SaveDataFrame(stream, (DataFrame) args.Frame);
                 }
                 else if (args.Frame is Headers && method == "get")
                 {

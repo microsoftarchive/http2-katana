@@ -114,6 +114,10 @@ namespace SocketServer
 
         private void HandleRequest(SecureSocket incomingClient, bool backToHttp11)
         {
+            if (_alpnSelectedProtocol == null)
+            {
+                int a = 1;
+            }
             if (backToHttp11 || _alpnSelectedProtocol == "http/1.1")
             {
                 Console.WriteLine("Sending with http11");

@@ -79,7 +79,7 @@ namespace SocketServer
 
             _server = new SecureTcpListener(_port, _options);
 
-            ThreadPool.SetMaxThreads(5,5);
+            ThreadPool.SetMaxThreads(10,10);
 
             Listen();
         }
