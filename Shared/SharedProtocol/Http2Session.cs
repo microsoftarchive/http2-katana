@@ -291,7 +291,8 @@ namespace SharedProtocol
                         }
                         stream.UpdateWindowSize(windowFrame.Delta);
 
-                        Task.Run(() => stream.PumpUnshippedFrames());
+                        //Task.Run(() => stream.PumpUnshippedFrames());
+                        stream.PumpUnshippedFrames();
                         break;
                    
                     case FrameType.GoAway:
@@ -360,9 +361,10 @@ namespace SharedProtocol
                 Dispose();
                 throw new InvalidOperationException("Trying to create more streams than allowed by the remote side!");
             }
-            var stream = new Http2Stream(GetNextId(), _writeQueue, _flowControlManager, _comprProc);
-            
-            stream.OnClose += (o, args) =>
+            int id = GetNextId();
+            ActiveStreams[id] = new Http2Stream(id, _writeQueue, _flowControlManager, _comprProc);
+
+            ActiveStreams[id].OnClose += (o, args) =>
                 {
                     if (ActiveStreams.Remove(ActiveStreams[args.Id]) == false)
                     {
@@ -370,7 +372,7 @@ namespace SharedProtocol
                     }
                 };
 
-            stream.OnFrameSent += (o, args) =>
+            ActiveStreams[id].OnFrameSent += (o, args) =>
                 {
                     if (OnFrameSent != null)
                     {
@@ -378,8 +380,7 @@ namespace SharedProtocol
                     }
                 };
 
-            ActiveStreams[stream.Id] = stream;
-            return stream;
+            return ActiveStreams[id];
         }
 
         /// <summary>
