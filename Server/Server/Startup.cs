@@ -13,7 +13,7 @@ namespace Server
 
         private void ConfigureWebApi(IAppBuilder builder)
         {
-            HttpConfiguration config = new HttpConfiguration();
+            var config = new HttpConfiguration();
             config.Routes.MapHttpRoute("Default", "{controller}/{customerID}", new { controller = "Customer", customerID = RouteParameter.Optional });
 
             // config.Formatters.XmlFormatter.UseXmlSerializer = true;

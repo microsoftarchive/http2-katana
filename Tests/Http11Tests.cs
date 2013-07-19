@@ -1,11 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Configuration;
-using System.IO;
 using System.Net;
 using System.Net.Sockets;
-using System.Reflection;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Org.Mentalis;
@@ -38,9 +35,9 @@ namespace Http11Tests
             Uri.TryCreate(secureAddress, UriKind.Absolute, out uri);
 
             var properties = new Dictionary<string, object>();
-            var addresses = new List<IDictionary<string, object>>()
+            var addresses = new List<IDictionary<string, object>>
                 {
-                    new Dictionary<string, object>()
+                    new Dictionary<string, object>
                         {
                             {"host", uri.Host},
                             {"scheme", uri.Scheme},
@@ -121,7 +118,6 @@ namespace Http11Tests
 
             var socketClosedRaisedEvent = new ManualResetEvent(false);
             var resourceDownloadedRaisedEvent = new ManualResetEvent(false);
-            SecureSocket socket = null;
 
             Http11Manager.OnDownloadSuccessful += (sender, args) =>
                 {
@@ -143,7 +139,7 @@ namespace Http11Tests
                     socketClosedRaisedEvent.Set();
                 };
 
-            socket = GetHandshakedSocket(uri);
+            var socket = GetHandshakedSocket(uri);
 
             //Http11 was selected
             Http11Manager.Http11DownloadResource(socket, uri);
@@ -161,7 +157,7 @@ namespace Http11Tests
         {
             for (int i = 0; i < 10; i++)
             {
-                Task.Run(() => GetHttp11ResourceSuccessful());
+                GetHttp11ResourceSuccessful();
             }
         }
     }

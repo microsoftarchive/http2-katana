@@ -5,7 +5,7 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using SharedProtocol.Http2HeadersCompression;
+using SharedProtocol.Compression.Http2DeltaHeadersCompression;
 using Org.Mentalis;
 using Org.Mentalis.Security.Ssl;
 using Org.Mentalis.Security.Ssl.Shared.Extensions;
@@ -47,15 +47,7 @@ namespace Http2Tests
             UseSecurePort = appSettings["useSecurePort"] == "true";
             UseHandshake = appSettings["handshakeOptions"] != "no-handshake";
 
-            string address;
-            if (UseSecurePort)
-            {
-                address = appSettings["secureAddress"];
-            }
-            else
-            {
-                address = appSettings["unsecureAddress"];
-            }
+            string address = UseSecurePort ? appSettings["secureAddress"] : appSettings["unsecureAddress"];
 
             Uri uri;
             Uri.TryCreate(address, UriKind.Absolute, out uri);
@@ -105,19 +97,12 @@ namespace Http2Tests
 
     public class Http2TestSuite : IUseFixture<Http2Setup>, IDisposable
     {
-        private Thread _serverThread;
-        private const string _clientSessionHeader = @"FOO * HTTP/2.0\r\n\r\nBA\r\n\r\n";
+        private const string clientSessionHeader = @"FOO * HTTP/2.0\r\n\r\nBA\r\n\r\n";
         private static bool _useSecurePort;
         private static bool _useHandshake;
 
-        public Http2TestSuite()
-        {
-            
-        }
-
         void IUseFixture<Http2Setup>.SetFixture(Http2Setup setupInstance)
         {
-            _serverThread = setupInstance.ServerThread;
             _useSecurePort = setupInstance.UseSecurePort;
             _useHandshake = setupInstance.UseHandshake;
         }
@@ -135,7 +120,7 @@ namespace Http2Tests
 
         protected static void SendSessionHeader(SecureSocket socket)
         {
-            socket.Send(Encoding.UTF8.GetBytes(_clientSessionHeader));
+            socket.Send(Encoding.UTF8.GetBytes(clientSessionHeader));
         }
 
         protected static SecureSocket GetHandshakedSocket(Uri uri)
@@ -166,15 +151,17 @@ namespace Http2Tests
 
                 if (_useHandshake)
                 {
-                    var handshakeEnv = new Dictionary<string, object>();
-                    handshakeEnv.Add(":method", "get");
-                    handshakeEnv.Add(":version", "http/1.1");
-                    handshakeEnv.Add(":path", uri.PathAndQuery);
-                    handshakeEnv.Add(":scheme", uri.Scheme);
-                    handshakeEnv.Add(":host", uri.Host);
-                    handshakeEnv.Add("securityOptions", options);
-                    handshakeEnv.Add("secureSocket", sessionSocket);
-                    handshakeEnv.Add("end", ConnectionEnd.Client);
+                    var handshakeEnv = new Dictionary<string, object>
+                    {
+                        {":method", "get"},
+                        {":version", "http/1.1"},
+                        {":path", uri.PathAndQuery},
+                        {":scheme", uri.Scheme},
+                        {":host", uri.Host},
+                        {"securityOptions", options},
+                        {"secureSocket", sessionSocket},
+                        {"end", ConnectionEnd.Client}
+                    };
 
                     HandshakeManager.GetHandshakeAction(handshakeEnv).Invoke();
                  }
@@ -189,7 +176,11 @@ namespace Http2Tests
         {
             const string method = "get";
             string path = uri.PathAndQuery;
+<<<<<<< 0acdb46b8cbce8b37a4d6e7beae923ba5efd0c56
             const string version = "http/1.1";
+=======
+            const string version = "http/2.0";
+>>>>>>> c62f224eb7eab45789632ee69a8b4c25987c3530
             string scheme = uri.Scheme;
             string host = uri.Host;
 
@@ -315,12 +306,10 @@ namespace Http2Tests
         [Fact]
         public void StartMultipleSessionAndSendMultipleRequests()
         {
-            var tests = new List<Task>();
             for (int i = 0; i < 4; i++)
             {
-                tests.Add(Task.Run(() => StartSessionAndSendRequestSuccessful()));
+                StartSessionAndSendRequestSuccessful();
             }
-            Task.WhenAll(tests).Wait();
         }
 
         [Fact]
@@ -359,7 +348,7 @@ namespace Http2Tests
 
             SubmitRequest(session, uri);
 
-            finalFrameReceivedRaisedEvent.WaitOne(120000);
+            finalFrameReceivedRaisedEvent.WaitOne(60000);
 
             session.Dispose();
 
@@ -372,12 +361,13 @@ namespace Http2Tests
         [Fact]
         public void StartMultipleSessionsAndGet40MbDataSuccessful()
         {
-            var tests = new List<Task>();
+            //var tests = new List<Task>();
             for (int i = 0; i < 4; i++)
             {
-                tests.Add(Task.Run(() => StartSessionAndGet10MbDataSuccessful()));
+                //tests.Add(Task.Run(() => StartSessionAndGet10MbDataSuccessful()));
+                StartSessionAndGet10MbDataSuccessful();
             }
-            Task.WhenAll(tests).Wait();
+            //Task.WhenAll(tests).Wait();
         }
 
         [Theory]

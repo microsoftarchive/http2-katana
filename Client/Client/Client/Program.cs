@@ -34,7 +34,6 @@
 //-----------------------------------------------------------------------
 using System;
 using System.Collections.Generic;
-using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using Client.Commands;
@@ -72,7 +71,7 @@ namespace Client
                 {
                     Console.Write(">");
                     string command = Console.ReadLine();
-                    Command cmd = null;
+                    Command cmd;
                     
                     try
                     {

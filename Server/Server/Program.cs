@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Configuration;
 using Microsoft.Owin.Hosting;
 
@@ -9,7 +8,7 @@ namespace Server
     {
         static void Main(string[] args)
         {
-            string connectString = null;
+            string connectString;
 
             if (args.Length == 0 || String.IsNullOrEmpty(args[0]) || args[0].ToLower() != "-secure")
             {

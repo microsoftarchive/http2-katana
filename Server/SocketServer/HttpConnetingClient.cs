@@ -43,7 +43,7 @@ namespace SocketServer
         private static readonly string assemblyPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
         private readonly FileHelper _fileHelper;
         private readonly object _writeLock = new object();
-        private readonly string _clientSessionHeader = @"FOO * HTTP/2.0\r\n\r\nBA\r\n\r\n";
+        private const string clientSessionHeader = @"FOO * HTTP/2.0\r\n\r\nBA\r\n\r\n";
         private readonly bool _useHandshake;
         private readonly bool _usePriorities;
         private readonly bool _useFlowControl;
@@ -65,11 +65,12 @@ namespace SocketServer
 
         private IDictionary<string, object> MakeHandshakeEnvironment(SecureSocket incomingClient)
         {
-            var result = new Dictionary<string, object>();
-
-            result.Add("securityOptions", _options);
-            result.Add("secureSocket", incomingClient);
-            result.Add("end", ConnectionEnd.Server);
+            var result = new Dictionary<string, object>
+                {
+                    {"securityOptions", _options},
+                    {"secureSocket", incomingClient},
+                    {"end", ConnectionEnd.Server}
+                };
 
             return result;
         }
@@ -131,16 +132,16 @@ namespace SocketServer
 
         private void GetSessionHeader(SecureSocket incomingClient)
         {
-            var sessionHeaderBuffer = new byte[_clientSessionHeader.Length];
+            var sessionHeaderBuffer = new byte[clientSessionHeader.Length];
             int received = 0;
-            while (received < _clientSessionHeader.Length)
+            while (received < clientSessionHeader.Length)
             {
                 received = incomingClient.Receive(sessionHeaderBuffer, received, sessionHeaderBuffer.Length - received, SocketFlags.None);
             }
 
             var receivedHeader = Encoding.UTF8.GetString(sessionHeaderBuffer);
 
-            if (receivedHeader != _clientSessionHeader)
+            if (receivedHeader != clientSessionHeader)
             {
                 Dispose();
             }
@@ -264,7 +265,7 @@ namespace SocketServer
         private void FrameReceivedHandler(object sender, FrameReceivedEventArgs args)
         {
             var stream = args.Stream;
-            var method = stream.Headers.GetValue(":method");
+            var method = stream.Headers.GetValue(":method").ToLower();
 
             try
             {
@@ -276,19 +277,19 @@ namespace SocketServer
                             //Task.Run(() => PerformPostAction(stream, (DataFrame)args.Frame));
                             //break;
                         case "put":
-                            Task.Run(() => SaveDataFrame(stream, (DataFrame)args.Frame));
+                            //Task.Run(() => SaveDataFrame(stream, (DataFrame)args.Frame));
+                            SaveDataFrame(stream, (DataFrame) args.Frame);
                             break;
                     }
                 } 
                 else if (args.Frame is Headers)
                 {
+                    byte[] binary;
                     switch (method)
                     {
                         case "get":
                             Task.Run(() =>
                                 {
-                                    byte[] binary = null;
-
                                     try
                                     {
                                         binary = _fileHelper.GetFile(stream.Headers.GetValue(":path"));
@@ -301,11 +302,11 @@ namespace SocketServer
                                 });
                             break;
                         case "delete":
-                            Task.Run(() =>
-                            {
-                                var binary = new AccessDenied401().Bytes;
+                            //Task.Run(() =>
+                            //{
+                                binary = new AccessDenied401().Bytes;
                                 SendDataTo(stream, binary);
-                            });
+                            //});
                             break;
                     }
                 }

@@ -67,6 +67,7 @@
     <Compile Include="EventArgs\SettingsSentEventArgs.cs" />
     <Compile Include="EventArgs\StreamClosedEventArgs.cs" />
     <Compile Include="Exceptions\HTTP2HandshakeFailed.cs" />
+    <Compile Include="Exceptions\Http2StreamNotFoundException.cs" />
     <Compile Include="Exceptions\InvalidHeaderException.cs" />
     <Compile Include="Exceptions\MonitorIsBusyException.cs" />
     <Compile Include="ExtendedMath\MathEx.cs" />

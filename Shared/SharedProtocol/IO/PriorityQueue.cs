@@ -8,7 +8,7 @@ namespace SharedProtocol.IO
     internal class PriorityQueue : IQueue
     {
         private readonly Dictionary<Priority, Queue<IPriorityItem>> _storage;
-        private const byte _possiblePriValues = 8; //0..7
+        private const byte possiblePriValues = 8; //0..7
         private int _highestPri;
         private int _lowestPri;
         private readonly object _lock = new object();
@@ -22,8 +22,8 @@ namespace SharedProtocol.IO
 
         public PriorityQueue()
         {
-            _storage = new Dictionary<Priority, Queue<IPriorityItem>>(_possiblePriValues);
-            for (int i = 0; i < _possiblePriValues; i++)
+            _storage = new Dictionary<Priority, Queue<IPriorityItem>>(possiblePriValues);
+            for (int i = 0; i < possiblePriValues; i++)
             {
                 _storage[(Priority) i] = new Queue<IPriorityItem>(16);
             }
@@ -36,29 +36,6 @@ namespace SharedProtocol.IO
             : this()
         {
             EnqueueRange(initialCollection);
-        }
-
-        private void RecalcHighestPriority()
-        {
-            foreach (var pri in _storage.Keys)
-            {
-                if (_storage[pri].Count != 0)
-                {
-                    _highestPri = (int) pri;
-                }
-            }
-        }
-
-        private void RecalcLowestPriority()
-        {
-            foreach (var pri in _storage.Keys)
-            {
-                if (_storage[pri].Count != 0)
-                {
-                    _lowestPri = (int) pri;
-                    break;
-                }
-            }
         }
 
         private void RecalcPriorities()
