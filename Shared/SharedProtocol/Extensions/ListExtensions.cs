@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using SharedProtocol.Compression;
+using System.Linq;
 
 namespace SharedProtocol.Extensions
 {
@@ -15,6 +16,17 @@ namespace SharedProtocol.Extensions
                 return headerFound.Item2;
             }
             throw new KeyNotFoundException(key + "was not found");
+        }
+
+        public static int GetSize(this List<KeyValuePair<string, string>> list)
+        {
+            int result = 0;
+            list.Count(header =>
+            {
+                result += header.Key.Length + header.Value.Length;
+                return true;
+            });
+            return result;
         }
     }
 }

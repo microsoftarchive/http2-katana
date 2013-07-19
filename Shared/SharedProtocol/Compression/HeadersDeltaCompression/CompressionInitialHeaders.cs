@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using SharedProtocol.Extensions;
 
 namespace SharedProtocol.Compression.Http2DeltaHeadersCompression
 {
@@ -48,7 +49,7 @@ namespace SharedProtocol.Compression.Http2DeltaHeadersCompression
               | 37    | warning             |              |
               +-------+---------------------+--------------+*/
 
-        private static List<KeyValuePair<string, string>> requestInitialHeaders = new List<KeyValuePair<string, string>>
+        private static readonly List<KeyValuePair<string, string>> requestInitialHeaders = new List<KeyValuePair<string, string>>
             {
                 new KeyValuePair<string, string>(":scheme", "https"),
                 new KeyValuePair<string, string>(":scheme", "http"),
@@ -130,7 +131,7 @@ namespace SharedProtocol.Compression.Http2DeltaHeadersCompression
           | 34    | www-authenticate            |              |
           +-------+-----------------------------+--------------+*/
 
-        private static List<KeyValuePair<string, string>> responseInitialHeaders = new List<KeyValuePair<string, string>>
+        private static readonly List<KeyValuePair<string, string>> responseInitialHeaders = new List<KeyValuePair<string, string>>
             {
                 new KeyValuePair<string, string>(":status", "200"),
                 new KeyValuePair<string, string>("age", String.Empty),
@@ -177,6 +178,16 @@ namespace SharedProtocol.Compression.Http2DeltaHeadersCompression
         public static List<KeyValuePair<string, string>> ResponseInitialHeaders
         {
             get { return responseInitialHeaders; }
+        }
+
+        public static int InitialRequestHeadersSize
+        {
+            get { return requestInitialHeaders.GetSize(); }
+        }
+
+        public static int InitialResponceHeadersSize
+        {
+            get { return responseInitialHeaders.GetSize(); }
         }
     }
 }

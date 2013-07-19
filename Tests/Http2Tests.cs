@@ -176,11 +176,7 @@ namespace Http2Tests
         {
             const string method = "get";
             string path = uri.PathAndQuery;
-<<<<<<< 0acdb46b8cbce8b37a4d6e7beae923ba5efd0c56
-            const string version = "http/1.1";
-=======
             const string version = "http/2.0";
->>>>>>> c62f224eb7eab45789632ee69a8b4c25987c3530
             string scheme = uri.Scheme;
             string host = uri.Host;
 

@@ -16,17 +16,17 @@ using SharedProtocol.Handshake;
 
 namespace Http11Tests
 {
-    public class Http11Tests
+    public class Http11Setup : IDisposable
     {
-        private HttpSocketServer _http2Server;
+        public Thread ServerThread { get; private set; }
 
-        private async Task InvokeMiddleWare(IDictionary<string, object> environment)
+        private static async Task InvokeMiddleWare(IDictionary<string, object> environment)
         {
             var handshakeAction = (Action)environment["HandshakeAction"];
             handshakeAction.Invoke();
         }
 
-        public Http11Tests()
+        public Http11Setup()
         {
             var appSettings = ConfigurationManager.AppSettings;
 
@@ -45,25 +45,42 @@ namespace Http11Tests
                             {"path", uri.AbsolutePath}
                         }
                 };
-            bool useHandshake = ConfigurationManager.AppSettings["handshakeOptions"] != "no-handshake";
-            bool usePriorities = ConfigurationManager.AppSettings["prioritiesOptions"] != "no-priorities";
-            bool useFlowControl = ConfigurationManager.AppSettings["flowcontrolOptions"] != "no-flowcontrol";
 
-            properties.Add("use-handshake", useHandshake);
-            properties.Add("use-priorities", usePriorities);
-            properties.Add("use-flowControl", useFlowControl);
+            properties.Add("use-handshake", true);
+            properties.Add("use-priorities", true);
+            properties.Add("use-flowControl", true);
 
             properties.Add(OwinConstants.CommonKeys.Addresses, addresses);
 
-            new Thread((ThreadStart)delegate
-                {
-                    _http2Server = new HttpSocketServer(InvokeMiddleWare, properties);
-                }).Start();
+            ServerThread = new Thread((ThreadStart)delegate
+            {
+                new HttpSocketServer(InvokeMiddleWare, properties);
+            }) { Name = "Http11ServerThread" };
+            ServerThread.Start();
 
             using (var waitForServersStart = new ManualResetEvent(false))
             {
                 waitForServersStart.WaitOne(3000);
             }
+        }
+
+        public void Dispose()
+        {
+            if (ServerThread.IsAlive)
+            {
+                ServerThread.Abort();
+            }
+        }
+    }
+
+    public class Http11TestSuite : IUseFixture<Http11Setup>, IDisposable
+    {
+        public void SetFixture(Http11Setup data)
+        {
+        }
+
+        public void Dispose()
+        {
         }
 
         private static SecureSocket GetHandshakedSocket(Uri uri)
@@ -73,15 +90,18 @@ namespace Http11Tests
             var extensions = new[] { ExtensionType.Renegotiation, ExtensionType.ALPN };
 
             //Consciously fail the handshake to http/1.1
-            var options = new SecurityOptions(SecureProtocol.Tls1, extensions, new [] {"http/1.1"}, ConnectionEnd.Client);
-
-            options.VerificationType = CredentialVerification.None;
-            options.Certificate = Org.Mentalis.Security.Certificates.Certificate.CreateFromCerFile(@"certificate.pfx");
-            options.Flags = SecurityFlags.Default;
-            options.AllowedAlgorithms = SslAlgorithms.RSA_AES_256_SHA | SslAlgorithms.NULL_COMPRESSION;
+            var options = new SecurityOptions(SecureProtocol.Tls1, extensions, new[] { "http/1.1" },
+                                              ConnectionEnd.Client)
+            {
+                VerificationType = CredentialVerification.None,
+                Certificate =
+                    Org.Mentalis.Security.Certificates.Certificate.CreateFromCerFile(@"certificate.pfx"),
+                Flags = SecurityFlags.Default,
+                AllowedAlgorithms = SslAlgorithms.RSA_AES_256_SHA | SslAlgorithms.NULL_COMPRESSION
+            };
 
             var sessionSocket = new SecureSocket(AddressFamily.InterNetwork, SocketType.Stream,
-                                                ProtocolType.Tcp, options);
+                                                 ProtocolType.Tcp, options);
 
             using (var monitor = new ALPNExtensionMonitor())
             {
@@ -89,15 +109,17 @@ namespace Http11Tests
 
                 sessionSocket.Connect(new DnsEndPoint(uri.Host, uri.Port), monitor);
 
-                var handshakeEnv = new Dictionary<string, object>();
-                handshakeEnv.Add(":method", "get");
-                handshakeEnv.Add(":version", "http/1.1");
-                handshakeEnv.Add(":path", uri.PathAndQuery);
-                handshakeEnv.Add(":scheme", uri.Scheme);
-                handshakeEnv.Add(":host", uri.Host);
-                handshakeEnv.Add("securityOptions", options);
-                handshakeEnv.Add("secureSocket", sessionSocket);
-                handshakeEnv.Add("end", ConnectionEnd.Client);
+                var handshakeEnv = new Dictionary<string, object>
+                    {
+                        {":method", "get"},
+                        {":version", "http/1.1"},
+                        {":path", uri.PathAndQuery},
+                        {":scheme", uri.Scheme},
+                        {":host", uri.Host},
+                        {"securityOptions", options},
+                        {"secureSocket", sessionSocket},
+                        {"end", ConnectionEnd.Client}
+                    };
 
                 HandshakeManager.GetHandshakeAction(handshakeEnv).Invoke();
             }
@@ -108,7 +130,8 @@ namespace Http11Tests
         [Fact]
         public void GetHttp11ResourceSuccessful()
         {
-            string requestStr = ConfigurationManager.AppSettings["secureAddress"] + ConfigurationManager.AppSettings["10mbTestFile"];
+            string requestStr = ConfigurationManager.AppSettings["secureAddress"] +
+                                ConfigurationManager.AppSettings["10mbTestFile"];
             Uri uri;
             Uri.TryCreate(requestStr, UriKind.Absolute, out uri);
 
@@ -120,24 +143,24 @@ namespace Http11Tests
             var resourceDownloadedRaisedEvent = new ManualResetEvent(false);
 
             Http11Manager.OnDownloadSuccessful += (sender, args) =>
-                {
-                    wasResourceDownloaded = true;
-                    resourceDownloadedRaisedEvent.Set();
-                };
+            {
+                wasResourceDownloaded = true;
+                resourceDownloadedRaisedEvent.Set();
+            };
 
             //First time event will be raised when server closes it's socket
             Http11Manager.OnSocketClosed += (sender, args) =>
+            {
+                if (!wasServerSocketClosed)
                 {
-                    if (!wasServerSocketClosed)
-                    {
-                        wasServerSocketClosed = true;
-                    }
-                    if (!wasClientSocketClosed && wasServerSocketClosed)
-                    {
-                        wasClientSocketClosed = true;
-                    }
-                    socketClosedRaisedEvent.Set();
-                };
+                    wasServerSocketClosed = true;
+                }
+                if (!wasClientSocketClosed && wasServerSocketClosed)
+                {
+                    wasClientSocketClosed = true;
+                }
+                socketClosedRaisedEvent.Set();
+            };
 
             var socket = GetHandshakedSocket(uri);
 

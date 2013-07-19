@@ -4,7 +4,6 @@ using System.IO;
 using System.Text;
 using SharedProtocol.Exceptions;
 using SharedProtocol.Extensions;
-using SharedProtocol.Compression;
 
 namespace SharedProtocol.Compression.Http2DeltaHeadersCompression
 {
@@ -14,6 +13,8 @@ namespace SharedProtocol.Compression.Http2DeltaHeadersCompression
     {
         private readonly List<KeyValuePair<string, string>> _requestHeadersStorage;
         private readonly List<KeyValuePair<string, string>> _responceHeadersStorage;
+        private const int headersLimit = 200;
+        private const int maxHeaderByteSize = 4096;
 
         private MemoryStream _serializerStream;
 
@@ -22,13 +23,14 @@ namespace SharedProtocol.Compression.Http2DeltaHeadersCompression
 
             _requestHeadersStorage = CompressionInitialHeaders.RequestInitialHeaders;
             _responceHeadersStorage = CompressionInitialHeaders.ResponseInitialHeaders;
+
             InitCompressor();
             InitDecompressor();
         }
 
         private void InitCompressor()
         {
-            _serializerStream = new MemoryStream(1024);
+            _serializerStream = new MemoryStream();
         }
 
         private void InitDecompressor()
@@ -42,6 +44,15 @@ namespace SharedProtocol.Compression.Http2DeltaHeadersCompression
                 switch (headerType)
                 {
                     case IndexationType.Incremental:
+                        if (useHeadersTable.Count > headersLimit - 1)
+                        {
+                            useHeadersTable.RemoveAt(0);
+                        }
+                        //TODO refactor. remove GetSize method. It causes multiple enumeration.
+                        while (useHeadersTable.GetSize() > maxHeaderByteSize)
+                        {
+                            useHeadersTable.RemoveAt(0);
+                        }
                         useHeadersTable.Add(new KeyValuePair<string, string>(headerName, headerValue));
                         break;
                     case IndexationType.Substitution:
@@ -51,6 +62,15 @@ namespace SharedProtocol.Compression.Http2DeltaHeadersCompression
                         }
                         else
                         {
+                            if (useHeadersTable.Count > headersLimit - 1)
+                            {
+                                useHeadersTable.RemoveAt(0);
+                            }
+
+                            while (useHeadersTable.GetSize() > maxHeaderByteSize)
+                            {
+                                useHeadersTable.RemoveAt(0);
+                            }
                             //If header wasn't found then add it to the table
                             useHeadersTable.Add(new KeyValuePair<string, string>(headerName, headerValue));
                         }
@@ -145,8 +165,7 @@ namespace SharedProtocol.Compression.Http2DeltaHeadersCompression
 
         private void CompressIndexed(KeyValuePair<string, string> header, List<KeyValuePair<string, string>> useHeadersTable)
         {
-            Predicate<KeyValuePair<string, string>> predicate = kv => kv.Key == header.Key;
-            int index = useHeadersTable.FindIndex(predicate);
+            int index = useHeadersTable.FindIndex(kv => kv.Key == header.Key);
             const byte prefix = 7;
             var bytes = index.ToUVarInt(prefix);
 
@@ -167,7 +186,9 @@ namespace SharedProtocol.Compression.Http2DeltaHeadersCompression
 
                 int index = useHeadersTable.IndexOf(headerKv);
 
-                if (index != -1 && (headerType == IndexationType.Incremental|| headerType == IndexationType.Substitution))
+                //case headerType == IndexationType.Incremental
+                //must not be considered because headers table can contain duplicates
+                if (index != -1 && headerType == IndexationType.Substitution)
                 {
                     CompressIndexed(headerKv, useHeadersTable);
                     headers.Remove(headers[i--]);
@@ -261,7 +282,8 @@ namespace SharedProtocol.Compression.Http2DeltaHeadersCompression
         private int GetIndex(byte[] bytes, IndexationType type)
         {
             byte prefix = 0;
-            byte firstByteValue = (byte) (bytes[_currentOffset] & (~(byte)type));
+            byte firstByteValue = /*(byte) (*/bytes[_currentOffset];// & (~(byte)type));
+
             switch (type)
             {  
                 case IndexationType.Incremental:
@@ -302,23 +324,28 @@ namespace SharedProtocol.Compression.Http2DeltaHeadersCompression
 
         private IndexationType GetHeaderType(byte[] bytes)
         {
-            var type = bytes[_currentOffset];
-            if ((type & 0x80) == (byte)IndexationType.Indexed)
+            var typeByte = bytes[_currentOffset];
+            IndexationType indexationType;
+            
+            if ((typeByte & 0x80) == (byte)IndexationType.Indexed)
             {
-                return IndexationType.Indexed;
+                indexationType = IndexationType.Indexed;
             }
-
-            if ((type & 0x60) == (byte)IndexationType.WithoutIndexation)
+            else if ((typeByte & 0x60) == (byte)IndexationType.WithoutIndexation)
             {
-                return IndexationType.WithoutIndexation;
+                indexationType = IndexationType.WithoutIndexation;
             }
-
-            if ((type & 0x40) == (byte)IndexationType.Incremental)
+            else if ((typeByte & 0x40) == (byte)IndexationType.Incremental)
             {
-                return IndexationType.Incremental;
+                indexationType = IndexationType.Incremental;
             }
-
-            return IndexationType.Substitution;
+            else 
+            {
+                indexationType = IndexationType.Substitution;
+            }
+            //throw type mask away
+            bytes[_currentOffset] = (byte)(bytes[_currentOffset] & (~(byte)indexationType));
+            return indexationType;
         }
 
         public List<Tuple<string, string, IAdditionalHeaderInfo> > Decompress(byte[] serializedHeaders, bool isRequest)
@@ -340,7 +367,7 @@ namespace SharedProtocol.Compression.Http2DeltaHeadersCompression
 
         private void WriteToOutput(byte[] bytes, int offset, int length)
         {
-            _serializerStream.WriteAsync(bytes, offset, length);
+            _serializerStream.Write(bytes, offset, length);
         }
 
         private void ClearStream(Stream input, int len)
