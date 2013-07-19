@@ -16,10 +16,10 @@ using Xunit;
 
 namespace HandshakeTests
 {
-    public class HandshakeTests
+    public class HandshakeSetup : IDisposable
     {
-        private HttpSocketServer _http2SecureServer;
-        private HttpSocketServer _http2UnsecureServer;
+        public Thread Http2SecureServer { get; private set; }
+        public Thread Http2UnsecureServer{ get; private set; }
 
         private async Task InvokeMiddleWare(IDictionary<string, object> environment)
         {
@@ -27,15 +27,19 @@ namespace HandshakeTests
             handshakeAction.Invoke();
         }
 
-        private HttpSocketServer RunServer(string address)
+        private IDictionary<string, object> GetProperties(bool useSecurePort)
         {
+            var appSettings = ConfigurationManager.AppSettings;
+
+            string address = useSecurePort ? appSettings["secureAddress"] : appSettings["unsecureAddress"];
+
             Uri uri;
             Uri.TryCreate(address, UriKind.Absolute, out uri);
 
             var properties = new Dictionary<string, object>();
-            var addresses = new List<IDictionary<string, object>>()
+            var addresses = new List<IDictionary<string, object>>
                 {
-                    new Dictionary<string, object>()
+                    new Dictionary<string, object>
                         {
                             {"host", uri.Host},
                             {"scheme", uri.Scheme},
@@ -46,36 +50,65 @@ namespace HandshakeTests
 
             properties.Add(OwinConstants.CommonKeys.Addresses, addresses);
 
-            HttpSocketServer server = null;
+            const bool useHandshake = true;
+            const bool usePriorities = false;
+            const bool useFlowControl = false;
 
-            new Thread((ThreadStart)delegate
-            {
-                server = new HttpSocketServer(InvokeMiddleWare, properties);
-            }).Start();
+            properties.Add("use-handshake", useHandshake);
+            properties.Add("use-priorities", usePriorities);
+            properties.Add("use-flowControl", useFlowControl);
 
-            return server;
+            return properties;
         }
 
-        public HandshakeTests()
+        public HandshakeSetup()
         {
-            var appSettings = ConfigurationManager.AppSettings;
+           var secureProperties = GetProperties(true);
+           var unsecureProperties = GetProperties(false);
 
-            var secureAddress = appSettings["secureAddress"];
-            var unsecureAddress = appSettings["unsecureAddress"];
+           Http2SecureServer = new Thread((ThreadStart)delegate
+           {
+               new HttpSocketServer(InvokeMiddleWare, secureProperties);
+           }) { Name = "Http2ServerThread" };
 
-            _http2UnsecureServer = RunServer(unsecureAddress);
-            _http2SecureServer = RunServer(secureAddress);
 
-            using (var waitForServersStart = new ManualResetEvent(false))
+           Http2UnsecureServer = new Thread((ThreadStart)delegate
+           {
+               new HttpSocketServer(InvokeMiddleWare, unsecureProperties);
+           }) { Name = "Http2UnsecureServer" };
+
+           Http2SecureServer.Start();
+           Http2UnsecureServer.Start();
+
+           using (var waitForServersStart = new ManualResetEvent(false))
+           {
+               waitForServersStart.WaitOne(3000);
+           }
+        }
+
+        public void Dispose()
+        {
+            if (Http2SecureServer.IsAlive)
             {
-                waitForServersStart.WaitOne(3000);
+                Http2SecureServer.Abort();
             }
+            if (Http2UnsecureServer.IsAlive)
+            {
+                Http2UnsecureServer.Abort();
+            }
+        }
+    }
+    public class HandshakeTests : IUseFixture<HandshakeSetup>, IDisposable
+    {
+        void IUseFixture<HandshakeSetup>.SetFixture(HandshakeSetup setupInstance)
+        {
+            
         }
 
         [Fact]
         public void AlpnSelectionHttp2Successful()
         {
-            const string requestStr = @"http://localhost:8443/";
+            const string requestStr = @"https://localhost:8443/";
             string selectedProtocol = null;
             Uri uri;
             Uri.TryCreate(requestStr, UriKind.Absolute, out uri);
@@ -98,16 +131,18 @@ namespace HandshakeTests
 
                 sessionSocket.Connect(new DnsEndPoint(uri.Host, uri.Port), monitor);
 
-                var handshakeEnv = new Dictionary<string, object>();
-                handshakeEnv.Add(":method", "get");
-                handshakeEnv.Add(":version", "http/1.1");
-                handshakeEnv.Add(":path", uri.PathAndQuery);
-                handshakeEnv.Add(":scheme", uri.Scheme);
-                handshakeEnv.Add(":host", uri.Host);
-                handshakeEnv.Add("securityOptions", options);
-                handshakeEnv.Add("secureSocket", sessionSocket);
-                handshakeEnv.Add("end", ConnectionEnd.Client);
-
+                var handshakeEnv = new Dictionary<string, object>
+                    {
+                        {":method", "get"},
+                        {":version", "http/1.1"},
+                        {":path", uri.PathAndQuery},
+                        {":scheme", uri.Scheme},
+                        {":host", uri.Host},
+                        {"securityOptions", options},
+                        {"secureSocket", sessionSocket},
+                        {"end", ConnectionEnd.Client}
+                    };
+            
                 HandshakeManager.GetHandshakeAction(handshakeEnv).Invoke();
             }
 
@@ -160,10 +195,9 @@ namespace HandshakeTests
             Assert.Equal(gotFailedException, false);
         }
 
-        ~HandshakeTests()
+        public void Dispose()
         {
-            _http2UnsecureServer.Dispose();
-            _http2SecureServer.Dispose();
+
         }
     }
 }

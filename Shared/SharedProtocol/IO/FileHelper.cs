@@ -30,7 +30,7 @@ namespace SharedProtocol.IO
             
             const string rootPath = @"\Root";
 
-            string path = null;
+            string path;
 
             if (_end == ConnectionEnd.Server)
             {
@@ -69,6 +69,7 @@ namespace SharedProtocol.IO
             {
                 _pathStreamDict.Add(path, new FileStream(path, FileMode.Append));
             }
+<<<<<<< 0acdb46b8cbce8b37a4d6e7beae923ba5efd0c56
             if (_pathStreamDict.ContainsKey(path))
             {
                 _pathStreamDict[path].Write(data, offset, count);
@@ -78,6 +79,9 @@ namespace SharedProtocol.IO
             {
                 throw new KeyNotFoundException("");
             }
+=======
+            _pathStreamDict[path].Write(data, offset, count);
+>>>>>>> c62f224eb7eab45789632ee69a8b4c25987c3530
         }
 
         public void RemoveStream(string path)
@@ -93,8 +97,7 @@ namespace SharedProtocol.IO
         {
             foreach (var fileStream in _pathStreamDict.Values)
             {
-                fileStream.Flush();
-                fileStream.Dispose();
+                fileStream.Close();
             }
         }
     }

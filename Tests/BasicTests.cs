@@ -9,7 +9,7 @@ using SharedProtocol.ExtendedMath;
 using SharedProtocol.FlowControl;
 using SharedProtocol.Framing;
 using Xunit;
-using SharedProtocol.Http2HeadersCompression;
+using SharedProtocol.Compression.Http2DeltaHeadersCompression;
 using SharedProtocol.IO;
 
 namespace BasicTests

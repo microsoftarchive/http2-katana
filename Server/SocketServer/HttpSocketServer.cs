@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Org.Mentalis;
 using Org.Mentalis.Security.Certificates;
 using Org.Mentalis.Security.Ssl;
 using Org.Mentalis.Security.Ssl.Shared.Extensions;
@@ -25,7 +24,7 @@ namespace SocketServer
         private bool _disposed;
         private readonly SecurityOptions _options;
         private readonly  SecureTcpListener _server;
-        private const string _certificateFilename = @"certificate.pfx";
+        private const string certificateFilename = @"certificate.pfx";
 
         public HttpSocketServer(Func<IDictionary<string, object>, Task> next, IDictionary<string, object> properties)
         {
@@ -73,7 +72,7 @@ namespace SocketServer
                                 : new SecurityOptions(SecureProtocol.None, extensions, new[] { "http/2.0", "http/1.1" }, ConnectionEnd.Server);
 
             _options.VerificationType = CredentialVerification.None;
-            _options.Certificate = Certificate.CreateFromCerFile(_certificateFilename);
+            _options.Certificate = Certificate.CreateFromCerFile(certificateFilename);
             _options.Flags = SecurityFlags.Default;
             _options.AllowedAlgorithms = SslAlgorithms.RSA_AES_256_SHA | SslAlgorithms.NULL_COMPRESSION;
 

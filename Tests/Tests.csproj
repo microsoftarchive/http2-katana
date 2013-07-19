@@ -148,6 +148,9 @@
     <Compile Include="..\Shared\SharedProtocol\Exceptions\HTTP2HandshakeFailed.cs">
       <Link>Sources\HTTP2HandshakeFailed.cs</Link>
     </Compile>
+    <Compile Include="..\Shared\SharedProtocol\Exceptions\Http2StreamNotFoundException.cs">
+      <Link>Sources\Http2StreamNotFoundException.cs</Link>
+    </Compile>
     <Compile Include="..\Shared\SharedProtocol\Exceptions\InvalidHeaderException.cs">
       <Link>Sources\InvalidHeaderException.cs</Link>
     </Compile>

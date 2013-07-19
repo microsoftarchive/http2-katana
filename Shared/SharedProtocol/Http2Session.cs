@@ -1,5 +1,6 @@
 ﻿using System.Threading;
-using SharedProtocol.Http2HeadersCompression;
+using SharedProtocol.Exceptions;
+using SharedProtocol.Compression.Http2DeltaHeadersCompression;
 using Org.Mentalis.Security.Ssl;
 using SharedProtocol.Compression;
 using SharedProtocol.Framing;
@@ -136,7 +137,18 @@ namespace SharedProtocol
         /// <returns></returns>
         private Task PumpOutgoingData()
         {
-             return Task.Run(() => _writeQueue.PumpToStream());
+             return Task.Run(() =>
+                 {
+                     try
+                     {
+                         _writeQueue.PumpToStream();
+                     }
+                     catch (Exception)
+                     {
+                         Console.WriteLine("Sending frame was cancelled because connection was lost");
+                         Dispose();
+                     }
+                 });
         }
 
         /// <summary>
@@ -157,6 +169,7 @@ namespace SharedProtocol
                 {
                     //If not, we must close the session.
                     Dispose();
+                    return;
                 }
             }
 
@@ -203,7 +216,7 @@ namespace SharedProtocol
 
                         stream.OnClose += (o, args) =>
                         {
-                            if (ActiveStreams.Remove(ActiveStreams[args.Id]) == false)
+                            if (!ActiveStreams.Remove(ActiveStreams[args.Id]))
                             {
                                 throw new ArgumentException("Cant remove stream from ActiveStreams");
                             }
@@ -215,10 +228,10 @@ namespace SharedProtocol
 
                     case FrameType.Priority:
                         var priorityFrame = (PriorityFrame) frame;
-                        int streamId = priorityFrame.StreamId;
-                        if (ActiveStreams.ContainsKey(streamId))
+                        stream = GetStream(priorityFrame.StreamId);
+                        if (_usePriorities)
                         {
-                            ActiveStreams[streamId].Priority = priorityFrame.Priority;
+                            stream.Priority = priorityFrame.Priority;
                         }
                         break;
 
@@ -226,26 +239,12 @@ namespace SharedProtocol
                         var resetFrame = (RstStreamFrame) frame;
                         stream = GetStream(resetFrame.StreamId);
 
-                        //Frame came to already closed or unopened stream
-                        if (stream == null || stream.Disposed)
-                        {
-                            //Ignore it
-                            return;
-                        }
-
                         Console.WriteLine("Got rst with code {0}", resetFrame.StatusCode);
                         stream.Dispose();
                         break;
                     case FrameType.Data:
                         var dataFrame = (DataFrame) frame;
                         stream = GetStream(dataFrame.StreamId);
-
-                        //Frame came to already closed or unopened stream
-                        if (stream == null || stream.Disposed)
-                        {
-                            //Ignore it
-                            return;
-                        }
 
                         //Aggressive window update
                         if (stream.IsFlowControlEnabled)
@@ -268,31 +267,34 @@ namespace SharedProtocol
                         break;
                     case FrameType.Settings:
                         //Not first frame in the session.
-                        //Client initiates connection and it send settings before request. 
-                        //It means that if server will send settings then it will not be a first frame,
+                        //Client initiates connection and sends settings before request. 
+                        //It means that if server sent settings before it will not be a first frame,
                         //because client initiates connection.
                         if (_ourEnd == ConnectionEnd.Server && !_wasSettingsReceived && ActiveStreams.Count != 0)
                         {
                             Dispose();
+                            return;
                         }
 
                         _wasSettingsReceived = true;
-                        Task.Run(() => _settingsManager.ProcessSettings((SettingsFrame)frame, this,_flowControlManager));
+                        _settingsManager.ProcessSettings((SettingsFrame) frame, this, _flowControlManager);
                         break;
                     case FrameType.WindowUpdate:
-                        var windowFrame = (WindowUpdateFrame) frame;
-
-                        stream = GetStream(windowFrame.StreamId);
-                        //Frame came to already closed or unopened stream
-                        if (stream == null || stream.Disposed)
+                        if (_useFlowControl)
                         {
-                            //Ignore it
-                            return;
-                        }
-                        stream.UpdateWindowSize(windowFrame.Delta);
+                            var windowFrame = (WindowUpdateFrame) frame;
 
+                            stream = GetStream(windowFrame.StreamId);
+
+<<<<<<< 0acdb46b8cbce8b37a4d6e7beae923ba5efd0c56
                         //Task.Run(() => stream.PumpUnshippedFrames());
                         stream.PumpUnshippedFrames();
+=======
+                            stream.UpdateWindowSize(windowFrame.Delta);
+                            //Task.Run(() => stream.PumpUnshippedFrames());
+                            stream.PumpUnshippedFrames();
+                        }
+>>>>>>> c62f224eb7eab45789632ee69a8b4c25987c3530
                         break;
                    
                     case FrameType.GoAway:
@@ -325,7 +327,7 @@ namespace SharedProtocol
             //that receives a frame after receiving a RST_STREAM or a frame
             //containing a END_STREAM flag on that stream MUST treat that as a
             //stream error (Section 5.4.2) of type PROTOCOL_ERROR.
-            catch (KeyNotFoundException)
+            catch (Http2StreamNotFoundException)
             {
                 if (stream != null)
                 {
@@ -361,9 +363,21 @@ namespace SharedProtocol
                 Dispose();
                 throw new InvalidOperationException("Trying to create more streams than allowed by the remote side!");
             }
+<<<<<<< 0acdb46b8cbce8b37a4d6e7beae923ba5efd0c56
             int id = GetNextId();
             ActiveStreams[id] = new Http2Stream(id, _writeQueue, _flowControlManager, _comprProc);
 
+=======
+            var id = GetNextId();
+            if (_usePriorities)
+            {
+                ActiveStreams[id] = new Http2Stream(id, _writeQueue, _flowControlManager, _comprProc, priority);
+            }
+            else
+            {
+                ActiveStreams[id] = new Http2Stream(id, _writeQueue, _flowControlManager, _comprProc);
+            }
+>>>>>>> c62f224eb7eab45789632ee69a8b4c25987c3530
             ActiveStreams[id].OnClose += (o, args) =>
                 {
                     if (ActiveStreams.Remove(ActiveStreams[args.Id]) == false)
@@ -412,7 +426,7 @@ namespace SharedProtocol
             Http2Stream stream;
             if (!ActiveStreams.TryGetValue(id, out stream))
             {
-                //Do nothing. It will be handled in dispatch stream method.
+                throw new Http2StreamNotFoundException(id);
             }
             return stream;
         }

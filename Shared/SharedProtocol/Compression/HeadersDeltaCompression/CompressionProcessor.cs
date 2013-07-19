@@ -6,7 +6,7 @@ using SharedProtocol.Exceptions;
 using SharedProtocol.Extensions;
 using SharedProtocol.Compression;
 
-namespace SharedProtocol.Http2HeadersCompression
+namespace SharedProtocol.Compression.Http2DeltaHeadersCompression
 {
     //This headers compression algorithm is described in
     // https://github.com/yoavnir/compression-spec/blob/7f67f0dbecdbe65bc22f3e3b57e2d5adefeb08dd/compression-spec.txt

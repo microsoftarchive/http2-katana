@@ -44,16 +44,7 @@ namespace SharedProtocol.IO
                 return;
             }
 
-            Priority priority;
-
-            if (frame.StreamId != 0)
-            {
-                priority = _streams[frame.StreamId].Priority;
-            }
-            else
-            {
-                priority = Priority.Pri7;
-            }
+            var priority = frame.StreamId != 0 ? _streams[frame.StreamId].Priority : Priority.Pri7;
 
             IQueueItem entry = null;
 
@@ -81,15 +72,7 @@ namespace SharedProtocol.IO
                             var entry = _messageQueue.Dequeue();
                             if (entry != null)
                             {
-                                try
-                                {
-                                    _socket.Send(entry.Buffer, 0, entry.Buffer.Length, SocketFlags.None);
-                                }
-                                //TODO handle different exception types
-                                catch (Exception)
-                                {
-                                    Console.WriteLine("Sending frame was cancelled because connction was lost");
-                                }
+                                int sent = _socket.Send(entry.Buffer, 0, entry.Buffer.Length, SocketFlags.None);
                             }
                         }
                     }
