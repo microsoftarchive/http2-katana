@@ -1,6 +1,4 @@
-﻿using SharedProtocol.Compression;
-
-namespace SharedProtocol.Compression.Http2DeltaHeadersCompression
+﻿namespace SharedProtocol.Compression.Http2DeltaHeadersCompression
 {
     public class Indexation : IAdditionalHeaderInfo
     {

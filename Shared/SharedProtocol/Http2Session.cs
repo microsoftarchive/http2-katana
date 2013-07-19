@@ -286,15 +286,10 @@ namespace SharedProtocol
 
                             stream = GetStream(windowFrame.StreamId);
 
-<<<<<<< 0acdb46b8cbce8b37a4d6e7beae923ba5efd0c56
-                        //Task.Run(() => stream.PumpUnshippedFrames());
-                        stream.PumpUnshippedFrames();
-=======
                             stream.UpdateWindowSize(windowFrame.Delta);
                             //Task.Run(() => stream.PumpUnshippedFrames());
                             stream.PumpUnshippedFrames();
                         }
->>>>>>> c62f224eb7eab45789632ee69a8b4c25987c3530
                         break;
                    
                     case FrameType.GoAway:
@@ -363,11 +358,6 @@ namespace SharedProtocol
                 Dispose();
                 throw new InvalidOperationException("Trying to create more streams than allowed by the remote side!");
             }
-<<<<<<< 0acdb46b8cbce8b37a4d6e7beae923ba5efd0c56
-            int id = GetNextId();
-            ActiveStreams[id] = new Http2Stream(id, _writeQueue, _flowControlManager, _comprProc);
-
-=======
             var id = GetNextId();
             if (_usePriorities)
             {
@@ -377,7 +367,6 @@ namespace SharedProtocol
             {
                 ActiveStreams[id] = new Http2Stream(id, _writeQueue, _flowControlManager, _comprProc);
             }
->>>>>>> c62f224eb7eab45789632ee69a8b4c25987c3530
             ActiveStreams[id].OnClose += (o, args) =>
                 {
                     if (ActiveStreams.Remove(ActiveStreams[args.Id]) == false)

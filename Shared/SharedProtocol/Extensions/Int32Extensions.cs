@@ -45,23 +45,25 @@ namespace SharedProtocol.Extensions
                     number = integralPart;
                 }
 
-                return binaryStream.GetBuffer();
+                var result = new byte[binaryStream.Position];
+                Buffer.BlockCopy(binaryStream.GetBuffer(), 0, result, 0, result.Length);
+                return result;
             }
         }
 
         public static Int32 FromUVarInt(this Int32 number, byte[] binary)
         {
-            int currectIntegral = 0;
+            int currentIntegral = 0;
 
             for (int i = binary.Length - 1; i >= 1; i--)
             {
                 //Zero highest bit
                 byte fractional = (byte)(binary[i] & 0x7f);
-                currectIntegral *= divider;
-                currectIntegral += fractional;
+                currentIntegral *= divider;
+                currentIntegral += fractional;
             }
 
-            return currectIntegral + binary[0];
+            return currentIntegral + binary[0];
         }
     }
 }

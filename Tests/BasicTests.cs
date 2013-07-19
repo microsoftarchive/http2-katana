@@ -202,21 +202,21 @@ namespace BasicTests
         {
             var headers = new List<Tuple<string, string, IAdditionalHeaderInfo>>
                 {
-                    new Tuple<string, string, IAdditionalHeaderInfo>(":method", "get", new Indexation(IndexationType.Indexed)),
+                    new Tuple<string, string, IAdditionalHeaderInfo>(":method", "GET", new Indexation(IndexationType.Indexed)),
                     new Tuple<string, string, IAdditionalHeaderInfo>(":path", "test.txt", new Indexation(IndexationType.Substitution)),
                     new Tuple<string, string, IAdditionalHeaderInfo>(":version", "http/2.0", new Indexation(IndexationType.Incremental)),
+                    new Tuple<string, string, IAdditionalHeaderInfo>(":version", "http/2.0", new Indexation(IndexationType.Incremental)),
                     new Tuple<string, string, IAdditionalHeaderInfo>(":host", "localhost", new Indexation(IndexationType.Substitution)),
-                    new Tuple<string, string, IAdditionalHeaderInfo>(":scheme", "https", new Indexation(IndexationType.Substitution)),
+                    new Tuple<string, string, IAdditionalHeaderInfo>(":scheme", "HTTPS", new Indexation(IndexationType.Substitution)),
                 };
             var compressor = new CompressionProcessor();
             var decompressor = new CompressionProcessor();
 
-            byte[] serialized;
             List<Tuple<string, string, IAdditionalHeaderInfo>> decompressed = null;
 
             for (int i = 0; i < 10; i++)
             {
-                serialized = compressor.Compress(headers, false);
+                var serialized = compressor.Compress(headers, false);
                 decompressed = decompressor.Decompress(serialized, false);
             }
 
