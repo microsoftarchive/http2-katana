@@ -335,8 +335,9 @@ namespace Client
                     _fileHelper.RemoveStream(assemblyPath + path);
                     Console.WriteLine("Bytes received {0}", stream.ReceivedDataAmount);
 #if DEBUG
+                    const string wayToServerRoot = @"..\..\..\..\..\Drop\Root";
                     var areFilesEqual = _fileHelper.CompareFiles(assemblyPath + path,
-                                             @"C:\Users\vladimir.tsyshnatiy\Desktop\http2-katana\Drop\Root" + path);
+                                             wayToServerRoot + path);
 
                     if (!areFilesEqual)
                     {

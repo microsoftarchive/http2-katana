@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using Org.Mentalis.Security.Certificates;
@@ -24,7 +26,9 @@ namespace SocketServer
         private bool _disposed;
         private readonly SecurityOptions _options;
         private readonly  SecureTcpListener _server;
-        private const string certificateFilename = @"certificate.pfx";
+        private const string certificateFilename = @"\certificate.pfx";
+        //Remove file:// from Assembly.GetExecutingAssembly().CodeBase
+        private readonly string assemblyName = Path.GetDirectoryName(Assembly.GetEntryAssembly().CodeBase.Substring(8));
 
         public HttpSocketServer(Func<IDictionary<string, object>, Task> next, IDictionary<string, object> properties)
         {
@@ -72,7 +76,7 @@ namespace SocketServer
                                 : new SecurityOptions(SecureProtocol.None, extensions, new[] { "http/2.0", "http/1.1" }, ConnectionEnd.Server);
 
             _options.VerificationType = CredentialVerification.None;
-            _options.Certificate = Certificate.CreateFromCerFile(certificateFilename);
+            _options.Certificate = Certificate.CreateFromCerFile(assemblyName + certificateFilename);
             _options.Flags = SecurityFlags.Default;
             _options.AllowedAlgorithms = SslAlgorithms.RSA_AES_256_SHA | SslAlgorithms.NULL_COMPRESSION;
 

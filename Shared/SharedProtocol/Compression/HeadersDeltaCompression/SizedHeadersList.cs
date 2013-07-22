@@ -9,6 +9,7 @@ namespace SharedProtocol.Compression.HeadersDeltaCompression
     {
         private readonly List<KeyValuePair<string, string>> _collection;
 
+
         public SizedHeadersList()
         {
             _collection = new List<KeyValuePair<string, string>>(64);
@@ -17,7 +18,7 @@ namespace SharedProtocol.Compression.HeadersDeltaCompression
         public SizedHeadersList(IEnumerable<KeyValuePair<string, string>> headers)
             :this()
         {
-            _collection.AddRange(headers);
+            AddRange(headers);
         }
 
         public int StoredHeadersSize { get; private set; }
@@ -44,9 +45,7 @@ namespace SharedProtocol.Compression.HeadersDeltaCompression
         {
             foreach (var header in headers)
             {
-                StoredHeadersSize += header.Key.Length;
-                StoredHeadersSize += header.Value.Length;
-                _collection.Add(header);
+                Add(header);
             }
         }
 
@@ -74,8 +73,9 @@ namespace SharedProtocol.Compression.HeadersDeltaCompression
         public void RemoveAt(int index)
         {
             Contract.Assert(index >= 0 && index < Count);
+            var header = _collection[index];
             _collection.RemoveAt(index);
-            StoredHeadersSize -= _collection[index].Key.Length + _collection[index].Value.Length;
+            StoredHeadersSize -= header.Key.Length + header.Value.Length;
         }
 
         public void Insert(int offset, KeyValuePair<string, string> header)
