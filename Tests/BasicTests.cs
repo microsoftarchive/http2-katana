@@ -220,9 +220,9 @@ namespace BasicTests
                 decompressed = decompressor.Decompress(serialized, false);
             }
 
-            for(int i = 0 ; i < headers.Count ; i++)
+            foreach (var t in headers)
             {
-                Assert.Equal(decompressed.GetValue(headers[i].Item1), headers[i].Item2);
+                Assert.Equal(decompressed.GetValue(t.Item1), t.Item2);
             }
         }
     }

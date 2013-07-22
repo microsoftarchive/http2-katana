@@ -287,7 +287,6 @@ namespace SharedProtocol
                             stream = GetStream(windowFrame.StreamId);
 
                             stream.UpdateWindowSize(windowFrame.Delta);
-                            //Task.Run(() => stream.PumpUnshippedFrames());
                             stream.PumpUnshippedFrames();
                         }
                         break;
@@ -444,7 +443,7 @@ namespace SharedProtocol
                     });
             }
             // Listen for incoming Http/2.0 frames
-            var incomingTask = new Task(() => PumpIncommingData());
+            var incomingTask = new Task(PumpIncommingData);
             // Send outgoing Http/2.0 frames
             var outgoingTask = new Task(() => PumpOutgoingData());
             incomingTask.Start();

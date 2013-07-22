@@ -20,7 +20,7 @@ namespace SharedProtocol.Http11
         private static readonly string assemblyPath =
             Path.GetDirectoryName(Assembly.GetExecutingAssembly().CodeBase.Substring(8));
         
-        private static string GetFileName(string[] headers)
+        private static string GetFileName(IEnumerable<string> headers)
         {
             string getRequest = String.Empty;
 
@@ -34,12 +34,11 @@ namespace SharedProtocol.Http11
                 }
             }
 
-            string[] getRequestSplitted = getRequest.Split(new char[1] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            var getRequestSplitted = getRequest.Split(new [] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
 
-            foreach (var token in getRequestSplitted)
+            foreach (var token in getRequestSplitted.Where(token => token.StartsWith("/")))
             {
-                if (token.StartsWith("/")) //Filename starts with "/"
-                    return token;
+                return token;
             }
 
             return String.Empty;
@@ -47,7 +46,7 @@ namespace SharedProtocol.Http11
 
         private static void SaveFile(string directory, string fileName, byte[] fileBytes)
         {
-            string newfilepath = String.Empty;
+            string newfilepath;
 
             // create local file path
             if (!string.IsNullOrEmpty(directory))
@@ -89,13 +88,12 @@ namespace SharedProtocol.Http11
             var lineBuffer = new byte[256];
             string header = String.Empty;
             int totalBytesCame = 0;
-            bool gotException;
             int bytesOfLastHeader = 0;
             var headers = new List<string>(10);
 
             while (true)
             {
-                gotException = false;
+                bool gotException = false;
                 var bf = new byte[1];
                 int bytesCame = socket.Receive(bf);
                 if (bytesCame == 0) break;
@@ -124,7 +122,7 @@ namespace SharedProtocol.Http11
                 }
             }
 
-            headers.RemoveAll(s => String.IsNullOrEmpty(s));
+            headers.RemoveAll(String.IsNullOrEmpty);
 
             return headers.ToArray();
         }
@@ -137,12 +135,11 @@ namespace SharedProtocol.Http11
             string[] responseHeaders = ReadHeaders(socket);
 
             var buffer = new byte[128 * 1024]; //128 kb
-            int received;
             using (var stream = new MemoryStream(128 * 1024))
             {
                 while (true)
                 {
-                    received = socket.Receive(buffer, 0, buffer.Length, SocketFlags.None);
+                    int received = socket.Receive(buffer, 0, buffer.Length, SocketFlags.None);
                     if (received == 0)
                         break;
 
@@ -253,13 +250,12 @@ namespace SharedProtocol.Http11
             var lineBuffer = new byte[256];
             string header = String.Empty;
             int totalBytesCame = 0;
-            bool gotException;
             int bytesOfLastHeader = 0;
 
             while (true)
             {
-                gotException = false;
-                byte[] bf = new byte[1];
+                bool gotException = false;
+                var bf = new byte[1];
                 int bytesCame = socket.Receive(bf);
                 if (bytesCame == 0)
                     break;
@@ -287,7 +283,7 @@ namespace SharedProtocol.Http11
                     break;
                 }
             }
-            headers.RemoveAll(s => String.IsNullOrEmpty(s));
+            headers.RemoveAll(String.IsNullOrEmpty);
 
             return headers.ToArray();
         }
