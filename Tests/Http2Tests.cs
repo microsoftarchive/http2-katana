@@ -53,7 +53,7 @@ namespace Http2Tests
             Uri.TryCreate(address, UriKind.Absolute, out uri);
 
             var properties = new Dictionary<string, object>();
-            var addresses = new List<IDictionary<string, object>>()
+            var addresses = new List<IDictionary<string, object>>
                 {
                     new Dictionary<string, object>
                         {
@@ -357,13 +357,10 @@ namespace Http2Tests
         [Fact]
         public void StartMultipleSessionsAndGet40MbDataSuccessful()
         {
-            //var tests = new List<Task>();
             for (int i = 0; i < 4; i++)
             {
-                //tests.Add(Task.Run(() => StartSessionAndGet10MbDataSuccessful()));
                 StartSessionAndGet10MbDataSuccessful();
             }
-            //Task.WhenAll(tests).Wait();
         }
 
         [Theory]

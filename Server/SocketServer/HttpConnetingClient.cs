@@ -270,10 +270,7 @@ namespace SocketServer
                     switch (method)
                     {
                         case "post":
-                            //Task.Run(() => PerformPostAction(stream, (DataFrame)args.Frame));
-                            //break;
                         case "put":
-                            //Task.Run(() => SaveDataFrame(stream, (DataFrame)args.Frame));
                             SaveDataFrame(stream, (DataFrame) args.Frame);
                             break;
                     }
@@ -284,25 +281,19 @@ namespace SocketServer
                     switch (method)
                     {
                         case "get":
-                            Task.Run(() =>
-                                {
-                                    try
-                                    {
-                                        binary = _fileHelper.GetFile(stream.Headers.GetValue(":path"));
-                                    }
-                                    catch (FileNotFoundException)
-                                    {
-                                        binary = new NotFound404().Bytes;
-                                    }
-                                    SendDataTo(stream, binary);
-                                });
+                            try
+                            {
+                                binary = _fileHelper.GetFile(stream.Headers.GetValue(":path"));
+                            }
+                            catch (FileNotFoundException)
+                            {
+                                binary = new NotFound404().Bytes;
+                            }
+                            SendDataTo(stream, binary);
                             break;
                         case "delete":
-                            //Task.Run(() =>
-                            //{
-                                binary = new AccessDenied401().Bytes;
-                                SendDataTo(stream, binary);
-                            //});
+                            binary = new AccessDenied401().Bytes;
+                            SendDataTo(stream, binary);
                             break;
                     }
                 }

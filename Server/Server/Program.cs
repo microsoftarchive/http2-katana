@@ -8,16 +8,10 @@ namespace Server
     {
         static void Main(string[] args)
         {
-            string connectString;
-
-            if (args.Length == 0 || String.IsNullOrEmpty(args[0]) || args[0].ToLower() != "-secure")
-            {
-                connectString = ConfigurationManager.AppSettings["unsecureAddress"];
-            }
-            else
-            {
-                connectString = ConfigurationManager.AppSettings["secureAddress"];
-            }
+            bool isSecure = ConfigurationManager.AppSettings["useSecurePort"] == "true";
+            string connectString = isSecure
+                                       ? ConfigurationManager.AppSettings["secureAddress"]
+                                       : ConfigurationManager.AppSettings["unsecureAddress"];
 
             // Start socket server depends on chosen port
             using (WebApplication.Start<Startup>(options =>

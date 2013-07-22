@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using Org.Mentalis.Security.Ssl;
+using SharedProtocol.ExtendedMath;
+using System.Linq;
 
 namespace SharedProtocol.IO
 {
@@ -15,6 +17,25 @@ namespace SharedProtocol.IO
         {
             _pathStreamDict = new Dictionary<string, FileStream>(5);
             _end = end;
+        }
+
+        public bool CompareFiles(string file1, string file2)
+        {
+            byte[] file1Md5;
+            byte[] file2Md5;
+
+            try
+            {
+                file1Md5 = MathEx.ComputeMD5ChecksumOf(file1);
+                file2Md5 = MathEx.ComputeMD5ChecksumOf(file2);
+            }
+            catch (FileNotFoundException)
+            {
+                return false;
+            }
+            
+
+            return file1Md5.SequenceEqual(file2Md5); 
         }
 
         /// <summary>

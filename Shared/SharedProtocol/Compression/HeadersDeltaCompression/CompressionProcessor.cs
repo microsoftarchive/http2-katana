@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using SharedProtocol.Compression.HeadersDeltaCompression;
 using SharedProtocol.Exceptions;
 using SharedProtocol.Extensions;
 
@@ -11,8 +12,8 @@ namespace SharedProtocol.Compression.Http2DeltaHeadersCompression
     // https://github.com/yoavnir/compression-spec/blob/7f67f0dbecdbe65bc22f3e3b57e2d5adefeb08dd/compression-spec.txt
     public class CompressionProcessor : ICompressionProcessor
     {
-        private readonly List<KeyValuePair<string, string>> _requestHeadersStorage;
-        private readonly List<KeyValuePair<string, string>> _responceHeadersStorage;
+        private readonly SizedHeadersList _requestHeadersStorage;
+        private readonly SizedHeadersList _responceHeadersStorage;
         private const int headersLimit = 200;
         private const int maxHeaderByteSize = 4096;
 
@@ -39,7 +40,7 @@ namespace SharedProtocol.Compression.Http2DeltaHeadersCompression
         }
 
         private void ModifyTable(string headerName, string headerValue, IndexationType headerType,
-                                        List<KeyValuePair<string, string>> useHeadersTable, int index)
+                                        SizedHeadersList useHeadersTable, int index)
         {
                 switch (headerType)
                 {
@@ -49,7 +50,7 @@ namespace SharedProtocol.Compression.Http2DeltaHeadersCompression
                             useHeadersTable.RemoveAt(0);
                         }
                         //TODO refactor. remove GetSize method. It causes multiple enumeration.
-                        while (useHeadersTable.GetSize() > maxHeaderByteSize)
+                        while (useHeadersTable.StoredHeadersSize > maxHeaderByteSize)
                         {
                             useHeadersTable.RemoveAt(0);
                         }
@@ -67,7 +68,7 @@ namespace SharedProtocol.Compression.Http2DeltaHeadersCompression
                                 useHeadersTable.RemoveAt(0);
                             }
 
-                            while (useHeadersTable.GetSize() > maxHeaderByteSize)
+                            while (useHeadersTable.StoredHeadersSize > maxHeaderByteSize)
                             {
                                 useHeadersTable.RemoveAt(0);
                             }
@@ -83,7 +84,7 @@ namespace SharedProtocol.Compression.Http2DeltaHeadersCompression
         #region Compression
 
         private void CompressHeader(Tuple<string, string, IAdditionalHeaderInfo> header,
-                                        List<KeyValuePair<string, string>> useHeadersTable)
+                                        SizedHeadersList useHeadersTable)
         {
             byte prefix = 0;
             var headerName = header.Item1;
@@ -108,10 +109,9 @@ namespace SharedProtocol.Compression.Http2DeltaHeadersCompression
         }
 
         private void CompressNonIndexed(string headerName, string headerValue, IndexationType headerType, byte prefix,
-                                        List<KeyValuePair<string, string>> useHeadersTable)
+                                        SizedHeadersList useHeadersTable)
         {
-            Predicate<KeyValuePair<string, string>> predicate = kv => kv.Key == headerName;
-            int index = useHeadersTable.FindIndex(predicate);
+            int index = useHeadersTable.FindIndex(kv => kv.Key == headerName);
 
             byte nameLenBinary = 0; // headers cant be more then 255 characters length
             byte[] nameBinary = new byte[0];
@@ -163,7 +163,7 @@ namespace SharedProtocol.Compression.Http2DeltaHeadersCompression
             ModifyTable(headerName, headerValue, headerType, useHeadersTable, index);
         }
 
-        private void CompressIndexed(KeyValuePair<string, string> header, List<KeyValuePair<string, string>> useHeadersTable)
+        private void CompressIndexed(KeyValuePair<string, string> header, SizedHeadersList useHeadersTable)
         {
             int index = useHeadersTable.FindIndex(kv => kv.Key == header.Key);
             const byte prefix = 7;
@@ -177,7 +177,7 @@ namespace SharedProtocol.Compression.Http2DeltaHeadersCompression
 
         //Method retypes as many headers as it can to be Indexed
         //and checks if headers marked as indexed are present in the headers table
-        private void OptimizeInputAndSendOptimized(List<Tuple<string, string, IAdditionalHeaderInfo> > headers, List<KeyValuePair<string, string>> useHeadersTable)
+        private void OptimizeInputAndSendOptimized(List<Tuple<string, string, IAdditionalHeaderInfo>> headers, SizedHeadersList useHeadersTable)
         {
             for (int i = 0; i < headers.Count; i++ )
             {
@@ -234,7 +234,7 @@ namespace SharedProtocol.Compression.Http2DeltaHeadersCompression
 
         private int _currentOffset;
 
-        private Tuple<string, string, IAdditionalHeaderInfo> ParseHeader(byte[] bytes, List<KeyValuePair<string, string>> useHeadersTable)
+        private Tuple<string, string, IAdditionalHeaderInfo> ParseHeader(byte[] bytes, SizedHeadersList useHeadersTable)
         {
             var type = GetHeaderType(bytes);
             int index = GetIndex(bytes, type);

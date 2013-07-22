@@ -53,6 +53,7 @@
     <Compile Include="ActiveStreams.cs" />
     <Compile Include="Compression\HeadersDeltaCompression\CompressionInitialHeaders.cs" />
     <Compile Include="Compression\HeadersDeltaCompression\CompressionProcessor.cs" />
+    <Compile Include="Compression\HeadersDeltaCompression\SizedHeadersList.cs" />
     <Compile Include="Compression\IAdditionalHeaderInfo.cs" />
     <Compile Include="Compression\ICompressionProcessor.cs" />
     <Compile Include="Compression\HeadersDeltaCompression\Indexation.cs" />

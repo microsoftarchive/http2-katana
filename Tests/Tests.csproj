@@ -109,6 +109,9 @@
     <Compile Include="..\Shared\SharedProtocol\Compression\HeadersDeltaCompression\IndexationType.cs">
       <Link>Sources\IndexationType.cs</Link>
     </Compile>
+    <Compile Include="..\Shared\SharedProtocol\Compression\HeadersDeltaCompression\SizedHeadersList.cs">
+      <Link>Sources\SizedHeadersList.cs</Link>
+    </Compile>
     <Compile Include="..\Shared\SharedProtocol\Compression\IAdditionalHeaderInfo.cs">
       <Link>Sources\IAdditionalHeaderInfo.cs</Link>
     </Compile>

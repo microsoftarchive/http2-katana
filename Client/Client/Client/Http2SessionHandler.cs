@@ -333,6 +333,23 @@ namespace Client
                         Console.WriteLine("Terminator was sent");
                     }
                     _fileHelper.RemoveStream(assemblyPath + path);
+                    Console.WriteLine("Bytes received {0}", stream.ReceivedDataAmount);
+#if DEBUG
+                    var areFilesEqual = _fileHelper.CompareFiles(assemblyPath + path,
+                                             @"C:\Users\vladimir.tsyshnatiy\Desktop\http2-katana\Drop\Root" + path);
+
+                    if (!areFilesEqual)
+                    {
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        Console.WriteLine("Files are NOT EQUAL!");
+                    }
+                    else
+                    {
+                        Console.ForegroundColor = ConsoleColor.Green;
+                        Console.WriteLine("Files are EQUAL!");
+                    }
+                    Console.ForegroundColor = ConsoleColor.Gray;
+#endif
                 }
             }
         }
@@ -344,24 +361,21 @@ namespace Client
             if (method == "put" || method == "post")
             {
                 var localPath = stream.Headers.GetValue(":localPath".ToLower());
-                Task.Run(() =>
-                    {
-                        byte[] binary = null;
-                        bool gotException = false;
-                        try
-                        {
-                            binary = _fileHelper.GetFile(localPath);
-                        }
-                        catch (FileNotFoundException)
-                        {
-                            gotException = true;
-                            Console.WriteLine("Specified file not found: {0}", localPath);
-                        }
-                        if (!gotException)
-                        {
-                            SendDataTo(args.Stream, binary);
-                        }
-                    });
+                byte[] binary = null;
+                bool gotException = false;
+                try
+                {
+                    binary = _fileHelper.GetFile(localPath);
+                }
+                catch (FileNotFoundException)
+                {
+                    gotException = true;
+                    Console.WriteLine("Specified file not found: {0}", localPath);
+                }
+                if (!gotException)
+                {
+                    SendDataTo(args.Stream, binary);
+                }
             }
         }
 
@@ -374,26 +388,22 @@ namespace Client
             {
                 if (args.Frame is DataFrame)
                 {
-                    //Task.Run(() => SaveDataFrame(stream, (DataFrame)args.Frame));
                     SaveDataFrame(stream, (DataFrame) args.Frame);
                 }
                 else if (args.Frame is Headers && method == "get")
                 {
-                    Task.Run(() =>
-                    {
-                        string path = stream.Headers.GetValue(":path".ToLower());
-                        byte[] binary = null;
+                    string path = stream.Headers.GetValue(":path".ToLower());
+                    byte[] binary = null;
 
-                        try
-                        {
-                            binary = _fileHelper.GetFile(path);
-                        }
-                        catch (FileNotFoundException)
-                        {
-                            binary = new NotFound404().Bytes;
-                        }
-                        SendDataTo(stream, binary);
-                    });
+                    try
+                    {
+                        binary = _fileHelper.GetFile(path);
+                    }
+                    catch (FileNotFoundException)
+                    {
+                        binary = new NotFound404().Bytes;
+                    }
+                    SendDataTo(stream, binary);
                 }
             }
             catch (Exception)

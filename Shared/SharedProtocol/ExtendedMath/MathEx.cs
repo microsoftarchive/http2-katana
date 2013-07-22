@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Security.Cryptography;
 
 namespace SharedProtocol.ExtendedMath
 {
@@ -38,6 +40,16 @@ namespace SharedProtocol.ExtendedMath
             }
 
             return result;
+        }
+
+        public static byte[] ComputeMD5ChecksumOf(string path)
+        {
+            if (!File.Exists(path))
+            {
+                throw new FileNotFoundException(String.Format("Specified file not found {0}",path));
+            }
+            var fileData = File.ReadAllBytes(path);
+            return new MD5CryptoServiceProvider().ComputeHash(fileData);
         }
     }
 }

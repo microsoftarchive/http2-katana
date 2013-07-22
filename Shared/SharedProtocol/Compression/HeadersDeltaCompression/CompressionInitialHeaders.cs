@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using SharedProtocol.Extensions;
+using SharedProtocol.Compression.HeadersDeltaCompression;
 
 namespace SharedProtocol.Compression.Http2DeltaHeadersCompression
 {
@@ -49,7 +49,7 @@ namespace SharedProtocol.Compression.Http2DeltaHeadersCompression
               | 37    | warning             |              |
               +-------+---------------------+--------------+*/
 
-        private static readonly List<KeyValuePair<string, string>> requestInitialHeaders = new List<KeyValuePair<string, string>>
+        private static readonly SizedHeadersList requestInitialHeaders = new SizedHeadersList
             {
                 new KeyValuePair<string, string>(":scheme", "https"),
                 new KeyValuePair<string, string>(":scheme", "http"),
@@ -131,7 +131,7 @@ namespace SharedProtocol.Compression.Http2DeltaHeadersCompression
           | 34    | www-authenticate            |              |
           +-------+-----------------------------+--------------+*/
 
-        private static readonly List<KeyValuePair<string, string>> responseInitialHeaders = new List<KeyValuePair<string, string>>
+        private static readonly SizedHeadersList responseInitialHeaders = new SizedHeadersList
             {
                 new KeyValuePair<string, string>(":status", "200"),
                 new KeyValuePair<string, string>("age", String.Empty),
@@ -170,24 +170,14 @@ namespace SharedProtocol.Compression.Http2DeltaHeadersCompression
                 new KeyValuePair<string, string>("www-authenticate", String.Empty),
             };
 
-        public static List<KeyValuePair<string, string>> RequestInitialHeaders
+        public static SizedHeadersList RequestInitialHeaders
         {
             get { return requestInitialHeaders; }
         }
 
-        public static List<KeyValuePair<string, string>> ResponseInitialHeaders
+        public static SizedHeadersList ResponseInitialHeaders
         {
             get { return responseInitialHeaders; }
-        }
-
-        public static int InitialRequestHeadersSize
-        {
-            get { return requestInitialHeaders.GetSize(); }
-        }
-
-        public static int InitialResponceHeadersSize
-        {
-            get { return responseInitialHeaders.GetSize(); }
         }
     }
 }
