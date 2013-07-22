@@ -172,12 +172,12 @@ namespace SharedProtocol.Compression.Http2DeltaHeadersCompression
 
         public static SizedHeadersList RequestInitialHeaders
         {
-            get { return requestInitialHeaders; }
+            get { return new SizedHeadersList(requestInitialHeaders); }
         }
 
         public static SizedHeadersList ResponseInitialHeaders
         {
-            get { return responseInitialHeaders; }
+            get { return new SizedHeadersList(responseInitialHeaders); }
         }
     }
 }

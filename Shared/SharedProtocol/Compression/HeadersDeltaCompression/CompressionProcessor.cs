@@ -21,7 +21,6 @@ namespace SharedProtocol.Compression.Http2DeltaHeadersCompression
 
         public CompressionProcessor()
         {
-
             _requestHeadersStorage = CompressionInitialHeaders.RequestInitialHeaders;
             _responceHeadersStorage = CompressionInitialHeaders.ResponseInitialHeaders;
 
@@ -42,6 +41,7 @@ namespace SharedProtocol.Compression.Http2DeltaHeadersCompression
         private void ModifyTable(string headerName, string headerValue, IndexationType headerType,
                                         SizedHeadersList useHeadersTable, int index)
         {
+            int headerLen = headerName.Length + headerValue.Length;
                 switch (headerType)
                 {
                     case IndexationType.Incremental:
@@ -49,8 +49,8 @@ namespace SharedProtocol.Compression.Http2DeltaHeadersCompression
                         {
                             useHeadersTable.RemoveAt(0);
                         }
-                        //TODO refactor. remove GetSize method. It causes multiple enumeration.
-                        while (useHeadersTable.StoredHeadersSize > maxHeaderByteSize)
+
+                        while (useHeadersTable.StoredHeadersSize + headerLen > maxHeaderByteSize)
                         {
                             useHeadersTable.RemoveAt(0);
                         }
@@ -68,7 +68,7 @@ namespace SharedProtocol.Compression.Http2DeltaHeadersCompression
                                 useHeadersTable.RemoveAt(0);
                             }
 
-                            while (useHeadersTable.StoredHeadersSize > maxHeaderByteSize)
+                            while (useHeadersTable.StoredHeadersSize + headerLen > maxHeaderByteSize)
                             {
                                 useHeadersTable.RemoveAt(0);
                             }
