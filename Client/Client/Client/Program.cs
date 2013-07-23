@@ -89,6 +89,7 @@ namespace Client
                         case CommandType.Post:
                         case CommandType.Get:
                         case CommandType.Delete:
+						case CommandType.Dir:
                             var uriCmd = (IUriCommand) cmd;
 
                             string method = uriCmd.Method;

@@ -7,6 +7,7 @@
 using System;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Collections.Generic;
 using System.Net.Sockets;
@@ -47,12 +48,15 @@ namespace SocketServer
         private readonly bool _useHandshake;
         private readonly bool _usePriorities;
         private readonly bool _useFlowControl;
+		private List<string> listOfRootFiles = new List<string>();
+        private object _listWriteLock = new object();
 
         internal string SelectedProtocol { get; private set; }
 
         internal HttpConnetingClient(SecureTcpListener server, SecurityOptions options,
                                      AppFunc next, bool useHandshake, bool usePriorities, bool useFlowControl)
         {
+			GetRootFileList();
             _usePriorities = usePriorities;
             _useHandshake = useHandshake;
             _useFlowControl = useFlowControl;
@@ -75,6 +79,24 @@ namespace SocketServer
             return result;
         }
 
+		private void GetRootFileList()
+        {
+            string dirPath = Path.GetDirectoryName(Assembly.GetEntryAssembly().CodeBase.Substring(8)) + @"\Root";
+            listOfRootFiles = Directory.EnumerateFiles(dirPath, "*", SearchOption.AllDirectories).Select(Path.GetFileName).ToList();
+            for (int i = 0; i < listOfRootFiles.Count; i++)
+            {
+                listOfRootFiles[i] += "\n";
+            }
+        }
+
+        private void AddFileToRootFileList(string fileName)
+        {
+            lock (_listWriteLock)
+            {
+                listOfRootFiles.Add(fileName + "\n");
+            }
+        }
+		
         /// <summary>
         /// Accepts client and deals handshake with it.
         /// </summary>
@@ -103,12 +125,18 @@ namespace SocketServer
                     {
                         await _next(environment);
                     }
-                    catch (Http2HandshakeFailed)
+                    catch (Http2HandshakeFailed ex)
                     {
-                        backToHttp11 = true;
+                        if (ex.Reason == HandshakeFailureReason.InternalError)
+                        {
+                            backToHttp11 = true;
+                        }
+                        else
+                        {
+                            incomingClient.Close();
+                        }
                     }
                 }
-
             }
             Task.Run(() => HandleRequest(incomingClient, backToHttp11));
         }
@@ -272,6 +300,8 @@ namespace SocketServer
                         case "post":
                         case "put":
                             SaveDataFrame(stream, (DataFrame) args.Frame);
+                            //Avoid leading \ at the filename
+                            AddFileToRootFileList(stream.Headers.GetValue(":path").Substring(1));
                             break;
                     }
                 } 
@@ -295,6 +325,10 @@ namespace SocketServer
                             binary = new AccessDenied401().Bytes;
                             SendDataTo(stream, binary);
                             break;
+						case "dir":
+                            binary = listOfRootFiles.SelectMany(s => Encoding.UTF8.GetBytes(s)).ToArray();
+                            SendDataTo(stream, binary);
+                        break;
                     }
                 }
             }

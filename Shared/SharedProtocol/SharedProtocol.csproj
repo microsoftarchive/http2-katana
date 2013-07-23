@@ -78,6 +78,7 @@
     <Compile Include="FlowControl\FlowControlOptions.cs" />
     <Compile Include="Framing\IEndStreamFrames.cs" />
     <Compile Include="Framing\PriorityFrame.cs" />
+    <Compile Include="Handshake\HandshakeFailureReason.cs" />
     <Compile Include="Handshake\HandshakeManager.cs" />
     <Compile Include="Http11\Http11Manager.cs" />
     <Compile Include="IO\FileHelper.cs" />

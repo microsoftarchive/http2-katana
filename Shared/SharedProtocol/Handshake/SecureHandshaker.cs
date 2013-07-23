@@ -61,20 +61,20 @@ namespace SharedProtocol.Handshake
             }
             catch (Exception)
             {
-                throw new Http2HandshakeFailed();
+                throw new Http2HandshakeFailed(HandshakeFailureReason.InternalError);
             }
 
-            _handshakeFinishedEventRaised.WaitOne(60000);
+            _handshakeFinishedEventRaised.WaitOne(10000);
             InternalSocket.OnHandshakeFinish -= HandshakeFinishedHandler;
 
             if (!InternalSocket.Connected)
             {
-                throw new Exception("Connection was lost after the handshake!");
+                throw new Exception("Connection was lost!");
             }
 
             if (Options.Protocol != SecureProtocol.None && !InternalSocket.IsNegotiationCompleted)
             {
-                throw new Http2HandshakeFailed();
+                throw new Http2HandshakeFailed(HandshakeFailureReason.Timeout);
             }
         }
 

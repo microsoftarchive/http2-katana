@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Net.Sockets;
 using System.Text;
+using System.Threading;
 using Org.Mentalis.Security.Ssl;
 using SharedProtocol.Exceptions;
 using SharedProtocol.Framing;
@@ -11,10 +12,14 @@ namespace SharedProtocol.Handshake
 {
     public class UpgradeHandshaker
     {
-        private const int HandshakeResponseSizeLimit = 1024;
+        //TODO replace limit with memoryStream
+        private const int HandshakeResponseSizeLimit = 4096;
         private static readonly byte[] CRLFCRLF = new [] { (byte)'\r', (byte)'\n', (byte)'\r', (byte)'\n' };
         private readonly ConnectionEnd _end;
-        private Dictionary<string, string> _headers;
+        private readonly Dictionary<string, string> _headers;
+        private readonly ManualResetEvent _responceReceivedRaised;
+        private bool _wasResponceReceived;
+        private const int timeout = 10000;
 
         public SecureSocket InternalSocket { get; private set; }
 
@@ -22,7 +27,9 @@ namespace SharedProtocol.Handshake
         {
             InternalSocket = (SecureSocket) handshakeEnvironment["secureSocket"];
             _end = (ConnectionEnd) handshakeEnvironment["end"];
-
+            _responceReceivedRaised = new ManualResetEvent(false);
+            OnResponceReceived += ResponceReceivedHandler;
+           
             if (_end == ConnectionEnd.Client)
             {
                 if (handshakeEnvironment.ContainsKey(":host") || (handshakeEnvironment[":host"] is string)
@@ -42,7 +49,13 @@ namespace SharedProtocol.Handshake
 
         public void Handshake()
         {
-            HandshakeResponse handshakeResponse;
+            var handshakeResponce = new HandshakeResponse();
+            var readThread = new Thread((ThreadStart) delegate
+                {
+                    handshakeResponce = Read11Headers();
+                }){IsBackground = true, Name = "ReadSocketDataThread"};
+            readThread.Start();
+ 
             if (_end == ConnectionEnd.Client)
             {
                 // Build the request
@@ -63,13 +76,16 @@ namespace SharedProtocol.Handshake
 
                 byte[] requestBytes = Encoding.ASCII.GetBytes(builder.ToString());
                 InternalSocket.Send(requestBytes, 0, requestBytes.Length, SocketFlags.None);
-                handshakeResponse = Read11Headers(InternalSocket);
+
+                _responceReceivedRaised.WaitOne(timeout);
+                _responceReceivedRaised.Dispose();
             }
             else
             {
-                handshakeResponse = Read11Headers(InternalSocket);
+                _responceReceivedRaised.WaitOne(timeout);
+                _responceReceivedRaised.Dispose();
 
-                if (_end == ConnectionEnd.Server && handshakeResponse.Result == HandshakeResult.Upgrade)
+                if (handshakeResponce.Result == HandshakeResult.Upgrade)
                 {
                     const string status = "101";
                     const string protocol = "HTTP/1.1";
@@ -85,23 +101,39 @@ namespace SharedProtocol.Handshake
                     InternalSocket.Send(requestBytes, 0, requestBytes.Length, SocketFlags.None);
                 }
             }
-            if (handshakeResponse.Result == HandshakeResult.NonUpgrade)
+
+            if (!_wasResponceReceived)
             {
-                throw new Http2HandshakeFailed();
+                OnResponceReceived = null;
+                if (readThread.IsAlive)
+                {
+                    readThread.Abort();
+                }
+                throw new Http2HandshakeFailed(HandshakeFailureReason.Timeout);
             }
+            if (handshakeResponce.Result != HandshakeResult.Upgrade)
+            {
+                throw new Http2HandshakeFailed(HandshakeFailureReason.InternalError);
+            }
+            OnResponceReceived = null;
+            if (readThread.IsAlive)
+            {
+                readThread.Abort();
+            }
+            readThread.Join();
         }
 
-        public HandshakeResponse Read11Headers(SecureSocket socket)
+        private HandshakeResponse Read11Headers()
         {
-            var buffer = new byte[HandshakeResponseSizeLimit];
-            int lastInspectionOffset = 0;
+            byte[] buffer = new byte[HandshakeResponseSizeLimit];
+            int read;
             int readOffset = 0;
-            int read = -1;
+            int lastInspectionOffset;
             do
             {
                 try
                 {
-                    read = socket.Receive(buffer, readOffset, buffer.Length - readOffset, SocketFlags.None);
+                    read = InternalSocket.Receive(buffer, readOffset, buffer.Length - readOffset, SocketFlags.None);
                 }
                 catch (IOException)
                 {
@@ -112,23 +144,13 @@ namespace SharedProtocol.Handshake
                 {
                     return new HandshakeResponse { Result = HandshakeResult.UnexpectedConnectionClose };
                 }
-
+                
                 readOffset += read;
+                lastInspectionOffset = Math.Max(0, readOffset - CRLFCRLF.Length);
                 int matchIndex;
                 if (TryFindRangeMatch(buffer, lastInspectionOffset, readOffset, CRLFCRLF, out matchIndex))
                 {
                     return InspectHanshake(buffer, matchIndex + CRLFCRLF.Length, readOffset);
-                }
-
-                lastInspectionOffset = Math.Max(0, readOffset - CRLFCRLF.Length);
-
-                if (FrameHelpers.GetHighBitAt(buffer, 0))
-                {
-                    return new HandshakeResponse
-                    {
-                        Result = HandshakeResult.UnexpectedControlFrame,
-                        ExtraData = new ArraySegment<byte>(buffer, 0, readOffset),
-                    };
                 }
 
             } while (readOffset < HandshakeResponseSizeLimit);
@@ -199,7 +221,22 @@ namespace SharedProtocol.Handshake
                     handshake.Result = HandshakeResult.NonUpgrade;
                 }
             }
+
+            if (OnResponceReceived != null)
+            {
+                OnResponceReceived(this, null);
+            }
+
             return handshake;
         }
+
+        private void ResponceReceivedHandler(object sender, EventArgs args)
+        {
+            _wasResponceReceived = true;
+            _responceReceivedRaised.Set();
+        }
+
+
+        private event EventHandler<EventArgs> OnResponceReceived;
     }
 }
