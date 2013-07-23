@@ -165,7 +165,7 @@ namespace SharedProtocol.Compression.Http2DeltaHeadersCompression
 
         private void CompressIndexed(KeyValuePair<string, string> header, SizedHeadersList useHeadersTable)
         {
-            int index = useHeadersTable.FindIndex(kv => kv.Key == header.Key);
+            int index = useHeadersTable.FindIndex(kv => kv.Key == header.Key && kv.Value == header.Value);
             const byte prefix = 7;
             var bytes = index.ToUVarInt(prefix);
 

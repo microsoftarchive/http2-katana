@@ -103,11 +103,9 @@ namespace Client
             _host = connectUri.Host;
             _port = connectUri.Port;
 
-            bool gotException = false;
-
             if (_clientSession != null)
             {
-                return gotException;
+                return true;
             }
 
             try
@@ -122,9 +120,8 @@ namespace Client
                 }
                 catch (Exception)
                 {
-                    gotException = true;
                     Console.WriteLine("Incorrect port in the config file!");
-                    return gotException;
+                    return true;
                 }
 
                 //Connect alpn extension, set known protocols
@@ -141,16 +138,16 @@ namespace Client
                 _options.Flags = SecurityFlags.Default;
                 _options.AllowedAlgorithms = SslAlgorithms.RSA_AES_256_SHA | SslAlgorithms.NULL_COMPRESSION;
 
-                var sessionSocket = new SecureSocket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp, _options);
+                _socket = new SecureSocket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp, _options);
 
                 using (var monitor = new ALPNExtensionMonitor())
                 {
                     monitor.OnProtocolSelected += (o, args) => { _selectedProtocol = args.SelectedProtocol; };
-                    sessionSocket.Connect(new DnsEndPoint(connectUri.Host, connectUri.Port), monitor);
+                    _socket.Connect(new DnsEndPoint(connectUri.Host, connectUri.Port), monitor);
 
                     if (_useHandshake)
                     {
-                        var handshakeEnvironment = MakeHandshakeEnvironment(sessionSocket);
+                        var handshakeEnvironment = MakeHandshakeEnvironment(_socket);
                         //Handshake manager determines what handshake must be used: upgrade or secure
                         HandshakeManager.GetHandshakeAction(handshakeEnvironment).Invoke();
 
@@ -159,12 +156,11 @@ namespace Client
                         if (_selectedProtocol == "http/1.1")
                         {
                             _useHttp20 = false;
-                            return gotException;
+                            return false;
                         }
                     }
                 }
 
-                _socket = sessionSocket;
                 SendSessionHeader();
                 _useHttp20 = true;
                 _clientSession = new Http2Session(_socket, ConnectionEnd.Client, _usePriorities, _useFlowControl);
@@ -173,31 +169,41 @@ namespace Client
                 _clientSession.OnFrameReceived += FrameReceivedHandler;
                 _clientSession.OnRequestSent += RequestSentHandler;
             }
-            catch (Http2HandshakeFailed)
+            catch (Http2HandshakeFailed ex)
             {
-                _useHttp20 = false;
+                if (ex.Reason == HandshakeFailureReason.InternalError)
+                {
+                    _useHttp20 = false;
+                }
+                else
+                {
+                    Console.WriteLine("Specified server did not respond");
+                    Dispose();
+                    return true;
+                }
             }
             catch (SocketException)
             {
-                gotException = true;
                 Console.WriteLine("Check if any server listens port " + connectUri.Port);
                 Dispose();
-                return gotException;
+                return true;
             }
             catch (Exception ex)
             {
-                gotException = true;
                 Console.WriteLine("Unknown connection exception was caught: " + ex.Message);
                 Dispose();
-                return gotException;
+                return true;
             }
 
-            return gotException;
+            return false;
         }
 
         public async void StartConnection()
         {
-            await _clientSession.Start();
+            if (_useHttp20 && !_socket.IsClosed)
+            {
+                await _clientSession.Start();
+            }
         }
 
         private void SendSessionHeader()
@@ -241,25 +247,28 @@ namespace Client
 
         public void SendRequestAsync(Uri request, string method, string localPath = null, string serverPostAct = null)
         {
-            if (_host != request.Host || _port != request.Port || _scheme != request.Scheme)
+            if (!_socket.IsClosed)
             {
-                throw new InvalidOperationException("Trying to send request to non connected address");
+                if (_host != request.Host || _port != request.Port || _scheme != request.Scheme)
+                {
+                    throw new InvalidOperationException("Trying to send request to non connected address");
+                }
+
+                if (_useHttp20 == false)
+                {
+                    Console.WriteLine("Download with Http/1.1");
+
+                    //Download with http11 in another thread.
+                    Http11Manager.Http11DownloadResource(_socket, request);
+                    return;
+                }
+
+                //Submit request if http2 was chosen
+                Console.WriteLine("Submitting request");
+
+                //Submit request in the current thread, responce will be handled in the session thread.
+                SubmitRequest(request, method, localPath, serverPostAct);
             }
-
-            if (_useHttp20 == false)
-            {
-                Console.WriteLine("Download with Http/1.1");
-
-                //Download with http11 in another thread.
-                Task.Run(() => Http11Manager.Http11DownloadResource(_socket, request));
-                return;
-            }
-
-            //Submit request if http2 was chosen
-            Console.WriteLine("Submitting request");
-
-            //Submit request in the current thread, responce will be handled in the session thread.
-            SubmitRequest(request, method, localPath, serverPostAct);
         }
 
         public TimeSpan Ping()
@@ -383,28 +392,43 @@ namespace Client
         private void FrameReceivedHandler(object sender, FrameReceivedEventArgs args)
         {
             var stream = args.Stream;
-            var method = stream.Headers.GetValue(":method");
+            var method = stream.Headers.GetValue(":method").ToLower();
 
             try
             {
-                if (args.Frame is DataFrame)
+                switch (method)
                 {
-                    SaveDataFrame(stream, (DataFrame) args.Frame);
-                }
-                else if (args.Frame is Headers && method == "get")
-                {
-                    string path = stream.Headers.GetValue(":path".ToLower());
-                    byte[] binary = null;
+                    case "dir":
+                        if (args.Frame is DataFrame)
+                        {
+                            var data = ((DataFrame)args.Frame).Data;
+                            Console.ForegroundColor = ConsoleColor.Green;
+                            Console.WriteLine("Files in Root directory:");
+                            Console.ForegroundColor = ConsoleColor.Gray;
+                            Console.WriteLine(Encoding.UTF8.GetString(data.Array, data.Offset, data.Count));
+                        }
+                        break;
+                    case "get":
+                        if (args.Frame is DataFrame)
+                        {
+                            SaveDataFrame(stream, (DataFrame) args.Frame);
+                        }
+                        else if (args.Frame is Headers)
+                        {
+                            string path = stream.Headers.GetValue(":path".ToLower());
+                            byte[] binary = null;
 
-                    try
-                    {
-                        binary = _fileHelper.GetFile(path);
-                    }
-                    catch (FileNotFoundException)
-                    {
-                        binary = new NotFound404().Bytes;
-                    }
-                    SendDataTo(stream, binary);
+                            try
+                            {
+                                binary = _fileHelper.GetFile(path);
+                            }
+                            catch (FileNotFoundException)
+                            {
+                                binary = new NotFound404().Bytes;
+                            }
+                            SendDataTo(stream, binary);
+                        }
+                        break;
                 }
             }
             catch (Exception)

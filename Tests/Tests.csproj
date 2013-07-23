@@ -235,6 +235,9 @@
     <Compile Include="..\Shared\SharedProtocol\Framing\WindowUpdateFrame.cs">
       <Link>Sources\WindowUpdateFrame.cs</Link>
     </Compile>
+    <Compile Include="..\Shared\SharedProtocol\Handshake\HandshakeFailureReason.cs">
+      <Link>Sources\HandshakeFailureReason.cs</Link>
+    </Compile>
     <Compile Include="..\Shared\SharedProtocol\Handshake\HandshakeManager.cs">
       <Link>Sources\HandshakeManager.cs</Link>
     </Compile>

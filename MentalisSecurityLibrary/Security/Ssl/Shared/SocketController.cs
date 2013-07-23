@@ -75,7 +75,7 @@ namespace Org.Mentalis.Security.Ssl.Shared {
             this.m_ReceiveBuffer = new byte[m_ReceiveBufferLength];
 		    this.m_End = options.Entity;
 
-            this.OnConnectionClose += new EventHandler<SocketCloseEventArgs>(parent.ConnectionCloseHandler);
+            this.OnConnectionClose += parent.ConnectionCloseHandler;
 
 			this.m_Compatibility = new CompatibilityLayer(this, options);
 		}

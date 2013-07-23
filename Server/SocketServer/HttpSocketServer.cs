@@ -28,7 +28,7 @@ namespace SocketServer
         private readonly  SecureTcpListener _server;
         private const string certificateFilename = @"\certificate.pfx";
         //Remove file:// from Assembly.GetExecutingAssembly().CodeBase
-        private readonly string assemblyName = Path.GetDirectoryName(Assembly.GetEntryAssembly().CodeBase.Substring(8));
+        private readonly string assemblyName = Path.GetDirectoryName(Assembly.GetExecutingAssembly().CodeBase.Substring(8));
 
         public HttpSocketServer(Func<IDictionary<string, object>, Task> next, IDictionary<string, object> properties)
         {

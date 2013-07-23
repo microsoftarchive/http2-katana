@@ -19,6 +19,8 @@ namespace Client
 
             switch (splittedCmd[0].ToLower())
             {
+                case "dir":
+                    return new DirCommand(cmdArgs);
                 case "post":
                     return new PostCommand(cmdArgs);
                 case "put":
@@ -34,8 +36,6 @@ namespace Client
                 case "capturestatson":
                     break;
                 case "capturestatsoff":
-                    break;
-                case "dir":
                     break;
                 case "help":
                     return new HelpCommand(cmdArgs);

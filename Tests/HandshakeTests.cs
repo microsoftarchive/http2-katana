@@ -192,6 +192,10 @@ namespace HandshakeTests
             }
 
             sessionSocket.Close();
+            while (true)
+            {
+                int a = 1;
+            }
             Assert.Equal(gotFailedException, false);
         }
 
