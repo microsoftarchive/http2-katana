@@ -32,6 +32,8 @@ namespace SharedProtocol
         private int _lastId;
         private bool _wasSettingsReceived = false;
         private bool _wasPingReceived = false;
+        private bool _wasResponceReceived = false;
+        private ManualResetEvent _responceReceivedRaised;
         private List<Tuple<string, string, IAdditionalHeaderInfo>> _toBeContinuedHeaders = null;
         private Frame _toBeContinuedFrame = null;
 
@@ -68,7 +70,7 @@ namespace SharedProtocol
             _ourEnd = end;
             _usePriorities = usePriorities;
             _useFlowControl = useFlowControl;
-
+            _responceReceivedRaised = new ManualResetEvent(false);
             if (_ourEnd == ConnectionEnd.Client)
             {
                 _remoteEnd = ConnectionEnd.Server;
@@ -115,6 +117,12 @@ namespace SharedProtocol
                 try
                 {
                     frame = _frameReader.ReadFrame();
+
+                    if (!_wasResponceReceived)
+                    {
+                        _responceReceivedRaised.Set(); 
+                        _wasResponceReceived = true;
+                    }
                 }
                 catch (Exception)
                 {
@@ -449,6 +457,12 @@ namespace SharedProtocol
             incomingTask.Start();
             outgoingTask.Start();
 
+            _responceReceivedRaised.WaitOne(10000);
+            if (!_wasResponceReceived)
+            {
+                Console.WriteLine("No responce from remote end. Connection is terminating");
+                Dispose();
+            }
             return Task.WhenAll(incomingTask, outgoingTask);
         }
 
@@ -545,7 +559,12 @@ namespace SharedProtocol
 
             _comprProc.Dispose();
             _sessionSocket.Close();
-
+            _responceReceivedRaised.Dispose();
+            if (OnSessionDisposed != null)
+            {
+                OnSessionDisposed(this, null);
+            }
+            OnSessionDisposed = null;
             Console.WriteLine("Session closed");
         }
 
@@ -565,5 +584,7 @@ namespace SharedProtocol
         public event EventHandler<FrameReceivedEventArgs> OnFrameReceived;
 
         public event EventHandler<RequestSentEventArgs> OnRequestSent;
+
+        public event EventHandler<EventArgs> OnSessionDisposed;
     }
 }

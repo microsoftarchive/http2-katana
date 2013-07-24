@@ -56,7 +56,6 @@
 using System;
 using System.Net;
 using System.Net.Sockets;
-using System.Collections;
 using Org.Mentalis.Security.Certificates;
 using Org.Mentalis.Security.Ssl.Shared;
 
@@ -78,6 +77,12 @@ namespace Org.Mentalis.Security.Ssl
             if (this.OnHandshakeFinish != null)
                 this.OnHandshakeFinish(this, args);
         }
+
+        internal void ProtocolSelectedHandler(object sender, ProtocolSelectedArgs args)
+        {
+            SelectedProtocol = args.SelectedProtocol;
+        }
+
         /// <summary>
         /// Initializes a new instance of the SecureSocket class.
         /// </summary>
@@ -90,6 +95,7 @@ namespace Org.Mentalis.Security.Ssl
                             ProtocolType protocolType, SecurityOptions options)
             : base(addressFamily, socketType, protocolType)
         {
+            SelectedProtocol = String.Empty;
             m_SentShutdownNotification = false;
             ChangeSecurityProtocol(options);
             this.m_Controller = new SocketController(this, base.InternalSocket, m_Options);
@@ -206,6 +212,7 @@ namespace Org.Mentalis.Security.Ssl
             base.BeginConnect(remoteEP, new AsyncCallback(OnConnect), null);
             return ret;
         }
+        
         /// <summary>
         /// Called then the <see cref="SecureSocket"/> connects to the remote host.
         /// </summary>
@@ -223,6 +230,7 @@ namespace Org.Mentalis.Security.Ssl
 
             m_ConnectResult.Notify();
         }
+        
         /// <summary>
         /// Ends a pending asynchronous connection request.
         /// </summary>
@@ -258,6 +266,7 @@ namespace Org.Mentalis.Security.Ssl
             if (ar.AsyncException != null)
                 throw ar.AsyncException;
         }
+        
         /// <summary>
         /// Creates a new <see cref="SecureSocket"/> to handle an incoming connection request.
         /// </summary>
@@ -275,6 +284,7 @@ namespace Org.Mentalis.Security.Ssl
         {
             return EndAccept(BeginAccept(callback, null));
         }
+        
         /// <summary>
         /// Begins an asynchronous request to create a new <see cref="SecureSocket"/> to accept an incoming connection request.
         /// </summary>
@@ -293,6 +303,7 @@ namespace Org.Mentalis.Security.Ssl
             base.BeginAccept(new AsyncCallback(this.OnAccept), null);
             return ret;
         }
+        
         private void OnAccept(IAsyncResult ar)
         {
             try
@@ -305,6 +316,7 @@ namespace Org.Mentalis.Security.Ssl
             }
             m_AcceptResult.Notify();
         }
+        
         /// <summary>
         /// Ends an asynchronous request to create a new <see cref="SecureSocket"/> to accept an incoming connection request.
         /// </summary>
@@ -341,6 +353,7 @@ namespace Org.Mentalis.Security.Ssl
 
             return ar.AcceptedSocket;
         }
+        
         /// <summary>
         /// Sends data to a connected <see cref="SecureSocket"/>, starting at the indicated location in the data.
         /// </summary>
@@ -357,6 +370,7 @@ namespace Org.Mentalis.Security.Ssl
                 throw new ArgumentNullException();
             return this.Send(buffer, 0, buffer.Length, SocketFlags.None);
         }
+        
         /// <summary>
         /// Sends data to a connected <see cref="SecureSocket"/>, starting at the indicated location in the data.
         /// </summary>
@@ -374,6 +388,7 @@ namespace Org.Mentalis.Security.Ssl
                 throw new ArgumentNullException();
             return this.Send(buffer, 0, buffer.Length, socketFlags);
         }
+        
         /// <summary>
         /// Sends data to a connected <see cref="SecureSocket"/>, starting at the indicated location in the data.
         /// </summary>
@@ -391,6 +406,7 @@ namespace Org.Mentalis.Security.Ssl
         {
             return this.Send(buffer, 0, size, socketFlags);
         }
+        
         /// <summary>
         /// Sends data to a connected <see cref="SecureSocket"/>, starting at the indicated location in the data.
         /// </summary>
@@ -412,6 +428,7 @@ namespace Org.Mentalis.Security.Ssl
             else
                 return this.EndSend(this.BeginSend(buffer, offset, size, socketFlags, null, null));
         }
+        
         /// <summary>
         /// Sends data asynchronously to a connected <see cref="SecureSocket"/>.
         /// </summary>
@@ -443,6 +460,7 @@ namespace Org.Mentalis.Security.Ssl
             // begin secure send
             return m_Controller.BeginSend(buffer, offset, size, callback, state);
         }
+        
         /// <summary>
         /// Ends a pending asynchronous send.
         /// </summary>
@@ -473,6 +491,7 @@ namespace Org.Mentalis.Security.Ssl
             }
             return ti.OriginalSize;
         }
+        
         /// <summary>
         /// Receives data from a connected <see cref="SecureSocket"/> into a specific location of the receive buffer.
         /// </summary>
@@ -488,6 +507,7 @@ namespace Org.Mentalis.Security.Ssl
                 throw new ArgumentNullException();
             return this.Receive(buffer, 0, buffer.Length, SocketFlags.None);
         }
+        
         /// <summary>
         /// Receives data from a connected <see cref="SecureSocket"/> into a specific location of the receive buffer.
         /// </summary>
@@ -504,6 +524,7 @@ namespace Org.Mentalis.Security.Ssl
                 throw new ArgumentNullException();
             return this.Receive(buffer, 0, buffer.Length, socketFlags);
         }
+        
         /// <summary>
         /// Receives data from a connected <see cref="SecureSocket"/> into a specific location of the receive buffer.
         /// </summary>
@@ -520,6 +541,7 @@ namespace Org.Mentalis.Security.Ssl
         {
             return this.Receive(buffer, 0, size, socketFlags);
         }
+        
         /// <summary>
         /// Receives data from a connected <see cref="SecureSocket"/> into a specific location of the receive buffer.
         /// </summary>
@@ -551,6 +573,7 @@ namespace Org.Mentalis.Security.Ssl
                 return -1;
             }
         }
+        
         /// <summary>
         /// Begins to asynchronously receive data from a connected SecureSocket.
         /// </summary>
@@ -577,6 +600,7 @@ namespace Org.Mentalis.Security.Ssl
                 throw new ArgumentOutOfRangeException();
             return m_Controller.BeginReceive(buffer, offset, size, callback, state);
         }
+        
         /// <summary>
         /// Ends a pending asynchronous read.
         /// </summary>
@@ -610,6 +634,7 @@ namespace Org.Mentalis.Security.Ssl
                 m_SentShutdownNotification = true;
             return ti.Transferred;
         }
+        
         /// <summary>
         /// Shuts down the secure connection.
         /// </summary>
@@ -620,6 +645,7 @@ namespace Org.Mentalis.Security.Ssl
         {
             this.EndShutdown(this.BeginShutdown(null, null));
         }
+        
         /// <summary>
         /// Begins an asynchronous request to shut the connection down.
         /// </summary>
@@ -649,6 +675,7 @@ namespace Org.Mentalis.Security.Ssl
             }
             return ar;
         }
+        
         /// <summary>
         /// Called when the shutdown data has been sent to the remote server.
         /// </summary>
@@ -666,6 +693,7 @@ namespace Org.Mentalis.Security.Ssl
             }
             m_ShutdownResult.Notify();
         }
+        
         /// <summary>
         /// Ends an asynchronous request to shut the connection down.
         /// </summary>
@@ -692,6 +720,7 @@ namespace Org.Mentalis.Security.Ssl
             //if (ar.AsyncException != null)  // eat exceptions; they're not really important
             //	throw ar.AsyncException;
         }
+        
         /// <summary>
         /// Gets the amount of data that has been received from the network and is available to be read.
         /// </summary>
@@ -712,6 +741,7 @@ namespace Org.Mentalis.Security.Ssl
                 return m_Controller.Available;
             }
         }
+        
         /// <summary>
         /// Queues a renegotiation request.
         /// </summary>
@@ -727,6 +757,7 @@ namespace Org.Mentalis.Security.Ssl
                 throw new SocketException();
             m_Controller.QueueRenegotiate();
         }
+        
         /// <summary>
         /// Forces a SecureSocket connection to close.
         /// </summary>
@@ -744,16 +775,18 @@ namespace Org.Mentalis.Security.Ssl
                 m_IsDisposed = true;
             }
         }
+        
         /// <summary>
         /// Frees resources used by the <see cref="SecureSocket"/> class.
         /// </summary>
         /// <remarks>
         /// The SecureSocket class finalizer calls the Close method to close the SecureSocket and free resources associated with the SecureSocket.
         /// </remarks>
-        ~SecureSocket()
-        {
-            Close();
-        }
+        //~SecureSocket()
+        //{
+         //   Close();
+        //}
+        
         /// <summary>
         /// Gets the local certificate.
         /// </summary>
@@ -765,6 +798,7 @@ namespace Org.Mentalis.Security.Ssl
                 return m_Options.Certificate;
             }
         }
+        
         /// <summary>
         /// Gets the remote certificate.
         /// </summary>
@@ -778,6 +812,7 @@ namespace Org.Mentalis.Security.Ssl
                 return m_Controller.RemoteCertificate;
             }
         }
+        
         /// <summary>
         /// Gets the security protocol in use.
         /// </summary>
@@ -789,6 +824,7 @@ namespace Org.Mentalis.Security.Ssl
                 return m_Options.Protocol;
             }
         }
+        
         /// <summary>
         /// Gets the credential type.
         /// </summary>
@@ -800,6 +836,7 @@ namespace Org.Mentalis.Security.Ssl
                 return m_Options.Entity;
             }
         }
+        
         /// <summary>
         /// Gets the common name of the remote host.
         /// </summary>
@@ -814,6 +851,7 @@ namespace Org.Mentalis.Security.Ssl
                 return m_Options.CommonName;
             }
         }
+        
         /// <summary>
         /// Gets the credential verification type.
         /// </summary>
@@ -825,6 +863,7 @@ namespace Org.Mentalis.Security.Ssl
                 return m_Options.VerificationType;
             }
         }
+        
         /// <summary>
         /// Gets the verify delegate.
         /// </summary>
@@ -836,6 +875,7 @@ namespace Org.Mentalis.Security.Ssl
                 return m_Options.Verifier;
             }
         }
+        
         /// <summary>
         /// Gets the security flags of the connection.
         /// </summary>
@@ -847,6 +887,9 @@ namespace Org.Mentalis.Security.Ssl
                 return m_Options.Flags;
             }
         }
+
+        public string SelectedProtocol { get; private set; }
+
         /// <summary>
         /// Gets the active encryption cipher suite.
         /// </summary>

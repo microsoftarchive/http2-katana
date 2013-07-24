@@ -226,7 +226,8 @@ namespace Org.Mentalis.Security.Ssl.Shared {
 					message.length = (ushort)message.fragment.Length;
 				}
 			} catch (Exception e) {
-				throw new SslException(e, AlertDescription.InternalError, "An exception occurred");
+                //TODO throws in some cases. We need to handle it somehow.
+				//throw new SslException(e, AlertDescription.InternalError, "An exception occurred");
 			}
 			// final adjustments
 			message.messageType = MessageType.Encrypted;

@@ -47,6 +47,7 @@ namespace Org.Mentalis
             this.AlpnExtension.OnAddedToClientHello += this.AddedToClientHelloHandler;
             this.AlpnExtension.OnParsedFromServerHello += this.ParsedFromServerHelloHandler;
             this.AlpnExtension.OnProtocolSelected += this.ProtocolSelectedHandler;
+            this.AlpnExtension.OnProtocolSelected += this.Socket.ProtocolSelectedHandler;
         }
 
         public event EventHandler<ALPNAddedToClientHelloArgs> OnAddedToClientHello;

@@ -5,18 +5,16 @@
 // -----------------------------------------------------------------------
 
 using System;
-using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Net;
 using System.Collections.Generic;
 using System.Net.Sockets;
 using System.Reflection;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Org.Mentalis;
 using Org.Mentalis.Security.Ssl;
-using ServerProtocol;
 using SharedProtocol;
 using SharedProtocol.Exceptions;
 using SharedProtocol.ExtendedMath;
@@ -39,28 +37,26 @@ namespace SocketServer
         private readonly SecureTcpListener _server;
         private readonly SecurityOptions _options;
         private readonly AppFunc _next;
-        private string _alpnSelectedProtocol;
-        private Http2Session _session = null;
-        private static readonly string assemblyPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+        private Http2Session _session;
+        //Remove file:// from Assembly.GetExecutingAssembly().CodeBase
+        private static readonly string assemblyPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().CodeBase.Substring(8));
         private readonly FileHelper _fileHelper;
         private readonly object _writeLock = new object();
         private const string clientSessionHeader = @"FOO * HTTP/2.0\r\n\r\nBA\r\n\r\n";
         private readonly bool _useHandshake;
         private readonly bool _usePriorities;
         private readonly bool _useFlowControl;
-		private List<string> listOfRootFiles = new List<string>();
-        private object _listWriteLock = new object();
-
-        internal string SelectedProtocol { get; private set; }
+        private List<string> _listOfRootFiles;
+        private readonly object _listWriteLock = new object();
 
         internal HttpConnetingClient(SecureTcpListener server, SecurityOptions options,
-                                     AppFunc next, bool useHandshake, bool usePriorities, bool useFlowControl)
+                                     AppFunc next, bool useHandshake, bool usePriorities, 
+                                     bool useFlowControl, List<string> listOfRootFiles)
         {
-			GetRootFileList();
+            _listOfRootFiles = listOfRootFiles;
             _usePriorities = usePriorities;
             _useHandshake = useHandshake;
             _useFlowControl = useFlowControl;
-            SelectedProtocol = String.Empty;
             _server = server;
             _next = next;
             _options = options;
@@ -79,130 +75,137 @@ namespace SocketServer
             return result;
         }
 
-		private void GetRootFileList()
-        {
-            string dirPath = Path.GetDirectoryName(Assembly.GetEntryAssembly().CodeBase.Substring(8)) + @"\Root";
-            listOfRootFiles = Directory.EnumerateFiles(dirPath, "*", SearchOption.AllDirectories).Select(Path.GetFileName).ToList();
-            for (int i = 0; i < listOfRootFiles.Count; i++)
-            {
-                listOfRootFiles[i] += "\n";
-            }
-        }
-
-        private void AddFileToRootFileList(string fileName)
+	private void AddFileToRootFileList(string fileName)
         {
             lock (_listWriteLock)
             {
-                listOfRootFiles.Add(fileName + "\n");
+                if (!_listOfRootFiles.Contains(fileName))
+                {
+                    using (var indexFile = new StreamWriter(assemblyPath + @"\Root\index.html", true))
+                    {
+                        _listOfRootFiles.Add(fileName);
+                        indexFile.Write(fileName + "<br>\n");
+                    }
+                }
             }
         }
 		
         /// <summary>
         /// Accepts client and deals handshake with it.
         /// </summary>
-        internal async void Accept()
+        internal void Accept()
         {
-            bool backToHttp11 = false;
-            SecureSocket incomingClient = null;
+            SecureSocket incomingClient;
             using (var monitor = new ALPNExtensionMonitor())
             {
-                monitor.OnProtocolSelected += (sender, args) => { _alpnSelectedProtocol = args.SelectedProtocol; };
-
                 incomingClient = _server.AcceptSocket(monitor);
-
-                Console.WriteLine("New client accepted");
-
-                var handshakeEnvironment = MakeHandshakeEnvironment(incomingClient);
-
-                if (_useHandshake)
-                {
-                    IDictionary<string, object> environment = new Dictionary<string, object>();
-
-                    //Sets the handshake action depends on port.
-                    environment.Add("HandshakeAction", HandshakeManager.GetHandshakeAction(handshakeEnvironment));
-
-                    try
-                    {
-                        await _next(environment);
-                    }
-                    catch (Http2HandshakeFailed ex)
-                    {
-                        if (ex.Reason == HandshakeFailureReason.InternalError)
-                        {
-                            backToHttp11 = true;
-                        }
-                        else
-                        {
-                            incomingClient.Close();
-                        }
-                    }
-                }
             }
-            Task.Run(() => HandleRequest(incomingClient, backToHttp11));
+            Console.WriteLine("New client accepted");
+            Task.Run(() => HandleAcceptedClient(incomingClient));
         }
 
-        private void HandleRequest(SecureSocket incomingClient, bool backToHttp11)
+        private async void HandleAcceptedClient(SecureSocket incomingClient)
         {
-            if (backToHttp11 || _alpnSelectedProtocol == "http/1.1")
+            bool backToHttp11 = false;
+            string alpnSelectedProtocol = "http/2.0";
+            var handshakeEnvironment = MakeHandshakeEnvironment(incomingClient);
+
+            if (_useHandshake)
+            {
+                var environment = new Dictionary<string, object>
+                    {
+                        //Sets the handshake action depends on port.
+                        {"HandshakeAction", HandshakeManager.GetHandshakeAction(handshakeEnvironment)},
+                    };
+
+                try
+                {
+                    await _next(environment);
+                    alpnSelectedProtocol = incomingClient.SelectedProtocol;
+                }
+                catch (Http2HandshakeFailed ex)
+                {
+                    if (ex.Reason == HandshakeFailureReason.InternalError)
+                    {
+                        backToHttp11 = true;
+                    }
+                    else
+                    {
+                        incomingClient.Close();
+                        Console.WriteLine("Handshake timeout. Client was disconnected.");
+                        return;
+                    }
+                }
+                catch (Exception)
+                {
+                    Console.WriteLine("Some kind of exception occured. Closing client's socket");
+                    incomingClient.Close();
+                    return;
+                }
+            }
+            try
+            {
+                HandleRequest(incomingClient, alpnSelectedProtocol, backToHttp11);
+            }
+            catch (Exception)
+            {
+                Console.WriteLine("Some kind of exception occured. Closing client's socket");
+                incomingClient.Close();
+            }
+        }
+
+        private void HandleRequest(SecureSocket incomingClient, string alpnSelectedProtocol, bool backToHttp11)
+        {
+            if (backToHttp11 || alpnSelectedProtocol == "http/1.1")
             {
                 Console.WriteLine("Sending with http11");
                 Http11Manager.Http11SendResponse(incomingClient);
                 return;
             }
 
-            GetSessionHeader(incomingClient);
-            OpenHttp2Session(incomingClient);
+            if (GetSessionHeaderAndVerifyIt(incomingClient))
+            {
+                OpenHttp2Session(incomingClient);
+            }
+            else
+            {
+                Console.WriteLine("Client has wrong session header. It was disconnected");
+                incomingClient.Close();
+            }
         }
 
-        private void GetSessionHeader(SecureSocket incomingClient)
+        private bool GetSessionHeaderAndVerifyIt(SecureSocket incomingClient)
         {
             var sessionHeaderBuffer = new byte[clientSessionHeader.Length];
-            int received = 0;
-            while (received < clientSessionHeader.Length)
+            using (var sessionHeaderReceived = new ManualResetEvent(false))
             {
-                received = incomingClient.Receive(sessionHeaderBuffer, received, sessionHeaderBuffer.Length - received, SocketFlags.None);
+                var receivedThread = new Thread( 
+                    (() =>
+                        {
+                            int received = incomingClient.Receive(sessionHeaderBuffer, 0,
+                                                   sessionHeaderBuffer.Length, SocketFlags.None);
+                            if (received != 0)
+                            {
+                                sessionHeaderReceived.Set();
+                            }
+                        }));
+                receivedThread.Start();
+                sessionHeaderReceived.WaitOne(10000);
+
+                if (receivedThread.IsAlive)
+                {
+                    receivedThread.Abort();
+                    receivedThread.Join();
+                }
+
+                var receivedHeader = Encoding.UTF8.GetString(sessionHeaderBuffer);
+
+                if (receivedHeader != clientSessionHeader)
+                {
+                    return false;
+                }
             }
-
-            var receivedHeader = Encoding.UTF8.GetString(sessionHeaderBuffer);
-
-            if (receivedHeader != clientSessionHeader)
-            {
-                Dispose();
-            }
-        }
-
-        //This method is never used, but it's useful for future
-        private TransportInformation GetSocketTranspInfo(SecureSocket incomingClient)
-        {
-            var localEndPoint = (IPEndPoint)incomingClient.LocalEndPoint;
-            var remoteEndPoint = (IPEndPoint)incomingClient.RemoteEndPoint;
-
-            var transportInfo = new TransportInformation()
-            {
-                LocalPort = localEndPoint.Port.ToString(CultureInfo.InvariantCulture),
-                RemotePort = remoteEndPoint.Port.ToString(CultureInfo.InvariantCulture),
-            };
-
-            // Side effect of using dual mode sockets, the IPv4 addresses look like 0::ffff:127.0.0.1.
-            if (localEndPoint.Address.IsIPv4MappedToIPv6)
-            {
-                transportInfo.LocalIpAddress = localEndPoint.Address.MapToIPv4().ToString();
-            }
-            else
-            {
-                transportInfo.LocalIpAddress = localEndPoint.Address.ToString();
-            }
-
-            if (remoteEndPoint.Address.IsIPv4MappedToIPv6)
-            {
-                transportInfo.RemoteIpAddress = remoteEndPoint.Address.MapToIPv4().ToString();
-            }
-            else
-            {
-                transportInfo.RemoteIpAddress = remoteEndPoint.Address.ToString();
-            }
-
-            return transportInfo;
+            return true;
         }
 
         private async void OpenHttp2Session(SecureSocket incomingClient)
@@ -311,6 +314,7 @@ namespace SocketServer
                     switch (method)
                     {
                         case "get":
+                        case "dir":
                             try
                             {
                                 binary = _fileHelper.GetFile(stream.Headers.GetValue(":path"));
@@ -325,10 +329,6 @@ namespace SocketServer
                             binary = new AccessDenied401().Bytes;
                             SendDataTo(stream, binary);
                             break;
-						case "dir":
-                            binary = listOfRootFiles.SelectMany(s => Encoding.UTF8.GetBytes(s)).ToArray();
-                            SendDataTo(stream, binary);
-                        break;
                     }
                 }
             }
@@ -348,6 +348,9 @@ namespace SocketServer
             }
 
             _fileHelper.Dispose();
+            OnSessionHeaderReceived = null;
         }
+
+        private event EventHandler<EventArgs> OnSessionHeaderReceived;
     }
 }

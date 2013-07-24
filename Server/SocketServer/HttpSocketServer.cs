@@ -29,6 +29,8 @@ namespace SocketServer
         private const string certificateFilename = @"\certificate.pfx";
         //Remove file:// from Assembly.GetExecutingAssembly().CodeBase
         private readonly string assemblyName = Path.GetDirectoryName(Assembly.GetExecutingAssembly().CodeBase.Substring(8));
+        private const string indexFileName = @"\index.html";
+        private List<string> _listOfRootFiles = new List<string>();
 
         public HttpSocketServer(Func<IDictionary<string, object>, Task> next, IDictionary<string, object> properties)
         {
@@ -87,16 +89,29 @@ namespace SocketServer
             Listen();
         }
 
+        private void InitializeRootFileList()
+        {
+            using (var indexFile = new StreamWriter(assemblyName + @"\Root" + indexFileName))
+            {
+                string dirPath = assemblyName + @"\Root";
+                _listOfRootFiles = Directory.EnumerateFiles(dirPath, "*", SearchOption.AllDirectories).Select(Path.GetFileName).ToList();
+                foreach (var fileName in _listOfRootFiles)
+                {
+                    indexFile.Write(fileName + "<br>\n");
+                }
+            }
+        }
+
         private void Listen()
         {
             Console.WriteLine("Started on port {0}", _port);
             _server.Start();
-
+            InitializeRootFileList();
             while (!_disposed)
             {
                 try
                 {
-                    var client = new HttpConnetingClient(_server, _options, _next, _useHandshake, _usePriorities, _useFlowControl);
+                    var client = new HttpConnetingClient(_server, _options, _next, _useHandshake, _usePriorities, _useFlowControl, _listOfRootFiles);
                     client.Accept();
                 }
                 catch (Exception ex)
