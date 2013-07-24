@@ -29,7 +29,7 @@ namespace Client.Commands
         {
             if (cmdArgs.Length != 2 || Uri.TryCreate(cmdArgs[0], UriKind.Absolute, out _uri) == false)
             {
-                throw new InvalidOperationException("Invalid Post command!");
+                throw new InvalidOperationException("Invalid Post format!");
             }
 
             int securePort;

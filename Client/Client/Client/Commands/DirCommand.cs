@@ -6,7 +6,7 @@ namespace Client.Commands
     internal sealed class DirCommand : Command, IUriCommand
     {
         private Uri _uri;
-        private const string indexFileName = "index.html";
+        private const string indexFileName = @"/index.html";
         private readonly string _method;
 
         public Uri Uri
@@ -28,7 +28,7 @@ namespace Client.Commands
             //If port wasn't specified then it will be 80.
             if (cmdArgs.Length != 1 || Uri.TryCreate(cmdArgs[0] + indexFileName, UriKind.Absolute, out _uri) == false)
             {
-                throw new InvalidOperationException("Invalid Dir command!");
+                throw new InvalidOperationException("Invalid Dir format!");
             }
 
             int securePort;

@@ -20,7 +20,7 @@ namespace Client.Commands
             Uri uri;
             if (!Uri.TryCreate(cmdArgs[0], UriKind.Absolute, out uri))
             {
-                throw new InvalidOperationException("Invalid ping command!");
+                throw new InvalidOperationException("Invalid ping format!");
             }
             Uri = uri;
         }

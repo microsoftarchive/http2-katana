@@ -10,13 +10,16 @@ namespace Client
             Console.WriteLine("HELP                                                     Display this help information");
             Console.WriteLine("HELP command                                             Display detailed help for command\n" +
                               "                                                         Ex. HELP GET");
-            //Console.WriteLine("DIR <host url>                                         List files on server.");
             Console.WriteLine("GET <resource url>                                       Download resource from the specified url.\n" +
-                              "                                                         E.g.: https://localhost:8443/test.txt");
+                              "                                                         E.g.: get https://localhost:8443/test.txt");
             Console.WriteLine("PUT <server url>/<alias> <local url>                     Put local resource on a server.\n" +
-                              "                                                         E.g.: https://localhost:8443/test.html D:\\README.txt");
+                              "                                                         E.g.: put https://localhost:8443/test.html D:\\README.txt");
             Console.WriteLine("POST <server url>/<server action> <local url>            Post local resource on a server and perform specified action then.\n" +
-                              "                                                         E.g.: https://localhost:8443/test.html D:\\README.txt");
+                              "                                                         E.g.: post https://localhost:8443/test.html D:\\README.txt");
+            Console.WriteLine("DIR <server url>                                         Get files located in a server's root\n" +
+                              "                                                         E.g.: dir https://localhost:8443");
+            Console.WriteLine("DELETE <server url>/<filename>                           Send delete request to the server\n" +
+                              "                                                         E.g.: delete https://localhost:8443/index.html");
             //Console.WriteLine("VERBOSE   [1|2|3]             Display verbose output.");
             //Console.WriteLine("CAPTURE-STATS [On|Off|Reset]  Start/stop/reset protocol monitoring.");
            // Console.WriteLine("DUMP-STATS                    Display statistics captured using CAPTURE-STATS.");
@@ -79,6 +82,27 @@ namespace Client
             Console.WriteLine("  Upload is done using HTTP2 protocol.");
             Console.WriteLine("  Examples of POST:\n");
             Console.WriteLine("  POST https://localhost:8443/test.html C:\test.txt view");
+            Console.WriteLine("\n");
+        }
+
+        internal static void ShowDirCommandHelp()
+        {
+            Console.WriteLine("Dir <server url>");
+            Console.WriteLine("  Get files located in a server's root\n");
+            Console.WriteLine("  and save result to the index.html\n");
+            Console.WriteLine("  located in the client's directory");
+            Console.WriteLine("  Examples of Dir:\n");
+            Console.WriteLine("  dir https://localhost:8443");
+            Console.WriteLine("\n");
+        }
+
+        internal static void ShowDeleteCommandHelp()
+        {
+            Console.WriteLine("Delete <server url>/<filename>");
+            Console.WriteLine("  Send delete request to the server\n");
+            Console.WriteLine("  This command will always return AccessDenied webpage\n");
+            Console.WriteLine("  Examples of Delete:\n");
+            Console.WriteLine("  delete https://localhost:8443/index.html");
             Console.WriteLine("\n");
         }
 

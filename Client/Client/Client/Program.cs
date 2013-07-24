@@ -64,96 +64,99 @@ namespace Client
 
             HelpDisplayer.ShowMainMenuHelp();
             ThreadPool.SetMaxThreads(10, 10);
-            try
-            {
+            
                 Console.WriteLine("Enter command");
                 while (true)
                 {
-                    Console.Write(">");
-                    string command = Console.ReadLine();
-                    Command cmd;
-                    
                     try
                     {
-                        cmd = CommandParser.Parse(command);
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine(ex.Message);
-                        continue;
-                    }
-                    //Scheme and port were checked during parsing get cmd.
-                    switch (cmd.GetCmdType())
-                    {
-                        case CommandType.Put:
-                        case CommandType.Post:
-                        case CommandType.Get:
-                        case CommandType.Delete:
-						case CommandType.Dir:
-                            var uriCmd = (IUriCommand) cmd;
+                        Console.Write(">");
+                        string command = Console.ReadLine();
+                        Command cmd;
+                    
+                        try
+                        {
+                            cmd = CommandParser.Parse(command);
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine(ex.Message);
+                            continue;
+                        }
+                        //Scheme and port were checked during parsing get cmd.
+                        switch (cmd.GetCmdType())
+                        {
+                            case CommandType.Put:
+                            case CommandType.Post:
+                            case CommandType.Get:
+                            case CommandType.Delete:
+						    case CommandType.Dir:
+                                var uriCmd = (IUriCommand) cmd;
 
-                            string method = uriCmd.Method;
-                            string localPath = null;
-                            string serverPostAct = null;
+                                string method = uriCmd.Method;
+                                string localPath = null;
+                                string serverPostAct = null;
 
-                            if (cmd is PostCommand)
-                            {
-                                localPath = (cmd as PostCommand).LocalPath;
-                                serverPostAct = (cmd as PostCommand).ServerPostAct;
-                            }
-                            else if (cmd is PutCommand)
-                            {
-                                localPath = (cmd as PutCommand).LocalPath;
-                            }
+                                if (cmd is PostCommand)
+                                {
+                                    localPath = (cmd as PostCommand).LocalPath;
+                                    serverPostAct = (cmd as PostCommand).ServerPostAct;
+                                }
+                                else if (cmd is PutCommand)
+                                {
+                                    localPath = (cmd as PutCommand).LocalPath;
+                                }
 
-                            //Only unique sessions can be opened
-                            if (sessions.ContainsKey(uriCmd.Uri.Authority))
-                            {
-                                sessions[uriCmd.Uri.Authority].SendRequestAsync(uriCmd.Uri, method, localPath, serverPostAct);
+                                //Only unique sessions can be opened
+                                if (sessions.ContainsKey(uriCmd.Uri.Authority))
+                                {
+                                    sessions[uriCmd.Uri.Authority].SendRequestAsync(uriCmd.Uri, method, localPath, serverPostAct);
+                                    break;
+                                }
+
+                                var sessionHandler = new Http2SessionHandler(environment);
+                                sessions.Add(uriCmd.Uri.Authority, sessionHandler);
+                                sessionHandler.OnDisposed +=
+                                    (sender, eventArgs) => sessions.Remove(sessionHandler.ServerUri);
+
+                                //Get cmd is equivalent for connect -> get. This means, that each get request 
+                                //will open new session.
+                                bool wasConnectFailed = sessionHandler.Connect(uriCmd.Uri);
+                                if (wasConnectFailed)
+                                {
+                                    Console.WriteLine("Connection failed");
+                                    break;
+                                }
+
+                                Task.Run(() => sessionHandler.StartConnection());
+
+                                using (var waitForConnectionStart = new ManualResetEvent(false))
+                                {
+                                    waitForConnectionStart.WaitOne(200);
+                                }
+
+                                sessionHandler.SendRequestAsync(uriCmd.Uri, method, localPath, serverPostAct);
                                 break;
-                            }
-
-                            var sessionHandler = new Http2SessionHandler(environment);
-
-                            //Get cmd is equivalent for connect -> get. This means, that each get request 
-                            //will open new session.
-                            bool wasConnectFailed = sessionHandler.Connect(uriCmd.Uri);
-                            if (wasConnectFailed)
-                            {
-                                Console.WriteLine("Connection failed");
+                            case CommandType.Help:
+                                ((HelpCommand)cmd).ShowHelp.Invoke();
                                 break;
-                            }
-
-                            Task.Run(() => sessionHandler.StartConnection());
-
-                            using (var waitForConnectionStart = new ManualResetEvent(false))
-                            {
-                                waitForConnectionStart.WaitOne(200);
-                            }
-
-                            sessionHandler.SendRequestAsync(uriCmd.Uri, method, localPath, serverPostAct);
-                            sessions.Add(uriCmd.Uri.Authority, sessionHandler);
-                            break;
-                        case CommandType.Help:
-                            ((HelpCommand)cmd).ShowHelp.Invoke();
-                            break;
-                        case CommandType.Ping:
-                            sessions[((PingCommand)cmd).Uri.Authority].Ping();
-                            break;
-                        case CommandType.Exit:
-                            foreach (var sessionUri in sessions.Keys)
-                            {
-                                sessions[sessionUri].Dispose();
-                                sessions.Remove(sessionUri);
-                            }
-                            return;
-                    }
-                }
+                            case CommandType.Ping:
+                                sessions[((PingCommand)cmd).Uri.Authority].Ping();
+                                break;
+                            case CommandType.Exit:
+                                foreach (var sessionUri in sessions.Keys)
+                                {
+                                    sessions[sessionUri].Dispose(false);
+                                }
+                                sessions.Clear();
+                                return;
+                        }
+                }            
+                catch (Exception ex)
+                {
+                    Console.WriteLine("Problems occured - please restart client");
+                }  
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex);
-            }                 
         }
     }
 }

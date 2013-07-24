@@ -26,6 +26,12 @@ namespace Client.Commands
 
             switch (cmdArgs[0].ToLower())
             {
+                case "delete":
+                    ShowHelp = HelpDisplayer.ShowDeleteCommandHelp;
+                    break;
+                case "dir":
+                    ShowHelp = HelpDisplayer.ShowDirCommandHelp;
+                    break;
                 case "put":
                     ShowHelp = HelpDisplayer.ShowPutCommandHelp;
                     break;

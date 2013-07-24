@@ -415,8 +415,11 @@ namespace Org.Mentalis.Security.Ssl.Shared {
 		public AsyncResult BeginShutdown(AsyncCallback callback, object state) {
 			lock(this) {	// synchronize
 				AsyncResult ret = new AsyncResult(callback, state, this);
-				byte[] close = m_RecordLayer.GetControlBytes(ControlType.Shutdown);
-				m_ShutdownCallback = ret;
+			    byte[] close = new byte[1];
+			    if (m_RecordLayer != null) {
+			        close = m_RecordLayer.GetControlBytes(ControlType.Shutdown);
+			    }
+			    m_ShutdownCallback = ret;
 				if (m_IsDisposed) {
 					ret.Notify(null);
 				} else {

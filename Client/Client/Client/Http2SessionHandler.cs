@@ -40,12 +40,16 @@ namespace Client
         private readonly object _writeLock = new object();
         private const string _clientSessionHeader = @"FOO * HTTP/2.0\r\n\r\nBA\r\n\r\n";
 
+        private bool _isDisposed = false;
+
         private int _port;
         private string _version;
         private string _scheme;
         private string _host;
 
         private static readonly string assemblyPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+
+        public string ServerUri { get; private set; }
 
         public bool IsHttp2WillBeUsed {
             get { return _useHttp20; }
@@ -102,6 +106,7 @@ namespace Client
             _scheme = connectUri.Scheme;
             _host = connectUri.Host;
             _port = connectUri.Port;
+            ServerUri = connectUri.Authority;
 
             if (_clientSession != null)
             {
@@ -168,6 +173,7 @@ namespace Client
                 //For saving incoming data
                 _clientSession.OnFrameReceived += FrameReceivedHandler;
                 _clientSession.OnRequestSent += RequestSentHandler;
+                _clientSession.OnSessionDisposed += (sender, args) => Dispose(false);
             }
             catch (Http2HandshakeFailed ex)
             {
@@ -178,20 +184,20 @@ namespace Client
                 else
                 {
                     Console.WriteLine("Specified server did not respond");
-                    Dispose();
+                    Dispose(true);
                     return true;
                 }
             }
             catch (SocketException)
             {
                 Console.WriteLine("Check if any server listens port " + connectUri.Port);
-                Dispose();
+                Dispose(true);
                 return true;
             }
             catch (Exception ex)
             {
                 Console.WriteLine("Unknown connection exception was caught: " + ex.Message);
-                Dispose();
+                Dispose(true);
                 return true;
             }
 
@@ -200,9 +206,14 @@ namespace Client
 
         public async void StartConnection()
         {
-            if (_useHttp20 && !_socket.IsClosed)
+            if (_useHttp20 && !_socket.IsClosed && !_isDisposed)
             {
                 await _clientSession.Start();
+            }
+            else if (_socket.IsClosed || _isDisposed)
+            {
+                Console.WriteLine("Connection was aborted by the remote side. Check your session header.");
+                Dispose(true);
             }
         }
 
@@ -399,15 +410,6 @@ namespace Client
                 switch (method)
                 {
                     case "dir":
-                        if (args.Frame is DataFrame)
-                        {
-                            var data = ((DataFrame)args.Frame).Data;
-                            Console.ForegroundColor = ConsoleColor.Green;
-                            Console.WriteLine("Files in Root directory:");
-                            Console.ForegroundColor = ConsoleColor.Gray;
-                            Console.WriteLine(Encoding.UTF8.GetString(data.Array, data.Offset, data.Count));
-                        }
-                        break;
                     case "get":
                         if (args.Frame is DataFrame)
                         {
@@ -439,13 +441,30 @@ namespace Client
             }
         }
 
+        public void Dispose(bool wasErrorOccured)
+        {
+            Dispose();
+
+            if (wasErrorOccured && OnDisposed != null)
+            {
+                OnDisposed(this, null);
+            }
+
+            OnDisposed = null;
+        }
+
         public void Dispose()
         {
+            if (_isDisposed)
+            {
+                return;
+            }
+
             if (_clientSession != null)
             {
                 _clientSession.Dispose();
             }
-            if (_socket != null)
+            if (_socket != null && !_socket.IsClosed)
             {
                 _socket.Close();
             }
@@ -453,6 +472,10 @@ namespace Client
             {
                 _fileHelper.Dispose();
             }
+
+            _isDisposed = true;
         }
+
+        public event EventHandler<EventArgs> OnDisposed;
     }
 }

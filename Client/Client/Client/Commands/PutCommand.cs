@@ -29,7 +29,7 @@ namespace Client.Commands
             //If port wasn't specified then it will be 80.
             if (cmdArgs.Length != 2 || Uri.TryCreate(cmdArgs[0], UriKind.Absolute, out _uri) == false)
             {
-                throw new InvalidOperationException("Invalid Put command!");
+                throw new InvalidOperationException("Invalid Put format!");
             }
 
             int securePort;
