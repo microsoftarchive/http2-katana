@@ -2,7 +2,7 @@
 {
     internal sealed class EmptyCommand : Command
     {
-        protected override void Parse(string[] cmdArgs)
+        internal override void Parse(string[] cmdArgs)
         {
         }
 

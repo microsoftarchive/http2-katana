@@ -14,7 +14,7 @@
             return CommandType.Unknown;
         }
 
-        protected override void Parse(string[] cmdArgs)
+        internal override void Parse(string[] cmdArgs)
         {
             
         }

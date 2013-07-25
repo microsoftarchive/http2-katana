@@ -34,13 +34,14 @@ namespace ServerOwinMiddleware
         /// </summary>
         /// <param name="environment">The environment.</param>
         /// <returns></returns>
-        public async Task Invoke(IDictionary<string, object> environment)
+        public Task Invoke(IDictionary<string, object> environment)
         {
-            if (environment["HandshakeAction"] is Action)
+            if (environment["HandshakeAction"] is Func<Task>)
             {
-                var handshakeAction = (Action) environment["HandshakeAction"];
-                handshakeAction.Invoke();
+                var handshakeAction = (Func<Task>)environment["HandshakeAction"];
+                return handshakeAction.Invoke();
             }
+            return null;
         }
     }
 }

@@ -152,7 +152,7 @@ namespace Client
                                 return;
                         }
                 }            
-                catch (Exception ex)
+                catch (Exception)
                 {
                     Console.WriteLine("Problems occured - please restart client");
                 }  

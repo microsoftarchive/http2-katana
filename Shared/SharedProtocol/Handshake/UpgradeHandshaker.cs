@@ -19,7 +19,8 @@ namespace SharedProtocol.Handshake
         private readonly Dictionary<string, string> _headers;
         private readonly ManualResetEvent _responceReceivedRaised;
         private bool _wasResponceReceived;
-        private const int timeout = 10000;
+        private const int timeout = 60000;
+        private IDictionary<string, object> _handshakeResult; 
 
         public SecureSocket InternalSocket { get; private set; }
 
@@ -29,7 +30,8 @@ namespace SharedProtocol.Handshake
             _end = (ConnectionEnd) handshakeEnvironment["end"];
             _responceReceivedRaised = new ManualResetEvent(false);
             OnResponceReceived += ResponceReceivedHandler;
-           
+           _handshakeResult = new Dictionary<string, object>();
+
             if (_end == ConnectionEnd.Client)
             {
                 if (handshakeEnvironment.ContainsKey(":host") || (handshakeEnvironment[":host"] is string)
@@ -47,10 +49,10 @@ namespace SharedProtocol.Handshake
             }
         }
 
-        public void Handshake()
+        public IDictionary<string, object> Handshake()
         {
             var handshakeResponce = new HandshakeResponse();
-            var readThread = new Thread((ThreadStart) delegate
+            var readThread = new Thread(() =>
                 {
                     handshakeResponce = Read11Headers();
                 }){IsBackground = true, Name = "ReadSocketDataThread"};
@@ -60,10 +62,11 @@ namespace SharedProtocol.Handshake
             {
                 // Build the request
                 var builder = new StringBuilder();
-                builder.AppendFormat("{0} {1} {2}\r\n", "get", "/default.html", "HTTP/1.1");
+                builder.AppendFormat("{0} {1} {2}\r\n", "get", "/default.html", "HTTP/1.1"); //TODO pass here requested filename
                 builder.AppendFormat("Host: {0}\r\n", _headers[":host"]);
-                builder.Append("Connection: Upgrade\r\n");
-                builder.Append("Upgrade: HTTP/2.0\r\n");
+                builder.Append("Connection: Upgrade, Http2-Settings\r\n");
+                builder.Append("Upgrade: HTTP-DRAFT-04/2.0\r\n");
+                builder.Append("Http2-Settings: SomeSettings\r\n"); //TODO check out how to send window size and max_conc_streams
 
                 if (_headers != null)
                 {
@@ -94,7 +97,7 @@ namespace SharedProtocol.Handshake
                     var builder = new StringBuilder();
                     builder.AppendFormat("{0} {1} {2}\r\n", protocol, status, postfix);
                     builder.Append("Connection: Upgrade\r\n");
-                    builder.Append("Upgrade: HTTP/2.0\r\n");
+                    builder.Append("Upgrade: HTTP-draft-04/2.0\r\n");
                     builder.Append("\r\n");
 
                     byte[] requestBytes = Encoding.ASCII.GetBytes(builder.ToString());
@@ -108,6 +111,7 @@ namespace SharedProtocol.Handshake
                 if (readThread.IsAlive)
                 {
                     readThread.Abort();
+                    readThread.Join();
                 }
                 throw new Http2HandshakeFailed(HandshakeFailureReason.Timeout);
             }
@@ -121,6 +125,8 @@ namespace SharedProtocol.Handshake
                 readThread.Abort();
             }
             readThread.Join();
+
+            return _handshakeResult;
         }
 
         private HandshakeResponse Read11Headers()
@@ -200,7 +206,7 @@ namespace SharedProtocol.Handshake
             {
                 if (response.StartsWith("HTTP/1.1 101 SWITCHING PROTOCOLS")
                     && response.Contains("\r\nCONNECTION: UPGRADE\r\n")
-                    && response.Contains("\r\nUPGRADE: HTTP/2.0\r\n"))
+                    && response.Contains("\r\nUPGRADE: HTTP-DRAFT-04/2.0\r\n"))
                 {
                     handshake.Result = HandshakeResult.Upgrade;
                 }
@@ -211,9 +217,11 @@ namespace SharedProtocol.Handshake
             }
             else
             {
-                if (response.Contains("\r\nCONNECTION: UPGRADE\r\n")
-                    && response.Contains("\r\nUPGRADE: HTTP/2.0\r\n"))
+                if (response.Contains("\r\nCONNECTION: UPGRADE, HTTP2-SETTINGS\r\n")
+                    && response.Contains("\r\nUPGRADE: HTTP-DRAFT-04/2.0\r\n")
+                    && response.Contains("\r\nHTTP2-SETTINGS:"))
                 {
+                    GetPath(response);
                     handshake.Result = HandshakeResult.Upgrade;
                 }
                 else
@@ -228,6 +236,16 @@ namespace SharedProtocol.Handshake
             }
 
             return handshake;
+        }
+
+        private void GetPath(string clientResponce)
+        {
+            int methodIndex = clientResponce.IndexOf("GET", StringComparison.Ordinal);
+            int pathIndex = clientResponce.IndexOf("/", methodIndex, StringComparison.Ordinal);
+            int endPathIndex = clientResponce.IndexOf(" ", pathIndex, StringComparison.Ordinal);
+
+            string path = clientResponce.Substring(pathIndex, endPathIndex - pathIndex);
+            _handshakeResult.Add(":path", path);
         }
 
         private void ResponceReceivedHandler(object sender, EventArgs args)

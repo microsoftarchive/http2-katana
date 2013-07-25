@@ -20,10 +20,17 @@ namespace Http11Tests
     {
         public Thread ServerThread { get; private set; }
 
-        private static async Task InvokeMiddleWare(IDictionary<string, object> environment)
+        private static Task InvokeMiddleWare(IDictionary<string, object> environment)
         {
-            var handshakeAction = (Action)environment["HandshakeAction"];
-            handshakeAction.Invoke();
+            var handshakeTask = new Task(() =>
+            {
+                if (environment["HandshakeAction"] is Action)
+                {
+                    var handshakeAction = (Action)environment["HandshakeAction"];
+                    handshakeAction.Invoke();
+                }
+            });
+            return handshakeTask;
         }
 
         public Http11Setup()

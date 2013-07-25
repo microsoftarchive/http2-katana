@@ -18,13 +18,12 @@ namespace Client.Commands
         public string LocalPath { get; private set; }
         public string Method { get { return _method; } }
 
-        internal PutCommand(string[] cmdArgs)
+        internal PutCommand()
         {
             _method = "put";
-            Parse(cmdArgs);
         }
 
-        protected override void Parse(string[] cmdArgs)
+        internal override void Parse(string[] cmdArgs)
         {
             //If port wasn't specified then it will be 80.
             if (cmdArgs.Length != 2 || Uri.TryCreate(cmdArgs[0], UriKind.Absolute, out _uri) == false)

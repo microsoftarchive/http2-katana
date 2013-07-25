@@ -19,13 +19,12 @@ namespace Client.Commands
         public string LocalPath { get; private set; }
         public string ServerPostAct { get; private set; }
 
-        internal PostCommand(string[] cmdArgs)
+        internal PostCommand()
         {
             _method = "post";
-            Parse(cmdArgs);
         }
 
-        protected override void Parse(string[] cmdArgs)
+        internal override void Parse(string[] cmdArgs)
         {
             if (cmdArgs.Length != 2 || Uri.TryCreate(cmdArgs[0], UriKind.Absolute, out _uri) == false)
             {

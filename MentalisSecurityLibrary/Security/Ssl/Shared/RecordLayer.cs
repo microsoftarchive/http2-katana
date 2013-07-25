@@ -225,7 +225,7 @@ namespace Org.Mentalis.Security.Ssl.Shared {
 					}
 					message.length = (ushort)message.fragment.Length;
 				}
-			} catch (Exception e) {
+			} catch (Exception) {
                 //TODO throws in some cases. We need to handle it somehow.
 				//throw new SslException(e, AlertDescription.InternalError, "An exception occurred");
 			}

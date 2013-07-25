@@ -1,4 +1,5 @@
-﻿using System.Threading;
+﻿using System.Linq;
+using System.Threading;
 using SharedProtocol.Exceptions;
 using SharedProtocol.Compression.Http2DeltaHeadersCompression;
 using Org.Mentalis.Security.Ssl;
@@ -11,6 +12,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Threading.Tasks;
+using SharedProtocol.Extensions;
 
 namespace SharedProtocol
 {
@@ -33,9 +35,10 @@ namespace SharedProtocol
         private bool _wasSettingsReceived = false;
         private bool _wasPingReceived = false;
         private bool _wasResponceReceived = false;
-        private ManualResetEvent _responceReceivedRaised;
+        private readonly ManualResetEvent _responceReceivedRaised;
         private List<Tuple<string, string, IAdditionalHeaderInfo>> _toBeContinuedHeaders = null;
         private Frame _toBeContinuedFrame = null;
+        private Dictionary<string, string> _handshakeHeaders; 
 
         /// <summary>
         /// Gets the active streams.
@@ -64,13 +67,18 @@ namespace SharedProtocol
         internal Int32 RemoteMaxConcurrentStreams { get; set; }
 
         internal Int32 SessionWindowSize { get; set; }
-
-        public Http2Session(SecureSocket sessionSocket, ConnectionEnd end, bool usePriorities, bool useFlowControl)
+ 
+        public Http2Session(SecureSocket sessionSocket, ConnectionEnd end, 
+                            bool usePriorities, bool useFlowControl,
+                            IDictionary<string, object> handshakeResult = null)
         {
             _ourEnd = end;
             _usePriorities = usePriorities;
             _useFlowControl = useFlowControl;
             _responceReceivedRaised = new ManualResetEvent(false);
+            _handshakeHeaders = new Dictionary<string, string>(16);
+            ApplyHandshakeResults(handshakeResult);
+
             if (_ourEnd == ConnectionEnd.Client)
             {
                 _remoteEnd = ConnectionEnd.Server;
@@ -216,6 +224,17 @@ namespace SharedProtocol
                             return;
                         }
 
+                        string path;
+                        try
+                        {
+                            path = headers.GetValue(":path");
+                        }
+                        catch (KeyNotFoundException)
+                        {
+                            path = !_handshakeHeaders.ContainsKey(":path") ? _handshakeHeaders[":path"] : @"\index.html";
+                            headers.Add(new Tuple<string, string, IAdditionalHeaderInfo>(":path", path, null));
+                        }
+
                         stream = new Http2Stream(headers, headersFrame.StreamId,
                                                   _writeQueue, _flowControlManager,
                                                   _comprProc);
@@ -339,6 +358,14 @@ namespace SharedProtocol
                 {
                     //GoAway?
                 }
+            }
+        }
+
+        private void ApplyHandshakeResults(IDictionary<string, object> handshakeResult)
+        {
+            foreach (var entry in handshakeResult.Keys.Where(entry => handshakeResult[entry] is string))
+            {
+                _handshakeHeaders.Add(entry, handshakeResult[entry] as string);
             }
         }
 

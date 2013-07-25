@@ -21,10 +21,17 @@ namespace HandshakeTests
         public Thread Http2SecureServer { get; private set; }
         public Thread Http2UnsecureServer{ get; private set; }
 
-        private async Task InvokeMiddleWare(IDictionary<string, object> environment)
+        private Task InvokeMiddleWare(IDictionary<string, object> environment)
         {
-            var handshakeAction = (Action)environment["HandshakeAction"];
-            handshakeAction.Invoke();
+            var handshakeTask = new Task(() =>
+            {
+                if (environment["HandshakeAction"] is Action)
+                {
+                    var handshakeAction = (Action)environment["HandshakeAction"];
+                    handshakeAction.Invoke();
+                }
+            });
+            return handshakeTask;
         }
 
         private IDictionary<string, object> GetProperties(bool useSecurePort)
@@ -192,10 +199,6 @@ namespace HandshakeTests
             }
 
             sessionSocket.Close();
-            while (true)
-            {
-                int a = 1;
-            }
             Assert.Equal(gotFailedException, false);
         }
 

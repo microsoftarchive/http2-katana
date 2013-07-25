@@ -7,7 +7,7 @@
             return CommandType.Exit;
         }
 
-        protected override void Parse(string[] cmd)
+        internal override void Parse(string[] cmd)
         {
             
         }
