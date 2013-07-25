@@ -12,6 +12,7 @@ using System.Net.Sockets;
 using System.Reflection;
 using System.Text;
 using System.Threading;
+//using System.Threading.Tasks;
 using System.Threading.Tasks;
 using Org.Mentalis;
 using Org.Mentalis.Security.Ssl;
@@ -42,7 +43,7 @@ namespace SocketServer
         private static readonly string assemblyPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().CodeBase.Substring(8));
         private readonly FileHelper _fileHelper;
         private readonly object _writeLock = new object();
-        private const string clientSessionHeader = @"FOO * HTTP/2.0\r\n\r\nBA\r\n\r\n";
+        private const string clientSessionHeader = @"PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n";
         private readonly bool _useHandshake;
         private readonly bool _usePriorities;
         private readonly bool _useFlowControl;
@@ -104,23 +105,39 @@ namespace SocketServer
             Task.Run(() => HandleAcceptedClient(incomingClient));
         }
 
-        private async void HandleAcceptedClient(SecureSocket incomingClient)
+        private void HandleAcceptedClient(SecureSocket incomingClient)
         {
             bool backToHttp11 = false;
             string alpnSelectedProtocol = "http/2.0";
             var handshakeEnvironment = MakeHandshakeEnvironment(incomingClient);
+            IDictionary<string, object> handshakeResult = null;
 
+            //Think out smarter way to get handshake result.
+            //DO NOT change Middleware function. If you will do so, server will not even launch. (It's owin's problem)
+            Func<Task> handshakeAction = () =>
+                {
+                    var handshakeTask = new Task(() =>
+                        {
+                            handshakeResult = HandshakeManager.GetHandshakeAction(handshakeEnvironment).Invoke();
+                        });
+                    return handshakeTask;
+                };
+            
             if (_useHandshake)
             {
                 var environment = new Dictionary<string, object>
                     {
                         //Sets the handshake action depends on port.
-                        {"HandshakeAction", HandshakeManager.GetHandshakeAction(handshakeEnvironment)},
+                        {"HandshakeAction", handshakeAction},
                     };
 
                 try
                 {
-                    await _next(environment);
+                    var handshakeTask = _next(environment);
+                    
+                    handshakeTask.Start();
+                    handshakeTask.Wait();
+                    
                     alpnSelectedProtocol = incomingClient.SelectedProtocol;
                 }
                 catch (Http2HandshakeFailed ex)
@@ -145,7 +162,7 @@ namespace SocketServer
             }
             try
             {
-                HandleRequest(incomingClient, alpnSelectedProtocol, backToHttp11);
+                HandleRequest(incomingClient, alpnSelectedProtocol, backToHttp11, handshakeResult);
             }
             catch (Exception)
             {
@@ -154,7 +171,8 @@ namespace SocketServer
             }
         }
 
-        private void HandleRequest(SecureSocket incomingClient, string alpnSelectedProtocol, bool backToHttp11)
+        private void HandleRequest(SecureSocket incomingClient, string alpnSelectedProtocol, 
+                                   bool backToHttp11, IDictionary<string, object> handshakeResult)
         {
             if (backToHttp11 || alpnSelectedProtocol == "http/1.1")
             {
@@ -165,7 +183,7 @@ namespace SocketServer
 
             if (GetSessionHeaderAndVerifyIt(incomingClient))
             {
-                OpenHttp2Session(incomingClient);
+                OpenHttp2Session(incomingClient, handshakeResult);
             }
             else
             {
@@ -190,7 +208,7 @@ namespace SocketServer
                             }
                         }));
                 receivedThread.Start();
-                sessionHeaderReceived.WaitOne(10000);
+                sessionHeaderReceived.WaitOne(30000);
 
                 if (receivedThread.IsAlive)
                 {
@@ -208,10 +226,10 @@ namespace SocketServer
             return true;
         }
 
-        private async void OpenHttp2Session(SecureSocket incomingClient)
+        private async void OpenHttp2Session(SecureSocket incomingClient, IDictionary<string, object> handshakeResult)
         {
             Console.WriteLine("Handshake successful");
-            _session = new Http2Session(incomingClient, ConnectionEnd.Server, _usePriorities, _useFlowControl);
+            _session = new Http2Session(incomingClient, ConnectionEnd.Server, _usePriorities,_useFlowControl, handshakeResult);
 
             _session.OnFrameReceived += FrameReceivedHandler;
 
@@ -348,9 +366,6 @@ namespace SocketServer
             }
 
             _fileHelper.Dispose();
-            OnSessionHeaderReceived = null;
         }
-
-        private event EventHandler<EventArgs> OnSessionHeaderReceived;
     }
 }

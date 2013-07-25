@@ -12,7 +12,7 @@ namespace SharedProtocol.Handshake
     /// </summary>
     public static class HandshakeManager
     {
-        public static Action GetHandshakeAction(IDictionary<string, object> handshakeEnvironment)
+        public static Func<IDictionary<string, object>>  GetHandshakeAction(IDictionary<string, object> handshakeEnvironment)
         {
             if (!handshakeEnvironment.ContainsKey("securityOptions") 
                 || !(handshakeEnvironment["securityOptions"] is SecurityOptions))

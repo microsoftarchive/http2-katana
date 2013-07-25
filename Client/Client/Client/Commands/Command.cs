@@ -3,6 +3,6 @@
     internal abstract class Command
     {
         abstract internal CommandType GetCmdType();
-        abstract protected void Parse(string[] cmdArgs);
+        abstract internal void Parse(string[] cmdArgs);
     }
 }

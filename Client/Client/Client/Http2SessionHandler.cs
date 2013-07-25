@@ -38,7 +38,7 @@ namespace Client
         private readonly bool _useFlowControl;
         private readonly FileHelper _fileHelper;
         private readonly object _writeLock = new object();
-        private const string _clientSessionHeader = @"FOO * HTTP/2.0\r\n\r\nBA\r\n\r\n";
+        private const string _clientSessionHeader = @"PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n";
 
         private bool _isDisposed = false;
 
@@ -144,17 +144,17 @@ namespace Client
                 _options.AllowedAlgorithms = SslAlgorithms.RSA_AES_256_SHA | SslAlgorithms.NULL_COMPRESSION;
 
                 _socket = new SecureSocket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp, _options);
-
+                IDictionary<string, object> handshakeResult = null;
                 using (var monitor = new ALPNExtensionMonitor())
                 {
                     monitor.OnProtocolSelected += (o, args) => { _selectedProtocol = args.SelectedProtocol; };
                     _socket.Connect(new DnsEndPoint(connectUri.Host, connectUri.Port), monitor);
-
+                    
                     if (_useHandshake)
                     {
                         var handshakeEnvironment = MakeHandshakeEnvironment(_socket);
                         //Handshake manager determines what handshake must be used: upgrade or secure
-                        HandshakeManager.GetHandshakeAction(handshakeEnvironment).Invoke();
+                        handshakeResult = HandshakeManager.GetHandshakeAction(handshakeEnvironment).Invoke();
 
                         Console.WriteLine("Handshake finished");
 
@@ -168,7 +168,7 @@ namespace Client
 
                 SendSessionHeader();
                 _useHttp20 = true;
-                _clientSession = new Http2Session(_socket, ConnectionEnd.Client, _usePriorities, _useFlowControl);
+                _clientSession = new Http2Session(_socket, ConnectionEnd.Client, _usePriorities, _useFlowControl, handshakeResult);
 
                 //For saving incoming data
                 _clientSession.OnFrameReceived += FrameReceivedHandler;

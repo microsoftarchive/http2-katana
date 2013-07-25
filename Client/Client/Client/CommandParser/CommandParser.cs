@@ -17,18 +17,24 @@ namespace Client
             var cmdArgs = new string[splittedCmd.Length - 1];
             Array.Copy(splittedCmd, 1, cmdArgs, 0, cmdArgs.Length);
 
+            Command cmd = null;
             switch (splittedCmd[0].ToLower())
             {
                 case "dir":
-                    return new DirCommand(cmdArgs);
+                    cmd = new DirCommand();
+                    break;
                 case "post":
-                    return new PostCommand(cmdArgs);
+                    cmd = new PostCommand();
+                    break;
                 case "put":
-                    return new PutCommand(cmdArgs);
+                    cmd = new PutCommand();
+                    break;
                 case "get":
-                    return new GetCommand(cmdArgs);
+                    cmd = new GetCommand();
+                    break;
                 case "delete":
-                    return new DeleteCommand(cmdArgs);
+                    cmd = new DeleteCommand();
+                    break;
                 case "connect":
                     break;
                 case "disconnect":
@@ -38,13 +44,20 @@ namespace Client
                 case "capturestatsoff":
                     break;
                 case "help":
-                    return new HelpCommand(cmdArgs);
+                    cmd = new HelpCommand();
+                    break;
                 case "exit":
-                    return new ExitCommand();
+                    cmd = new ExitCommand();
+                    break;
                 case "ping":
-                    return new PingCommand(cmdArgs);
+                    cmd = new PingCommand();
+                    break;
+                default:
+                    cmd = new UnknownCommand(splittedCmd[0]);
+                    break;
             }
-            return new UnknownCommand(splittedCmd[0]);
+            cmd.Parse(cmdArgs);
+            return cmd;
         }
     }
 }

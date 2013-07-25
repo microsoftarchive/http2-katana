@@ -53,7 +53,7 @@ namespace SharedProtocol.Handshake
             }
         }
 
-        public void Handshake()
+        public IDictionary<string, object> Handshake()
         {
             try
             {
@@ -76,6 +76,8 @@ namespace SharedProtocol.Handshake
             {
                 throw new Http2HandshakeFailed(HandshakeFailureReason.Timeout);
             }
+
+            return new Dictionary<string, object>();
         }
 
         private void HandshakeFinishedHandler(object sender, EventArgs args)

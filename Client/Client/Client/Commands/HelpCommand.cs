@@ -6,9 +6,8 @@ namespace Client.Commands
     {
         public Action ShowHelp { get; private set; }
 
-        internal HelpCommand(string[] cmdArgs)
+        internal HelpCommand()
         {
-            Parse(cmdArgs);
         }
 
         internal override CommandType GetCmdType()
@@ -16,7 +15,7 @@ namespace Client.Commands
             return CommandType.Help;
         }
 
-        protected override void Parse(string[] cmdArgs)
+        internal override void Parse(string[] cmdArgs)
         {
             if (cmdArgs.Length == 0)
             {

@@ -16,13 +16,12 @@ namespace Client.Commands
         public string Path { get { return _uri.PathAndQuery; } }
         public string Method { get { return _method; } }
 
-        internal DeleteCommand(string[] cmdArgs)
+        internal DeleteCommand()
         {
             _method = "delete";
-            Parse(cmdArgs);
         }
 
-        protected override void Parse(string[] cmdArgs)
+        internal override void Parse(string[] cmdArgs)
         {
             if (cmdArgs.Length != 1 || Uri.TryCreate(cmdArgs[0], UriKind.Absolute, out _uri) == false)
             {

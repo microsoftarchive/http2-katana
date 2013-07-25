@@ -34,10 +34,17 @@ namespace Http2Tests
         public bool UseSecurePort { get; private set; }
         public bool UseHandshake { get; private set; }
 
-        private async Task InvokeMiddleWare(IDictionary<string, object> environment)
+        private Task InvokeMiddleWare(IDictionary<string, object> environment)
         {
-            var handshakeAction = (Action)environment["HandshakeAction"];
-            handshakeAction.Invoke();
+            var handshakeTask = new Task(() =>
+            {
+                if (environment["HandshakeAction"] is Action)
+                {
+                    var handshakeAction = (Action)environment["HandshakeAction"];
+                    handshakeAction.Invoke();
+                }
+            });
+            return handshakeTask;
         }
 
         public Http2Setup()

@@ -17,13 +17,12 @@ namespace Client.Commands
         public string Path { get { return _uri.PathAndQuery; } }
         public string Method { get { return _method; } }
 
-        internal DirCommand(string[] cmdArgs)
+        internal DirCommand()
         {
             _method = "dir";
-            Parse(cmdArgs);
         }
 
-        protected override void Parse(string[] cmdArgs)
+        internal override void Parse(string[] cmdArgs)
         {
             //If port wasn't specified then it will be 80.
             if (cmdArgs.Length != 1 || Uri.TryCreate(cmdArgs[0] + indexFileName, UriKind.Absolute, out _uri) == false)
