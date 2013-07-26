@@ -102,7 +102,7 @@ namespace SocketServer
             {
                 incomingClient = _server.AcceptSocket(monitor);
             }
-            Console.WriteLine("New client accepted");
+            Console.WriteLine("New connection accepted");
             Task.Run(() => HandleAcceptedClient(incomingClient));
         }
 
@@ -140,7 +140,7 @@ namespace SocketServer
                     if (!handshakeTask.Wait(5000))
                     {
                         incomingClient.Close();
-                        Console.WriteLine("Handshake timeout. Client was disconnected.");
+                        Console.WriteLine("Handshake timeout. Connection dropped.");
                         return;
                     }
                     
