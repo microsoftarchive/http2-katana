@@ -33,10 +33,7 @@ namespace Http2ServerService
                                        ? ConfigurationManager.AppSettings["secureAddress"]
                                        : ConfigurationManager.AppSettings["unsecureAddress"];
 
-            _http2ServerThread = new Thread((ThreadStart) delegate
-                {
-                    StartServer(connectString);
-                });
+            _http2ServerThread = new Thread((ThreadStart) (() => StartServer(connectString)));
             _http2ServerThread.Start();
         }
 

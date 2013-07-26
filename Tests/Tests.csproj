@@ -85,8 +85,8 @@
     <Compile Include="..\Server\SocketServer\GlobalSuppressions.cs">
       <Link>Sources\GlobalSuppressions.cs</Link>
     </Compile>
-    <Compile Include="..\Server\SocketServer\HttpConnetingClient.cs">
-      <Link>Sources\HttpConnetingClient.cs</Link>
+    <Compile Include="..\Server\SocketServer\HttpConnectingClient.cs">
+      <Link>Sources\HttpConnectingClient.cs</Link>
     </Compile>
     <Compile Include="..\Server\SocketServer\HttpSocketServer.cs">
       <Link>Sources\HttpSocketServer.cs</Link>

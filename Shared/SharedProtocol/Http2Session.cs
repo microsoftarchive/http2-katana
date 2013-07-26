@@ -34,11 +34,11 @@ namespace SharedProtocol
         private int _lastId;
         private bool _wasSettingsReceived = false;
         private bool _wasPingReceived = false;
-        private bool _wasResponceReceived = false;
-        private readonly ManualResetEvent _responceReceivedRaised;
+        private bool _wasResponseReceived = false;
+        private readonly ManualResetEvent _responseReceivedRaised;
         private List<Tuple<string, string, IAdditionalHeaderInfo>> _toBeContinuedHeaders = null;
         private Frame _toBeContinuedFrame = null;
-        private Dictionary<string, string> _handshakeHeaders; 
+        private readonly Dictionary<string, string> _handshakeHeaders; 
 
         /// <summary>
         /// Gets the active streams.
@@ -75,7 +75,7 @@ namespace SharedProtocol
             _ourEnd = end;
             _usePriorities = usePriorities;
             _useFlowControl = useFlowControl;
-            _responceReceivedRaised = new ManualResetEvent(false);
+            _responseReceivedRaised = new ManualResetEvent(false);
             _handshakeHeaders = new Dictionary<string, string>(16);
             ApplyHandshakeResults(handshakeResult);
 
@@ -126,10 +126,10 @@ namespace SharedProtocol
                 {
                     frame = _frameReader.ReadFrame();
 
-                    if (!_wasResponceReceived)
+                    if (!_wasResponseReceived)
                     {
-                        _responceReceivedRaised.Set(); 
-                        _wasResponceReceived = true;
+                        _responseReceivedRaised.Set(); 
+                        _wasResponseReceived = true;
                     }
                 }
                 catch (Exception)
@@ -484,10 +484,10 @@ namespace SharedProtocol
             incomingTask.Start();
             outgoingTask.Start();
 
-            _responceReceivedRaised.WaitOne(10000);
-            if (!_wasResponceReceived)
+            _responseReceivedRaised.WaitOne(10000);
+            if (!_wasResponseReceived)
             {
-                Console.WriteLine("No responce from remote end. Connection is terminating");
+                Console.WriteLine("No response from remote end. Connection is terminating");
                 Dispose();
             }
             return Task.WhenAll(incomingTask, outgoingTask);
@@ -586,7 +586,7 @@ namespace SharedProtocol
 
             _comprProc.Dispose();
             _sessionSocket.Close();
-            _responceReceivedRaised.Dispose();
+            _responseReceivedRaised.Dispose();
             if (OnSessionDisposed != null)
             {
                 OnSessionDisposed(this, null);

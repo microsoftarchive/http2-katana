@@ -280,17 +280,12 @@ namespace Http2Tests
             Uri uri;
             Uri.TryCreate(requestStr, UriKind.Absolute, out uri);
 
-            bool wasSocketClosed = false;
             bool gotException = false;
 
             var socketClosedRaisedEvent = new ManualResetEvent(false);
             var socket = GetHandshakedSocket(uri);
 
-            socket.OnClose += (sender, args) =>
-            {
-                socketClosedRaisedEvent.Set();
-                wasSocketClosed = true;
-            };
+            socket.OnClose += (sender, args) => socketClosedRaisedEvent.Set();
 
             try
             {

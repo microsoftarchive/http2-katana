@@ -9,7 +9,7 @@ namespace SharedProtocol.Extensions
     //item 4.2.1
     public static class Int32Extensions
     {
-        private static readonly byte divider = 128;
+        private const byte divider = 128;
 
         public static byte[] ToUVarInt(this Int32 number, byte prefix)
         {
@@ -24,7 +24,6 @@ namespace SharedProtocol.Extensions
             using (var binaryStream = new MemoryStream())
             {
                 int integralPart = 1;
-                byte fractionalPart;
                 number -= prefixMaxValue;
 
                 binaryStream.WriteByte((byte)prefixMaxValue);
@@ -32,7 +31,7 @@ namespace SharedProtocol.Extensions
                 while (integralPart > 0)
                 {
                     integralPart = number / divider;
-                    fractionalPart = (byte) (number % divider);
+                    byte fractionalPart = (byte) (number % divider);
 
                     if (integralPart > 0)
                     {

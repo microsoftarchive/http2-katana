@@ -13,7 +13,7 @@ namespace SharedProtocol.Compression.Http2DeltaHeadersCompression
     public class CompressionProcessor : ICompressionProcessor
     {
         private readonly SizedHeadersList _requestHeadersStorage;
-        private readonly SizedHeadersList _responceHeadersStorage;
+        private readonly SizedHeadersList _responseHeadersStorage;
         private const int headersLimit = 200;
         private const int maxHeaderByteSize = 4096;
 
@@ -22,7 +22,7 @@ namespace SharedProtocol.Compression.Http2DeltaHeadersCompression
         public CompressionProcessor()
         {
             _requestHeadersStorage = CompressionInitialHeaders.RequestInitialHeaders;
-            _responceHeadersStorage = CompressionInitialHeaders.ResponseInitialHeaders;
+            _responseHeadersStorage = CompressionInitialHeaders.ResponseInitialHeaders;
 
             InitCompressor();
             InitDecompressor();
@@ -206,7 +206,7 @@ namespace SharedProtocol.Compression.Http2DeltaHeadersCompression
         public byte[] Compress(IList<Tuple<string, string, IAdditionalHeaderInfo> > headers, bool isRequest)
         {
             var headersCopy = new List<Tuple<string, string, IAdditionalHeaderInfo>>(headers);
-            var useHeadersTable = isRequest ? _requestHeadersStorage : _responceHeadersStorage;
+            var useHeadersTable = isRequest ? _requestHeadersStorage : _responseHeadersStorage;
             ClearStream(_serializerStream, (int) _serializerStream.Position);
 
             OptimizeInputAndSendOptimized(headersCopy, useHeadersTable);
@@ -350,7 +350,7 @@ namespace SharedProtocol.Compression.Http2DeltaHeadersCompression
 
         public List<Tuple<string, string, IAdditionalHeaderInfo> > Decompress(byte[] serializedHeaders, bool isRequest)
         {
-            var useHeadersTable = isRequest ? _requestHeadersStorage : _responceHeadersStorage;
+            var useHeadersTable = isRequest ? _requestHeadersStorage : _responseHeadersStorage;
             var result = new List<Tuple<string, string, IAdditionalHeaderInfo>>(16);
             _currentOffset = 0;
 

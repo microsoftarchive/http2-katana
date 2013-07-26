@@ -17,8 +17,8 @@ namespace SharedProtocol.Handshake
         private static readonly byte[] CRLFCRLF = new [] { (byte)'\r', (byte)'\n', (byte)'\r', (byte)'\n' };
         private readonly ConnectionEnd _end;
         private readonly Dictionary<string, string> _headers;
-        private readonly ManualResetEvent _responceReceivedRaised;
-        private bool _wasResponceReceived;
+        private readonly ManualResetEvent _responseReceivedRaised;
+        private bool _wasResponseReceived;
         private const int timeout = 60000;
         private IDictionary<string, object> _handshakeResult; 
 
@@ -28,8 +28,8 @@ namespace SharedProtocol.Handshake
         {
             InternalSocket = (SecureSocket) handshakeEnvironment["secureSocket"];
             _end = (ConnectionEnd) handshakeEnvironment["end"];
-            _responceReceivedRaised = new ManualResetEvent(false);
-            OnResponceReceived += ResponceReceivedHandler;
+            _responseReceivedRaised = new ManualResetEvent(false);
+            OnResponseReceived += ResponseReceivedHandler;
            _handshakeResult = new Dictionary<string, object>();
 
             if (_end == ConnectionEnd.Client)
@@ -51,10 +51,10 @@ namespace SharedProtocol.Handshake
 
         public IDictionary<string, object> Handshake()
         {
-            var handshakeResponce = new HandshakeResponse();
+            var response = new HandshakeResponse();
             var readThread = new Thread(() =>
                 {
-                    handshakeResponce = Read11Headers();
+                    response = Read11Headers();
                 }){IsBackground = true, Name = "ReadSocketDataThread"};
             readThread.Start();
  
@@ -80,15 +80,15 @@ namespace SharedProtocol.Handshake
                 byte[] requestBytes = Encoding.ASCII.GetBytes(builder.ToString());
                 InternalSocket.Send(requestBytes, 0, requestBytes.Length, SocketFlags.None);
 
-                _responceReceivedRaised.WaitOne(timeout);
-                _responceReceivedRaised.Dispose();
+                _responseReceivedRaised.WaitOne(timeout);
+                _responseReceivedRaised.Dispose();
             }
             else
             {
-                _responceReceivedRaised.WaitOne(timeout);
-                _responceReceivedRaised.Dispose();
+                _responseReceivedRaised.WaitOne(timeout);
+                _responseReceivedRaised.Dispose();
 
-                if (handshakeResponce.Result == HandshakeResult.Upgrade)
+                if (response.Result == HandshakeResult.Upgrade)
                 {
                     const string status = "101";
                     const string protocol = "HTTP/1.1";
@@ -105,9 +105,9 @@ namespace SharedProtocol.Handshake
                 }
             }
 
-            if (!_wasResponceReceived)
+            if (!_wasResponseReceived)
             {
-                OnResponceReceived = null;
+                OnResponseReceived = null;
                 if (readThread.IsAlive)
                 {
                     readThread.Abort();
@@ -115,11 +115,11 @@ namespace SharedProtocol.Handshake
                 }
                 throw new Http2HandshakeFailed(HandshakeFailureReason.Timeout);
             }
-            if (handshakeResponce.Result != HandshakeResult.Upgrade)
+            if (response.Result != HandshakeResult.Upgrade)
             {
                 throw new Http2HandshakeFailed(HandshakeFailureReason.InternalError);
             }
-            OnResponceReceived = null;
+            OnResponseReceived = null;
             if (readThread.IsAlive)
             {
                 readThread.Abort();
@@ -230,31 +230,31 @@ namespace SharedProtocol.Handshake
                 }
             }
 
-            if (OnResponceReceived != null)
+            if (OnResponseReceived != null)
             {
-                OnResponceReceived(this, null);
+                OnResponseReceived(this, null);
             }
 
             return handshake;
         }
 
-        private void GetPath(string clientResponce)
+        private void GetPath(string clientResponse)
         {
-            int methodIndex = clientResponce.IndexOf("GET", StringComparison.Ordinal);
-            int pathIndex = clientResponce.IndexOf("/", methodIndex, StringComparison.Ordinal);
-            int endPathIndex = clientResponce.IndexOf(" ", pathIndex, StringComparison.Ordinal);
+            int methodIndex = clientResponse.IndexOf("GET", StringComparison.Ordinal);
+            int pathIndex = clientResponse.IndexOf("/", methodIndex, StringComparison.Ordinal);
+            int endPathIndex = clientResponse.IndexOf(" ", pathIndex, StringComparison.Ordinal);
 
-            string path = clientResponce.Substring(pathIndex, endPathIndex - pathIndex);
+            string path = clientResponse.Substring(pathIndex, endPathIndex - pathIndex);
             _handshakeResult.Add(":path", path);
         }
 
-        private void ResponceReceivedHandler(object sender, EventArgs args)
+        private void ResponseReceivedHandler(object sender, EventArgs args)
         {
-            _wasResponceReceived = true;
-            _responceReceivedRaised.Set();
+            _wasResponseReceived = true;
+            _responseReceivedRaised.Set();
         }
 
 
-        private event EventHandler<EventArgs> OnResponceReceived;
+        private event EventHandler<EventArgs> OnResponseReceived;
     }
 }

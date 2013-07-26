@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-
-namespace SharedProtocol.Framing
+﻿namespace SharedProtocol.Framing
 {
     public enum ResetStatusCode : uint
     {

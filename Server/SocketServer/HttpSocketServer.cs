@@ -94,7 +94,7 @@ namespace SocketServer
             using (var indexFile = new StreamWriter(assemblyName + @"\Root" + indexFileName))
             {
                 string dirPath = assemblyName + @"\Root";
-                _listOfRootFiles = Directory.EnumerateFiles(dirPath, "*", SearchOption.AllDirectories).Select(Path.GetFileName).ToList();
+                _listOfRootFiles = Directory.EnumerateFiles(dirPath, "*", SearchOption.TopDirectoryOnly).Select(Path.GetFileName).ToList();
                 foreach (var fileName in _listOfRootFiles)
                 {
                     indexFile.Write(fileName + "<br>\n");
@@ -111,7 +111,7 @@ namespace SocketServer
             {
                 try
                 {
-                    var client = new HttpConnetingClient(_server, _options, _next, _useHandshake, _usePriorities, _useFlowControl, _listOfRootFiles);
+                    var client = new HttpConnectingClient(_server, _options, _next, _useHandshake, _usePriorities, _useFlowControl, _listOfRootFiles);
                     client.Accept();
                 }
                 catch (Exception ex)
