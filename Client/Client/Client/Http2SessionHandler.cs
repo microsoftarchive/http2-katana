@@ -26,10 +26,13 @@ namespace Client
 {
     public sealed class Http2SessionHandler : IDisposable
     {
-        private SecurityOptions _options;
-        private Http2Session _clientSession;
         private const string CertificatePath = @"certificate.pfx";
         private const string NotFound = @"\NotFound.html";
+        private const string ClientSessionHeader = @"PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n";
+
+        private SecurityOptions _options;
+        private Http2Session _clientSession;
+
         private SecureSocket _socket;
         private string _selectedProtocol;
         private bool _useHttp20 = true;
@@ -38,8 +41,6 @@ namespace Client
         private readonly bool _useFlowControl;
         private readonly FileHelper _fileHelper;
         private readonly object _writeLock = new object();
-        private const string ClientSessionHeader = @"PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n";
-
         private bool _isDisposed = false;
 
         private int _port;
