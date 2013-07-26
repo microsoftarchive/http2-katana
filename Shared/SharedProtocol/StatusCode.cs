@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace SharedProtocol
+﻿namespace SharedProtocol
 {
     //TODO Rework class (more status codes + refactor existing)
     public class StatusCode

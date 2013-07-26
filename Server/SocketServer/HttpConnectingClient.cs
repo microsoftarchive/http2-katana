@@ -6,13 +6,11 @@
 
 using System;
 using System.IO;
-using System.Linq;
 using System.Collections.Generic;
 using System.Net.Sockets;
 using System.Reflection;
 using System.Text;
 using System.Threading;
-//using System.Threading.Tasks;
 using System.Threading.Tasks;
 using Org.Mentalis;
 using Org.Mentalis.Security.Ssl;
@@ -30,10 +28,10 @@ namespace SocketServer
 {
     using AppFunc = Func<IDictionary<string, object>, Task>;
     /// <summary>
-    /// This class handles incoming clients. It can accept them, make handshake and chose how to give a responce.
-    /// It encouraged to responce with http11 or http20 
+    /// This class handles incoming clients. It can accept them, make handshake and chose how to give a response.
+    /// It encouraged to response with http11 or http20 
     /// </summary>
-    internal sealed class HttpConnetingClient : IDisposable
+    internal sealed class HttpConnectingClient : IDisposable
     {
         private readonly SecureTcpListener _server;
         private readonly SecurityOptions _options;
@@ -47,10 +45,10 @@ namespace SocketServer
         private readonly bool _useHandshake;
         private readonly bool _usePriorities;
         private readonly bool _useFlowControl;
-        private List<string> _listOfRootFiles;
+        private readonly List<string> _listOfRootFiles;
         private readonly object _listWriteLock = new object();
 
-        internal HttpConnetingClient(SecureTcpListener server, SecurityOptions options,
+        internal HttpConnectingClient(SecureTcpListener server, SecurityOptions options,
                                      AppFunc next, bool useHandshake, bool usePriorities, 
                                      bool useFlowControl, List<string> listOfRootFiles)
         {
@@ -80,7 +78,8 @@ namespace SocketServer
         {
             lock (_listWriteLock)
             {
-                if (!_listOfRootFiles.Contains(fileName))
+                //if file is located in root directory then add it to the index
+                if (!_listOfRootFiles.Contains(fileName) && !fileName.Contains("/"))
                 {
                     using (var indexFile = new StreamWriter(assemblyPath + @"\Root\index.html", true))
                     {
@@ -230,7 +229,6 @@ namespace SocketServer
         {
             Console.WriteLine("Handshake successful");
             _session = new Http2Session(incomingClient, ConnectionEnd.Server, _usePriorities,_useFlowControl, handshakeResult);
-
             _session.OnFrameReceived += FrameReceivedHandler;
 
             try

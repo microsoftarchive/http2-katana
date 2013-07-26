@@ -12,7 +12,7 @@ namespace ServerOwinMiddleware
     public class Http2Middleware
     {
         // Pass requests onto this pipeline if not upgrading to HTTP/2.0.
-        private AppFunc _next;
+        private readonly AppFunc _next;
         // Pass requests onto this pipeline if upgraded to HTTP/2.0.
         private AppFunc _nextHttp2;
 

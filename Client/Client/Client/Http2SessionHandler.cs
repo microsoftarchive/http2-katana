@@ -28,8 +28,8 @@ namespace Client
     {
         private SecurityOptions _options;
         private Http2Session _clientSession;
-        private const string _certificatePath = @"certificate.pfx";
-        private const string _notFound = @"notFound.html";
+        private const string CertificatePath = @"certificate.pfx";
+        private const string NotFound = @"\NotFound.html";
         private SecureSocket _socket;
         private string _selectedProtocol;
         private bool _useHttp20 = true;
@@ -38,7 +38,7 @@ namespace Client
         private readonly bool _useFlowControl;
         private readonly FileHelper _fileHelper;
         private readonly object _writeLock = new object();
-        private const string _clientSessionHeader = @"PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n";
+        private const string ClientSessionHeader = @"PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n";
 
         private bool _isDisposed = false;
 
@@ -47,7 +47,7 @@ namespace Client
         private string _scheme;
         private string _host;
 
-        private static readonly string assemblyPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+        private static readonly string AssemblyPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
 
         public string ServerUri { get; private set; }
 
@@ -139,7 +139,7 @@ namespace Client
                                                      ConnectionEnd.Client);
 
                 _options.VerificationType = CredentialVerification.None;
-                _options.Certificate = Org.Mentalis.Security.Certificates.Certificate.CreateFromCerFile(_certificatePath);
+                _options.Certificate = Org.Mentalis.Security.Certificates.Certificate.CreateFromCerFile(CertificatePath);
                 _options.Flags = SecurityFlags.Default;
                 _options.AllowedAlgorithms = SslAlgorithms.RSA_AES_256_SHA | SslAlgorithms.NULL_COMPRESSION;
 
@@ -219,7 +219,7 @@ namespace Client
 
         private void SendSessionHeader()
         {
-            _socket.Send(Encoding.UTF8.GetBytes(_clientSessionHeader));
+            _socket.Send(Encoding.UTF8.GetBytes(ClientSessionHeader));
         }
 
         //localPath should be provided only for post and put cmds
@@ -277,7 +277,7 @@ namespace Client
                 //Submit request if http2 was chosen
                 Console.WriteLine("Submitting request");
 
-                //Submit request in the current thread, responce will be handled in the session thread.
+                //Submit request in the current thread, response will be handled in the session thread.
                 SubmitRequest(request, method, localPath, serverPostAct);
             }
         }
@@ -325,15 +325,15 @@ namespace Client
         {
             lock (_writeLock)
             {
-                string path = stream.Headers.GetValue(":path".ToLower());
+                string originalPath = stream.Headers.GetValue(":path".ToLower()); 
+                //If user sets the empty file in get command we return notFound webpage
+                string fileName = (originalPath == "/") ? NotFound : Path.GetFileName(originalPath);
+                string path = Path.Combine(AssemblyPath, fileName);
 
                 try
                 {
-                    if (dataFrame.Data.Count != 0)
-                    {
                         _fileHelper.SaveToFile(dataFrame.Data.Array, dataFrame.Data.Offset, dataFrame.Data.Count,
-                                               assemblyPath + path, stream.ReceivedDataAmount != 0);
-                    }
+                                           path, stream.ReceivedDataAmount != 0);
                 }
                 catch (IOException)
                 {
@@ -352,12 +352,12 @@ namespace Client
                         stream.WriteDataFrame(new byte[0], true);
                         Console.WriteLine("Terminator was sent");
                     }
-                    _fileHelper.RemoveStream(assemblyPath + path);
+                    _fileHelper.RemoveStream(path);
                     Console.WriteLine("Bytes received {0}", stream.ReceivedDataAmount);
 #if DEBUG
                     const string wayToServerRoot = @"..\..\..\..\..\Drop\Root";
-                    var areFilesEqual = _fileHelper.CompareFiles(assemblyPath + path,
-                                             wayToServerRoot + path);
+                    var areFilesEqual = _fileHelper.CompareFiles(path,
+                                             wayToServerRoot + originalPath);
 
                     if (!areFilesEqual)
                     {
@@ -418,7 +418,7 @@ namespace Client
                         else if (args.Frame is Headers)
                         {
                             string path = stream.Headers.GetValue(":path".ToLower());
-                            byte[] binary = null;
+                            byte[] binary;
 
                             try
                             {
