@@ -12,10 +12,12 @@ namespace SharedProtocol.Compression.Http2DeltaHeadersCompression
     // https://github.com/yoavnir/compression-spec/blob/7f67f0dbecdbe65bc22f3e3b57e2d5adefeb08dd/compression-spec.txt
     public class CompressionProcessor : ICompressionProcessor
     {
+        private const int HeadersLimit = 200;
+        private const int MaxHeaderByteSize = 4096;
+
+
         private readonly SizedHeadersList _requestHeadersStorage;
         private readonly SizedHeadersList _responseHeadersStorage;
-        private const int headersLimit = 200;
-        private const int maxHeaderByteSize = 4096;
 
         private MemoryStream _serializerStream;
 
@@ -45,12 +47,12 @@ namespace SharedProtocol.Compression.Http2DeltaHeadersCompression
                 switch (headerType)
                 {
                     case IndexationType.Incremental:
-                        if (useHeadersTable.Count > headersLimit - 1)
+                        if (useHeadersTable.Count > HeadersLimit - 1)
                         {
                             useHeadersTable.RemoveAt(0);
                         }
 
-                        while (useHeadersTable.StoredHeadersSize + headerLen > maxHeaderByteSize)
+                        while (useHeadersTable.StoredHeadersSize + headerLen > MaxHeaderByteSize)
                         {
                             useHeadersTable.RemoveAt(0);
                         }
@@ -63,12 +65,12 @@ namespace SharedProtocol.Compression.Http2DeltaHeadersCompression
                         }
                         else
                         {
-                            if (useHeadersTable.Count > headersLimit - 1)
+                            if (useHeadersTable.Count > HeadersLimit - 1)
                             {
                                 useHeadersTable.RemoveAt(0);
                             }
 
-                            while (useHeadersTable.StoredHeadersSize + headerLen > maxHeaderByteSize)
+                            while (useHeadersTable.StoredHeadersSize + headerLen > MaxHeaderByteSize)
                             {
                                 useHeadersTable.RemoveAt(0);
                             }

@@ -17,6 +17,10 @@ namespace SocketServer
 
     public class HttpSocketServer : IDisposable
     {
+        private static readonly string AssemblyName = Path.GetDirectoryName(Assembly.GetExecutingAssembly().CodeBase.Substring(8));
+        private const string CertificateFilename = @"\certificate.pfx";
+        private const string IndexFileName = @"\index.html";
+
         private readonly AppFunc _next;
         private readonly int _port;
         private readonly string _scheme;
@@ -26,10 +30,6 @@ namespace SocketServer
         private bool _disposed;
         private readonly SecurityOptions _options;
         private readonly  SecureTcpListener _server;
-        private const string certificateFilename = @"\certificate.pfx";
-        //Remove file:// from Assembly.GetExecutingAssembly().CodeBase
-        private readonly string assemblyName = Path.GetDirectoryName(Assembly.GetExecutingAssembly().CodeBase.Substring(8));
-        private const string indexFileName = @"\index.html";
         private List<string> _listOfRootFiles = new List<string>();
 
         public HttpSocketServer(Func<IDictionary<string, object>, Task> next, IDictionary<string, object> properties)
@@ -68,7 +68,7 @@ namespace SocketServer
                 &&
                 _scheme == Uri.UriSchemeHttps)
             {
-                Console.WriteLine("Invalid scheme on port! Use https for secure port");
+                Console.WriteLine("Invalid scheme or port! Use https for secure port.");
                 return;
             }
 
@@ -78,22 +78,22 @@ namespace SocketServer
                                 : new SecurityOptions(SecureProtocol.None, extensions, new[] { "http/2.0", "http/1.1" }, ConnectionEnd.Server);
 
             _options.VerificationType = CredentialVerification.None;
-            _options.Certificate = Certificate.CreateFromCerFile(assemblyName + certificateFilename);
+            _options.Certificate = Certificate.CreateFromCerFile(AssemblyName + CertificateFilename);
             _options.Flags = SecurityFlags.Default;
             _options.AllowedAlgorithms = SslAlgorithms.RSA_AES_256_SHA | SslAlgorithms.NULL_COMPRESSION;
 
             _server = new SecureTcpListener(_port, _options);
 
-            ThreadPool.SetMaxThreads(10,10);
+            ThreadPool.SetMaxThreads(30, 10);
 
             Listen();
         }
 
         private void InitializeRootFileList()
         {
-            using (var indexFile = new StreamWriter(assemblyName + @"\Root" + indexFileName))
+            using (var indexFile = new StreamWriter(AssemblyName + @"\Root" + IndexFileName))
             {
-                string dirPath = assemblyName + @"\Root";
+                string dirPath = AssemblyName + @"\Root";
                 _listOfRootFiles = Directory.EnumerateFiles(dirPath, "*", SearchOption.TopDirectoryOnly).Select(Path.GetFileName).ToList();
                 foreach (var fileName in _listOfRootFiles)
                 {

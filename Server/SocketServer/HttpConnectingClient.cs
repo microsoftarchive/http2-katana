@@ -33,15 +33,17 @@ namespace SocketServer
     /// </summary>
     internal sealed class HttpConnectingClient : IDisposable
     {
+        private const string ClientSessionHeader = @"PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n";
+        private static readonly string AssemblyPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().CodeBase.Substring(8));
+
+
         private readonly SecureTcpListener _server;
         private readonly SecurityOptions _options;
         private readonly AppFunc _next;
         private Http2Session _session;
         //Remove file:// from Assembly.GetExecutingAssembly().CodeBase
-        private static readonly string assemblyPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().CodeBase.Substring(8));
         private readonly FileHelper _fileHelper;
         private readonly object _writeLock = new object();
-        private const string clientSessionHeader = @"PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n";
         private readonly bool _useHandshake;
         private readonly bool _usePriorities;
         private readonly bool _useFlowControl;
@@ -81,7 +83,7 @@ namespace SocketServer
                 //if file is located in root directory then add it to the index
                 if (!_listOfRootFiles.Contains(fileName) && !fileName.Contains("/"))
                 {
-                    using (var indexFile = new StreamWriter(assemblyPath + @"\Root\index.html", true))
+                    using (var indexFile = new StreamWriter(AssemblyPath + @"\Root\index.html", true))
                     {
                         _listOfRootFiles.Add(fileName);
                         indexFile.Write(fileName + "<br>\n");
@@ -135,7 +137,12 @@ namespace SocketServer
                     var handshakeTask = _next(environment);
                     
                     handshakeTask.Start();
-                    handshakeTask.Wait();
+                    if (!handshakeTask.Wait(5000))
+                    {
+                        incomingClient.Close();
+                        Console.WriteLine("Handshake timeout. Client was disconnected.");
+                        return;
+                    }
                     
                     alpnSelectedProtocol = incomingClient.SelectedProtocol;
                 }
@@ -152,9 +159,9 @@ namespace SocketServer
                         return;
                     }
                 }
-                catch (Exception)
+                catch (Exception e)
                 {
-                    Console.WriteLine("Some kind of exception occured. Closing client's socket");
+                    Console.WriteLine("Exception occured. Closing client's socket. " + e.Message);
                     incomingClient.Close();
                     return;
                 }
@@ -163,9 +170,9 @@ namespace SocketServer
             {
                 HandleRequest(incomingClient, alpnSelectedProtocol, backToHttp11, handshakeResult);
             }
-            catch (Exception)
+            catch (Exception e)
             {
-                Console.WriteLine("Some kind of exception occured. Closing client's socket");
+                Console.WriteLine("Exception occured. Closing client's socket. " + e.Message);
                 incomingClient.Close();
             }
         }
@@ -193,7 +200,7 @@ namespace SocketServer
 
         private bool GetSessionHeaderAndVerifyIt(SecureSocket incomingClient)
         {
-            var sessionHeaderBuffer = new byte[clientSessionHeader.Length];
+            var sessionHeaderBuffer = new byte[ClientSessionHeader.Length];
             using (var sessionHeaderReceived = new ManualResetEvent(false))
             {
                 var receivedThread = new Thread( 
@@ -217,7 +224,7 @@ namespace SocketServer
 
                 var receivedHeader = Encoding.UTF8.GetString(sessionHeaderBuffer);
 
-                if (receivedHeader != clientSessionHeader)
+                if (receivedHeader != ClientSessionHeader)
                 {
                     return false;
                 }
@@ -280,7 +287,7 @@ namespace SocketServer
                     if (dataFrame.Data.Count != 0)
                     {
                         _fileHelper.SaveToFile(dataFrame.Data.Array, dataFrame.Data.Offset, dataFrame.Data.Count,
-                                               assemblyPath + @"\Root" + path, stream.ReceivedDataAmount != 0);
+                                               AssemblyPath + @"\Root" + path, stream.ReceivedDataAmount != 0);
                     }
                 }
                 catch (IOException)
@@ -300,7 +307,7 @@ namespace SocketServer
                         stream.WriteDataFrame(new byte[0], true);
                         Console.WriteLine("Terminator was sent");
                     }
-                    _fileHelper.RemoveStream(assemblyPath + @"\Root" + path);
+                    _fileHelper.RemoveStream(AssemblyPath + @"\Root" + path);
                 }
             }
         }
