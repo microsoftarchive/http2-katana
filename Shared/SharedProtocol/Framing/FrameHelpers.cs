@@ -213,17 +213,17 @@ namespace SharedProtocol.Framing
             }
 
             byte[] buffer = new byte[encodedLength];
-            FrameHelpers.Set32BitsAt(buffer, 0, pairs.Count);
+            Set32BitsAt(buffer, 0, pairs.Count);
             int offset = 4;
             foreach (var key in pairs.Keys)
             {
-                FrameHelpers.Set32BitsAt(buffer, offset, key.Length);
+                Set32BitsAt(buffer, offset, key.Length);
                 offset += 4;
-                FrameHelpers.SetAsciiAt(buffer, offset, key);
+                SetAsciiAt(buffer, offset, key);
                 offset += key.Length;
-                FrameHelpers.Set32BitsAt(buffer, offset, pairs[key].Length);
+                Set32BitsAt(buffer, offset, pairs[key].Length);
                 offset += 4;
-                FrameHelpers.SetAsciiAt(buffer, offset, pairs[key]);
+                SetAsciiAt(buffer, offset, pairs[key]);
                 offset += pairs[key].Length;
             }
             return buffer;
@@ -246,18 +246,18 @@ namespace SharedProtocol.Framing
             var headers = new Dictionary<string, string>();
 
             int offset = 0;
-            int headerCount = FrameHelpers.Get32BitsAt(rawHeaders, offset);
+            int headerCount = Get32BitsAt(rawHeaders, offset);
             offset += 4;
             for (int i = 0; i < headerCount; i++)
             {
-                int keyLength = FrameHelpers.Get32BitsAt(rawHeaders, offset);
+                int keyLength = Get32BitsAt(rawHeaders, offset);
                 Contract.Assert(keyLength > 0);
                 offset += 4;
-                string key = FrameHelpers.GetAsciiAt(rawHeaders, offset, keyLength);
+                string key = GetAsciiAt(rawHeaders, offset, keyLength);
                 offset += keyLength;
-                int valueLength = FrameHelpers.Get32BitsAt(rawHeaders, offset);
+                int valueLength = Get32BitsAt(rawHeaders, offset);
                 offset += 4;
-                string value = FrameHelpers.GetAsciiAt(rawHeaders, offset, valueLength);
+                string value = GetAsciiAt(rawHeaders, offset, valueLength);
                 offset += valueLength;
 
                 headers.Add(key, value);

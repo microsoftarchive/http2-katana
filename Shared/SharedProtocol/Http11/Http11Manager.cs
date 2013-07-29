@@ -17,7 +17,7 @@ namespace SharedProtocol.Http11
     public static class Http11Manager
     {
         //Remove file:// from Assembly.GetExecutingAssembly().CodeBase
-        private static readonly string assemblyPath =
+        private static readonly string AssemblyPath =
             Path.GetDirectoryName(Assembly.GetExecutingAssembly().CodeBase.Substring(8));
         
         private static string GetFileName(IEnumerable<string> headers)
@@ -151,7 +151,7 @@ namespace SharedProtocol.Http11
                 int fileNameIndex = requestUri.AbsolutePath.LastIndexOf("/");
                 string fileName = requestUri.AbsolutePath.Substring(fileNameIndex);
 
-                string directory = assemblyPath;
+                string directory = AssemblyPath;
                 SaveFile(directory, fileName, fileBuffer);
 
                 if (OnDownloadSuccessful != null)
@@ -179,7 +179,7 @@ namespace SharedProtocol.Http11
                 socket.Close();
             }
 
-            string path = Path.GetFullPath(assemblyPath + @"\root" + filename);
+            string path = Path.GetFullPath(AssemblyPath + @"\root" + filename);
 
             if (!File.Exists(path))
             {

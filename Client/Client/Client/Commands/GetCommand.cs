@@ -47,7 +47,7 @@ namespace Client.Commands
                 && 
                 Uri.Scheme == Uri.UriSchemeHttps)
             {
-                throw new InvalidOperationException("Invalid scheme on port! Use https for secure port");
+                throw new InvalidOperationException("Invalid scheme or port! Use https for secure port");
             }
         }
 

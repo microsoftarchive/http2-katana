@@ -165,9 +165,8 @@ namespace SharedProtocol
         public void WriteHeadersFrame(List<Tuple<string, string, IAdditionalHeaderInfo> > headers, bool isEndStream)
         {
             Headers = headers;
-            byte[] headerBytes = null;
 
-            headerBytes = _compressionProc.Compress(headers, _id % 2 != 0);
+            byte[] headerBytes = _compressionProc.Compress(headers, _id % 2 != 0);
 
             var frame = new Headers(_id, headerBytes)
                 {
