@@ -300,15 +300,14 @@ namespace Client
 
             Console.WriteLine("Transfer begin");
 
-            while (binaryData.Length > i)
+            do
             {
                 bool isLastData = binaryData.Length - i < Constants.MaxDataFrameContentSize;
 
                 int chunkSize = stream.WindowSize > 0
-                                ?
-                                    MathEx.Min(binaryData.Length - i, Constants.MaxDataFrameContentSize, stream.WindowSize)
-                                :
-                                    MathEx.Min(binaryData.Length - i, Constants.MaxDataFrameContentSize);
+                                    ? MathEx.Min(binaryData.Length - i, Constants.MaxDataFrameContentSize,
+                                                 stream.WindowSize)
+                                    : MathEx.Min(binaryData.Length - i, Constants.MaxDataFrameContentSize);
 
                 var chunk = new byte[chunkSize];
                 Buffer.BlockCopy(binaryData, i, chunk, 0, chunk.Length);
@@ -316,7 +315,7 @@ namespace Client
                 stream.WriteDataFrame(chunk, isLastData);
 
                 i += chunkSize;
-            }
+            } while (binaryData.Length > i);
 
             //It was not send exactly. Some of the data frames could be pushed to the unshipped frames collection
             Console.WriteLine("File sent: " + stream.Headers.GetValue(":path"));
@@ -356,10 +355,10 @@ namespace Client
                     _fileHelper.RemoveStream(path);
                     Console.WriteLine("Bytes received {0}", stream.ReceivedDataAmount);
 #if DEBUG
-                    const string wayToServerRoot = @"..\..\..\..\..\Drop\Root";
-                    var areFilesEqual = _fileHelper.CompareFiles(path,
-                                             wayToServerRoot + originalPath);
-
+                    const string wayToServerRoot1 = @"..\..\..\..\..\Drop\Root";
+                    const string wayToServerRoot2 = @".\Root";
+                    var areFilesEqual = _fileHelper.CompareFiles(path, wayToServerRoot1 + originalPath) ||
+                                        _fileHelper.CompareFiles(path, wayToServerRoot2 + originalPath);
                     if (!areFilesEqual)
                     {
                         Console.ForegroundColor = ConsoleColor.Red;

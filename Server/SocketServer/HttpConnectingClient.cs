@@ -102,7 +102,7 @@ namespace SocketServer
             {
                 incomingClient = _server.AcceptSocket(monitor);
             }
-            Console.WriteLine("New client accepted");
+            Console.WriteLine("New connection accepted");
             Task.Run(() => HandleAcceptedClient(incomingClient));
         }
 
