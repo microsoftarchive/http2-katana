@@ -75,7 +75,6 @@ namespace SharedProtocol
             _ourEnd = end;
             _usePriorities = usePriorities;
             _useFlowControl = useFlowControl;
-            _responseReceivedRaised = new ManualResetEvent(false);
             _handshakeHeaders = new Dictionary<string, string>(16);
             ApplyHandshakeResults(handshakeResult);
 
@@ -128,7 +127,6 @@ namespace SharedProtocol
 
                     if (!_wasResponseReceived)
                     {
-                        _responseReceivedRaised.Set(); 
                         _wasResponseReceived = true;
                     }
                 }
@@ -140,6 +138,7 @@ namespace SharedProtocol
                
                 if (frame == null)
                 {
+                    Thread.Sleep(10);
                     continue;
                 }
 
@@ -484,12 +483,6 @@ namespace SharedProtocol
             incomingTask.Start();
             outgoingTask.Start();
 
-            _responseReceivedRaised.WaitOne(10000);
-            if (!_wasResponseReceived)
-            {
-                Console.WriteLine("No response from remote end. Connection is terminating");
-                Dispose();
-            }
             return Task.WhenAll(incomingTask, outgoingTask);
         }
 
@@ -586,7 +579,7 @@ namespace SharedProtocol
 
             _comprProc.Dispose();
             _sessionSocket.Close();
-            _responseReceivedRaised.Dispose();
+
             if (OnSessionDisposed != null)
             {
                 OnSessionDisposed(this, null);
