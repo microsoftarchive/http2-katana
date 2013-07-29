@@ -9,7 +9,7 @@ namespace SharedProtocol.Extensions
     //item 4.2.1
     public static class Int32Extensions
     {
-        private const byte divider = 128;
+        private const byte Divider = 128;
 
         public static byte[] ToUVarInt(this Int32 number, byte prefix)
         {
@@ -30,8 +30,8 @@ namespace SharedProtocol.Extensions
 
                 while (integralPart > 0)
                 {
-                    integralPart = number / divider;
-                    byte fractionalPart = (byte) (number % divider);
+                    integralPart = number / Divider;
+                    byte fractionalPart = (byte) (number % Divider);
 
                     if (integralPart > 0)
                     {
@@ -58,7 +58,7 @@ namespace SharedProtocol.Extensions
             {
                 //Zero highest bit
                 byte fractional = (byte)(binary[i] & 0x7f);
-                currentIntegral *= divider;
+                currentIntegral *= Divider;
                 currentIntegral += fractional;
             }
 

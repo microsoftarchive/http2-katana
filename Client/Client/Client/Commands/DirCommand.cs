@@ -6,7 +6,7 @@ namespace Client.Commands
     internal sealed class DirCommand : Command, IUriCommand
     {
         private Uri _uri;
-        private const string indexFileName = @"/index.html";
+        private const string IndexFileName = @"/index.html";
         private readonly string _method;
 
         public Uri Uri
@@ -25,7 +25,7 @@ namespace Client.Commands
         internal override void Parse(string[] cmdArgs)
         {
             //If port wasn't specified then it will be 80.
-            if (cmdArgs.Length != 1 || Uri.TryCreate(cmdArgs[0] + indexFileName, UriKind.Absolute, out _uri) == false)
+            if (cmdArgs.Length != 1 || Uri.TryCreate(cmdArgs[0] + IndexFileName, UriKind.Absolute, out _uri) == false)
             {
                 throw new InvalidOperationException("Invalid Dir format!");
             }
@@ -48,7 +48,7 @@ namespace Client.Commands
                 &&
                 Uri.Scheme == Uri.UriSchemeHttps)
             {
-                throw new InvalidOperationException("Invalid scheme on port! Use https for secure port");
+                throw new InvalidOperationException("Invalid scheme or port! Use https for secure port");
             }
         }
 

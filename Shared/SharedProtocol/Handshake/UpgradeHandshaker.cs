@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Net.Sockets;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 using Org.Mentalis.Security.Ssl;
 using SharedProtocol.Exceptions;
@@ -21,7 +22,7 @@ namespace SharedProtocol.Handshake
         private readonly Dictionary<string, string> _headers;
         private readonly ManualResetEvent _responseReceivedRaised;
         private bool _wasResponseReceived;
-        private IDictionary<string, object> _handshakeResult; 
+        private readonly IDictionary<string, object> _handshakeResult; 
         public SecureSocket InternalSocket { get; private set; }
 
         public UpgradeHandshaker(IDictionary<string, object> handshakeEnvironment)
@@ -37,10 +38,11 @@ namespace SharedProtocol.Handshake
                 if (handshakeEnvironment.ContainsKey(":host") || (handshakeEnvironment[":host"] is string)
                     || handshakeEnvironment.ContainsKey(":version") || (handshakeEnvironment[":version"] is string))
                 {
-                    _headers = new Dictionary<string, string>();
-
-                    _headers.Add(":host", (string)handshakeEnvironment[":host"]);
-                    _headers.Add(":version", (string)handshakeEnvironment[":version"]);       
+                    _headers = new Dictionary<string, string>
+                        {
+                            {":host", (string) handshakeEnvironment[":host"]},
+                            {":version", (string) handshakeEnvironment[":version"]}
+                        };
                 }
                 else
                 {
@@ -132,11 +134,10 @@ namespace SharedProtocol.Handshake
         private HandshakeResponse Read11Headers()
         {
             byte[] buffer = new byte[HandshakeResponseSizeLimit];
-            int read;
             int readOffset = 0;
-            int lastInspectionOffset;
             do
             {
+                int read;
                 try
                 {
                     read = InternalSocket.Receive(buffer, readOffset, buffer.Length - readOffset, SocketFlags.None);
@@ -152,7 +153,7 @@ namespace SharedProtocol.Handshake
                 }
                 
                 readOffset += read;
-                lastInspectionOffset = Math.Max(0, readOffset - CRLFCRLF.Length);
+                int lastInspectionOffset = Math.Max(0, readOffset - CRLFCRLF.Length);
                 int matchIndex;
                 if (TryFindRangeMatch(buffer, lastInspectionOffset, readOffset, CRLFCRLF, out matchIndex))
                 {
@@ -161,7 +162,7 @@ namespace SharedProtocol.Handshake
 
             } while (readOffset < HandshakeResponseSizeLimit);
 
-            throw new NotImplementedException("Handshake response size limit exceeded");
+            throw new InvalidOperationException("Handshake response size limit exceeded");
         }
 
         private bool TryFindRangeMatch(byte[] buffer, int offset, int limit, byte[] matchSequence, out int matchIndex)
@@ -221,7 +222,7 @@ namespace SharedProtocol.Handshake
                     && response.Contains("\r\nUPGRADE: HTTP-DRAFT-04/2.0\r\n")
                     && response.Contains("\r\nHTTP2-SETTINGS:"))
                 {
-                    GetPath(response);
+                    GetHeaders(response);
                     handshake.Result = HandshakeResult.Upgrade;
                 }
                 else
@@ -238,7 +239,7 @@ namespace SharedProtocol.Handshake
             return handshake;
         }
 
-        private void GetPath(string clientResponse)
+        private void GetHeaders(string clientResponse)
         {
             int methodIndex = clientResponse.IndexOf("GET", StringComparison.Ordinal);
             int pathIndex = clientResponse.IndexOf("/", methodIndex, StringComparison.Ordinal);
@@ -246,6 +247,14 @@ namespace SharedProtocol.Handshake
 
             string path = clientResponse.Substring(pathIndex, endPathIndex - pathIndex);
             _handshakeResult.Add(":path", path);
+
+
+            var headers = Regex.Matches(clientResponse, "^:.*$", RegexOptions.Multiline | RegexOptions.Compiled);
+            foreach (Match header in headers)
+            {
+                string[] nameValue = header.Value.Split(new []{' '}, StringSplitOptions.RemoveEmptyEntries);
+                _handshakeResult.Add(nameValue[0].ToLower().TrimEnd(':'), nameValue[1].TrimEnd('\r', '\n'));
+            }
         }
 
         private void ResponseReceivedHandler(object sender, EventArgs args)

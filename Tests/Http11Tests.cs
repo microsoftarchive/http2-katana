@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Configuration;
+using System.Globalization;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
@@ -22,15 +23,12 @@ namespace Http11Tests
 
         private static Task InvokeMiddleWare(IDictionary<string, object> environment)
         {
-            var handshakeTask = new Task(() =>
+            if (environment["HandshakeAction"] is Func<Task>)
             {
-                if (environment["HandshakeAction"] is Action)
-                {
-                    var handshakeAction = (Action)environment["HandshakeAction"];
-                    handshakeAction.Invoke();
+                var handshakeAction = (Func<Task>)environment["HandshakeAction"];
+                return handshakeAction.Invoke();
                 }
-            });
-            return handshakeTask;
+            return null;
         }
 
         public Http11Setup()
@@ -48,7 +46,7 @@ namespace Http11Tests
                         {
                             {"host", uri.Host},
                             {"scheme", uri.Scheme},
-                            {"port", uri.Port.ToString()},
+                            {"port", uri.Port.ToString(CultureInfo.InvariantCulture)},
                             {"path", uri.AbsolutePath}
                         }
                 };

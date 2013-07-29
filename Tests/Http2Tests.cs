@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -34,17 +35,15 @@ namespace Http2Tests
         public bool UseSecurePort { get; private set; }
         public bool UseHandshake { get; private set; }
 
+
         private Task InvokeMiddleWare(IDictionary<string, object> environment)
         {
-            var handshakeTask = new Task(() =>
-            {
-                if (environment["HandshakeAction"] is Action)
+            if (environment["HandshakeAction"] is Func<Task>)
                 {
-                    var handshakeAction = (Action)environment["HandshakeAction"];
-                    handshakeAction.Invoke();
+                var handshakeAction = (Func<Task>)environment["HandshakeAction"];
+                return handshakeAction.Invoke();
                 }
-            });
-            return handshakeTask;
+            return null;
         }
 
         public Http2Setup()
@@ -104,9 +103,10 @@ namespace Http2Tests
 
     public class Http2TestSuite : IUseFixture<Http2Setup>, IDisposable
     {
-        private const string clientSessionHeader = @"FOO * HTTP/2.0\r\n\r\nBA\r\n\r\n";
+        private const string ClientSessionHeader = @"FOO * HTTP/2.0\r\n\r\nBA\r\n\r\n";
         private static bool _useSecurePort;
         private static bool _useHandshake;
+        private static IDictionary<string, object> _handshakeResult;
 
         void IUseFixture<Http2Setup>.SetFixture(Http2Setup setupInstance)
         {
@@ -127,7 +127,7 @@ namespace Http2Tests
 
         protected static void SendSessionHeader(SecureSocket socket)
         {
-            socket.Send(Encoding.UTF8.GetBytes(clientSessionHeader));
+            socket.Send(Encoding.UTF8.GetBytes(ClientSessionHeader));
         }
 
         protected static SecureSocket GetHandshakedSocket(Uri uri)
@@ -170,7 +170,7 @@ namespace Http2Tests
                         {"end", ConnectionEnd.Client}
                     };
 
-                    HandshakeManager.GetHandshakeAction(handshakeEnv).Invoke();
+                    _handshakeResult = HandshakeManager.GetHandshakeAction(handshakeEnv).Invoke();
                  }
             }
 
@@ -331,7 +331,7 @@ namespace Http2Tests
                 wasSocketClosed = true;
             };
 
-            var session = new Http2Session(socket, ConnectionEnd.Client, true, true);
+            var session = new Http2Session(socket, ConnectionEnd.Client, true, true, _handshakeResult);
 
             session.OnFrameReceived += (sender, args) =>
             {
