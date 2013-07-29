@@ -3,6 +3,9 @@ using System.Diagnostics.Contracts;
 
 namespace SharedProtocol.Framing
 {
+    /// <summary>
+    /// Frame headers class
+    /// </summary>
     public class Headers : Frame, IEndStreamFrame
     {
         // The number of bytes in the frame, not including the compressed headers.

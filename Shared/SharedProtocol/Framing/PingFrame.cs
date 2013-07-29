@@ -1,6 +1,9 @@
 ﻿
 namespace SharedProtocol.Framing
 {
+    /// <summary>
+    /// Ping frame class
+    /// </summary>
     public class PingFrame : Frame
     {
         // The number of bytes in the frame.

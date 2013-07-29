@@ -1,6 +1,9 @@
 ﻿
 namespace SharedProtocol.Framing
 {
+    /// <summary>
+    /// Frame type enum.
+    /// </summary>
     public enum FrameType : byte
     {
         Data = 0,
