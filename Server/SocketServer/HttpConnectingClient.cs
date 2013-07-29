@@ -137,7 +137,7 @@ namespace SocketServer
                     var handshakeTask = _next(environment);
                     
                     handshakeTask.Start();
-                    if (!handshakeTask.Wait(5000))
+                    if (!handshakeTask.Wait(6000))
                     {
                         incomingClient.Close();
                         Console.WriteLine("Handshake timeout. Connection dropped.");
@@ -201,26 +201,10 @@ namespace SocketServer
         private bool GetSessionHeaderAndVerifyIt(SecureSocket incomingClient)
         {
             var sessionHeaderBuffer = new byte[ClientSessionHeader.Length];
-            using (var sessionHeaderReceived = new ManualResetEvent(false))
-            {
-                var receivedThread = new Thread( 
-                    (() =>
-                        {
+
                             int received = incomingClient.Receive(sessionHeaderBuffer, 0,
                                                    sessionHeaderBuffer.Length, SocketFlags.None);
-                            if (received != 0)
-                            {
-                                sessionHeaderReceived.Set();
-                            }
-                        }));
-                receivedThread.Start();
-                sessionHeaderReceived.WaitOne(30000);
 
-                if (receivedThread.IsAlive)
-                {
-                    receivedThread.Abort();
-                    receivedThread.Join();
-                }
 
                 var receivedHeader = Encoding.UTF8.GetString(sessionHeaderBuffer);
 
@@ -228,7 +212,6 @@ namespace SocketServer
                 {
                     return false;
                 }
-            }
             return true;
         }
 

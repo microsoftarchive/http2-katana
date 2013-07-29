@@ -2,6 +2,7 @@
 using Org.Mentalis.Security.Ssl;
 using SharedProtocol.Framing;
 using System;
+using System.Threading;
 
 namespace SharedProtocol.IO
 {
@@ -76,6 +77,7 @@ namespace SharedProtocol.IO
                             }
                         }
                     }
+                    Thread.Sleep(10);
                 }
         }
 
