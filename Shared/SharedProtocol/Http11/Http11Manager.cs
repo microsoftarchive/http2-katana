@@ -16,6 +16,17 @@ namespace SharedProtocol.Http11
     /// </summary>
     public static class Http11Manager
     {
+        /// <summary>
+        /// Download Successful event
+        /// </summary>
+        public static event EventHandler<Http11ResourceDownloadedEventArgs> OnDownloadSuccessful;
+
+        /// <summary>
+        /// Socket closed event
+        /// </summary>
+        public static event EventHandler<SocketCloseEventArgs> OnSocketClosed;
+
+
         //Remove file:// from Assembly.GetExecutingAssembly().CodeBase
         private static readonly string AssemblyPath =
             Path.GetDirectoryName(Assembly.GetExecutingAssembly().CodeBase.Substring(8));
@@ -287,9 +298,5 @@ namespace SharedProtocol.Http11
 
             return headers.ToArray();
         }
-
-        public static event EventHandler<Http11ResourceDownloadedEventArgs> OnDownloadSuccessful;
-
-        public static event EventHandler<SocketCloseEventArgs> OnSocketClosed;
     }
 }

@@ -16,7 +16,7 @@ namespace SharedProtocol.Handshake
         //TODO replace limit with memoryStream
         private const int HandshakeResponseSizeLimit = 4096;
         private static readonly byte[] CRLFCRLF = new [] { (byte)'\r', (byte)'\n', (byte)'\r', (byte)'\n' };
-        private const int Timeout = 60000;
+        private const int Timeout = 10000;
 
         private readonly ConnectionEnd _end;
         private readonly Dictionary<string, string> _headers;
