@@ -23,15 +23,12 @@ namespace HandshakeTests
 
         private Task InvokeMiddleWare(IDictionary<string, object> environment)
         {
-            var handshakeTask = new Task(() =>
+            if (environment["HandshakeAction"] is Func<Task>)
             {
-                if (environment["HandshakeAction"] is Action)
-                {
-                    var handshakeAction = (Action)environment["HandshakeAction"];
-                    handshakeAction.Invoke();
+                var handshakeAction = (Func<Task>)environment["HandshakeAction"];
+                return handshakeAction.Invoke();
                 }
-            });
-            return handshakeTask;
+            return null;
         }
 
         private IDictionary<string, object> GetProperties(bool useSecurePort)
@@ -122,12 +119,13 @@ namespace HandshakeTests
 
             var extensions = new [] { ExtensionType.Renegotiation, ExtensionType.ALPN };
 
-            var options = new SecurityOptions(SecureProtocol.Tls1, extensions, new[] { "http/2.0", "http/1.1" }, ConnectionEnd.Client);
-
-            options.VerificationType = CredentialVerification.None;
-            options.Certificate = Org.Mentalis.Security.Certificates.Certificate.CreateFromCerFile(@"certificate.pfx");
-            options.Flags = SecurityFlags.Default;
-            options.AllowedAlgorithms = SslAlgorithms.RSA_AES_256_SHA | SslAlgorithms.NULL_COMPRESSION;
+            var options = new SecurityOptions(SecureProtocol.Tls1, extensions, new[] { "http/2.0", "http/1.1" }, ConnectionEnd.Client)
+                {
+                    VerificationType = CredentialVerification.None,
+                    Certificate = Org.Mentalis.Security.Certificates.Certificate.CreateFromCerFile(@"certificate.pfx"),
+                    Flags = SecurityFlags.Default,
+                    AllowedAlgorithms = SslAlgorithms.RSA_AES_256_SHA | SslAlgorithms.NULL_COMPRESSION
+                };
 
             var sessionSocket = new SecureSocket(AddressFamily.InterNetwork, SocketType.Stream,
                                                 ProtocolType.Tcp, options);
@@ -166,27 +164,30 @@ namespace HandshakeTests
 
             var extensions = new[] { ExtensionType.Renegotiation, ExtensionType.ALPN };
 
-            var options = new SecurityOptions(SecureProtocol.None, extensions, new[] { "http/2.0", "http/1.1" }, ConnectionEnd.Client);
-
-            options.VerificationType = CredentialVerification.None;
-            options.Certificate = Org.Mentalis.Security.Certificates.Certificate.CreateFromCerFile(@"certificate.pfx");
-            options.Flags = SecurityFlags.Default;
-            options.AllowedAlgorithms = SslAlgorithms.RSA_AES_256_SHA | SslAlgorithms.NULL_COMPRESSION;
+            var options = new SecurityOptions(SecureProtocol.None, extensions, new[] { "http/2.0", "http/1.1" }, ConnectionEnd.Client)
+                {
+                    VerificationType = CredentialVerification.None,
+                    Certificate = Org.Mentalis.Security.Certificates.Certificate.CreateFromCerFile(@"certificate.pfx"),
+                    Flags = SecurityFlags.Default,
+                    AllowedAlgorithms = SslAlgorithms.RSA_AES_256_SHA | SslAlgorithms.NULL_COMPRESSION
+                };
 
             var sessionSocket = new SecureSocket(AddressFamily.InterNetwork, SocketType.Stream,
                                                 ProtocolType.Tcp, options);
 
             sessionSocket.Connect(new DnsEndPoint(uri.Host, uri.Port));
 
-            var handshakeEnv = new Dictionary<string, object>();
-            handshakeEnv.Add(":method", "get");
-            handshakeEnv.Add(":version", "http/1.1");
-            handshakeEnv.Add(":path", uri.PathAndQuery);
-            handshakeEnv.Add(":scheme", uri.Scheme);
-            handshakeEnv.Add(":host", uri.Host);
-            handshakeEnv.Add("securityOptions", options);
-            handshakeEnv.Add("secureSocket", sessionSocket);
-            handshakeEnv.Add("end", ConnectionEnd.Client);
+            var handshakeEnv = new Dictionary<string, object>
+                {
+                    {":method", "get"},
+                    {":version", "http/1.1"},
+                    {":path", uri.PathAndQuery},
+                    {":scheme", uri.Scheme},
+                    {":host", uri.Host},
+                    {"securityOptions", options},
+                    {"secureSocket", sessionSocket},
+                    {"end", ConnectionEnd.Client}
+                };
 
             bool gotFailedException = false;
             try

@@ -26,7 +26,8 @@ namespace Client.Commands
 
         internal override void Parse(string[] cmdArgs)
         {
-            if (cmdArgs.Length != 2 || Uri.TryCreate(cmdArgs[0], UriKind.Absolute, out _uri) == false)
+            if (cmdArgs.Length != 2 || Uri.TryCreate(cmdArgs[0], UriKind.Absolute, out _uri) == false
+                || System.IO.Path.GetFileName(cmdArgs[0]) == String.Empty)
             {
                 throw new InvalidOperationException("Invalid Post format!");
             }

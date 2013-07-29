@@ -26,7 +26,8 @@ namespace Client.Commands
         internal override void Parse(string[] cmdArgs)
         {
             //If port wasn't specified then it will be 80.
-            if (cmdArgs.Length != 2 || Uri.TryCreate(cmdArgs[0], UriKind.Absolute, out _uri) == false)
+            if (cmdArgs.Length != 2 || Uri.TryCreate(cmdArgs[0], UriKind.Absolute, out _uri) == false
+                || System.IO.Path.GetFileName(cmdArgs[0]) == String.Empty)
             {
                 throw new InvalidOperationException("Invalid Put format!");
             }
@@ -49,7 +50,7 @@ namespace Client.Commands
                 && 
                 Uri.Scheme == Uri.UriSchemeHttps)
             {
-                throw new InvalidOperationException("Invalid scheme on port! Use https for secure port");
+                throw new InvalidOperationException("Invalid scheme or port! Use https for secure port");
             }
 
             LocalPath = cmdArgs[1];

@@ -4,9 +4,9 @@ namespace SharedProtocol.Pages
 {
     public class AccessDenied401
     {
-        public byte[] Bytes { get { return Encoding.UTF8.GetBytes(accessDeniedHtml); } }
+        public byte[] Bytes { get { return Encoding.UTF8.GetBytes(AccessDeniedHtml); } }
 
-        private const string accessDeniedHtml = 
+        private const string AccessDeniedHtml = 
             "<!DOCTYPE HTML PUBLIC" + "\"-//W3C//DTD HTML 4.01//EN\"" + @"http://www.w3.org/TR/html4/strict.dtd" + ">"
            + "<HTML><HEAD><TITLE>You are not authorized to view this page</TITLE>"
            + "<META HTTP-EQUIV=\"Content-Type\" Content=\"text/html; charset=Windows-1252\">"
