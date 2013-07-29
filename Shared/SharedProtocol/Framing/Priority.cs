@@ -1,6 +1,9 @@
 ﻿
 namespace SharedProtocol.Framing
 {
+    /// <summary>
+    /// Priority enum
+    /// </summary>
     public enum Priority : int
     {
         Pri0 = 0,
