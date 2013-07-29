@@ -35,7 +35,6 @@ namespace SharedProtocol
         private bool _wasSettingsReceived = false;
         private bool _wasPingReceived = false;
         private bool _wasResponseReceived = false;
-        private readonly ManualResetEvent _responseReceivedRaised;
         private List<Tuple<string, string, IAdditionalHeaderInfo>> _toBeContinuedHeaders = null;
         private Frame _toBeContinuedFrame = null;
         private readonly Dictionary<string, string> _handshakeHeaders; 
