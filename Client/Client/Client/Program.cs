@@ -45,17 +45,17 @@ namespace Client
     /// </summary>   
     public class Program
     {
-        private static Dictionary<string, Http2SessionHandler> sessions;
-        private static IDictionary<string, object> environment;
+        private static Dictionary<string, Http2SessionHandler> _sessions;
+        private static IDictionary<string, object> _environment;
 
         public static void Main(string[] args)
         {
             Console.SetWindowSize(125, 29);
 
-            sessions = new Dictionary<string, Http2SessionHandler>();
+            _sessions = new Dictionary<string, Http2SessionHandler>();
             var argsList = new List<string>(args);
 
-            environment = new Dictionary<string, object>
+            _environment = new Dictionary<string, object>
                 {
                     {"useHandshake", !argsList.Contains("-no-handshake")},
                     {"usePriorities", !argsList.Contains("-no-priorities")},
@@ -108,16 +108,16 @@ namespace Client
                                 }
 
                                 //Only unique sessions can be opened
-                                if (sessions.ContainsKey(uriCmd.Uri.Authority))
+                                if (_sessions.ContainsKey(uriCmd.Uri.Authority))
                                 {
-                                    sessions[uriCmd.Uri.Authority].SendRequestAsync(uriCmd.Uri, method, localPath, serverPostAct);
+                                    _sessions[uriCmd.Uri.Authority].SendRequestAsync(uriCmd.Uri, method, localPath, serverPostAct);
                                     break;
                                 }
 
-                                var sessionHandler = new Http2SessionHandler(environment);
-                                sessions.Add(uriCmd.Uri.Authority, sessionHandler);
+                                var sessionHandler = new Http2SessionHandler(_environment);
+                                _sessions.Add(uriCmd.Uri.Authority, sessionHandler);
                                 sessionHandler.OnDisposed +=
-                                    (sender, eventArgs) => sessions.Remove(sessionHandler.ServerUri);
+                                    (sender, eventArgs) => _sessions.Remove(sessionHandler.ServerUri);
 
                                 //Get cmd is equivalent for connect -> get. This means, that each get request 
                                 //will open new session.
@@ -141,14 +141,14 @@ namespace Client
                                 ((HelpCommand)cmd).ShowHelp.Invoke();
                                 break;
                             case CommandType.Ping:
-                                sessions[((PingCommand)cmd).Uri.Authority].Ping();
+                                _sessions[((PingCommand)cmd).Uri.Authority].Ping();
                                 break;
                             case CommandType.Exit:
-                                foreach (var sessionUri in sessions.Keys)
+                                foreach (var sessionUri in _sessions.Keys)
                                 {
-                                    sessions[sessionUri].Dispose(false);
+                                    _sessions[sessionUri].Dispose(false);
                                 }
-                                sessions.Clear();
+                                _sessions.Clear();
                                 return;
                         }
                 }            
