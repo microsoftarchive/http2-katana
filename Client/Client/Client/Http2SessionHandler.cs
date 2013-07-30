@@ -27,7 +27,7 @@ namespace Client
     public sealed class Http2SessionHandler : IDisposable
     {
         private const string CertificatePath = @"certificate.pfx";
-        private const string NotFound = @"\NotFound.html";
+        private const string NotFound = @"NotFound.html";
         private const string ClientSessionHeader = @"PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n";
 
         private SecurityOptions _options;
@@ -41,7 +41,7 @@ namespace Client
         private readonly bool _useFlowControl;
         private readonly FileHelper _fileHelper;
         private readonly object _writeLock = new object();
-        private bool _isDisposed = false;
+        private bool _isDisposed;
 
         private int _port;
         private string _version;
@@ -327,7 +327,7 @@ namespace Client
             {
                 string originalPath = stream.Headers.GetValue(":path".ToLower()); 
                 //If user sets the empty file in get command we return notFound webpage
-                string fileName = (originalPath == "/") ? NotFound : Path.GetFileName(originalPath);
+                string fileName = string.IsNullOrEmpty(Path.GetFileName(originalPath)) ? NotFound : Path.GetFileName(originalPath);
                 string path = Path.Combine(AssemblyPath, fileName);
 
                 try

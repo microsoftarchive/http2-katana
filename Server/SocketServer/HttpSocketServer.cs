@@ -104,9 +104,9 @@ namespace SocketServer
 
         private void Listen()
         {
+            InitializeRootFileList();
             Console.WriteLine("Started on port {0}", _port);
             _server.Start();
-            InitializeRootFileList();
             while (!_disposed)
             {
                 try

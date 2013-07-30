@@ -237,15 +237,14 @@ namespace SocketServer
 
             Console.WriteLine("Transfer begin");
 
-            while (binaryData.Length > i)
+            do
             {
                 bool isLastData = binaryData.Length - i < Constants.MaxDataFrameContentSize;
 
                 int chunkSize = stream.WindowSize > 0
-                                ?
-                                    MathEx.Min(binaryData.Length - i, Constants.MaxDataFrameContentSize, stream.WindowSize)
-                                :
-                                    MathEx.Min(binaryData.Length - i, Constants.MaxDataFrameContentSize);
+                                    ? MathEx.Min(binaryData.Length - i, Constants.MaxDataFrameContentSize,
+                                                 stream.WindowSize)
+                                    : MathEx.Min(binaryData.Length - i, Constants.MaxDataFrameContentSize);
 
                 var chunk = new byte[chunkSize];
                 Buffer.BlockCopy(binaryData, i, chunk, 0, chunk.Length);
@@ -253,7 +252,7 @@ namespace SocketServer
                 stream.WriteDataFrame(chunk, isLastData);
 
                 i += chunkSize;
-            }
+            } while (binaryData.Length > i);
 
             //It was not send exactly. Some of the data frames could be pushed to the unshipped frames collection
             Console.WriteLine("File sent: " + stream.Headers.GetValue(":path"));
@@ -267,15 +266,17 @@ namespace SocketServer
 
                 try
                 {
-                    if (dataFrame.Data.Count != 0)
+                    string pathToSave = AssemblyPath + @"\Root" + path;
+                    if (!Directory.Exists(Path.GetDirectoryName(pathToSave)))
                     {
-                        _fileHelper.SaveToFile(dataFrame.Data.Array, dataFrame.Data.Offset, dataFrame.Data.Count,
-                                               AssemblyPath + @"\Root" + path, stream.ReceivedDataAmount != 0);
+                        throw new DirectoryNotFoundException("Access denied");
                     }
+                     _fileHelper.SaveToFile(dataFrame.Data.Array, dataFrame.Data.Offset, dataFrame.Data.Count,
+                                               pathToSave, stream.ReceivedDataAmount != 0);
                 }
-                catch (IOException)
+                catch (Exception ex)
                 {
-                    Console.WriteLine("File is still downloading. Repeat request later");
+                    Console.WriteLine(ex.Message);
                     stream.WriteDataFrame(new byte[0], true);
                     stream.Dispose();
                 }

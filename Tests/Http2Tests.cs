@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -103,7 +102,7 @@ namespace Http2Tests
 
     public class Http2TestSuite : IUseFixture<Http2Setup>, IDisposable
     {
-        private const string ClientSessionHeader = @"FOO * HTTP/2.0\r\n\r\nBA\r\n\r\n";
+        private const string ClientSessionHeader = @"PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n";
         private static bool _useSecurePort;
         private static bool _useHandshake;
         private static IDictionary<string, object> _handshakeResult;
@@ -224,7 +223,7 @@ namespace Http2Tests
                 wasSocketClosed = true;
             };
 
-            var session = new Http2Session(socket, ConnectionEnd.Client, true, true);
+            var session = new Http2Session(socket, ConnectionEnd.Client, true, true, _handshakeResult);
 
             session.OnSettingsSent += (o, args) =>
             {
@@ -289,7 +288,7 @@ namespace Http2Tests
 
             try
             {
-                var session = new Http2Session(socket, ConnectionEnd.Client, true, true);
+                var session = new Http2Session(socket, ConnectionEnd.Client, true, true, _handshakeResult);
                 session.Start();
                 session.Dispose();
             }
@@ -393,7 +392,7 @@ namespace Http2Tests
                 socketClosedRaisedEvent.Set();
             };
 
-            var session = new Http2Session(socket, ConnectionEnd.Client, usePriorities, useFlowControl);
+            var session = new Http2Session(socket, ConnectionEnd.Client, usePriorities, useFlowControl, _handshakeResult);
 
             session.OnFrameReceived += (sender, args) =>
             {
