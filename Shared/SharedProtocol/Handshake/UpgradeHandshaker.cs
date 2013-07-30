@@ -16,14 +16,17 @@ namespace SharedProtocol.Handshake
         //TODO replace limit with memoryStream
         private const int HandshakeResponseSizeLimit = 4096;
         private static readonly byte[] CRLFCRLF = new [] { (byte)'\r', (byte)'\n', (byte)'\r', (byte)'\n' };
-        private const int Timeout = 10000;
+        private const int Timeout = 60000;
 
         private readonly ConnectionEnd _end;
         private readonly Dictionary<string, string> _headers;
         private readonly ManualResetEvent _responseReceivedRaised;
         private bool _wasResponseReceived;
-        private readonly IDictionary<string, object> _handshakeResult; 
+        private readonly IDictionary<string, object> _handshakeResult;
+
         public SecureSocket InternalSocket { get; private set; }
+
+        private event EventHandler<EventArgs> OnResponseReceived;
 
         public UpgradeHandshaker(IDictionary<string, object> handshakeEnvironment)
         {
@@ -147,7 +150,7 @@ namespace SharedProtocol.Handshake
                     return new HandshakeResponse { Result = HandshakeResult.UnexpectedConnectionClose };
                 }
 
-                if (read == 0)
+                if (read <= 0)
                 {
                     return new HandshakeResponse { Result = HandshakeResult.UnexpectedConnectionClose };
                 }
@@ -262,8 +265,5 @@ namespace SharedProtocol.Handshake
             _wasResponseReceived = true;
             _responseReceivedRaised.Set();
         }
-
-
-        private event EventHandler<EventArgs> OnResponseReceived;
     }
 }
