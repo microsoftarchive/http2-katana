@@ -13,6 +13,7 @@ using SharedProtocol.Exceptions;
 using SharedProtocol.Handshake;
 using SocketServer;
 using Xunit;
+using SharedProtocol;
 
 namespace HandshakeTests
 {
@@ -119,7 +120,7 @@ namespace HandshakeTests
 
             var extensions = new [] { ExtensionType.Renegotiation, ExtensionType.ALPN };
 
-            var options = new SecurityOptions(SecureProtocol.Tls1, extensions, new[] { "http/2.0", "http/1.1" }, ConnectionEnd.Client)
+            var options = new SecurityOptions(SecureProtocol.Tls1, extensions, new[] { Protocols.Http2, Protocols.Http1 }, ConnectionEnd.Client)
                 {
                     VerificationType = CredentialVerification.None,
                     Certificate = Org.Mentalis.Security.Certificates.Certificate.CreateFromCerFile(@"certificate.pfx"),
@@ -152,7 +153,7 @@ namespace HandshakeTests
             }
 
             sessionSocket.Close();
-            Assert.Equal("http/2.0", selectedProtocol);
+            Assert.Equal(Protocols.Http2, selectedProtocol);
         }
 
         [Fact]
@@ -164,7 +165,7 @@ namespace HandshakeTests
 
             var extensions = new[] { ExtensionType.Renegotiation, ExtensionType.ALPN };
 
-            var options = new SecurityOptions(SecureProtocol.None, extensions, new[] { "http/2.0", "http/1.1" }, ConnectionEnd.Client)
+            var options = new SecurityOptions(SecureProtocol.None, extensions, new[] { Protocols.Http2, Protocols.Http1 }, ConnectionEnd.Client)
                 {
                     VerificationType = CredentialVerification.None,
                     Certificate = Org.Mentalis.Security.Certificates.Certificate.CreateFromCerFile(@"certificate.pfx"),

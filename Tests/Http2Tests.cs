@@ -136,9 +136,9 @@ namespace Http2Tests
             var extensions = new[] { ExtensionType.Renegotiation, ExtensionType.ALPN };
 
             var options = _useSecurePort
-                              ? new SecurityOptions(SecureProtocol.Tls1, extensions, new[] { "http/2.0", "http/1.1" },
+                              ? new SecurityOptions(SecureProtocol.Tls1, extensions, new[] { Protocols.Http2, Protocols.Http1 },
                                                     ConnectionEnd.Client)
-                              : new SecurityOptions(SecureProtocol.None, extensions, new[] { "http/2.0", "http/1.1" },
+                              : new SecurityOptions(SecureProtocol.None, extensions, new[] { Protocols.Http2, Protocols.Http1 },
                                                     ConnectionEnd.Client);
 
             options.VerificationType = CredentialVerification.None;

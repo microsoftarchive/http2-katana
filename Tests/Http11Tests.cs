@@ -14,6 +14,7 @@ using SharedProtocol.Http11;
 using SocketServer;
 using Xunit;
 using SharedProtocol.Handshake;
+using SharedProtocol;
 
 namespace Http11Tests
 {
@@ -95,7 +96,7 @@ namespace Http11Tests
             var extensions = new[] { ExtensionType.Renegotiation, ExtensionType.ALPN };
 
             //Consciously fail the handshake to http/1.1
-            var options = new SecurityOptions(SecureProtocol.Tls1, extensions, new[] { "http/1.1" },
+            var options = new SecurityOptions(SecureProtocol.Tls1, extensions, new[] { Protocols.Http1 },
                                               ConnectionEnd.Client)
             {
                 VerificationType = CredentialVerification.None,

@@ -92,15 +92,21 @@ namespace SocketServer
 
         private void InitializeRootFileList()
         {
+            lock (IndexFileName)
+            {
             using (var indexFile = new StreamWriter(AssemblyName + @"\Root" + IndexFileName))
             {
                 string dirPath = AssemblyName + @"\Root";
-                _listOfRootFiles = Directory.EnumerateFiles(dirPath, "*", SearchOption.TopDirectoryOnly).Select(Path.GetFileName).ToList();
+                    _listOfRootFiles =
+                        Directory.EnumerateFiles(dirPath, "*", SearchOption.TopDirectoryOnly)
+                                 .Select(Path.GetFileName)
+                                 .ToList();
                 foreach (var fileName in _listOfRootFiles)
                 {
                     indexFile.Write(fileName + "<br>\n");
                 }
             }
+        }
         }
 
         private void Listen()
