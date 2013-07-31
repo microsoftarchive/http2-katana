@@ -295,6 +295,9 @@
     <Compile Include="..\Shared\SharedProtocol\Pages\NotFound404.cs">
       <Link>Sources\NotFound404.cs</Link>
     </Compile>
+    <Compile Include="..\Shared\SharedProtocol\Protocols.cs">
+      <Link>Sources\Protocols.cs</Link>
+    </Compile>
     <Compile Include="..\Shared\SharedProtocol\Settings\SettingsManager.cs">
       <Link>Sources\SettingsManager.cs</Link>
     </Compile>

@@ -205,12 +205,12 @@ namespace SharedProtocol.Handshake
                     ExtraData = new ArraySegment<byte>(buffer, split, limit),
                 };
             // Must be at least "HTTP/1.1 101\r\nConnection: Upgrade\r\nUpgrade: HTTP/2.0\r\n\r\n"
-            string response = FrameHelpers.GetAsciiAt(buffer, 0, split).ToUpperInvariant();
+            string response = FrameHelpers.GetAsciiAt(buffer, 0, split);
             if (_end == ConnectionEnd.Client)
             {
-                if (response.StartsWith("HTTP/1.1 101 SWITCHING PROTOCOLS")
-                    && response.Contains("\r\nCONNECTION: UPGRADE\r\n")
-                    && response.Contains("\r\nUPGRADE: HTTP-DRAFT-04/2.0\r\n"))
+                if (response.StartsWith("HTTP/1.1 101 SWITCHING PROTOCOLS", StringComparison.OrdinalIgnoreCase)
+                    && response.IndexOf("\r\nCONNECTION: UPGRADE\r\n", StringComparison.OrdinalIgnoreCase) >= 0
+                    && response.IndexOf(string.Format("\r\nUPGRADE: {0}\r\n", Protocols.Http2), StringComparison.OrdinalIgnoreCase) >= 0)
                 {
                     handshake.Result = HandshakeResult.Upgrade;
                 }
@@ -221,9 +221,9 @@ namespace SharedProtocol.Handshake
             }
             else
             {
-                if (response.Contains("\r\nCONNECTION: UPGRADE, HTTP2-SETTINGS\r\n")
-                    && response.Contains("\r\nUPGRADE: HTTP-DRAFT-04/2.0\r\n")
-                    && response.Contains("\r\nHTTP2-SETTINGS:"))
+                if (response.IndexOf("\r\nCONNECTION: UPGRADE, HTTP2-SETTINGS\r\n", StringComparison.OrdinalIgnoreCase) >= 0
+                    && response.IndexOf(string.Format("\r\nUPGRADE: {0}\r\n", Protocols.Http2), StringComparison.OrdinalIgnoreCase) >= 0
+                    && response.IndexOf("\r\nHTTP2-SETTINGS:", StringComparison.OrdinalIgnoreCase) >= 0)
                 {
                     GetHeaders(response);
                     handshake.Result = HandshakeResult.Upgrade;
@@ -244,9 +244,9 @@ namespace SharedProtocol.Handshake
 
         private void GetHeaders(string clientResponse)
         {
-            int methodIndex = clientResponse.IndexOf("GET", StringComparison.Ordinal);
-            int pathIndex = clientResponse.IndexOf("/", methodIndex, StringComparison.Ordinal);
-            int endPathIndex = clientResponse.IndexOf(" ", pathIndex, StringComparison.Ordinal);
+            int methodIndex = clientResponse.IndexOf("GET", StringComparison.OrdinalIgnoreCase);
+            int pathIndex = clientResponse.IndexOf("/", methodIndex, StringComparison.OrdinalIgnoreCase);
+            int endPathIndex = clientResponse.IndexOf(" ", pathIndex, StringComparison.OrdinalIgnoreCase);
 
             string path = clientResponse.Substring(pathIndex, endPathIndex - pathIndex);
             _handshakeResult.Add(":path", path);
