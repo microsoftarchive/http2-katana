@@ -109,7 +109,7 @@ namespace SocketServer
         private void HandleAcceptedClient(SecureSocket incomingClient)
         {
             bool backToHttp11 = false;
-            string alpnSelectedProtocol = "http/2.0";
+            string alpnSelectedProtocol = Protocols.Http2;
             var handshakeEnvironment = MakeHandshakeEnvironment(incomingClient);
             IDictionary<string, object> handshakeResult = null;
 
@@ -202,17 +202,13 @@ namespace SocketServer
         {
             var sessionHeaderBuffer = new byte[ClientSessionHeader.Length];
 
-                            int received = incomingClient.Receive(sessionHeaderBuffer, 0,
+            int received = incomingClient.Receive(sessionHeaderBuffer, 0,
                                                    sessionHeaderBuffer.Length, SocketFlags.None);
 
 
-                var receivedHeader = Encoding.UTF8.GetString(sessionHeaderBuffer);
+            var receivedHeader = Encoding.UTF8.GetString(sessionHeaderBuffer);
 
-                if (receivedHeader != ClientSessionHeader)
-                {
-                    return false;
-                }
-            return true;
+            return string.Equals(receivedHeader, ClientSessionHeader);
         }
 
         private async void OpenHttp2Session(SecureSocket incomingClient, IDictionary<string, object> handshakeResult)

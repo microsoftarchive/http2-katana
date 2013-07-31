@@ -92,6 +92,7 @@
     <Compile Include="IO\QueueWrapper.cs" />
     <Compile Include="Pages\AccessDenied401.cs" />
     <Compile Include="Pages\NotFound404.cs" />
+    <Compile Include="Protocols.cs" />
     <Compile Include="Settings\SettingsManager.cs" />
     <Compile Include="Framing\DataFrame.cs" />
     <Compile Include="Framing\Frame.cs" />

@@ -303,5 +303,7 @@ namespace Org.Mentalis.Security {
 		public const string szOID_RSA_unstructName = "1.2.840.113549.1.9.2";
 		public const string szOID_ORGANIZATION_NAME = "2.5.4.10"; // case-ignore string
 		public const string KEY_CONTAINER = "{48959A69-B181-4cdd-B135-7565701307C5}";
+        public static string Http2 = "HTTP-draft-04/2.0";
+        public static string Http1 = "http/1.1";
 	}
 }

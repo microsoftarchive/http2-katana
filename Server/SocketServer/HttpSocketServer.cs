@@ -10,6 +10,7 @@ using Org.Mentalis.Security.Ssl;
 using Org.Mentalis.Security.Ssl.Shared.Extensions;
 using Owin.Types;
 using System.Configuration;
+using SharedProtocol;
 
 namespace SocketServer
 {
@@ -74,8 +75,8 @@ namespace SocketServer
 
             var extensions = new [] { ExtensionType.Renegotiation, ExtensionType.ALPN };
 
-            _options = _port == securePort ? new SecurityOptions(SecureProtocol.Tls1, extensions, new[] { "http/2.0", "http/1.1" }, ConnectionEnd.Server)
-                                : new SecurityOptions(SecureProtocol.None, extensions, new[] { "http/2.0", "http/1.1" }, ConnectionEnd.Server);
+            _options = _port == securePort ? new SecurityOptions(SecureProtocol.Tls1, extensions, new[] { Protocols.Http2, Protocols.Http1 }, ConnectionEnd.Server)
+                                : new SecurityOptions(SecureProtocol.None, extensions, new[] { Protocols.Http2, Protocols.Http1 }, ConnectionEnd.Server);
 
             _options.VerificationType = CredentialVerification.None;
             _options.Certificate = Certificate.CreateFromCerFile(AssemblyName + CertificateFilename);
