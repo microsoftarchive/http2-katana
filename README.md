@@ -10,7 +10,8 @@ Please note following:
 * It does not yet implement server push or flow control. 
 * Apart from the server component, this prototype also includes a test command line client that makes HTTP/2.0 protocol requests to the server.
 * The following endpoints can be used for testing but will only work with an HTTP/2.0-enabled browser or HTTP/2.0 client (included in this source):
-  http://http2katanatest.cloudapp.net:8080/
+  http://http2katanatest.cloudapp.net:8080/ and 
   https://http2katanatest.cloudapp.net:8443/
 * If these endpoints are hit with a non-HTTP/2.0 browser or client, the connection will timeout. 
+* Please open a bug in the repo if you encounter any issues with this code or the endpoints
 * An enhanced implementation is under development that can be used to host ‘real’ web sites.
