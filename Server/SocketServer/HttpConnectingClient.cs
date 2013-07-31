@@ -208,7 +208,7 @@ namespace SocketServer
 
             var receivedHeader = Encoding.UTF8.GetString(sessionHeaderBuffer);
 
-            return string.Equals(receivedHeader, ClientSessionHeader);
+            return string.Equals(receivedHeader, ClientSessionHeader, StringComparison.OrdinalIgnoreCase);
         }
 
         private async void OpenHttp2Session(SecureSocket incomingClient, IDictionary<string, object> handshakeResult)
