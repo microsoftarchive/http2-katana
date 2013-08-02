@@ -116,13 +116,13 @@ namespace Client
 
                                 var sessionHandler = new Http2SessionHandler(_environment);
                                 _sessions.Add(uriCmd.Uri.Authority, sessionHandler);
-                                sessionHandler.OnDisposed +=
+                                sessionHandler.OnClosed +=
                                     (sender, eventArgs) => _sessions.Remove(sessionHandler.ServerUri);
 
                                 //Get cmd is equivalent for connect -> get. This means, that each get request 
                                 //will open new session.
-                                bool wasConnectFailed = sessionHandler.Connect(uriCmd.Uri);
-                                if (wasConnectFailed)
+                                bool success = sessionHandler.Connect(uriCmd.Uri);
+                                if (!success)
                                 {
                                     Console.WriteLine("Connection failed");
                                     break;

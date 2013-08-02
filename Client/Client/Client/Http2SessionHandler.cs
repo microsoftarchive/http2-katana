@@ -50,9 +50,12 @@ namespace Client
 
         private static readonly string AssemblyPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
 
+        public event EventHandler<EventArgs> OnClosed;
+
         public string ServerUri { get; private set; }
 
-        public bool IsHttp2WillBeUsed {
+        public bool IsHttp2WillBeUsed 
+        {
             get { return _useHttp20; }
         }
 
@@ -103,7 +106,7 @@ namespace Client
 
         public bool Connect(Uri connectUri)
         {
-            _version = "http/1.1";
+            _version = Protocols.Http1;
             _scheme = connectUri.Scheme;
             _host = connectUri.Host;
             _port = connectUri.Port;
@@ -111,7 +114,7 @@ namespace Client
 
             if (_clientSession != null)
             {
-                return true;
+                return false;
             }
 
             try
@@ -127,7 +130,7 @@ namespace Client
                 catch (Exception)
                 {
                     Console.WriteLine("Incorrect port in the config file!");
-                    return true;
+                    return false;
                 }
 
                 //Connect alpn extension, set known protocols
@@ -159,10 +162,10 @@ namespace Client
 
                         Console.WriteLine("Handshake finished");
 
-                        if (_selectedProtocol == "http/1.1")
+                        if (_selectedProtocol == Protocols.Http1)
                         {
                             _useHttp20 = false;
-                            return false;
+                            return true;
                         }
                     }
                 }
@@ -186,23 +189,23 @@ namespace Client
                 {
                     Console.WriteLine("Specified server did not respond");
                     Dispose(true);
-                    return true;
+                    return false;
                 }
             }
             catch (SocketException)
             {
                 Console.WriteLine("Check if any server listens port " + connectUri.Port);
                 Dispose(true);
-                return true;
+                return false;
             }
             catch (Exception ex)
             {
                 Console.WriteLine("Unknown connection exception was caught: " + ex.Message);
                 Dispose(true);
-                return true;
+                return false;
             }
 
-            return false;
+            return true;
         }
 
         public async void StartConnection()
@@ -290,7 +293,7 @@ namespace Client
                 return Task.Run(() => _clientSession.Ping()).Result;
             }
 
-            return default(TimeSpan);
+            return TimeSpan.Zero;
         }
 
         //Method for future usage in server push 
@@ -436,7 +439,6 @@ namespace Client
             catch (Exception)
             {
                 stream.WriteRst(ResetStatusCode.InternalError);
-
                 stream.Dispose();
             }
         }
@@ -445,12 +447,12 @@ namespace Client
         {
             Dispose();
 
-            if (wasErrorOccured && OnDisposed != null)
+            if (wasErrorOccured && OnClosed != null)
             {
-                OnDisposed(this, null);
+                OnClosed(this, null);
             }
 
-            OnDisposed = null;
+            OnClosed = null;
         }
 
         public void Dispose()
@@ -475,7 +477,5 @@ namespace Client
 
             _isDisposed = true;
         }
-
-        public event EventHandler<EventArgs> OnDisposed;
     }
 }
