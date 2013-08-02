@@ -130,9 +130,9 @@ namespace Org.Mentalis.Security.Ssl.Shared.Extensions
         {
             if (end == ConnectionEnd.Server)
             {
-                foreach (var protocol in this.ClientKnownProtocolList)
+                foreach (var protocol in this.ServerKnownProtocolList)
                 {
-                    if (this.ServerKnownProtocolList.Contains(protocol))
+                    if (this.ClientKnownProtocolList.Contains(protocol))
                     {
                         this.SelectedProtocol = protocol;
                         this.ExtensionDataSize = (short) (Encoding.UTF8.GetByteCount(this.SelectedProtocol) + sizeof(byte) + sizeof(Int16));
