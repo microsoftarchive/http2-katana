@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data;
 using System.IO;
 using System.Net.Sockets;
 using System.Text;
@@ -8,32 +9,35 @@ using System.Threading;
 using Org.Mentalis.Security.Ssl;
 using SharedProtocol.Exceptions;
 using SharedProtocol.Framing;
+using SharedProtocol.Utils;
 
 namespace SharedProtocol.Handshake
 {
+    /// <summary>
+    /// Class is used to upgrade handshake
+    /// </summary>
     public class UpgradeHandshaker
     {
-        //TODO replace limit with memoryStream
         private const int HandshakeResponseSizeLimit = 4096;
         private static readonly byte[] CRLFCRLF = new [] { (byte)'\r', (byte)'\n', (byte)'\r', (byte)'\n' };
         private const int Timeout = 60000;
 
+
+        private Thread _readThread;
         private readonly ConnectionEnd _end;
         private readonly Dictionary<string, string> _headers;
         private readonly ManualResetEvent _responseReceivedRaised;
         private bool _wasResponseReceived;
+        private Exception _error;
         private readonly IDictionary<string, object> _handshakeResult;
 
         public SecureSocket InternalSocket { get; private set; }
-
-        private event EventHandler<EventArgs> OnResponseReceived;
 
         public UpgradeHandshaker(IDictionary<string, object> handshakeEnvironment)
         {
             InternalSocket = (SecureSocket) handshakeEnvironment["secureSocket"];
             _end = (ConnectionEnd) handshakeEnvironment["end"];
             _responseReceivedRaised = new ManualResetEvent(false);
-            OnResponseReceived += ResponseReceivedHandler;
            _handshakeResult = new Dictionary<string, object>();
 
             if (_end == ConnectionEnd.Client)
@@ -49,7 +53,7 @@ namespace SharedProtocol.Handshake
                 }
                 else
                 {
-                    throw new ArgumentException("Incorrect header for upgrade handshake");
+                    throw new InvalidConstraintException("Incorrect header for upgrade handshake");
                 }
             }
         }
@@ -57,21 +61,41 @@ namespace SharedProtocol.Handshake
         public IDictionary<string, object> Handshake()
         {
             var response = new HandshakeResponse();
-            var readThread = new Thread(() =>
+            _readThread = new Thread((object state) =>
+                {
+                    var handle = state as EventWaitHandle;                   
+
+                    try
                 {
                     response = Read11Headers();
-                }){IsBackground = true, Name = "ReadSocketDataThread"};
-            readThread.Start();
+                        _wasResponseReceived = true;
+                        if (handle != null) handle.Set();
+                    }
+                    catch (Exception ex)
+                    {
+                        Http2Logger.LogError(ex.Message);
+
+                        // singal that there is an error
+                        if (handle != null) handle.Set();
+                        _error = ex;
+                        throw;
+                    }
+                });
+
+            _readThread.IsBackground = true;
+            _readThread.Start(_responseReceivedRaised);
  
             if (_end == ConnectionEnd.Client)
             {
                 // Build the request
                 var builder = new StringBuilder();
-                builder.AppendFormat("{0} {1} {2}\r\n", "get", "/default.html", "HTTP/1.1"); //TODO pass here requested filename
+                builder.AppendFormat("{0} {1} {2}\r\n", "get", "/default.html", "HTTP/1.1");
+                //TODO pass here requested filename
                 builder.AppendFormat("Host: {0}\r\n", _headers[":host"]);
                 builder.Append("Connection: Upgrade, Http2-Settings\r\n");
                 builder.Append("Upgrade: HTTP-DRAFT-04/2.0\r\n");
-                builder.Append("Http2-Settings: SomeSettings\r\n"); //TODO check out how to send window size and max_conc_streams
+                builder.Append("Http2-Settings: SomeSettings\r\n");
+                //TODO check out how to send window size and max_conc_streams
 
                 if (_headers != null)
                 {
@@ -112,24 +136,29 @@ namespace SharedProtocol.Handshake
 
             if (!_wasResponseReceived)
             {
-                OnResponseReceived = null;
-                if (readThread.IsAlive)
+                if (_readThread.IsAlive)
                 {
-                    readThread.Abort();
-                    readThread.Join();
+                    _readThread.Abort();
+                    _readThread.Join();
                 }
                 throw new Http2HandshakeFailed(HandshakeFailureReason.Timeout);
             }
+
+            if (_error != null)
+            {
+                throw _error;
+            }
+
             if (response.Result != HandshakeResult.Upgrade)
             {
                 throw new Http2HandshakeFailed(HandshakeFailureReason.InternalError);
             }
-            OnResponseReceived = null;
-            if (readThread.IsAlive)
+
+            if (_readThread.IsAlive)
             {
-                readThread.Abort();
+                _readThread.Abort();
             }
-            readThread.Join();
+            _readThread.Join();
 
             return _handshakeResult;
         }
@@ -234,11 +263,6 @@ namespace SharedProtocol.Handshake
                 }
             }
 
-            if (OnResponseReceived != null)
-            {
-                OnResponseReceived(this, null);
-            }
-
             return handshake;
         }
 
@@ -258,12 +282,6 @@ namespace SharedProtocol.Handshake
                 string[] nameValue = header.Value.Split(new []{' '}, StringSplitOptions.RemoveEmptyEntries);
                 _handshakeResult.Add(nameValue[0].ToLower().TrimEnd(':'), nameValue[1].TrimEnd('\r', '\n'));
             }
-        }
-
-        private void ResponseReceivedHandler(object sender, EventArgs args)
-        {
-            _wasResponseReceived = true;
-            _responseReceivedRaised.Set();
         }
     }
 }

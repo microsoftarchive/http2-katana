@@ -123,6 +123,8 @@
     <Compile Include="Handshake\HandshakeResult.cs" />
     <Compile Include="Handshake\SecureHandshaker.cs" />
     <Compile Include="TransportInformation.cs" />
+    <Compile Include="Utils\Http2Logger.cs" />
+    <Compile Include="Utils\Http2LoggerState.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

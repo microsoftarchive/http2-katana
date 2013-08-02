@@ -5,6 +5,7 @@ using SharedProtocol.IO;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using SharedProtocol.Utils;
 
 namespace SharedProtocol
 {
@@ -209,7 +210,7 @@ namespace SharedProtocol
 
                 if (dataFrame.IsEndStream)
                 {
-                    Console.WriteLine("Transfer end");
+                    Http2Logger.LogDebug("Transfer end");
                     EndStreamSent = true;
                 }
 
@@ -241,7 +242,7 @@ namespace SharedProtocol
 
                 if (dataFrame.IsEndStream)
                 {
-                    Console.WriteLine("Transfer end");
+                    Http2Logger.LogDebug("Transfer end");
                     EndStreamSent = true;
                 }
 
@@ -287,12 +288,12 @@ namespace SharedProtocol
                 return;
             }
 
-            Console.WriteLine("Total outgoing data frames volume {0}", SentDataAmount);
+            Http2Logger.LogDebug("Total outgoing data frames volume " + SentDataAmount);
 
             if (OnClose != null)
                 OnClose(this, new StreamClosedEventArgs(_id));
 
-            Console.WriteLine("Stream closed {0}", _id);
+            Http2Logger.LogDebug("Stream closed " + _id);
 
             OnClose = null;
             _flowCrtlManager.StreamClosedHandler(this);

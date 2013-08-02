@@ -8,6 +8,7 @@ using System.Reflection;
 using System.Text;
 using Org.Mentalis;
 using Org.Mentalis.Security.Ssl;
+using SharedProtocol.Utils;
 
 namespace SharedProtocol.Http11
 {
@@ -83,7 +84,7 @@ namespace SharedProtocol.Http11
                 }
                 catch (Exception)
                 {
-                    Console.WriteLine("Cant overwrite file: " + newfilepath);
+                    Http2Logger.LogError("Cant overwrite file: " + newfilepath);
                 }
             }
             using (var fs = new FileStream(newfilepath, FileMode.Create))
@@ -91,7 +92,7 @@ namespace SharedProtocol.Http11
                 fs.Write(fileBytes, 0, fileBytes.Length);
             }
 
-            Console.WriteLine("File saved: " + fileName);
+            Http2Logger.LogInfo("File saved: " + fileName);
         }
 
         private static string[] ReadHeaders(SecureSocket socket)
@@ -194,7 +195,7 @@ namespace SharedProtocol.Http11
 
             if (!File.Exists(path))
             {
-                Console.WriteLine("File " + filename + " not found");
+                Http2Logger.LogError("File " + filename + " not found");
                 return;
             }
 
@@ -208,8 +209,8 @@ namespace SharedProtocol.Http11
                     var fileBytes = Encoding.UTF8.GetBytes(file);
 
                     int sent = socket.Send(fileBytes);
-                    Console.WriteLine("Sent: " + sent);
-                    Console.WriteLine("File sent: " + filename);
+                    Http2Logger.LogDebug(string.Format("Sent: {0} bytes", sent));
+                    Http2Logger.LogInfo("File sent: " + filename);
 
                     socket.Close();
 
@@ -224,7 +225,7 @@ namespace SharedProtocol.Http11
                 var msgBytes = Encoding.UTF8.GetBytes(ex.Message);
                 socket.Send(msgBytes);
 
-                Console.WriteLine(ex.Message);
+                Http2Logger.LogError(ex.Message);
             }
         }
 

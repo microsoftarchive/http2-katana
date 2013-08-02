@@ -1,4 +1,5 @@
 ﻿using System;
+using SharedProtocol.Utils;
 
 namespace Client
 {
@@ -20,13 +21,9 @@ namespace Client
                               "                                                         E.g.: dir https://localhost:8443");
             Console.WriteLine("DELETE <server url>/<filename>                           Send delete request to the server\n" +
                               "                                                         E.g.: delete https://localhost:8443/index.html");
-            //Console.WriteLine("VERBOSE   [1|2|3]             Display verbose output.");
-            //Console.WriteLine("CAPTURE-STATS [On|Off|Reset]  Start/stop/reset protocol monitoring.");
-           // Console.WriteLine("DUMP-STATS                    Display statistics captured using CAPTURE-STATS.");
 #if HTTP11
             Console.WriteLine("HTTP11GET <filename>          Download file using HTTP 1.1.");
 #endif
-            //Console.WriteLine("RUN  <filename>               Run command script");
             Console.WriteLine("PING                                                     Pings opened connection\n" +
                               "                                                         E.g.: ping https://localhost:8443/");
             Console.WriteLine("EXIT                                                     Exit application");

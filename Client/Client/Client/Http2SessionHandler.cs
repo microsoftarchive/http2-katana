@@ -21,6 +21,7 @@ using SharedProtocol.Handshake;
 using SharedProtocol.Http11;
 using SharedProtocol.IO;
 using SharedProtocol.Pages;
+using SharedProtocol.Utils;
 
 namespace Client
 {
@@ -129,7 +130,7 @@ namespace Client
                 }
                 catch (Exception)
                 {
-                    Console.WriteLine("Incorrect port in the config file!");
+                    Http2Logger.LogError("Incorrect port in the config file!");
                     return false;
                 }
 
@@ -160,7 +161,7 @@ namespace Client
                         //Handshake manager determines what handshake must be used: upgrade or secure
                         handshakeResult = HandshakeManager.GetHandshakeAction(handshakeEnvironment).Invoke();
 
-                        Console.WriteLine("Handshake finished");
+                        Http2Logger.LogDebug("Handshake finished");
 
                         if (_selectedProtocol == Protocols.Http1)
                         {
@@ -187,20 +188,20 @@ namespace Client
                 }
                 else
                 {
-                    Console.WriteLine("Specified server did not respond");
+                    Http2Logger.LogError("Specified server did not respond");
                     Dispose(true);
                     return false;
                 }
             }
             catch (SocketException)
             {
-                Console.WriteLine("Check if any server listens port " + connectUri.Port);
+                Http2Logger.LogError("Check if any server listens port " + connectUri.Port);
                 Dispose(true);
                 return false;
             }
             catch (Exception ex)
             {
-                Console.WriteLine("Unknown connection exception was caught: " + ex.Message);
+                Http2Logger.LogError("Unknown connection exception was caught: " + ex.Message);
                 Dispose(true);
                 return false;
             }
@@ -216,7 +217,7 @@ namespace Client
             }
             else if (_socket.IsClosed || _isDisposed)
             {
-                Console.WriteLine("Connection was aborted by the remote side. Check your session header.");
+                Http2Logger.LogError("Connection was aborted by the remote side. Check your session header.");
                 Dispose(true);
             }
         }
@@ -271,7 +272,7 @@ namespace Client
 
                 if (_useHttp20 == false)
                 {
-                    Console.WriteLine("Download with Http/1.1");
+                    Http2Logger.LogConsole("Download with Http/1.1");
 
                     //Download with http11 in another thread.
                     Http11Manager.Http11DownloadResource(_socket, request);
@@ -279,7 +280,7 @@ namespace Client
                 }
 
                 //Submit request if http2 was chosen
-                Console.WriteLine("Submitting request");
+                Http2Logger.LogConsole("Submitting request");
 
                 //Submit request in the current thread, response will be handled in the session thread.
                 SubmitRequest(request, method, localPath, serverPostAct);
@@ -301,7 +302,7 @@ namespace Client
         {
             int i = 0;
 
-            Console.WriteLine("Transfer begin");
+            Http2Logger.LogConsole("Transfer begin");
 
             do
             {
@@ -321,7 +322,7 @@ namespace Client
             } while (binaryData.Length > i);
 
             //It was not send exactly. Some of the data frames could be pushed to the unshipped frames collection
-            Console.WriteLine("File sent: " + stream.Headers.GetValue(":path"));
+            Http2Logger.LogConsole("File sent: " + stream.Headers.GetValue(":path"));
         }
 
         private void SaveDataFrame(Http2Stream stream, DataFrame dataFrame)
@@ -340,7 +341,7 @@ namespace Client
                 }
                 catch (IOException)
                 {
-                    Console.WriteLine("File is still downloading. Repeat request later");
+                    Http2Logger.LogError("File is still downloading. Repeat request later");
                     stream.WriteDataFrame(new byte[0], true);
                     stream.Dispose();
                 }
@@ -353,10 +354,10 @@ namespace Client
                     {
                         //send terminator
                         stream.WriteDataFrame(new byte[0], true);
-                        Console.WriteLine("Terminator was sent");
+                        Http2Logger.LogConsole("Terminator was sent");
                     }
                     _fileHelper.RemoveStream(path);
-                    Console.WriteLine("Bytes received {0}", stream.ReceivedDataAmount);
+                    Http2Logger.LogConsole("Bytes received " + stream.ReceivedDataAmount);
 #if DEBUG
                     const string wayToServerRoot1 = @"..\..\..\..\..\Drop\Root";
                     const string wayToServerRoot2 = @".\Root";
@@ -365,12 +366,12 @@ namespace Client
                     if (!areFilesEqual)
                     {
                         Console.ForegroundColor = ConsoleColor.Red;
-                        Console.WriteLine("Files are NOT EQUAL!");
+                        Http2Logger.LogError("Files are NOT EQUAL!");
                     }
                     else
                     {
                         Console.ForegroundColor = ConsoleColor.Green;
-                        Console.WriteLine("Files are EQUAL!");
+                        Http2Logger.LogConsole("Files are EQUAL!");
                     }
                     Console.ForegroundColor = ConsoleColor.Gray;
 #endif
@@ -394,7 +395,7 @@ namespace Client
                 catch (FileNotFoundException)
                 {
                     gotException = true;
-                    Console.WriteLine("Specified file not found: {0}", localPath);
+                    Http2Logger.LogError("Specified file not found: " + localPath);
                 }
                 if (!gotException)
                 {
