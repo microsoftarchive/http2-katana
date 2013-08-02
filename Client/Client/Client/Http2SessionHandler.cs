@@ -138,9 +138,9 @@ namespace Client
                 var extensions = new[] {ExtensionType.Renegotiation, ExtensionType.ALPN};
 
                 _options = port == securePort
-                               ? new SecurityOptions(SecureProtocol.Tls1, extensions, new[] { Protocols.Http2, Protocols.Http1 },
+                               ? new SecurityOptions(SecureProtocol.Tls1, extensions, new[] { Protocols.Http1 },
                                                      ConnectionEnd.Client)
-                               : new SecurityOptions(SecureProtocol.None, extensions, new[] { Protocols.Http2, Protocols.Http1 },
+                               : new SecurityOptions(SecureProtocol.None, extensions, new[] { Protocols.Http1 },
                                                      ConnectionEnd.Client);
 
                 _options.VerificationType = CredentialVerification.None;
