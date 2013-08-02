@@ -79,8 +79,8 @@ namespace SocketServer
 
             var extensions = new [] { ExtensionType.Renegotiation, ExtensionType.ALPN };
 
-            _options = _port == securePort ? new SecurityOptions(SecureProtocol.Tls1, extensions, new[] { Protocols.Http2, Protocols.Http1 }, ConnectionEnd.Server)
-                                : new SecurityOptions(SecureProtocol.None, extensions, new[] { Protocols.Http2, Protocols.Http1 }, ConnectionEnd.Server);
+            _options = _port == securePort ? new SecurityOptions(SecureProtocol.Tls1, extensions, new[] { Protocols.Http2 }, ConnectionEnd.Server)
+                                : new SecurityOptions(SecureProtocol.None, extensions, new[] { Protocols.Http2 }, ConnectionEnd.Server);
 
             _options.VerificationType = CredentialVerification.None;
             _options.Certificate = Certificate.CreateFromCerFile(AssemblyName + CertificateFilename);
