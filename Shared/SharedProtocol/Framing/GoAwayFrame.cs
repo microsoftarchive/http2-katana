@@ -13,7 +13,7 @@ namespace SharedProtocol.Framing
         }
 
         // Outgoing
-        public GoAwayFrame(int lastStreamId, GoAwayStatusCode statusCode)
+        public GoAwayFrame(int lastStreamId, ResetStatusCode statusCode)
             : base(new byte[InitialFrameSize])
         {
             FrameType = FrameType.GoAway;
@@ -36,11 +36,11 @@ namespace SharedProtocol.Framing
         }
 
         // 32 bits
-        public GoAwayStatusCode StatusCode
+        public ResetStatusCode StatusCode
         {
             get
             {
-                return (GoAwayStatusCode)FrameHelpers.Get32BitsAt(Buffer, 12);
+                return (ResetStatusCode)FrameHelpers.Get32BitsAt(Buffer, 12);
             }
             set
             {
