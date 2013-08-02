@@ -7,7 +7,7 @@ namespace SharedProtocol.Framing
     public class SettingsFrame : Frame
     {
         // The number of bytes in the frame.
-        private const int InitialFrameSize = 12;
+        private const int InitialFrameSize = 8;
 
         // Incoming
         public SettingsFrame(Frame preamble)
@@ -22,7 +22,6 @@ namespace SharedProtocol.Framing
         {
             FrameType = FrameType.Settings;
             FrameLength = (settings.Count * SettingsPair.PairSize) + InitialFrameSize - Constants.FramePreambleSize;
-            EntryCount = settings.Count;
             StreamId = 0;
 
             for (int i = 0; i < settings.Count; i++)
@@ -36,14 +35,7 @@ namespace SharedProtocol.Framing
         // 32 bits
         public int EntryCount
         {
-            get
-            {
-                return FrameHelpers.Get32BitsAt(Buffer, 8);
-            }
-            set
-            {
-                FrameHelpers.Set32BitsAt(Buffer, 8, value);
-            }
+            get { return (Buffer.Length - InitialFrameSize) / SettingsPair.PairSize; }
         }
 
         public SettingsPair this[int index]
