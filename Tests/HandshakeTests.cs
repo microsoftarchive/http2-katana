@@ -140,7 +140,7 @@ namespace HandshakeTests
                 var handshakeEnv = new Dictionary<string, object>
                     {
                         {":method", "get"},
-                        {":version", "http/1.1"},
+                        {":version", Protocols.Http1},
                         {":path", uri.PathAndQuery},
                         {":scheme", uri.Scheme},
                         {":host", uri.Host},
@@ -181,7 +181,7 @@ namespace HandshakeTests
             var handshakeEnv = new Dictionary<string, object>
                 {
                     {":method", "get"},
-                    {":version", "http/1.1"},
+                    {":version", Protocols.Http1},
                     {":path", uri.PathAndQuery},
                     {":scheme", uri.Scheme},
                     {":host", uri.Host},

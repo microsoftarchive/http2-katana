@@ -23,6 +23,7 @@ using SharedProtocol.Handshake;
 using SharedProtocol.Http11;
 using SharedProtocol.IO;
 using SharedProtocol.Pages;
+using SharedProtocol.Utils;
 
 namespace SocketServer
 {
@@ -102,7 +103,7 @@ namespace SocketServer
             {
                 incomingClient = _server.AcceptSocket(monitor);
             }
-            Console.WriteLine("New connection accepted");
+            Http2Logger.LogDebug("New connection accepted");
             Task.Run(() => HandleAcceptedClient(incomingClient));
         }
 
@@ -140,7 +141,7 @@ namespace SocketServer
                     if (!handshakeTask.Wait(6000))
                     {
                         incomingClient.Close();
-                        Console.WriteLine("Handshake timeout. Connection dropped.");
+                        Http2Logger.LogError("Handshake timeout. Connection dropped.");
                         return;
                     }
                     
@@ -155,13 +156,13 @@ namespace SocketServer
                     else
                     {
                         incomingClient.Close();
-                        Console.WriteLine("Handshake timeout. Client was disconnected.");
+                        Http2Logger.LogError("Handshake timeout. Client was disconnected.");
                         return;
                     }
                 }
                 catch (Exception e)
                 {
-                    Console.WriteLine("Exception occured. Closing client's socket. " + e.Message);
+                    Http2Logger.LogError("Exception occured. Closing client's socket. " + e.Message);
                     incomingClient.Close();
                     return;
                 }
@@ -172,7 +173,7 @@ namespace SocketServer
             }
             catch (Exception e)
             {
-                Console.WriteLine("Exception occured. Closing client's socket. " + e.Message);
+                Http2Logger.LogError("Exception occured. Closing client's socket. " + e.Message);
                 incomingClient.Close();
             }
         }
@@ -180,9 +181,9 @@ namespace SocketServer
         private void HandleRequest(SecureSocket incomingClient, string alpnSelectedProtocol, 
                                    bool backToHttp11, IDictionary<string, object> handshakeResult)
         {
-            if (backToHttp11 || alpnSelectedProtocol == "http/1.1")
+            if (backToHttp11 || alpnSelectedProtocol == Protocols.Http1)
             {
-                Console.WriteLine("Sending with http11");
+                Http2Logger.LogDebug("Sending with http11");
                 Http11Manager.Http11SendResponse(incomingClient);
                 return;
             }
@@ -193,7 +194,7 @@ namespace SocketServer
             }
             else
             {
-                Console.WriteLine("Client has wrong session header. It was disconnected");
+                Http2Logger.LogError("Client has wrong session header. It was disconnected");
                 incomingClient.Close();
             }
         }
@@ -213,7 +214,7 @@ namespace SocketServer
 
         private async void OpenHttp2Session(SecureSocket incomingClient, IDictionary<string, object> handshakeResult)
         {
-            Console.WriteLine("Handshake successful");
+            Http2Logger.LogDebug("Handshake successful");
             _session = new Http2Session(incomingClient, ConnectionEnd.Server, _usePriorities,_useFlowControl, handshakeResult);
             _session.OnFrameReceived += FrameReceivedHandler;
 
@@ -223,7 +224,7 @@ namespace SocketServer
             }
             catch (Exception)
             {
-                Console.WriteLine("Client was disconnected");
+                Http2Logger.LogError("Client was disconnected");
             }
         }
 
@@ -231,7 +232,7 @@ namespace SocketServer
         {
             int i = 0;
 
-            Console.WriteLine("Transfer begin");
+            Http2Logger.LogDebug("Transfer begin");
 
             do
             {
@@ -251,7 +252,7 @@ namespace SocketServer
             } while (binaryData.Length > i);
 
             //It was not send exactly. Some of the data frames could be pushed to the unshipped frames collection
-            Console.WriteLine("File sent: " + stream.Headers.GetValue(":path"));
+            Http2Logger.LogDebug("File sent: " + stream.Headers.GetValue(":path"));
         }
 
         private void SaveDataFrame(Http2Stream stream, DataFrame dataFrame)
@@ -272,7 +273,7 @@ namespace SocketServer
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine(ex.Message);
+                    Http2Logger.LogError(ex.Message);
                     stream.WriteDataFrame(new byte[0], true);
                     stream.Dispose();
                 }
@@ -285,7 +286,7 @@ namespace SocketServer
                     {
                         //send terminator
                         stream.WriteDataFrame(new byte[0], true);
-                        Console.WriteLine("Terminator was sent");
+                        Http2Logger.LogDebug("Terminator was sent");
                     }
                     _fileHelper.RemoveStream(AssemblyPath + @"\Root" + path);
                 }

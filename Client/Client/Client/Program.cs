@@ -37,6 +37,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Client.Commands;
+using SharedProtocol.Utils;
 
 namespace Client
 {
@@ -51,6 +52,7 @@ namespace Client
         public static void Main(string[] args)
         {
             Console.SetWindowSize(125, 29);
+            Http2Logger.WriteToFile = false;
 
             _sessions = new Dictionary<string, Http2SessionHandler>();
             var argsList = new List<string>(args);
@@ -80,7 +82,7 @@ namespace Client
                         }
                         catch (Exception ex)
                         {
-                            Console.WriteLine(ex.Message);
+                            Http2Logger.LogError(ex.Message);
                             continue;
                         }
                         //Scheme and port were checked during parsing get cmd.
@@ -124,7 +126,7 @@ namespace Client
                                 bool success = sessionHandler.Connect(uriCmd.Uri);
                                 if (!success)
                                 {
-                                    Console.WriteLine("Connection failed");
+                                    Http2Logger.LogError("Connection failed");
                                     break;
                                 }
 
@@ -154,7 +156,7 @@ namespace Client
                 }            
                 catch (Exception)
                 {
-                    Console.WriteLine("Problems occured - please restart client");
+                    Http2Logger.LogError("Problems occured - please restart client");
                 }  
             }
         }

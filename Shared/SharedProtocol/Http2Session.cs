@@ -13,6 +13,7 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Threading.Tasks;
 using SharedProtocol.Extensions;
+using SharedProtocol.Utils;
 
 namespace SharedProtocol
 {
@@ -37,7 +38,33 @@ namespace SharedProtocol
         private bool _wasResponseReceived = false;
         private List<Tuple<string, string, IAdditionalHeaderInfo>> _toBeContinuedHeaders = null;
         private Frame _toBeContinuedFrame = null;
-        private readonly Dictionary<string, string> _handshakeHeaders; 
+        private readonly Dictionary<string, string> _handshakeHeaders;
+
+        /// <summary>
+        /// Occurs when settings frame was sent.
+        /// </summary>
+        public event EventHandler<SettingsSentEventArgs> OnSettingsSent;
+
+        /// <summary>
+        /// Occurs when frame was sent.
+        /// </summary>
+        public event EventHandler<FrameSentArgs> OnFrameSent;
+
+        /// <summary>
+        /// Occurs when frame was received.
+        /// </summary>
+        public event EventHandler<FrameReceivedEventArgs> OnFrameReceived;
+
+        /// <summary>
+        /// Request sent event.
+        /// </summary>
+        public event EventHandler<RequestSentEventArgs> OnRequestSent;
+
+        /// <summary>
+        /// Session closed event.
+        /// </summary>
+        public event EventHandler<EventArgs> OnSessionDisposed;
+
 
         /// <summary>
         /// Gets the active streams.
@@ -159,7 +186,7 @@ namespace SharedProtocol
                      }
                      catch (Exception)
                      {
-                         Console.WriteLine("Sending frame was cancelled because connection was lost");
+                         Http2Logger.LogError("Sending frame was cancelled because connection was lost");
                          Dispose();
                      }
                  });
@@ -192,7 +219,7 @@ namespace SharedProtocol
                 switch (frame.FrameType)
                 {
                     case FrameType.Headers:
-                        Console.WriteLine("New headers with id = " + frame.StreamId);
+                        Http2Logger.LogDebug("New headers with id = " + frame.StreamId);
                         var headersFrame = (Headers) frame;
                         var serializedHeaders = new byte[headersFrame.CompressedHeaders.Count];
 
@@ -253,6 +280,7 @@ namespace SharedProtocol
 
                     case FrameType.Priority:
                         var priorityFrame = (PriorityFrame) frame;
+                        Http2Logger.LogDebug("Priority frame. StreamId: {0} Priority: {1}", priorityFrame.StreamId, priorityFrame.Priority);
                         stream = GetStream(priorityFrame.StreamId);
                         if (_usePriorities)
                         {
@@ -264,11 +292,12 @@ namespace SharedProtocol
                         var resetFrame = (RstStreamFrame) frame;
                         stream = GetStream(resetFrame.StreamId);
 
-                        Console.WriteLine("Got rst with code {0}", resetFrame.StatusCode);
+                        Http2Logger.LogDebug("RST frame with code " + resetFrame.StatusCode);
                         stream.Dispose();
                         break;
                     case FrameType.Data:
                         var dataFrame = (DataFrame) frame;
+                        Http2Logger.LogDebug("Data frame. StreamId:{0} Length:{1}", dataFrame.StreamId, dataFrame.FrameLength);
                         stream = GetStream(dataFrame.StreamId);
 
                         //Aggressive window update
@@ -279,6 +308,7 @@ namespace SharedProtocol
                         break;
                     case FrameType.Ping:
                         var pingFrame = (PingFrame) frame;
+                        Http2Logger.LogDebug("Ping frame with StreamId {0}", pingFrame.StreamId);
                         if (pingFrame.IsPong)
                         {
                               _wasPingReceived = true;
@@ -301,14 +331,16 @@ namespace SharedProtocol
                             return;
                         }
 
+                        var settingFrame = (SettingsFrame) frame;
+                        Http2Logger.LogDebug("Settings frame. Entry count: {0} StreamId: {1}", settingFrame.EntryCount, settingFrame.StreamId);
                         _wasSettingsReceived = true;
-                        _settingsManager.ProcessSettings((SettingsFrame) frame, this, _flowControlManager);
+                        _settingsManager.ProcessSettings(settingFrame, this, _flowControlManager);
                         break;
                     case FrameType.WindowUpdate:
                         if (_useFlowControl)
                         {
                             var windowFrame = (WindowUpdateFrame) frame;
-
+                            Http2Logger.LogDebug("WindowUpdate frame. Delta: {0} StreamId: {1}", windowFrame.Delta, windowFrame.StreamId);
                             stream = GetStream(windowFrame.StreamId);
 
                             stream.UpdateWindowSize(windowFrame.Delta);
@@ -318,6 +350,7 @@ namespace SharedProtocol
                    
                     case FrameType.GoAway:
                         _goAwayReceived = true;
+                        Http2Logger.LogDebug("GoAway frame received");
                         Dispose();
                         break;
                     default:
@@ -327,7 +360,7 @@ namespace SharedProtocol
                 if (stream != null && frame is IEndStreamFrame && ((IEndStreamFrame)frame).IsEndStream)
                 {
                     //Tell the stream that it was the last frame
-                    Console.WriteLine("Final frame received for stream with id = " + stream.Id);
+                    Http2Logger.LogDebug("Final frame received for stream with id = " + stream.Id);
                     stream.EndStreamReceived = true;
                 }
 
@@ -390,6 +423,7 @@ namespace SharedProtocol
                 Dispose();
                 throw new InvalidOperationException("Trying to create more streams than allowed by the remote side!");
             }
+
             var id = GetNextId();
             if (_usePriorities)
             {
@@ -399,6 +433,7 @@ namespace SharedProtocol
             {
                 ActiveStreams[id] = new Http2Stream(id, _writeQueue, _flowControlManager, _comprProc);
             }
+
             ActiveStreams[id].OnClose += (o, args) =>
                 {
                     if (ActiveStreams.Remove(ActiveStreams[args.Id]) == false)
@@ -458,6 +493,7 @@ namespace SharedProtocol
         /// <returns></returns>
         public Task Start()
         {
+            Http2Logger.LogDebug("Session start");
             //Write settings. Settings must be the first frame in session.
 
             if (_useFlowControl)
@@ -538,7 +574,7 @@ namespace SharedProtocol
             }
 
             var newNow = DateTime.UtcNow;
-            Console.WriteLine("Ping: {0}", (newNow - now).Milliseconds);
+            Http2Logger.LogDebug("Ping: " + (newNow - now).Milliseconds);
             _wasPingReceived = false;
             return newNow - now;
         }
@@ -584,26 +620,8 @@ namespace SharedProtocol
                 OnSessionDisposed(this, null);
             }
             OnSessionDisposed = null;
-            Console.WriteLine("Session closed");
+
+            Http2Logger.LogDebug("Session closed");
         }
-
-        /// <summary>
-        /// Occurs when settings frame was sent.
-        /// </summary>
-        public event EventHandler<SettingsSentEventArgs> OnSettingsSent;
-
-        /// <summary>
-        /// Occurs when frame was sent.
-        /// </summary>
-        public event EventHandler<FrameSentArgs> OnFrameSent;
-
-        /// <summary>
-        /// Occurs when frame was received.
-        /// </summary>
-        public event EventHandler<FrameReceivedEventArgs> OnFrameReceived;
-
-        public event EventHandler<RequestSentEventArgs> OnRequestSent;
-
-        public event EventHandler<EventArgs> OnSessionDisposed;
     }
 }

@@ -205,8 +205,8 @@ namespace BasicTests
                 {
                     new Tuple<string, string, IAdditionalHeaderInfo>(":method", "GET", new Indexation(IndexationType.Indexed)),
                     new Tuple<string, string, IAdditionalHeaderInfo>(":path", "test.txt", new Indexation(IndexationType.Substitution)),
-                    new Tuple<string, string, IAdditionalHeaderInfo>(":version", "http/2.0", new Indexation(IndexationType.Incremental)),
-                    new Tuple<string, string, IAdditionalHeaderInfo>(":version", "http/2.0", new Indexation(IndexationType.Incremental)),
+                    new Tuple<string, string, IAdditionalHeaderInfo>(":version", Protocols.Http2, new Indexation(IndexationType.Incremental)),
+                    new Tuple<string, string, IAdditionalHeaderInfo>(":version", Protocols.Http2, new Indexation(IndexationType.Incremental)),
                     new Tuple<string, string, IAdditionalHeaderInfo>(":host", "localhost", new Indexation(IndexationType.Substitution)),
                     new Tuple<string, string, IAdditionalHeaderInfo>(":scheme", "HTTPS", new Indexation(IndexationType.Substitution)),
                 };

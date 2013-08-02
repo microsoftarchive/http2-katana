@@ -310,6 +310,12 @@
     <Compile Include="..\Shared\SharedProtocol\TransportInformation.cs">
       <Link>Sources\TransportInformation.cs</Link>
     </Compile>
+    <Compile Include="..\Shared\SharedProtocol\Utils\Http2Logger.cs">
+      <Link>Sources\Http2Logger.cs</Link>
+    </Compile>
+    <Compile Include="..\Shared\SharedProtocol\Utils\Http2LoggerState.cs">
+      <Link>Sources\Http2LoggerState.cs</Link>
+    </Compile>
     <Compile Include="BasicTests.cs" />
     <Compile Include="HandshakeTests.cs" />
     <Compile Include="Http11Tests.cs" />

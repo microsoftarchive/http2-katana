@@ -11,11 +11,15 @@ using Org.Mentalis.Security.Ssl.Shared.Extensions;
 using Owin.Types;
 using System.Configuration;
 using SharedProtocol;
+using SharedProtocol.Utils;
 
 namespace SocketServer
 {
     using AppFunc = Func<IDictionary<string, object>, Task>;
 
+    /// <summary>
+    /// Http2 socket server implementation that uses raw socket.
+    /// </summary>
     public class HttpSocketServer : IDisposable
     {
         private static readonly string AssemblyName = Path.GetDirectoryName(Assembly.GetExecutingAssembly().CodeBase.Substring(8));
@@ -55,9 +59,9 @@ namespace SocketServer
             }
             catch (Exception)
             {
-                Console.WriteLine("Incorrect port in the config file!");
+                Http2Logger.LogError("Incorrect port in the config file!");
                
-                Console.WriteLine(ConfigurationManager.AppSettings["securePort"]);
+                Http2Logger.LogError(ConfigurationManager.AppSettings["securePort"]);
                 return;
             }
 
@@ -69,7 +73,7 @@ namespace SocketServer
                 &&
                 _scheme == Uri.UriSchemeHttps)
             {
-                Console.WriteLine("Invalid scheme or port! Use https for secure port.");
+                Http2Logger.LogError("Invalid scheme or port! Use https for secure port.");
                 return;
             }
 
@@ -112,7 +116,7 @@ namespace SocketServer
         private void Listen()
         {
             InitializeRootFileList();
-            Console.WriteLine("Started on port {0}", _port);
+            Http2Logger.LogInfo("Started on port " + _port);
             _server.Start();
             while (!_disposed)
             {
@@ -123,7 +127,7 @@ namespace SocketServer
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine("Unhandled exception was caught: " + ex.Message);
+                    Http2Logger.LogError("Unhandled exception was caught: " + ex.Message);
                 }
             }
         }
