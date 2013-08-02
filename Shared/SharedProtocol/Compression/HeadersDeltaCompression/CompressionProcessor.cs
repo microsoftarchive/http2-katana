@@ -355,17 +355,25 @@ namespace SharedProtocol.Compression.Http2DeltaHeadersCompression
 
         public List<Tuple<string, string, IAdditionalHeaderInfo> > Decompress(byte[] serializedHeaders, bool isRequest)
         {
-            var useHeadersTable = isRequest ? _requestHeadersStorage : _responseHeadersStorage;
-            var result = new List<Tuple<string, string, IAdditionalHeaderInfo>>(16);
-            _currentOffset = 0;
-
-            while (_currentOffset != serializedHeaders.Length)
+            try
             {
-                var entry = ParseHeader(serializedHeaders, useHeadersTable);
-                result.Add(entry);
-            }
 
-            return result;
+                var useHeadersTable = isRequest ? _requestHeadersStorage : _responseHeadersStorage;
+                var result = new List<Tuple<string, string, IAdditionalHeaderInfo>>(16);
+                _currentOffset = 0;
+
+                while (_currentOffset != serializedHeaders.Length)
+                {
+                    var entry = ParseHeader(serializedHeaders, useHeadersTable);
+                    result.Add(entry);
+                }
+
+                return result;
+            }
+            catch (Exception e)
+            {
+                throw new CompressionError(e);
+            }
         }
 
         #endregion

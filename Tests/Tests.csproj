@@ -148,6 +148,9 @@
     <Compile Include="..\Shared\SharedProtocol\EventArgs\StreamClosedEventArgs.cs">
       <Link>Sources\StreamClosedEventArgs.cs</Link>
     </Compile>
+    <Compile Include="..\Shared\SharedProtocol\Exceptions\CompressionError.cs">
+      <Link>Sources\CompressionError.cs</Link>
+    </Compile>
     <Compile Include="..\Shared\SharedProtocol\Exceptions\HTTP2HandshakeFailed.cs">
       <Link>Sources\HTTP2HandshakeFailed.cs</Link>
     </Compile>
