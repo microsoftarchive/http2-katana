@@ -4,7 +4,7 @@ namespace SharedProtocol.Framing
     public class WindowUpdateFrame : Frame
     {
         // The number of bytes in the frame.
-        private const int InitialFrameSize = 16;
+        private const int InitialFrameSize = 12;
                 
         // Incoming
         public WindowUpdateFrame(Frame preamble)
@@ -27,11 +27,11 @@ namespace SharedProtocol.Framing
         {
             get
             {
-                return FrameHelpers.Get31BitsAt(Buffer, 12);
+                return FrameHelpers.Get31BitsAt(Buffer, Constants.FramePreambleSize);
             }
             set
             {
-                FrameHelpers.Set31BitsAt(Buffer, 12, value);
+                FrameHelpers.Set31BitsAt(Buffer, Constants.FramePreambleSize, value);
             }
         }
     }
