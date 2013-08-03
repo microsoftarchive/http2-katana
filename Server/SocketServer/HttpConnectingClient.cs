@@ -34,7 +34,7 @@ namespace SocketServer
     /// </summary>
     internal sealed class HttpConnectingClient : IDisposable
     {
-        private const string ClientSessionHeader = @"PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n";
+        private const string ClientSessionHeader = "PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n";
         private static readonly string AssemblyPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().CodeBase.Substring(8));
 
 
