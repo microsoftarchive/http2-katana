@@ -29,7 +29,7 @@ namespace Client
     {
         private const string CertificatePath = @"certificate.pfx";
         private const string NotFound = @"NotFound.html";
-        private const string ClientSessionHeader = @"PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n";
+        private const string ClientSessionHeader = "PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n";
 
         private SecurityOptions _options;
         private Http2Session _clientSession;

@@ -102,7 +102,7 @@ namespace Http2Tests
 
     public class Http2TestSuite : IUseFixture<Http2Setup>, IDisposable
     {
-        private const string ClientSessionHeader = @"PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n";
+        private const string ClientSessionHeader = "PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n";
         private static bool _useSecurePort;
         private static bool _useHandshake;
         private static IDictionary<string, object> _handshakeResult;
