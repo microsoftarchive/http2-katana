@@ -15,6 +15,8 @@ using System.Threading.Tasks;
 using Org.Mentalis;
 using Org.Mentalis.Security.Ssl;
 using SharedProtocol;
+using SharedProtocol.Compression;
+using SharedProtocol.Compression.Http2DeltaHeadersCompression;
 using SharedProtocol.Exceptions;
 using SharedProtocol.ExtendedMath;
 using SharedProtocol.Extensions;
@@ -319,18 +321,33 @@ namespace SocketServer
                     {
                         case "get":
                         case "dir":
+                            string status = "";
                             try
                             {
                                 binary = _fileHelper.GetFile(stream.Headers.GetValue(":path"));
+                                status = "200";
                             }
                             catch (FileNotFoundException)
                             {
                                 binary = new NotFound404().Bytes;
+                                status = "404";
                             }
+                            var headers = new List<Tuple<string, string, IAdditionalHeaderInfo>>
+                            {
+                                new Tuple<string, string, IAdditionalHeaderInfo>(":status", status,
+                                                                     new Indexation(IndexationType.Indexed)),
+                            };
+                            stream.WriteHeadersFrame(headers, false);
                             SendDataTo(stream, binary);
                             break;
                         case "delete":
                             binary = new AccessDenied401().Bytes;
+                            var headersDenied = new List<Tuple<string, string, IAdditionalHeaderInfo>>
+                            {
+                                new Tuple<string, string, IAdditionalHeaderInfo>(":status", "401",
+                                                                     new Indexation(IndexationType.Indexed)),
+                            };
+                            stream.WriteHeadersFrame(headersDenied, false);
                             SendDataTo(stream, binary);
                             break;
                     }

@@ -11,7 +11,7 @@ namespace SharedProtocol.Extensions
         {
             var headerFound = list.Find(header => header.Item1 == key);
 
-            if (!headerFound.Equals(default(Tuple<string, string, IAdditionalHeaderInfo>)))
+            if (headerFound != null && !headerFound.Equals(default(Tuple<string, string, IAdditionalHeaderInfo>)))
             {
                 return headerFound.Item2;
             }

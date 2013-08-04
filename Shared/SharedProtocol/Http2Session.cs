@@ -242,6 +242,17 @@ namespace SharedProtocol
                             headers.AddRange(_toBeContinuedHeaders);
                         }
 
+                        try
+                        {
+                            stream = GetStream(headersFrame.StreamId);
+                            // Drop the frame on the floor, should update the headers for this stream.
+                            break;
+                        }
+                        catch (Http2StreamNotFoundException)
+                        {
+                            // Continue with creating new stream
+                        }
+
                         //Remote side tries to open more streams than allowed
                         if (ActiveStreams.GetOpenedStreamsBy(_remoteEnd) + 1 > OurMaxConcurrentStreams)
                         {
@@ -256,7 +267,7 @@ namespace SharedProtocol
                         }
                         catch (KeyNotFoundException)
                         {
-                            path = !_handshakeHeaders.ContainsKey(":path") ? _handshakeHeaders[":path"] : @"\index.html";
+                            path = _handshakeHeaders.ContainsKey(":path") ? _handshakeHeaders[":path"] : @"\index.html";
                             headers.Add(new Tuple<string, string, IAdditionalHeaderInfo>(":path", path, null));
                         }
 
