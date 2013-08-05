@@ -42,6 +42,21 @@ namespace SharedProtocol.Framing
             get { return _buffer; } 
         }
 
+        public ArraySegment<byte> Payload
+        {
+            get 
+            {
+                if (_buffer != null && _buffer.Length > 0)
+                {
+                    return new ArraySegment<byte>(_buffer, Constants.FramePreambleSize, _buffer.Length - Constants.FramePreambleSize);  
+                }
+                else
+                {
+                    return new ArraySegment<byte>();
+                }
+            }
+        }
+
         public bool IsControl
         {
             get { return FrameType != FrameType.Data; }

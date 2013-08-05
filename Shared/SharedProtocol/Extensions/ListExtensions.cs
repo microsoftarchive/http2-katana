@@ -15,7 +15,8 @@ namespace SharedProtocol.Extensions
             {
                 return headerFound.Item2;
             }
-            throw new KeyNotFoundException(key + " was not found");
+            
+            return null;
         }
 
         public static int GetSize(this List<KeyValuePair<string, string>> list)

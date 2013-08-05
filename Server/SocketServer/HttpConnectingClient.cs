@@ -297,7 +297,9 @@ namespace SocketServer
         private void FrameReceivedHandler(object sender, FrameReceivedEventArgs args)
         {
             var stream = args.Stream;
-            var method = stream.Headers.GetValue(":method").ToLower();
+            var method = stream.Headers.GetValue(":method");
+            if (!string.IsNullOrEmpty(method)) 
+                method = method.ToLower();
 
             try
             {
@@ -340,6 +342,10 @@ namespace SocketServer
                             break;
                         case "delete":
                             WriteStatus(stream, StatusCode.Code401Forbidden, true);
+                            break;
+
+                        default:
+                            Http2Logger.LogDebug("Received headers with Status: " + stream.Headers.GetValue(":status"));
                             break;
                     }
                 }
