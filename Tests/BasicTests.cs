@@ -210,15 +210,15 @@ namespace BasicTests
                     new Tuple<string, string, IAdditionalHeaderInfo>(":host", "localhost", new Indexation(IndexationType.Substitution)),
                     new Tuple<string, string, IAdditionalHeaderInfo>(":scheme", "HTTPS", new Indexation(IndexationType.Substitution)),
                 };
-            var compressor = new CompressionProcessor();
-            var decompressor = new CompressionProcessor();
+            var compressor = new CompressionProcessor(ConnectionEnd.Client);
+            var decompressor = new CompressionProcessor(ConnectionEnd.Client);
 
             List<Tuple<string, string, IAdditionalHeaderInfo>> decompressed = null;
 
             for (int i = 0; i < 10; i++)
             {
-                var serialized = compressor.Compress(headers, false);
-                decompressed = decompressor.Decompress(serialized, false);
+                var serialized = compressor.Compress(headers);
+                decompressed = decompressor.Decompress(serialized);
             }
 
             foreach (var t in headers)

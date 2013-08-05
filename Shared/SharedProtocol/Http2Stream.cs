@@ -179,7 +179,7 @@ namespace SharedProtocol
         {
             Headers = headers;
 
-            byte[] headerBytes = _compressionProc.Compress(headers, _id % 2 != 0);
+            byte[] headerBytes = _compressionProc.Compress(headers);
 
             var frame = new Headers(_id, headerBytes, Priority)
                 {
