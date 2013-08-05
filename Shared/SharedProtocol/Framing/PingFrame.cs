@@ -6,8 +6,15 @@ namespace SharedProtocol.Framing
     /// </summary>
     public class PingFrame : Frame
     {
-        // The number of bytes in the frame.
-        private const int InitialFrameSize = 12;
+        /// <summary>
+        /// Ping frame expected payload length
+        /// </summary>
+        public const int PayloadLength = 8;
+
+        /// <summary>
+        /// The number of bytes in the frame.
+        /// </summary>
+        public const int FrameSize = PayloadLength + Constants.FramePreambleSize;
 
         public bool IsPong 
         {
@@ -31,14 +38,20 @@ namespace SharedProtocol.Framing
         }
 
         // Outgoing
-        public PingFrame(bool isPong)
-            : base(new byte[InitialFrameSize])
+        public PingFrame(bool isPong, byte[] payload = null)
+            : base(new byte[FrameSize])
         {
             FrameType = FrameType.Ping;
-            FrameLength = InitialFrameSize - Constants.FramePreambleSize; // 4
+            FrameLength = FrameSize - Constants.FramePreambleSize; // 4
 
             IsPong = isPong;
             StreamId = 0;
-        }     
+
+            if (payload != null)
+            {
+                System.Buffer.BlockCopy(this.Buffer, Constants.FramePreambleSize, Buffer,
+                    Constants.FramePreambleSize, FrameSize - Constants.FramePreambleSize);
+            }
+        }
     }
 }

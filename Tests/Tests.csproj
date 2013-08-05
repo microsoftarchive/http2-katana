@@ -163,6 +163,9 @@
     <Compile Include="..\Shared\SharedProtocol\Exceptions\MonitorIsBusyException.cs">
       <Link>Sources\MonitorIsBusyException.cs</Link>
     </Compile>
+    <Compile Include="..\Shared\SharedProtocol\Exceptions\ProtocolError.cs">
+      <Link>Sources\ProtocolError.cs</Link>
+    </Compile>
     <Compile Include="..\Shared\SharedProtocol\ExtendedMath\MathEx.cs">
       <Link>Sources\MathEx.cs</Link>
     </Compile>

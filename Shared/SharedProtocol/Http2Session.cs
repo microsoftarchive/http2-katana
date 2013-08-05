@@ -319,7 +319,13 @@ namespace SharedProtocol
                         break;
                     case FrameType.Ping:
                         var pingFrame = (PingFrame)frame;
-                        Http2Logger.LogDebug("Ping frame with StreamId {0}", pingFrame.StreamId);
+                        Http2Logger.LogDebug("Ping frame with StreamId:{0} Payload:{1}", pingFrame.StreamId, pingFrame.Payload.Count);
+
+                        if (pingFrame.FrameLength != PingFrame.PayloadLength)
+                        {
+                            throw new ProtocolError(ResetStatusCode.ProtocolError, "Ping payload size not equal 8");
+                        }
+
                         if (pingFrame.IsPong)
                         {
                             _wasPingReceived = true;
@@ -327,8 +333,8 @@ namespace SharedProtocol
                         }
                         else
                         {
-                            var pingResonseFrame = new PingFrame(true);
-                            _writeQueue.WriteFrame(pingResonseFrame);
+                            var pongFrame = new PingFrame(true, pingFrame.Payload.ToArray());
+                            _writeQueue.WriteFrame(pongFrame);
                         }
                         break;
                     case FrameType.Settings:
@@ -406,6 +412,11 @@ namespace SharedProtocol
                 //The endpoint is unable to maintain the compression context for the connection.
                 Http2Logger.LogError("Compression error occured: " + ex.Message);
                 Close(ResetStatusCode.CompressionError);
+            }
+            catch (ProtocolError pEx)
+            {
+                Http2Logger.LogError("Protocol error occured: " + pEx.Message);
+                Close(pEx.Code);
             }
         }
 
@@ -581,7 +592,7 @@ namespace SharedProtocol
             _writeQueue.WriteFrame(pingFrame);
             var now = DateTime.UtcNow;
 
-            _pingReceived.WaitOne(60000);
+            _pingReceived.WaitOne(3000);
             _pingReceived.Reset();
 
             if (!_wasPingReceived)

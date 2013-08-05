@@ -66,98 +66,106 @@ namespace Client
 
             HelpDisplayer.ShowMainMenuHelp();
             ThreadPool.SetMaxThreads(10, 10);
-            
-                Console.WriteLine("Enter command");
-                while (true)
+
+            Console.WriteLine("Enter command");
+            while (true)
+            {
+                try
                 {
+                    Console.Write(">");
+                    string command = Console.ReadLine();
+                    Command cmd;
+
                     try
                     {
-                        Console.Write(">");
-                        string command = Console.ReadLine();
-                        Command cmd;
-                    
-                        try
-                        {
-                            cmd = CommandParser.Parse(command);
-                        }
-                        catch (Exception ex)
-                        {
-                            Http2Logger.LogError(ex.Message);
-                            continue;
-                        }
-                        //Scheme and port were checked during parsing get cmd.
-                        switch (cmd.GetCmdType())
-                        {
-                            case CommandType.Put:
-                            case CommandType.Post:
-                            case CommandType.Get:
-                            case CommandType.Delete:
-						    case CommandType.Dir:
-                                var uriCmd = (IUriCommand) cmd;
+                        cmd = CommandParser.Parse(command);
+                    }
+                    catch (Exception ex)
+                    {
+                        Http2Logger.LogError(ex.Message);
+                        continue;
+                    }
+                    //Scheme and port were checked during parsing get cmd.
+                    switch (cmd.GetCmdType())
+                    {
+                        case CommandType.Put:
+                        case CommandType.Post:
+                        case CommandType.Get:
+                        case CommandType.Delete:
+                        case CommandType.Dir:
+                            var uriCmd = (IUriCommand)cmd;
 
-                                string method = uriCmd.Method;
-                                string localPath = null;
-                                string serverPostAct = null;
+                            string method = uriCmd.Method;
+                            string localPath = null;
+                            string serverPostAct = null;
 
-                                if (cmd is PostCommand)
-                                {
-                                    localPath = (cmd as PostCommand).LocalPath;
-                                    serverPostAct = (cmd as PostCommand).ServerPostAct;
-                                }
-                                else if (cmd is PutCommand)
-                                {
-                                    localPath = (cmd as PutCommand).LocalPath;
-                                }
+                            if (cmd is PostCommand)
+                            {
+                                localPath = (cmd as PostCommand).LocalPath;
+                                serverPostAct = (cmd as PostCommand).ServerPostAct;
+                            }
+                            else if (cmd is PutCommand)
+                            {
+                                localPath = (cmd as PutCommand).LocalPath;
+                            }
 
-                                //Only unique sessions can be opened
-                                if (_sessions.ContainsKey(uriCmd.Uri.Authority))
-                                {
-                                    _sessions[uriCmd.Uri.Authority].SendRequestAsync(uriCmd.Uri, method, localPath, serverPostAct);
-                                    break;
-                                }
-
-                                var sessionHandler = new Http2SessionHandler(_environment);
-                                _sessions.Add(uriCmd.Uri.Authority, sessionHandler);
-                                sessionHandler.OnClosed +=
-                                    (sender, eventArgs) => _sessions.Remove(sessionHandler.ServerUri);
-
-                                //Get cmd is equivalent for connect -> get. This means, that each get request 
-                                //will open new session.
-                                bool success = sessionHandler.Connect(uriCmd.Uri);
-                                if (!success)
-                                {
-                                    Http2Logger.LogError("Connection failed");
-                                    break;
-                                }
-
-                                Task.Run(() => sessionHandler.StartConnection());
-
-                                using (var waitForConnectionStart = new ManualResetEvent(false))
-                                {
-                                    waitForConnectionStart.WaitOne(200);
-                                }
-
-                                sessionHandler.SendRequestAsync(uriCmd.Uri, method, localPath, serverPostAct);
+                            //Only unique sessions can be opened
+                            if (_sessions.ContainsKey(uriCmd.Uri.Authority))
+                            {
+                                _sessions[uriCmd.Uri.Authority].SendRequestAsync(uriCmd.Uri, method, localPath, serverPostAct);
                                 break;
-                            case CommandType.Help:
-                                ((HelpCommand)cmd).ShowHelp.Invoke();
+                            }
+
+                            var sessionHandler = new Http2SessionHandler(_environment);
+                            _sessions.Add(uriCmd.Uri.Authority, sessionHandler);
+                            sessionHandler.OnClosed +=
+                                (sender, eventArgs) => _sessions.Remove(sessionHandler.ServerUri);
+
+                            //Get cmd is equivalent for connect -> get. This means, that each get request 
+                            //will open new session.
+                            bool success = sessionHandler.Connect(uriCmd.Uri);
+                            if (!success)
+                            {
+                                Http2Logger.LogError("Connection failed");
                                 break;
-                            case CommandType.Ping:
-                                _sessions[((PingCommand)cmd).Uri.Authority].Ping();
-                                break;
-                            case CommandType.Exit:
-                                foreach (var sessionUri in _sessions.Keys)
-                                {
-                                    _sessions[sessionUri].Dispose(false);
-                                }
-                                _sessions.Clear();
-                                return;
-                        }
-                }            
-                catch (Exception)
+                            }
+
+                            Task.Run(() => sessionHandler.StartConnection());
+
+                            using (var waitForConnectionStart = new ManualResetEvent(false))
+                            {
+                                waitForConnectionStart.WaitOne(200);
+                            }
+
+                            sessionHandler.SendRequestAsync(uriCmd.Uri, method, localPath, serverPostAct);
+                            break;
+                        case CommandType.Help:
+                            ((HelpCommand)cmd).ShowHelp.Invoke();
+                            break;
+                        case CommandType.Ping:
+                            string url = ((PingCommand)cmd).Uri.Authority;
+                            if (_sessions.ContainsKey(url))
+                            {
+                                _sessions[url].Ping();
+                            }
+                            else
+                            {
+                                Http2Logger.LogError("Can't ping until session is opened.");
+                            }
+                            break;
+                        case CommandType.Exit:
+                            foreach (var sessionUri in _sessions.Keys)
+                            {
+                                _sessions[sessionUri].Dispose(false);
+                            }
+                            _sessions.Clear();
+                            return;
+                    }
+                }
+                catch (Exception e)
                 {
-                    Http2Logger.LogError("Problems occured - please restart client");
-                }  
+                    Http2Logger.LogError("Problems occured - please restart client. Error: " + e.Message);
+                }
             }
         }
     }
