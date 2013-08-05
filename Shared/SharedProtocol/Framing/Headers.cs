@@ -9,7 +9,11 @@ namespace SharedProtocol.Framing
     public class Headers : Frame, IEndStreamFrame
     {
         // The number of bytes in the frame, not including the compressed headers.
-        private const int InitialFrameSize = 12;
+        private const int PreambleSizeWithPriority = 12;
+
+        // The number of bytes in the frame, not including the compressed headers.
+        private const int PreambleSizeWithoutPriority = 8;
+
 
         // 8 bits, 24-31
         public bool IsEndStream
@@ -27,10 +31,10 @@ namespace SharedProtocol.Framing
             }
         }
 
-        public bool IsPriority
+        public bool HasPriority
         {
             get { return (Flags & FrameFlags.Priority) == FrameFlags.Priority; }
-            set
+            private set
             {
                 if (value)
                 {
@@ -54,32 +58,16 @@ namespace SharedProtocol.Framing
             }
         }
 
-        // Create an outgoing frame
-        public Headers(int streamId, byte[] headerBytes)
-            : base(new byte[InitialFrameSize + headerBytes.Length])
-        {
-            StreamId = streamId;
-            FrameType = FrameType.Headers;
-            FrameLength = Buffer.Length - Constants.FramePreambleSize;
-
-            // Copy in the headers
-            System.Buffer.BlockCopy(headerBytes, 0, Buffer, InitialFrameSize, headerBytes.Length);
-        }
-
-        // Create an incoming frame
-        public Headers(Frame preamble)
-            : base(preamble)
-        {
-        }
-
         public Priority Priority
         {
             get
             {
-                Contract.Assert(IsPriority);
-                return (Priority) FrameHelpers.Get32BitsAt(Buffer, 8); 
+                if (!HasPriority)
+                    return Priority.Pri7;
+
+                return (Priority)FrameHelpers.Get32BitsAt(Buffer, 8);
             }
-            set
+            private set
             {
                 FrameHelpers.Set32BitsAt(Buffer, 8, (int)value);
             }
@@ -89,8 +77,48 @@ namespace SharedProtocol.Framing
         {
             get
             {
-                return new ArraySegment<byte>(Buffer, 12, Buffer.Length - 12);
+                int offset = HasPriority ? PreambleSizeWithPriority : PreambleSizeWithoutPriority;
+                return new ArraySegment<byte>(Buffer, offset, Buffer.Length - offset);
             }
+        }
+
+        /// <summary>
+        ///  Create an outgoing frame
+        /// </summary>
+        /// <param name="streamId">Stream id</param>
+        /// <param name="headerBytes">Header bytes</param>
+        /// <param name="priority">Priority</param>
+        public Headers(int streamId, byte[] headerBytes, Priority priority = Priority.Pri7)
+        {
+            //PRIORITY (0x8):  Bit 4 being set indicates that the first four octets
+            //of this frame contain a single reserved bit and a 31-bit priority;
+            //If this bit is not set, the four bytes do not
+            //appear and the frame only contains a header block fragment.
+
+            HasPriority = (priority != Priority.None);
+
+            int preambleLength = HasPriority
+                ? PreambleSizeWithPriority
+                : PreambleSizeWithoutPriority;
+
+            _buffer = new byte[headerBytes.Length + preambleLength];
+
+            StreamId = streamId;
+            FrameType = FrameType.Headers;
+            FrameLength = Buffer.Length - Constants.FramePreambleSize;
+            if (HasPriority) Priority = priority;
+
+            // Copy in the headers
+            System.Buffer.BlockCopy(headerBytes, 0, Buffer, preambleLength, headerBytes.Length);
+        }
+
+        /// <summary>
+        /// Create an incoming frame
+        /// </summary>
+        /// <param name="preamble">Frame preamble</param>
+        public Headers(Frame preamble)
+            : base(preamble)
+        {
         }
     }
 }

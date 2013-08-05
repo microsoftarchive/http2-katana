@@ -17,7 +17,9 @@ namespace SharedProtocol.Framing
     /// </summary>
     public class Frame
     {
-        private readonly byte[] _buffer;
+        protected byte[] _buffer;
+
+
         // For reading the preamble to determine the frame type and length
         public Frame()
             : this(new byte[Constants.FramePreambleSize])
