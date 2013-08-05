@@ -255,7 +255,7 @@ namespace Client
             }
 
             //Sending request with average priority
-            _clientSession.SendRequest(headers, (int)Priority.Pri3, false);
+            _clientSession.SendRequest(headers, Priority.None, false);
         }
 
         public void SendRequestAsync(Uri request, string method, string localPath = null, string serverPostAct = null)

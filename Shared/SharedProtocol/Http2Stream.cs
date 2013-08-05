@@ -23,6 +23,16 @@ namespace SharedProtocol
         private readonly Queue<DataFrame> _unshippedFrames;
         private readonly object _unshippedDeliveryLock = new object();
 
+        /// <summary>
+        /// Occurs when stream was sent frame.
+        /// </summary>
+        public event EventHandler<FrameSentArgs> OnFrameSent;
+
+        /// <summary>
+        /// Occurs when stream closes.
+        /// </summary>
+        public event EventHandler<StreamClosedEventArgs> OnClose;
+
         //Incoming
         internal Http2Stream(List<Tuple<string, string, IAdditionalHeaderInfo>> headers, int id,
                            WriteQueue writeQueue, FlowControlManager flowCrtlManager, 
@@ -54,6 +64,7 @@ namespace SharedProtocol
         }
 
         #region Properties
+
         public int Id
         {
             get { return _id; }
@@ -163,18 +174,17 @@ namespace SharedProtocol
         #endregion
 
         #region WriteMethods
+
         public void WriteHeadersFrame(List<Tuple<string, string, IAdditionalHeaderInfo> > headers, bool isEndStream)
         {
             Headers = headers;
 
             byte[] headerBytes = _compressionProc.Compress(headers, _id % 2 != 0);
 
-            var frame = new Headers(_id, headerBytes)
+            var frame = new Headers(_id, headerBytes, Priority)
                 {
                     IsEndHeaders = true,
-                    IsPriority = true,
                     IsEndStream = isEndStream,
-                    Priority = Priority
                 };
 
             if (frame.IsEndStream)
@@ -299,15 +309,5 @@ namespace SharedProtocol
             _flowCrtlManager.StreamClosedHandler(this);
             Disposed = true;
         }
-
-        /// <summary>
-        /// Occurs when stream was sent frame.
-        /// </summary>
-        public event EventHandler<FrameSentArgs> OnFrameSent;
-
-        /// <summary>
-        /// Occurs when stream closes.
-        /// </summary>
-        public event EventHandler<StreamClosedEventArgs> OnClose;
     }
 }

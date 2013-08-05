@@ -487,10 +487,9 @@ namespace SharedProtocol
         /// <param name="pairs">The header pairs.</param>
         /// <param name="priority">The stream priority.</param>
         /// <param name="isEndStream">True if initial headers+priority is also the final frame from endpoint.</param>
-        public void SendRequest(List<Tuple<string, string, IAdditionalHeaderInfo>> pairs, int priority, bool isEndStream)
+        public void SendRequest(List<Tuple<string, string, IAdditionalHeaderInfo>> pairs, Priority priority, bool isEndStream)
         {
-            Contract.Assert(priority >= 0 && priority <= 7);
-            var stream = CreateStream((Priority)priority);
+            var stream = CreateStream(priority);
 
             stream.WriteHeadersFrame(pairs, isEndStream);
 

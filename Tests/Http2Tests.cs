@@ -195,7 +195,7 @@ namespace Http2Tests
                     new Tuple<string, string, IAdditionalHeaderInfo>(":scheme", scheme, new Indexation(IndexationType.Substitution)),
                 };
 
-            session.SendRequest(pairs, 3, false);
+            session.SendRequest(pairs, Priority.Pri3, false);
 
             return session.ActiveStreams[1];
         }

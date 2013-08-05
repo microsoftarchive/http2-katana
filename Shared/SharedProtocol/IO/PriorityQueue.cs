@@ -63,6 +63,8 @@ namespace SharedProtocol.IO
                     throw new ArgumentException("Cant enqueue item into priority queue. Argument should be IPriorityItem");
                 }
                 var pri = (item as IPriorityItem).Priority;
+                if (pri == Priority.None)
+                    pri = Priority.Pri7;
 
                 if ((int) pri > _highestPri)
                 {
