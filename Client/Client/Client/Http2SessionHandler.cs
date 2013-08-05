@@ -124,15 +124,12 @@ namespace Client
 
                 int securePort;
 
-                try
-                {
-                    securePort = int.Parse(ConfigurationManager.AppSettings["securePort"]);
-                }
-                catch (Exception)
+                if (!int.TryParse(ConfigurationManager.AppSettings["securePort"], out securePort))
                 {
                     Http2Logger.LogError("Incorrect port in the config file!");
                     return false;
                 }
+
 
                 //Connect alpn extension, set known protocols
                 var extensions = new[] {ExtensionType.Renegotiation, ExtensionType.ALPN};
