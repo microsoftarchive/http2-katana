@@ -36,6 +36,8 @@ namespace SocketServer
     /// </summary>
     internal sealed class HttpConnectingClient : IDisposable
     {
+        private const string IndexHtml = "\\index.html";
+        private const string Root = "\\Root";
         private const string ClientSessionHeader = "PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n";
         private static readonly string AssemblyPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().CodeBase.Substring(8));
 
@@ -86,7 +88,7 @@ namespace SocketServer
                 //if file is located in root directory then add it to the index
                 if (!_listOfRootFiles.Contains(fileName) && !fileName.Contains("/"))
                 {
-                    using (var indexFile = new StreamWriter(AssemblyPath + @"\Root\index.html", true))
+                    using (var indexFile = new StreamWriter(AssemblyPath + Root + IndexHtml, true))
                     {
                         _listOfRootFiles.Add(fileName);
                         indexFile.Write(fileName + "<br>\n");
@@ -252,9 +254,6 @@ namespace SocketServer
 
                 i += chunkSize;
             } while (binaryData.Length > i);
-
-            //It was not send exactly. Some of the data frames could be pushed to the unshipped frames collection
-            Http2Logger.LogDebug("File sent: " + stream.Headers.GetValue(":path"));
         }
 
         private void SaveDataFrame(Http2Stream stream, DataFrame dataFrame)
@@ -265,7 +264,7 @@ namespace SocketServer
 
                 try
                 {
-                    string pathToSave = AssemblyPath + @"\Root" + path;
+                    string pathToSave = AssemblyPath + Root + path;
                     if (!Directory.Exists(Path.GetDirectoryName(pathToSave)))
                     {
                         throw new DirectoryNotFoundException("Access denied");
@@ -290,7 +289,7 @@ namespace SocketServer
                         stream.WriteDataFrame(new byte[0], true);
                         Http2Logger.LogDebug("Terminator was sent");
                     }
-                    _fileHelper.RemoveStream(AssemblyPath + @"\Root" + path);
+                    _fileHelper.RemoveStream(AssemblyPath + Root + path);
                 }
             }
         }
@@ -321,34 +320,26 @@ namespace SocketServer
                     {
                         case "get":
                         case "dir":
-                            string status = "";
                             try
                             {
-                                binary = _fileHelper.GetFile(stream.Headers.GetValue(":path"));
-                                status = "200";
+                                string path = stream.Headers.GetValue(":path");
+                                // check if root is requested, in which case send index.html
+                                if (path == "/")
+                                    path = IndexHtml;
+
+                                binary = _fileHelper.GetFile(path);
+                                WriteStatus(stream, StatusCode.Code200Ok, false);
+                                SendDataTo(stream, binary);
+                                Http2Logger.LogDebug("File sent: " + path);
                             }
                             catch (FileNotFoundException)
                             {
-                                binary = new NotFound404().Bytes;
-                                status = "404";
+                                WriteStatus(stream, StatusCode.Code404NotFound, true);
                             }
-                            var headers = new List<Tuple<string, string, IAdditionalHeaderInfo>>
-                            {
-                                new Tuple<string, string, IAdditionalHeaderInfo>(":status", status,
-                                                                     new Indexation(IndexationType.Indexed)),
-                            };
-                            stream.WriteHeadersFrame(headers, false);
-                            SendDataTo(stream, binary);
+
                             break;
                         case "delete":
-                            binary = new AccessDenied401().Bytes;
-                            var headersDenied = new List<Tuple<string, string, IAdditionalHeaderInfo>>
-                            {
-                                new Tuple<string, string, IAdditionalHeaderInfo>(":status", "401",
-                                                                     new Indexation(IndexationType.Indexed)),
-                            };
-                            stream.WriteHeadersFrame(headersDenied, false);
-                            SendDataTo(stream, binary);
+                            WriteStatus(stream, StatusCode.Code401Forbidden, true);
                             break;
                     }
                 }
@@ -356,9 +347,18 @@ namespace SocketServer
             catch (Exception)
             {
                 stream.WriteRst(ResetStatusCode.InternalError);
-
                 stream.Dispose();
             }
+        }
+
+        private void WriteStatus(Http2Stream stream, int statusCode, bool final)
+        {
+            var headers = new List<Tuple<string, string, IAdditionalHeaderInfo>>
+            {
+                new Tuple<string, string, IAdditionalHeaderInfo>(":status", statusCode.ToString(),
+                                                    new Indexation(IndexationType.Indexed)),
+            };
+            stream.WriteHeadersFrame(headers, final);
         }
 
         public void Dispose()

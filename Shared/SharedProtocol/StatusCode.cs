@@ -1,9 +1,12 @@
 ﻿namespace SharedProtocol
 {
-    //TODO Rework class (more status codes + refactor existing)
     public class StatusCode
     {
             public const int Code500InternalServerError = 500;
+            public const int Code200Ok = 200;
+            public const int Code404NotFound = 404;
+            public const int Code401Forbidden = 401;
+            public const int Code100Continue = 100;
 
             public const string Reason500InternalServerError = "Internal Server Error";
 
@@ -11,9 +14,9 @@
             {
                 switch (statusCode)
                 {
-                    case 100: return "Continue";
-                    case 200: return "OK";
-                    case 404: return "Not Found";
+                    case Code100Continue: return "Continue";
+                    case Code200Ok: return "OK";
+                    case Code404NotFound: return "Not Found";
                     case Code500InternalServerError: return Reason500InternalServerError;
 
                     default:
