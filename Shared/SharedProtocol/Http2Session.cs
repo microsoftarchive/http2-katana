@@ -117,7 +117,7 @@ namespace SharedProtocol
 
             _goAwayReceived = false;
             _settingsManager = new SettingsManager();
-            _comprProc = new CompressionProcessor();
+            _comprProc = new CompressionProcessor(_ourEnd);
             _sessionSocket = sessionSocket;
 
             _frameReader = new FrameReader(_sessionSocket);
@@ -227,7 +227,7 @@ namespace SharedProtocol
                                          headersFrame.CompressedHeaders.Offset,
                                          serializedHeaders, 0, serializedHeaders.Length);
 
-                        var decompressedHeaders = _comprProc.Decompress(serializedHeaders, frame.StreamId % 2 != 0);
+                        var decompressedHeaders = _comprProc.Decompress(serializedHeaders);
                         var headers = decompressedHeaders;
 
                         if (!headersFrame.IsEndHeaders)

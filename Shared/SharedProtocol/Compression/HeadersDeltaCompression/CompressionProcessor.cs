@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Org.Mentalis.Security.Ssl;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
@@ -17,6 +18,7 @@ namespace SharedProtocol.Compression.Http2DeltaHeadersCompression
     {
         private const int HeadersLimit = 200;
         private const int MaxHeaderByteSize = 4096;
+        private readonly ConnectionEnd _ourEnd;
 
 
         private readonly SizedHeadersList _requestHeadersStorage;
@@ -24,8 +26,9 @@ namespace SharedProtocol.Compression.Http2DeltaHeadersCompression
 
         private MemoryStream _serializerStream;
 
-        public CompressionProcessor()
+        public CompressionProcessor(ConnectionEnd end)
         {
+            _ourEnd = end;
             _requestHeadersStorage = CompressionInitialHeaders.RequestInitialHeaders;
             _responseHeadersStorage = CompressionInitialHeaders.ResponseInitialHeaders;
 
@@ -208,10 +211,10 @@ namespace SharedProtocol.Compression.Http2DeltaHeadersCompression
             }
         }
 
-        public byte[] Compress(IList<Tuple<string, string, IAdditionalHeaderInfo> > headers, bool isRequest)
+        public byte[] Compress(IList<Tuple<string, string, IAdditionalHeaderInfo> > headers)
         {
             var headersCopy = new List<Tuple<string, string, IAdditionalHeaderInfo>>(headers);
-            var useHeadersTable = isRequest ? _requestHeadersStorage : _responseHeadersStorage;
+            var useHeadersTable = _ourEnd == ConnectionEnd.Client ? _requestHeadersStorage : _responseHeadersStorage;
             ClearStream(_serializerStream, (int) _serializerStream.Position);
 
             OptimizeInputAndSendOptimized(headersCopy, useHeadersTable);
@@ -353,12 +356,12 @@ namespace SharedProtocol.Compression.Http2DeltaHeadersCompression
             return indexationType;
         }
 
-        public List<Tuple<string, string, IAdditionalHeaderInfo> > Decompress(byte[] serializedHeaders, bool isRequest)
+        public List<Tuple<string, string, IAdditionalHeaderInfo> > Decompress(byte[] serializedHeaders)
         {
             try
             {
 
-                var useHeadersTable = isRequest ? _requestHeadersStorage : _responseHeadersStorage;
+                var useHeadersTable = _ourEnd == ConnectionEnd.Client ? _requestHeadersStorage : _responseHeadersStorage;
                 var result = new List<Tuple<string, string, IAdditionalHeaderInfo>>(16);
                 _currentOffset = 0;
 
