@@ -323,7 +323,7 @@ namespace SharedProtocol
 
                         if (pingFrame.FrameLength != PingFrame.PayloadLength)
                         {
-                            throw new ProtocolError(ResetStatusCode.ProtocolError, "Ping payload size not equal 8");
+                            throw new ProtocolError(ResetStatusCode.ProtocolError, "Ping payload size is not equal to 8");
                         }
 
                         if (pingFrame.IsPong)
@@ -644,6 +644,7 @@ namespace SharedProtocol
 
             if (_writeQueue != null)
             {
+                _writeQueue.Flush();
                 _writeQueue.Dispose();
             }
 

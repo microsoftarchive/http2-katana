@@ -63,22 +63,37 @@ namespace SharedProtocol.IO
 
         public void PumpToStream()
         {
-                while (!_disposed)
+            while (!_disposed)
+            {
+                //Send one at a time
+                lock (_writeLock)
                 {
-                    //Send one at a time
-                    lock (_writeLock)
+                    if (_messageQueue.Count > 0)
                     {
-                        if (_messageQueue.Count > 0)
+                        var entry = _messageQueue.Dequeue();
+                        if (entry != null)
                         {
-                            var entry = _messageQueue.Dequeue();
-                            if (entry != null)
-                            {
-                                int sent = _socket.Send(entry.Buffer, 0, entry.Buffer.Length, SocketFlags.None);
-                            }
+                            int sent = _socket.Send(entry.Buffer, 0, entry.Buffer.Length, SocketFlags.None);
                         }
                     }
-                    Thread.Sleep(10);
+                    else
+                    {
+                        Thread.Sleep(10);
+                    }
                 }
+            }
+        }
+
+        public void Flush()
+        {
+            while (_messageQueue.Count > 0 && !_socket.IsClosed && !_disposed)
+            {
+                var entry = _messageQueue.Dequeue();
+                if (entry != null)
+                {
+                    int sent = _socket.Send(entry.Buffer, 0, entry.Buffer.Length, SocketFlags.None);
+                }
+            }
         }
 
         public void Dispose()
