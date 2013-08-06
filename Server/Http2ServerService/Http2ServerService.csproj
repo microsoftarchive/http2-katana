@@ -121,7 +121,8 @@
     <PostBuildEvent>copy /y "$(SolutionDir)Drop\certificate.pfx"  "$(TargetDir)\certificate.pfx"
 
 xcopy "$(ProjectDir)Root"  "$(TargetDir)Root" /S /F /R /Y /I
-copy /y "$(TargetPath)" "$(SolutionDir)Drop\$(TargetFileName)"</PostBuildEvent>
+copy /y "$(TargetPath)" "$(SolutionDir)Drop\$(TargetFileName)"
+copy /y "$(TargetDir)\$(TargetFileName).config" "$(SolutionDir)Drop\$(TargetFileName).config"</PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

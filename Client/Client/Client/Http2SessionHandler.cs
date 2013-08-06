@@ -43,7 +43,7 @@ namespace Client
         private readonly FileHelper _fileHelper;
         private readonly object _writeLock = new object();
         private bool _isDisposed;
-
+        private string _path;
         private int _port;
         private string _version;
         private string _scheme;
@@ -94,6 +94,7 @@ namespace Client
         {
             var result = new Dictionary<string, object>
 			{
+                    {":path", _path},
 					{":version", _version},
                     {":scheme", _scheme},
                     {":host", _host},
@@ -107,6 +108,7 @@ namespace Client
 
         public bool Connect(Uri connectUri)
         {
+            _path = connectUri.PathAndQuery;
             _version = Protocols.Http2;
             _scheme = connectUri.Scheme;
             _host = connectUri.Host;
