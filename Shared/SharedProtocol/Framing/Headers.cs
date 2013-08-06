@@ -94,13 +94,14 @@ namespace SharedProtocol.Framing
             //of this frame contain a single reserved bit and a 31-bit priority;
             //If this bit is not set, the four bytes do not
             //appear and the frame only contains a header block fragment.
-            HasPriority = (priority != Priority.None);
+            bool hasPriority = (priority != Priority.None);
 
-            int preambleLength = HasPriority
+            int preambleLength = hasPriority
                 ? PreambleSizeWithPriority
                 : PreambleSizeWithoutPriority;
 
             _buffer = new byte[headerBytes.Length + preambleLength];
+            HasPriority = hasPriority;
 
             StreamId = streamId;
             FrameType = FrameType.Headers;
