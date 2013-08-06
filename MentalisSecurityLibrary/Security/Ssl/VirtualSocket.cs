@@ -81,8 +81,8 @@ namespace Org.Mentalis.Security.Ssl {
 		/// <remarks>The <paramref name="addressFamily"/> parameter specifies the addressing scheme that the VirtualSocket uses, the <paramref name="socketType"/> parameter specifies the type of the VirtualSocket, and <paramref name="protocolType"/> specifies the protocol used by the VirtualSocket. The three parameters are not independent. Some address families restrict which protocols can be used with them, and often the socket type is implicit in the protocol. If the combination of address family, socket type, and protocol type results in an invalid VirtualSocket, a SocketException is thrown.<br>The AddressFamily enumeration defines the valid address families, the SocketType enumeration defines the valid socket types, and the ProtocolType enumeration defines the valid protocol types.</br></remarks>
 		public VirtualSocket(AddressFamily addressFamily, SocketType socketType, ProtocolType protocolType) {
 			m_InternalSocket = new Socket(addressFamily, socketType, protocolType);
-            m_InternalSocket.ReceiveTimeout = 5000;
-            m_InternalSocket.SendTimeout = 5000;
+            m_InternalSocket.ReceiveTimeout = 60000;
+            m_InternalSocket.SendTimeout = 60000;
 		}
 		/// <summary>
 		/// Initializes a new instance of the VirtualSocket class.

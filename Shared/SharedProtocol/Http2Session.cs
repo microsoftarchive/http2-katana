@@ -161,14 +161,15 @@ namespace SharedProtocol
                     // Read failure, abort the connection/session.
                     Dispose();
                 }
-               
+
                 if (frame == null)
                 {
-                    Thread.Sleep(10);
-                    continue;
+                    Thread.Sleep(5);
                 }
-
-                DispatchIncomingFrame(frame);
+                else
+                {
+                    DispatchIncomingFrame(frame);
+                }
             }
         }
 
@@ -242,51 +243,44 @@ namespace SharedProtocol
                             headers.AddRange(_toBeContinuedHeaders);
                         }
 
-                        try
-                        {
-                            stream = GetStream(headersFrame.StreamId);
-                            // Drop the frame on the floor, should update the headers for this stream.
-                            break;
-                        }
-                        catch (Http2StreamNotFoundException)
-                        {
-                            // Continue with creating new stream
-                        }
 
-                        //Remote side tries to open more streams than allowed
-                        if (ActiveStreams.GetOpenedStreamsBy(_remoteEnd) + 1 > OurMaxConcurrentStreams)
-                        {
-                            Dispose();
-                            return;
-                        }
+                        stream = GetStream(headersFrame.StreamId);
 
-                        string path;
-                        try
+                        if (stream == null)
                         {
-                            path = headers.GetValue(":path");
-                        }
-                        catch (KeyNotFoundException)
-                        {
-                            path = _handshakeHeaders.ContainsKey(":path") ? _handshakeHeaders[":path"] : @"\index.html";
-                            headers.Add(new KeyValuePair<string, string>(":path", path));
-                        }
-
-                        stream = new Http2Stream(headers, headersFrame.StreamId,
-                                                  _writeQueue, _flowControlManager,
-                                                  _comprProc);
-
-                        ActiveStreams[stream.Id] = stream;
-
-                        stream.OnClose += (o, args) =>
-                        {
-                            if (!ActiveStreams.Remove(ActiveStreams[args.Id]))
+                            // new stream
+                            if (ActiveStreams.GetOpenedStreamsBy(_remoteEnd) + 1 > OurMaxConcurrentStreams)
                             {
-                                throw new ArgumentException("Cant remove stream from ActiveStreams");
+                                //Remote side tries to open more streams than allowed
+                                Dispose();
+                                return;
                             }
-                        };
 
-                        _toBeContinuedFrame = null;
-                        _toBeContinuedHeaders = null;
+                            string path = headers.GetValue(":path");
+
+                            if (path == null)
+                            {
+                                path = _handshakeHeaders.ContainsKey(":path") ? _handshakeHeaders[":path"] : @"\index.html";
+                                headers.Add(new KeyValuePair<string, string>(":path", path));
+                            }
+
+                            stream = new Http2Stream(headers, headersFrame.StreamId,
+                                                      _writeQueue, _flowControlManager,
+                                                      _comprProc);
+
+                            ActiveStreams[stream.Id] = stream;
+
+                            stream.OnClose += (o, args) =>
+                            {
+                                if (!ActiveStreams.Remove(ActiveStreams[args.Id]))
+                                {
+                                    throw new ArgumentException("Cant remove stream from ActiveStreams");
+                                }
+                            };
+
+                            _toBeContinuedFrame = null;
+                            _toBeContinuedHeaders = null;
+                        }
                         break;
 
                     case FrameType.Priority:
@@ -360,8 +354,11 @@ namespace SharedProtocol
                             Http2Logger.LogDebug("WindowUpdate frame. Delta: {0} StreamId: {1}", windowFrame.Delta, windowFrame.StreamId);
                             stream = GetStream(windowFrame.StreamId);
 
-                            stream.UpdateWindowSize(windowFrame.Delta);
-                            stream.PumpUnshippedFrames();
+                            if (stream != null)
+                            {
+                                stream.UpdateWindowSize(windowFrame.Delta);
+                                stream.PumpUnshippedFrames();
+                            }
                         }
                         break;
 
@@ -464,9 +461,9 @@ namespace SharedProtocol
 
             ActiveStreams[id].OnClose += (o, args) =>
                 {
-                    if (ActiveStreams.Remove(ActiveStreams[args.Id]) == false)
+                    if (!ActiveStreams.Remove(ActiveStreams[args.Id]))
                     {
-                        throw new ArgumentException("Cant remove stream from ActiveStreams");
+                        throw new ArgumentException("Can't remove stream from ActiveStreams.");
                     }
                 };
 
@@ -509,7 +506,7 @@ namespace SharedProtocol
             Http2Stream stream;
             if (!ActiveStreams.TryGetValue(id, out stream))
             {
-                throw new Http2StreamNotFoundException(id);
+                return null;
             }
             return stream;
         }

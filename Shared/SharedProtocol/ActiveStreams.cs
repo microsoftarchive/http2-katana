@@ -220,7 +220,7 @@ namespace SharedProtocol
             {
                 return NonFlowControlledStreams.Remove(itemId);
             }
-            return true; //Nothing to delete. We think that item was already deleted.
+            return true; //Nothing to delete. Item was already deleted.
         }
 
         public bool Remove(Http2Stream item)
