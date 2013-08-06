@@ -186,13 +186,13 @@ namespace Http2Tests
             string scheme = uri.Scheme;
             string host = uri.Host;
 
-            var pairs = new List<Tuple<string, string, IAdditionalHeaderInfo>>
+            var pairs = new List<KeyValuePair<string, string>>
                 {
-                    new Tuple<string, string, IAdditionalHeaderInfo>(":method", method, new Indexation(IndexationType.Indexed)),
-                    new Tuple<string, string, IAdditionalHeaderInfo>(":path", path, new Indexation(IndexationType.Substitution)),
-                    new Tuple<string, string, IAdditionalHeaderInfo>(":version", version, new Indexation(IndexationType.Incremental)),
-                    new Tuple<string, string, IAdditionalHeaderInfo>(":host", host, new Indexation(IndexationType.Substitution)),
-                    new Tuple<string, string, IAdditionalHeaderInfo>(":scheme", scheme, new Indexation(IndexationType.Substitution)),
+                    new KeyValuePair<string, string>(":method", method),
+                    new KeyValuePair<string, string>(":path", path),
+                    new KeyValuePair<string, string>(":version", version),
+                    new KeyValuePair<string, string>(":host", host),
+                    new KeyValuePair<string, string>(":scheme", scheme),
                 };
 
             session.SendRequest(pairs, Priority.Pri3, false);

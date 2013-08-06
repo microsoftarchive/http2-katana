@@ -359,10 +359,9 @@ namespace SocketServer
 
         private void WriteStatus(Http2Stream stream, int statusCode, bool final)
         {
-            var headers = new List<Tuple<string, string, IAdditionalHeaderInfo>>
+            var headers = new List<KeyValuePair<string, string>>
             {
-                new Tuple<string, string, IAdditionalHeaderInfo>(":status", statusCode.ToString(),
-                                                    new Indexation(IndexationType.Indexed)),
+                new KeyValuePair<string, string>(":status", statusCode.ToString()),
             };
             stream.WriteHeadersFrame(headers, final);
         }
