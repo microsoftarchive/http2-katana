@@ -59,19 +59,12 @@ namespace SocketServer
             }
             catch (Exception)
             {
-                Http2Logger.LogError("Incorrect port in the config file!");
-               
-                Http2Logger.LogError(ConfigurationManager.AppSettings["securePort"]);
+                Http2Logger.LogError("Incorrect port in the config file!" + ConfigurationManager.AppSettings["securePort"]);
                 return;
             }
 
-            if (_port == securePort
-                &&
-                _scheme == Uri.UriSchemeHttp
-                ||
-                _port != securePort
-                &&
-                _scheme == Uri.UriSchemeHttps)
+            if (_port == securePort && _scheme == Uri.UriSchemeHttp
+                || _port != securePort && _scheme == Uri.UriSchemeHttps)
             {
                 Http2Logger.LogError("Invalid scheme or port! Use https for secure port.");
                 return;

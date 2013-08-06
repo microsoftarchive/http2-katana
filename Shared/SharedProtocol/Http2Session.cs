@@ -297,8 +297,11 @@ namespace SharedProtocol
                         var resetFrame = (RstStreamFrame)frame;
                         stream = GetStream(resetFrame.StreamId);
 
-                        Http2Logger.LogDebug("RST frame with code " + resetFrame.StatusCode);
-                        stream.Dispose();
+                        if (stream != null)
+                        {
+                            Http2Logger.LogDebug("RST frame with code " + resetFrame.StatusCode);
+                            stream.Dispose();
+                        }
                         break;
                     case FrameType.Data:
                         var dataFrame = (DataFrame)frame;
