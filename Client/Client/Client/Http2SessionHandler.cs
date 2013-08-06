@@ -411,18 +411,7 @@ namespace Client
                         }
                         else if (args.Frame is Headers)
                         {
-                            string path = stream.Headers.GetValue(":path".ToLower());
-                            byte[] binary;
-
-                            try
-                            {
-                                binary = _fileHelper.GetFile(path);
-                            }
-                            catch (FileNotFoundException)
-                            {
-                                binary = new NotFound404().Bytes;
-                            }
-                            SendDataTo(stream, binary);
+                            Http2Logger.LogConsole("Headers received for stream: " + args.Frame.StreamId + " status:" + stream.Headers.GetValue(":status"));
                         }
                         break;
                 }
