@@ -34,7 +34,7 @@ namespace SocketServer
         private readonly bool _useFlowControl;
         private bool _disposed;
         private readonly SecurityOptions _options;
-        private readonly  SecureTcpListener _server;
+        private readonly SecureTcpListener _server;
         private List<string> _listOfRootFiles = new List<string>();
 
         public HttpSocketServer(Func<IDictionary<string, object>, Task> next, IDictionary<string, object> properties)
@@ -42,14 +42,14 @@ namespace SocketServer
             _next = next;
 
             var addresses = (IList<IDictionary<string, object>>)properties[OwinConstants.CommonKeys.Addresses];
-            
+
             var address = addresses.First();
             _port = Int32.Parse(address.Get<string>("port"));
             _scheme = address.Get<string>("scheme");
-           
-            _useHandshake = (bool) properties["use-handshake"];
-            _usePriorities = (bool) properties["use-priorities"];
-            _useFlowControl = (bool) properties["use-flowControl"];
+
+            _useHandshake = (bool)properties["use-handshake"];
+            _usePriorities = (bool)properties["use-priorities"];
+            _useFlowControl = (bool)properties["use-flowControl"];
 
             int securePort;
 
@@ -70,7 +70,7 @@ namespace SocketServer
                 return;
             }
 
-            var extensions = new [] { ExtensionType.Renegotiation, ExtensionType.ALPN };
+            var extensions = new[] { ExtensionType.Renegotiation, ExtensionType.ALPN };
 
             // protocols should be in order of their priority
             _options = _port == securePort ? new SecurityOptions(SecureProtocol.Tls1, extensions, new[] { Protocols.Http2, Protocols.Http1 }, ConnectionEnd.Server)
@@ -92,19 +92,19 @@ namespace SocketServer
         {
             lock (IndexFileName)
             {
-            using (var indexFile = new StreamWriter(AssemblyName + @"\Root" + IndexFileName))
-            {
-                string dirPath = AssemblyName + @"\Root";
+                using (var indexFile = new StreamWriter(AssemblyName + @"\Root" + IndexFileName))
+                {
+                    string dirPath = AssemblyName + @"\Root";
                     _listOfRootFiles =
                         Directory.EnumerateFiles(dirPath, "*", SearchOption.TopDirectoryOnly)
                                  .Select(Path.GetFileName)
                                  .ToList();
-                foreach (var fileName in _listOfRootFiles)
-                {
-                    indexFile.Write(fileName + "<br>\n");
+                    foreach (var fileName in _listOfRootFiles)
+                    {
+                        indexFile.Write(fileName + "<br>\n");
+                    }
                 }
             }
-        }
         }
 
         private void Listen()

@@ -19,7 +19,7 @@ namespace SharedProtocol.Handshake
     public class UpgradeHandshaker
     {
         private const int HandshakeResponseSizeLimit = 4096;
-        private static readonly byte[] CRLFCRLF = new [] { (byte)'\r', (byte)'\n', (byte)'\r', (byte)'\n' };
+        private static readonly byte[] CRLFCRLF = new[] { (byte)'\r', (byte)'\n', (byte)'\r', (byte)'\n' };
         private const int Timeout = 60000;
 
 
@@ -35,10 +35,10 @@ namespace SharedProtocol.Handshake
 
         public UpgradeHandshaker(IDictionary<string, object> handshakeEnvironment)
         {
-            InternalSocket = (SecureSocket) handshakeEnvironment["secureSocket"];
-            _end = (ConnectionEnd) handshakeEnvironment["end"];
+            InternalSocket = (SecureSocket)handshakeEnvironment["secureSocket"];
+            _end = (ConnectionEnd)handshakeEnvironment["end"];
             _responseReceivedRaised = new ManualResetEvent(false);
-           _handshakeResult = new Dictionary<string, object>();
+            _handshakeResult = new Dictionary<string, object>();
 
             if (_end == ConnectionEnd.Client)
             {
@@ -47,6 +47,7 @@ namespace SharedProtocol.Handshake
                 {
                     _headers = new Dictionary<string, string>
                         {
+                            {":path", (string) handshakeEnvironment[":path"]},
                             {":host", (string) handshakeEnvironment[":host"]},
                             {":version", (string) handshakeEnvironment[":version"]}
                         };
@@ -63,11 +64,11 @@ namespace SharedProtocol.Handshake
             var response = new HandshakeResponse();
             _readThread = new Thread((object state) =>
                 {
-                    var handle = state as EventWaitHandle;                   
+                    var handle = state as EventWaitHandle;
 
                     try
-                {
-                    response = Read11Headers();
+                    {
+                        response = Read11Headers();
                         _wasResponseReceived = true;
                         if (handle != null) handle.Set();
                     }
@@ -84,12 +85,12 @@ namespace SharedProtocol.Handshake
 
             _readThread.IsBackground = true;
             _readThread.Start(_responseReceivedRaised);
- 
+
             if (_end == ConnectionEnd.Client)
             {
                 // Build the request
                 var builder = new StringBuilder();
-                builder.AppendFormat("{0} {1} {2}\r\n", "get", "/default.html", "HTTP/1.1");
+                builder.AppendFormat("{0} {1} {2}\r\n", "get", _headers[":path"], "HTTP/1.1");
                 //TODO pass here requested filename
                 builder.AppendFormat("Host: {0}\r\n", _headers[":host"]);
                 builder.Append("Connection: Upgrade, Http2-Settings\r\n");
@@ -101,7 +102,8 @@ namespace SharedProtocol.Handshake
                 {
                     foreach (var key in _headers.Keys)
                     {
-                        builder.AppendFormat("{0}: {1}\r\n", key, _headers[key]);
+                        if (!string.Equals(":path", key, StringComparison.OrdinalIgnoreCase))
+                            builder.AppendFormat("{0}: {1}\r\n", key, _headers[key]);
                     }
                 }
                 builder.Append("\r\n");
@@ -183,7 +185,7 @@ namespace SharedProtocol.Handshake
                 {
                     return new HandshakeResponse { Result = HandshakeResult.UnexpectedConnectionClose };
                 }
-                
+
                 readOffset += read;
                 int lastInspectionOffset = Math.Max(0, readOffset - CRLFCRLF.Length);
                 int matchIndex;
@@ -279,7 +281,7 @@ namespace SharedProtocol.Handshake
             var headers = Regex.Matches(clientResponse, "^:.*$", RegexOptions.Multiline | RegexOptions.Compiled);
             foreach (Match header in headers)
             {
-                string[] nameValue = header.Value.Split(new []{' '}, StringSplitOptions.RemoveEmptyEntries);
+                string[] nameValue = header.Value.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
                 _handshakeResult.Add(nameValue[0].ToLower().TrimEnd(':'), nameValue[1].TrimEnd('\r', '\n'));
             }
         }
