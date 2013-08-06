@@ -101,7 +101,6 @@ namespace SharedProtocol.Framing
                 : PreambleSizeWithoutPriority;
 
             _buffer = new byte[headerBytes.Length + preambleLength];
-            HasPriority = (priority != Priority.None);
 
             StreamId = streamId;
             FrameType = FrameType.Headers;
