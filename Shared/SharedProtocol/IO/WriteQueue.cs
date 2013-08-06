@@ -86,12 +86,13 @@ namespace SharedProtocol.IO
 
         public void Flush()
         {
-            while (_messageQueue.Count > 0 && !_socket.IsClosed && !_disposed)
+            while (_messageQueue.Count > 0 && !_disposed)
             {
                 var entry = _messageQueue.Dequeue();
                 if (entry != null)
                 {
-                    int sent = _socket.Send(entry.Buffer, 0, entry.Buffer.Length, SocketFlags.None);
+                    if (!_socket.IsClosed)
+                        _socket.Send(entry.Buffer, 0, entry.Buffer.Length, SocketFlags.None);
                 }
             }
         }

@@ -107,7 +107,7 @@ namespace Client
 
         public bool Connect(Uri connectUri)
         {
-            _version = Protocols.Http1;
+            _version = Protocols.Http2;
             _scheme = connectUri.Scheme;
             _host = connectUri.Host;
             _port = connectUri.Port;

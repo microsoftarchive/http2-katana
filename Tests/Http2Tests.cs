@@ -182,7 +182,7 @@ namespace Http2Tests
         {
             const string method = "get";
             string path = uri.PathAndQuery;
-            const string version = "http/2.0";
+            string version = Protocols.Http2;
             string scheme = uri.Scheme;
             string host = uri.Host;
 
@@ -195,7 +195,7 @@ namespace Http2Tests
                     new KeyValuePair<string, string>(":scheme", scheme),
                 };
 
-            session.SendRequest(pairs, Priority.Pri3, false);
+            session.SendRequest(pairs, Priority.None, false);
 
             return session.ActiveStreams[1];
         }

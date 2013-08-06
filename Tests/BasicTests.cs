@@ -201,29 +201,38 @@ namespace BasicTests
         [Fact]
         public void CompressionSuccessful()
         {
-            var headers = new List<KeyValuePair<string, string>>
+            var clientHeaders = new List<KeyValuePair<string, string>>
                 {
-                    new KeyValuePair<string, string>(":method", "GET"),
-                    new KeyValuePair<string, string>(":path", "test.txt"),
-                    new KeyValuePair<string, string>(":version", Protocols.Http2),
+                    new KeyValuePair<string, string>(":method", "get"),
+                    new KeyValuePair<string, string>(":path", "/test.txt"),
                     new KeyValuePair<string, string>(":version", Protocols.Http2),
                     new KeyValuePair<string, string>(":host", "localhost"),
-                    new KeyValuePair<string, string>(":scheme", "HTTPS"),
+                    new KeyValuePair<string, string>(":scheme", "http"),
                 };
-            var compressor = new CompressionProcessor(ConnectionEnd.Client);
-            var decompressor = new CompressionProcessor(ConnectionEnd.Client);
+            var clientCompressor = new CompressionProcessor(ConnectionEnd.Client);
+            var serverDecompressor = new CompressionProcessor(ConnectionEnd.Server);
 
-            List<KeyValuePair<string, string>> decompressed = null;
+            var serializedHeaders = clientCompressor.Compress(clientHeaders);
+            var decompressedHeaders = new List<KeyValuePair<string, string>>(serverDecompressor.Decompress(serializedHeaders));
 
-            for (int i = 0; i < 10; i++)
+            foreach (var t in clientHeaders)
             {
-                var serialized = compressor.Compress(headers);
-                decompressed = new List<KeyValuePair<string, string>>(decompressor.Decompress(serialized));
+                Assert.Equal(decompressedHeaders.GetValue(t.Key), t.Value);
             }
 
-            foreach (var t in headers)
+            var serverHeaders = new List<KeyValuePair<string, string>>
+                {
+                    new KeyValuePair<string, string>(":status", StatusCode.Code200Ok.ToString()),
+                };
+            var serverCompressor = new CompressionProcessor(ConnectionEnd.Server);
+            var clientDecompressor = new CompressionProcessor(ConnectionEnd.Client);
+
+            serializedHeaders = serverCompressor.Compress(serverHeaders);
+            decompressedHeaders = new List<KeyValuePair<string, string>>(clientCompressor.Decompress(serializedHeaders));
+
+            foreach (var t in serverHeaders)
             {
-                Assert.Equal(decompressed.GetValue(t.Key), t.Value);
+                Assert.Equal(decompressedHeaders.GetValue(t.Key), t.Value);
             }
         }
     }

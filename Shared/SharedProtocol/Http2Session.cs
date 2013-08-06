@@ -635,16 +635,19 @@ namespace SharedProtocol
                 stream.Dispose();
             }
 
-            WriteGoAway(status);
-
             OnSettingsSent = null;
             OnFrameReceived = null;
             OnFrameSent = null;
 
-            if (_writeQueue != null)
+            if (!_goAwayReceived)
             {
-                _writeQueue.Flush();
-                _writeQueue.Dispose();
+                WriteGoAway(status);
+
+                if (_writeQueue != null)
+                {
+                    _writeQueue.Flush();
+                    _writeQueue.Dispose();
+                }
             }
 
             _comprProc.Dispose();
