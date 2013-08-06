@@ -201,29 +201,29 @@ namespace BasicTests
         [Fact]
         public void CompressionSuccessful()
         {
-            var headers = new List<Tuple<string, string, IAdditionalHeaderInfo>>
+            var headers = new List<KeyValuePair<string, string>>
                 {
-                    new Tuple<string, string, IAdditionalHeaderInfo>(":method", "GET", new Indexation(IndexationType.Indexed)),
-                    new Tuple<string, string, IAdditionalHeaderInfo>(":path", "test.txt", new Indexation(IndexationType.Substitution)),
-                    new Tuple<string, string, IAdditionalHeaderInfo>(":version", Protocols.Http2, new Indexation(IndexationType.Incremental)),
-                    new Tuple<string, string, IAdditionalHeaderInfo>(":version", Protocols.Http2, new Indexation(IndexationType.Incremental)),
-                    new Tuple<string, string, IAdditionalHeaderInfo>(":host", "localhost", new Indexation(IndexationType.Substitution)),
-                    new Tuple<string, string, IAdditionalHeaderInfo>(":scheme", "HTTPS", new Indexation(IndexationType.Substitution)),
+                    new KeyValuePair<string, string>(":method", "GET"),
+                    new KeyValuePair<string, string>(":path", "test.txt"),
+                    new KeyValuePair<string, string>(":version", Protocols.Http2),
+                    new KeyValuePair<string, string>(":version", Protocols.Http2),
+                    new KeyValuePair<string, string>(":host", "localhost"),
+                    new KeyValuePair<string, string>(":scheme", "HTTPS"),
                 };
             var compressor = new CompressionProcessor(ConnectionEnd.Client);
             var decompressor = new CompressionProcessor(ConnectionEnd.Client);
 
-            List<Tuple<string, string, IAdditionalHeaderInfo>> decompressed = null;
+            List<KeyValuePair<string, string>> decompressed = null;
 
             for (int i = 0; i < 10; i++)
             {
                 var serialized = compressor.Compress(headers);
-                decompressed = decompressor.Decompress(serialized);
+                decompressed = new List<KeyValuePair<string, string>>(decompressor.Decompress(serialized));
             }
 
             foreach (var t in headers)
             {
-                Assert.Equal(decompressed.GetValue(t.Item1), t.Item2);
+                Assert.Equal(decompressed.GetValue(t.Key), t.Value);
             }
         }
     }

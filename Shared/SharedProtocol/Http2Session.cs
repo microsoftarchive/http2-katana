@@ -36,7 +36,7 @@ namespace SharedProtocol
         private bool _wasSettingsReceived = false;
         private bool _wasPingReceived = false;
         private bool _wasResponseReceived = false;
-        private List<Tuple<string, string, IAdditionalHeaderInfo>> _toBeContinuedHeaders = null;
+        private IList<KeyValuePair<string, string>> _toBeContinuedHeaders = null;
         private Frame _toBeContinuedFrame = null;
         private readonly Dictionary<string, string> _handshakeHeaders;
 
@@ -228,7 +228,7 @@ namespace SharedProtocol
                                          serializedHeaders, 0, serializedHeaders.Length);
 
                         var decompressedHeaders = _comprProc.Decompress(serializedHeaders);
-                        var headers = decompressedHeaders;
+                        var headers = new List<KeyValuePair<string, string>>(decompressedHeaders);
 
                         if (!headersFrame.IsEndHeaders)
                         {
@@ -268,7 +268,7 @@ namespace SharedProtocol
                         catch (KeyNotFoundException)
                         {
                             path = _handshakeHeaders.ContainsKey(":path") ? _handshakeHeaders[":path"] : @"\index.html";
-                            headers.Add(new Tuple<string, string, IAdditionalHeaderInfo>(":path", path, null));
+                            headers.Add(new KeyValuePair<string, string>(":path", path));
                         }
 
                         stream = new Http2Stream(headers, headersFrame.StreamId,
@@ -487,7 +487,7 @@ namespace SharedProtocol
         /// <param name="pairs">The header pairs.</param>
         /// <param name="priority">The stream priority.</param>
         /// <param name="isEndStream">True if initial headers+priority is also the final frame from endpoint.</param>
-        public void SendRequest(List<Tuple<string, string, IAdditionalHeaderInfo>> pairs, Priority priority, bool isEndStream)
+        public void SendRequest(List<KeyValuePair<string, string>> pairs, Priority priority, bool isEndStream)
         {
             var stream = CreateStream(priority);
 

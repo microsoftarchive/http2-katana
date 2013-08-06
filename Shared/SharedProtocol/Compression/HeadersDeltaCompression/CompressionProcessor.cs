@@ -18,19 +18,28 @@ namespace SharedProtocol.Compression.Http2DeltaHeadersCompression
     {
         private const int HeadersLimit = 200;
         private const int MaxHeaderByteSize = 4096;
-        private readonly ConnectionEnd _ourEnd;
 
-
-        private readonly SizedHeadersList _requestHeadersStorage;
-        private readonly SizedHeadersList _responseHeadersStorage;
+        private readonly SizedHeadersList _localHeaderTable;
+        private readonly SizedHeadersList _remoteHeaderTable;
+        private SizedHeadersList _localRefSet;
+        private SizedHeadersList _remoteRefSet;
 
         private MemoryStream _serializerStream;
 
         public CompressionProcessor(ConnectionEnd end)
         {
-            _ourEnd = end;
-            _requestHeadersStorage = CompressionInitialHeaders.RequestInitialHeaders;
-            _responseHeadersStorage = CompressionInitialHeaders.ResponseInitialHeaders;
+            if (end == ConnectionEnd.Client)
+            {
+                _localHeaderTable = CompressionInitialHeaders.ResponseInitialHeaders;
+                _remoteHeaderTable = CompressionInitialHeaders.RequestInitialHeaders;
+            }
+            else
+            {
+                _localHeaderTable = CompressionInitialHeaders.RequestInitialHeaders;
+                _remoteHeaderTable = CompressionInitialHeaders.ResponseInitialHeaders;
+            }
+            _localRefSet = new SizedHeadersList();
+            _remoteRefSet = new SizedHeadersList();
 
             InitCompressor();
             InitDecompressor();
@@ -91,13 +100,10 @@ namespace SharedProtocol.Compression.Http2DeltaHeadersCompression
 
         #region Compression
 
-        private void CompressHeader(Tuple<string, string, IAdditionalHeaderInfo> header,
-                                        SizedHeadersList useHeadersTable)
+        private void CompressHeader(KeyValuePair<string, string> header, IAdditionalHeaderInfo type)
         {
             byte prefix = 0;
-            var headerName = header.Item1;
-            var headerValue = header.Item2;
-            var headerType = (header.Item3 as Indexation).Type;
+            var headerType = (type as Indexation).Type;
 
             switch (headerType)
             {
@@ -109,17 +115,16 @@ namespace SharedProtocol.Compression.Http2DeltaHeadersCompression
                     prefix = 6;
                     break;
                 case IndexationType.Indexed:
-                    CompressIndexed(new KeyValuePair<string, string>(headerName, headerValue), useHeadersTable);
+                    CompressIndexed(header);
                     return;
             }
 
-            CompressNonIndexed(headerName, headerValue, headerType, prefix, useHeadersTable);
+            CompressNonIndexed(header.Key, header.Value, headerType, prefix);
         }
 
-        private void CompressNonIndexed(string headerName, string headerValue, IndexationType headerType, byte prefix,
-                                        SizedHeadersList useHeadersTable)
+        private void CompressNonIndexed(string headerName, string headerValue, IndexationType headerType, byte prefix)
         {
-            int index = useHeadersTable.FindIndex(kv => kv.Key == headerName);
+            int index = _remoteHeaderTable.FindIndex(kv => kv.Key == headerName);
 
             byte nameLenBinary = 0; // headers cant be more then 255 characters length
             byte[] nameBinary = new byte[0];
@@ -168,12 +173,12 @@ namespace SharedProtocol.Compression.Http2DeltaHeadersCompression
                 WriteToOutput(stream.GetBuffer(), 0, (int)stream.Position);
             }
 
-            ModifyTable(headerName, headerValue, headerType, useHeadersTable, index);
+            ModifyTable(headerName, headerValue, headerType, _remoteHeaderTable, index);
         }
 
-        private void CompressIndexed(KeyValuePair<string, string> header, SizedHeadersList useHeadersTable)
+        private void CompressIndexed(KeyValuePair<string, string> header)
         {
-            int index = useHeadersTable.FindIndex(kv => kv.Key == header.Key && kv.Value == header.Value);
+            int index = _remoteHeaderTable.IndexOf(header);
             const byte prefix = 7;
             var bytes = index.ToUVarInt(prefix);
 
@@ -185,48 +190,75 @@ namespace SharedProtocol.Compression.Http2DeltaHeadersCompression
 
         //Method retypes as many headers as it can to be Indexed
         //and checks if headers marked as indexed are present in the headers table
-        private void OptimizeInputAndSendOptimized(List<Tuple<string, string, IAdditionalHeaderInfo>> headers, SizedHeadersList useHeadersTable)
+        /*private void OptimizeInputAndSendOptimized(List<KeyValuePair<string, string>> headers)
         {
             for (int i = 0; i < headers.Count; i++ )
             {
                 var headerKv = new KeyValuePair<string, string>(headers[i].Item1, headers[i].Item2);
                 IndexationType headerType = (headers[i].Item3 as Indexation).Type;
 
-                int index = useHeadersTable.IndexOf(headerKv);
+                int index = _remoteHeaderTable.IndexOf(headerKv);
 
                 //case headerType == IndexationType.Incremental
                 //must not be considered because headers table can contain duplicates
                 if (index != -1 && headerType == IndexationType.Substitution)
                 {
-                    CompressIndexed(headerKv, useHeadersTable);
+                    CompressIndexed(headerKv);
                     headers.Remove(headers[i--]);
                 }
 
                 //If header marked as indexed, but not found in the table, compress it as incremental.
                 if (index == -1 && headerType == IndexationType.Indexed)
                 {
-                    CompressNonIndexed(headerKv.Key, headerKv.Value, IndexationType.Incremental, 5, useHeadersTable);
+                    CompressNonIndexed(headerKv.Key, headerKv.Value, IndexationType.Incremental, 5);
                     headers.Remove(headers[i--]);
                 }
             }
-        }
+        }*/
 
-        public byte[] Compress(IList<Tuple<string, string, IAdditionalHeaderInfo> > headers)
+        public byte[] Compress(IList<KeyValuePair<string, string>> headers)
         {
-            var headersCopy = new List<Tuple<string, string, IAdditionalHeaderInfo>>(headers);
-            var useHeadersTable = _ourEnd == ConnectionEnd.Client ? _requestHeadersStorage : _responseHeadersStorage;
+            var toSend = new SizedHeadersList();
+            var toDelete = new SizedHeadersList(_remoteRefSet);
             ClearStream(_serializerStream, (int) _serializerStream.Position);
 
-            OptimizeInputAndSendOptimized(headersCopy, useHeadersTable);
+            //OptimizeInputAndSendOptimized(headersCopy); - dont need this?
 
-            foreach (var header in headersCopy)
+            foreach (var header in headers)
             {
-                if (header.Item1 == null || header.Item2 == null || header.Item3 == null)
+                if (header.Key == null || header.Value == null)
                 {
                     throw new InvalidHeaderException(header);
                 }
-
-                CompressHeader(header, useHeadersTable);
+                if (!_remoteRefSet.Contains(header))
+                {
+                    //Not there, Will send
+                    toSend.Add(header);
+                }
+                else
+                {
+                    //Already there, don't delete
+                    toDelete.Remove(header);
+                }
+            }
+            foreach (var header in toDelete)
+            {
+                //Anything left in toDelete, should send, so it is deleted from ref set.
+                CompressIndexed(header);
+                _remoteRefSet.Remove(header); //Update our copy
+            }
+            foreach (var header in toSend)
+            {
+                //Send whatever was left in headersCopy
+                if (_remoteHeaderTable.Contains(header))
+                {
+                    CompressIndexed(header);
+                }
+                else
+                {
+                    CompressHeader(header, new Indexation(IndexationType.Incremental));
+                }
+                _remoteRefSet.Add(header); //Update our copy
             }
 
             _serializerStream.Flush();
@@ -242,7 +274,7 @@ namespace SharedProtocol.Compression.Http2DeltaHeadersCompression
 
         private int _currentOffset;
 
-        private Tuple<string, string, IAdditionalHeaderInfo> ParseHeader(byte[] bytes, SizedHeadersList useHeadersTable)
+        private KeyValuePair<string, string> ParseHeader(byte[] bytes)
         {
             var type = GetHeaderType(bytes);
             int index = GetIndex(bytes, type);
@@ -254,8 +286,8 @@ namespace SharedProtocol.Compression.Http2DeltaHeadersCompression
             switch (type)
             {
                 case IndexationType.Indexed:
-                    var kv = useHeadersTable[index];
-                    return new Tuple<string, string, IAdditionalHeaderInfo>(kv.Key, kv.Value, new Indexation(type));
+                    var kv = _localHeaderTable[index];
+                    return new KeyValuePair<string, string>(kv.Key, kv.Value);
                 case IndexationType.Incremental:
                 case IndexationType.WithoutIndexation:
                 case IndexationType.Substitution:
@@ -273,18 +305,18 @@ namespace SharedProtocol.Compression.Http2DeltaHeadersCompression
                     else
                     {
                         //Index increased by 1 was sent
-                        name = useHeadersTable[index - 1].Key;
+                        name = _localHeaderTable[index - 1].Key;
                     }
                     valueLen = bytes[_currentOffset++];
                     value = Encoding.UTF8.GetString(bytes, _currentOffset, valueLen);
                     _currentOffset += valueLen;
 
-                    ModifyTable(name, value, type, useHeadersTable, index - 1);
+                    ModifyTable(name, value, type, _localHeaderTable, index - 1);
 
-                    return new Tuple<string, string, IAdditionalHeaderInfo>(name, value, new Indexation(type));
+                    return new KeyValuePair<string, string>(name, value);
             }
 
-            return default(Tuple<string, string, IAdditionalHeaderInfo>);
+            return default(KeyValuePair<string, string>);
         }
         
         private int GetIndex(byte[] bytes, IndexationType type)
@@ -356,22 +388,30 @@ namespace SharedProtocol.Compression.Http2DeltaHeadersCompression
             return indexationType;
         }
 
-        public List<Tuple<string, string, IAdditionalHeaderInfo> > Decompress(byte[] serializedHeaders)
+        public IList<KeyValuePair<string, string>> Decompress(byte[] serializedHeaders)
         {
             try
             {
+                var workingSet = new SizedHeadersList(_localRefSet);
 
-                var useHeadersTable = _ourEnd == ConnectionEnd.Client ? _requestHeadersStorage : _responseHeadersStorage;
-                var result = new List<Tuple<string, string, IAdditionalHeaderInfo>>(16);
                 _currentOffset = 0;
 
                 while (_currentOffset != serializedHeaders.Length)
                 {
-                    var entry = ParseHeader(serializedHeaders, useHeadersTable);
-                    result.Add(entry);
+                    var entry = ParseHeader(serializedHeaders);
+                    if (workingSet.Contains(entry))
+                    {
+                        workingSet.Remove(entry);
+                    }
+                    else
+                    {
+                        workingSet.Add(entry);
+                    }
                 }
 
-                return result;
+                _localRefSet = new SizedHeadersList(workingSet);
+
+                return workingSet;
             }
             catch (Exception e)
             {

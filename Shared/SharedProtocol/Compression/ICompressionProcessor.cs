@@ -5,7 +5,7 @@ namespace SharedProtocol.Compression
 {
     public interface ICompressionProcessor : IDisposable
     {
-        byte[] Compress(IList<Tuple<string, string, IAdditionalHeaderInfo> > headers);
-        List<Tuple<string, string, IAdditionalHeaderInfo> > Decompress(byte[] serializedBytes);
+        byte[] Compress(IList<KeyValuePair<string, string>> headers);
+        IList<KeyValuePair<string, string>> Decompress(byte[] serializedBytes);
     }
 }

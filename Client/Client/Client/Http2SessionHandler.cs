@@ -228,30 +228,23 @@ namespace Client
         //serverPostAct should be provided only for post cmd
         private void SubmitRequest(Uri request, string method, string localPath = null, string serverPostAct = null)
         {
-            var headers = new List<Tuple<string, string, IAdditionalHeaderInfo>>
+            var headers = new List<KeyValuePair<string, string>>
                 {
-                    new Tuple<string, string, IAdditionalHeaderInfo>(":method", method,
-                                                                     new Indexation(IndexationType.Indexed)),
-                    new Tuple<string, string, IAdditionalHeaderInfo>(":path", request.PathAndQuery,
-                                                                     new Indexation(IndexationType.Substitution)),
-                    new Tuple<string, string, IAdditionalHeaderInfo>(":version", _version,
-                                                                     new Indexation(IndexationType.Incremental)),
-                    new Tuple<string, string, IAdditionalHeaderInfo>(":host", _host,
-                                                                     new Indexation(IndexationType.Substitution)),
-                    new Tuple<string, string, IAdditionalHeaderInfo>(":scheme", _scheme,
-                                                                     new Indexation(IndexationType.Substitution)),
+                    new KeyValuePair<string, string>(":method", method),
+                    new KeyValuePair<string, string>(":path", request.PathAndQuery),
+                    new KeyValuePair<string, string>(":version", _version),
+                    new KeyValuePair<string, string>(":host", _host),
+                    new KeyValuePair<string, string>(":scheme", _scheme),
                 };
 
             if (!String.IsNullOrEmpty(localPath))
             {
-                headers.Add(new Tuple<string, string, IAdditionalHeaderInfo>(":localPath".ToLower(), localPath,
-                                                                     new Indexation(IndexationType.Substitution)));
+                headers.Add(new KeyValuePair<string, string>(":localPath".ToLower(), localPath));
             }
 
             if (!String.IsNullOrEmpty(serverPostAct))
             {
-                headers.Add(new Tuple<string, string, IAdditionalHeaderInfo>(":serverPostAct".ToLower(), serverPostAct,
-                                                                     new Indexation(IndexationType.Substitution)));
+                headers.Add(new KeyValuePair<string, string>(":serverPostAct".ToLower(), serverPostAct));
             }
 
             //Sending request with average priority

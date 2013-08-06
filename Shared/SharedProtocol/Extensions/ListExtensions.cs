@@ -7,13 +7,13 @@ namespace SharedProtocol.Extensions
 {
     public static class ListExtensions
     {
-        public static string GetValue(this List<Tuple<string, string, IAdditionalHeaderInfo> > list, string key)
+        public static string GetValue(this List<KeyValuePair<string, string>> list, string key)
         {
-            var headerFound = list.Find(header => header.Item1 == key);
+            var headerFound = list.Find(header => header.Key == key);
 
-            if (headerFound != null && !headerFound.Equals(default(Tuple<string, string, IAdditionalHeaderInfo>)))
+            if (!headerFound.Equals(default(KeyValuePair<string, string>)))
             {
-                return headerFound.Item2;
+                return headerFound.Value;
             }
             
             return null;
