@@ -82,6 +82,7 @@
     <Compile Include="Handshake\HandshakeFailureReason.cs" />
     <Compile Include="Handshake\HandshakeManager.cs" />
     <Compile Include="HeadersList.cs" />
+    <Compile Include="Http11\ContentTypes.cs" />
     <Compile Include="Http11\Http11Manager.cs" />
     <Compile Include="IO\FileHelper.cs" />
     <Compile Include="Constants.cs" />
