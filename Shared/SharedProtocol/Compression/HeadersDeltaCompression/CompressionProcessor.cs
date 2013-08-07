@@ -401,16 +401,16 @@ namespace SharedProtocol.Compression.Http2DeltaHeadersCompression
                     var entry = ParseHeader(serializedHeaders);
                     var header = new KeyValuePair<string, string>(entry.Item1, entry.Item2);
 
-                    if (entry.Item3 != IndexationType.WithoutIndexation)
-                    {
-                        workingSet.Add(header);
-                    }
-                    else
+                    if (entry.Item3 == IndexationType.Indexed)
                     {
                         if (workingSet.Contains(header))
                             workingSet.RemoveAll(h => h.Equals(header));
                         else
                             workingSet.Add(header);
+                    }
+                    else
+                    {
+                        workingSet.Add(header);
                     }
                 }
 
