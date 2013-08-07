@@ -185,7 +185,6 @@ namespace SharedProtocol.Http11
         {
             string[] headers = GetHttp11Headers(socket);
             string filename = GetFileName(headers);
-            Dictionary<string,string> responseHeaders = new Dictionary<string,string>();
 
 
             if (headers.Length == 0)
@@ -208,7 +207,6 @@ namespace SharedProtocol.Http11
                 using (var sr = new StreamReader(path))
                 {
                     string file = sr.ReadToEnd();
-                    SendHeaders(socket, null, file.Length);
 
                     var fileBytes = Encoding.UTF8.GetBytes(file);
 
@@ -237,8 +235,19 @@ namespace SharedProtocol.Http11
         {
             string initialLine = "HTTP/1.1 " + statusCode + " " + StatusCode.GetReasonPhrase(statusCode) + "\r\n";
 
+            Dictionary<string,string> headers = new Dictionary<string,string>();
+            if (data.Length > 0)
+            {
+                headers.Add("Content-Type", "text/html");
+                SendHeaders(socket, headers, data.Length);
+            }
+            else
+            {
+                initialLine += "\r\n";
+            }
+
             int sent = socket.Send(Encoding.UTF8.GetBytes(initialLine));
-            if (data != null && data.Length > 0)
+            if (data.Length > 0)
                 sent += socket.Send(data);
 
             return sent;
