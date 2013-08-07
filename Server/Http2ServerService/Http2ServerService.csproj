@@ -111,10 +111,6 @@
       <Project>{ae3e0df3-1e7e-4d8d-9780-78d3d1ce436f}</Project>
       <Name>ServerOwinMiddleware</Name>
     </ProjectReference>
-    <ProjectReference Include="..\SocketServer\SocketServer.csproj">
-      <Project>{658c0a0d-a624-4532-aff0-180ec5ed7887}</Project>
-      <Name>SocketServer</Name>
-    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>

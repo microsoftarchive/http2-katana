@@ -193,11 +193,11 @@ namespace SharedProtocol.Http11
             }
 
             string path = Path.GetFullPath(AssemblyPath + @"\root" + filename);
-
+            string contentType = ContentTypes.GetTypeFromFileName(filename);
             if (!File.Exists(path))
             {
                 Http2Logger.LogError("File " + filename + " not found");
-                SendResponse(socket, new byte[0], StatusCode.Code404NotFound);
+                SendResponse(socket, new byte[0], StatusCode.Code404NotFound, contentType);
                 socket.Close();
                 return;
             }
@@ -210,7 +210,7 @@ namespace SharedProtocol.Http11
 
                     var fileBytes = Encoding.UTF8.GetBytes(file);
 
-                    int sent = SendResponse(socket, fileBytes, StatusCode.Code200Ok);
+                    int sent = SendResponse(socket, fileBytes, StatusCode.Code200Ok, contentType);
                     Http2Logger.LogDebug(string.Format("Sent: {0} bytes", sent));
                     Http2Logger.LogInfo("File sent: " + filename);
 
@@ -225,28 +225,26 @@ namespace SharedProtocol.Http11
             catch (Exception ex)
             {
                 var msgBytes = Encoding.UTF8.GetBytes(ex.Message);
-                SendResponse(socket, msgBytes, StatusCode.Code500InternalServerError);
-
+                SendResponse(socket, msgBytes, StatusCode.Code500InternalServerError, contentType);
                 Http2Logger.LogError(ex.Message);
             }
         }
 
-        public static int SendResponse(SecureSocket socket, byte[] data, int statusCode)
+        public static int SendResponse(SecureSocket socket, byte[] data, int statusCode, string contentType)
         {
             string initialLine = "HTTP/1.1 " + statusCode + " " + StatusCode.GetReasonPhrase(statusCode) + "\r\n";
 
-            Dictionary<string,string> headers = new Dictionary<string,string>();
+            var headers = new Dictionary<string,string>();
             if (data.Length > 0)
             {
-                headers.Add("Content-Type", "text/html");
-                SendHeaders(socket, headers, data.Length);
+                headers.Add("Content-Type", contentType);
             }
             else
             {
                 initialLine += "\r\n";
             }
-
             int sent = socket.Send(Encoding.UTF8.GetBytes(initialLine));
+            SendHeaders(socket, headers, data.Length);
             if (data.Length > 0)
                 sent += socket.Send(data);
 
@@ -273,13 +271,12 @@ namespace SharedProtocol.Http11
         //TODO must be reworked
         public static void SendHeaders(SecureSocket socket, Dictionary<string, string> headers, int contentLength = 0)
         {
-            StringBuilder headersString = new StringBuilder();
+            var headersString = new StringBuilder();
 
             foreach (var header in headers)
             {
                 headersString.AppendFormat("{0}: {1}\r\n", header.Key, header.Value);
             }
-
             headersString.AppendFormat("Content-Length: {0}\r\n" + "\r\n", contentLength);
             byte[] headersBytes = Encoding.UTF8.GetBytes(headersString.ToString());
             socket.Send(headersBytes);

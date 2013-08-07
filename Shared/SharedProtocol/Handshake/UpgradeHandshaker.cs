@@ -103,13 +103,14 @@ namespace SharedProtocol.Handshake
                     var http2Settings = new StringBuilder();
                     foreach (var key in _headers.Keys)
                     {
-                        http2Settings.AppendFormat("{0}: {1}\r\n", key, _headers[key]);
+                        if (!string.Equals(":path", key, StringComparison.OrdinalIgnoreCase))
+                            http2Settings.AppendFormat("{0}: {1}\r\n", key, _headers[key]);
                     }
-                    byte[] settingsBytes = Encoding.ASCII.GetBytes(http2Settings.ToString());
+                    byte[] settingsBytes = Encoding.UTF8.GetBytes(http2Settings.ToString());
                     builder.Append(Convert.ToBase64String(settingsBytes));
                 }
                 builder.Append("\r\n\r\n");
-                byte[] requestBytes = Encoding.ASCII.GetBytes(builder.ToString());
+                byte[] requestBytes = Encoding.UTF8.GetBytes(builder.ToString());
                 InternalSocket.Send(requestBytes, 0, requestBytes.Length, SocketFlags.None);
 
                 _responseReceivedRaised.WaitOne(Timeout);
@@ -271,9 +272,15 @@ namespace SharedProtocol.Handshake
 
         private void GetHeaders(string clientResponse)
         {
+            int methodIndex = clientResponse.IndexOf("GET", StringComparison.OrdinalIgnoreCase);
+            int pathIndex = clientResponse.IndexOf("/", methodIndex, StringComparison.OrdinalIgnoreCase);
+            int endPathIndex = clientResponse.IndexOf(" ", pathIndex, StringComparison.OrdinalIgnoreCase);
+            string path = clientResponse.Substring(pathIndex, endPathIndex - pathIndex);
+            _handshakeResult.Add(":path", path);
+
             string clientHeadersInBase64 = clientResponse.Substring(clientResponse.LastIndexOf(' ') + 1);
             byte[] buffer = Convert.FromBase64String(clientHeadersInBase64);
-            string response = Encoding.ASCII.GetString(buffer);
+            string response = Encoding.UTF8.GetString(buffer);
             var headers = Regex.Matches(response, "^:.*$", RegexOptions.Multiline | RegexOptions.Compiled);
             foreach (Match header in headers)
             {
