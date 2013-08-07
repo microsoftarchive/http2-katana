@@ -274,7 +274,7 @@ namespace SharedProtocol.Compression.Http2DeltaHeadersCompression
 
         private int _currentOffset;
 
-        private KeyValuePair<string, string> ParseHeader(byte[] bytes)
+        private Tuple<string, string, IndexationType> ParseHeader(byte[] bytes)
         {
             var type = GetHeaderType(bytes);
             int index = GetIndex(bytes, type);
@@ -287,7 +287,7 @@ namespace SharedProtocol.Compression.Http2DeltaHeadersCompression
             {
                 case IndexationType.Indexed:
                     var kv = _localHeaderTable[index];
-                    return new KeyValuePair<string, string>(kv.Key, kv.Value);
+                    return new Tuple<string, string, IndexationType>(kv.Key, kv.Value, type);
                 case IndexationType.Incremental:
                 case IndexationType.WithoutIndexation:
                 case IndexationType.Substitution:
@@ -313,10 +313,10 @@ namespace SharedProtocol.Compression.Http2DeltaHeadersCompression
 
                     ModifyTable(name, value, type, _localHeaderTable, index - 1);
 
-                    return new KeyValuePair<string, string>(name, value);
+                    return new Tuple<string, string, IndexationType>(name, value, type);
             }
 
-            return default(KeyValuePair<string, string>);
+            return default(Tuple<string, string, IndexationType>);
         }
         
         private int GetIndex(byte[] bytes, IndexationType type)
@@ -399,9 +399,17 @@ namespace SharedProtocol.Compression.Http2DeltaHeadersCompression
                 while (_currentOffset != serializedHeaders.Length)
                 {
                     var entry = ParseHeader(serializedHeaders);
+                    var header = new KeyValuePair<string, string>(entry.Item1, entry.Item2);
 
-                    if (!workingSet.Contains(entry))
-                        workingSet.Add(entry);
+                    if (entry.Item3 == IndexationType.Indexed)
+                    {
+                        if (workingSet.Contains(header))
+                            workingSet.RemoveAll(h => h.Equals(header));
+                        else
+                            workingSet.Add(header);
+                    }
+                    else
+                        workingSet.Add(header);
                 }
 
                 _localRefSet = new SizedHeadersList(workingSet);
