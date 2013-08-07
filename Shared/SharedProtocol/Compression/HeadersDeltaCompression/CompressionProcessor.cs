@@ -401,18 +401,27 @@ namespace SharedProtocol.Compression.Http2DeltaHeadersCompression
                     var entry = ParseHeader(serializedHeaders);
                     var header = new KeyValuePair<string, string>(entry.Item1, entry.Item2);
 
-                    if (entry.Item3 == IndexationType.Indexed)
+                    if (entry.Item3 != IndexationType.WithoutIndexation)
+                    {
+                        workingSet.Add(header);
+                    }
+                    else
                     {
                         if (workingSet.Contains(header))
                             workingSet.RemoveAll(h => h.Equals(header));
                         else
                             workingSet.Add(header);
                     }
-                    else
-                        workingSet.Add(header);
                 }
 
                 _localRefSet = new SizedHeadersList(workingSet);
+
+                for (int i = _localRefSet.Count - 1; i >= 0; --i)
+                {
+                    var header = _localRefSet[i];
+                    if (!_localHeaderTable.Contains(header))
+                        _localRefSet.RemoveAll(h => h.Equals(header));
+                }
 
                 return workingSet;
             }
