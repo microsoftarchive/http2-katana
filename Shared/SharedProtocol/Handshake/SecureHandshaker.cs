@@ -64,7 +64,7 @@ namespace SharedProtocol.Handshake
                 throw new Http2HandshakeFailed(HandshakeFailureReason.InternalError);
             }
 
-            _handshakeFinishedEventRaised.WaitOne(10000);
+            _handshakeFinishedEventRaised.WaitOne(8000);
             InternalSocket.OnHandshakeFinish -= HandshakeFinishedHandler;
 
             if (!InternalSocket.Connected)

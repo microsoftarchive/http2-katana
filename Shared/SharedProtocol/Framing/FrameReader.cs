@@ -47,7 +47,7 @@ namespace SharedProtocol.Framing
                     return new SettingsFrame(preamble);
 
                 case FrameType.Headers:
-                    return new Headers(preamble);
+                    return new HeadersFrame(preamble);
 
                 case FrameType.WindowUpdate:
                     return new WindowUpdateFrame(preamble);

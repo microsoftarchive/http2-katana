@@ -18,7 +18,6 @@ using SharedProtocol;
 using SharedProtocol.Compression;
 using SharedProtocol.Compression.Http2DeltaHeadersCompression;
 using SharedProtocol.Exceptions;
-using SharedProtocol.ExtendedMath;
 using SharedProtocol.Extensions;
 using SharedProtocol.Framing;
 using SharedProtocol.Handshake;
@@ -315,7 +314,7 @@ namespace SocketServer
                             break;
                     }
                 } 
-                else if (args.Frame is Headers)
+                else if (args.Frame is HeadersFrame)
                 {
                     byte[] binary;
                     switch (method)
@@ -324,9 +323,9 @@ namespace SocketServer
                         case "dir":
                             try
                             {
-                                string path = stream.Headers.GetValue(":path");
+                                string path = stream.Headers.GetValue(":path").Trim('/');
                                 // check if root is requested, in which case send index.html
-                                if (path == "/")
+                                if (string.IsNullOrEmpty(path))
                                     path = IndexHtml;
 
                                 binary = _fileHelper.GetFile(path);
@@ -334,8 +333,9 @@ namespace SocketServer
                                 SendDataTo(stream, binary);
                                 Http2Logger.LogDebug("File sent: " + path);
                             }
-                            catch (FileNotFoundException)
+                            catch (FileNotFoundException e)
                             {
+                                Http2Logger.LogDebug("File not found: " + e.FileName);
                                 WriteStatus(stream, StatusCode.Code404NotFound, true);
                             }
 
@@ -359,7 +359,7 @@ namespace SocketServer
 
         private void WriteStatus(Http2Stream stream, int statusCode, bool final)
         {
-            var headers = new List<KeyValuePair<string, string>>
+            var headers = new HeadersList
             {
                 new KeyValuePair<string, string>(":status", statusCode.ToString()),
             };

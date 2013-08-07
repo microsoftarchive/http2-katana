@@ -221,7 +221,7 @@ namespace SharedProtocol
                 {
                     case FrameType.Headers:
                         Http2Logger.LogDebug("New headers with id = " + frame.StreamId);
-                        var headersFrame = (Headers)frame;
+                        var headersFrame = (HeadersFrame)frame;
                         var serializedHeaders = new byte[headersFrame.CompressedHeaders.Count];
 
                         Buffer.BlockCopy(headersFrame.CompressedHeaders.Array,
@@ -229,7 +229,7 @@ namespace SharedProtocol
                                          serializedHeaders, 0, serializedHeaders.Length);
 
                         var decompressedHeaders = _comprProc.Decompress(serializedHeaders);
-                        var headers = new List<KeyValuePair<string, string>>(decompressedHeaders);
+                        var headers = new HeadersList(decompressedHeaders);
 
                         if (!headersFrame.IsEndHeaders)
                         {
@@ -243,6 +243,11 @@ namespace SharedProtocol
                             headers.AddRange(_toBeContinuedHeaders);
                         }
 
+                        headersFrame.Headers.AddRange(headers);
+                        foreach (var header in headers)
+                        {
+                            Http2Logger.LogDebug("Stream {0} header: {1}={2}", frame.StreamId, header.Key, header.Value);
+                        }
 
                         stream = GetStream(headersFrame.StreamId);
 
@@ -281,6 +286,7 @@ namespace SharedProtocol
                             _toBeContinuedFrame = null;
                             _toBeContinuedHeaders = null;
                         }
+
                         break;
 
                     case FrameType.Priority:
@@ -487,7 +493,7 @@ namespace SharedProtocol
         /// <param name="pairs">The header pairs.</param>
         /// <param name="priority">The stream priority.</param>
         /// <param name="isEndStream">True if initial headers+priority is also the final frame from endpoint.</param>
-        public void SendRequest(List<KeyValuePair<string, string>> pairs, Priority priority, bool isEndStream)
+        public void SendRequest(HeadersList pairs, Priority priority, bool isEndStream)
         {
             var stream = CreateStream(priority);
 

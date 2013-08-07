@@ -6,7 +6,7 @@ namespace SharedProtocol.Framing
     /// <summary>
     /// Frame headers class
     /// </summary>
-    public class Headers : Frame, IEndStreamFrame
+    public class HeadersFrame : Frame, IEndStreamFrame
     {
         // The number of bytes in the frame, not including the compressed headers.
         private const int PreambleSizeWithPriority = 12;
@@ -14,6 +14,7 @@ namespace SharedProtocol.Framing
         // The number of bytes in the frame, not including the compressed headers.
         private const int PreambleSizeWithoutPriority = 8;
 
+        private HeadersList _headers = new HeadersList();
 
         // 8 bits, 24-31
         public bool IsEndStream
@@ -82,13 +83,21 @@ namespace SharedProtocol.Framing
             }
         }
 
+        public HeadersList Headers
+        {
+            get
+            {
+                return _headers;
+            }
+        }
+
         /// <summary>
         ///  Create an outgoing frame
         /// </summary>
         /// <param name="streamId">Stream id</param>
         /// <param name="headerBytes">Header bytes</param>
         /// <param name="priority">Priority</param>
-        public Headers(int streamId, byte[] headerBytes, Priority priority = Priority.Pri7)
+        public HeadersFrame(int streamId, byte[] headerBytes, Priority priority = Priority.Pri7)
         {
             //PRIORITY (0x8):  Bit 4 being set indicates that the first four octets
             //of this frame contain a single reserved bit and a 31-bit priority;
@@ -119,7 +128,7 @@ namespace SharedProtocol.Framing
         /// Create an incoming frame
         /// </summary>
         /// <param name="preamble">Frame preamble</param>
-        public Headers(Frame preamble)
+        public HeadersFrame(Frame preamble)
             : base(preamble)
         {
         }

@@ -14,7 +14,6 @@ using Org.Mentalis.Security.Ssl.Shared.Extensions;
 using SharedProtocol;
 using SharedProtocol.Compression;
 using SharedProtocol.Exceptions;
-using SharedProtocol.ExtendedMath;
 using SharedProtocol.Extensions;
 using SharedProtocol.Framing;
 using SharedProtocol.Handshake;
@@ -230,7 +229,7 @@ namespace Client
         //serverPostAct should be provided only for post cmd
         private void SubmitRequest(Uri request, string method, string localPath = null, string serverPostAct = null)
         {
-            var headers = new List<KeyValuePair<string, string>>
+            var headers = new HeadersList
                 {
                     new KeyValuePair<string, string>(":method", method),
                     new KeyValuePair<string, string>(":path", request.PathAndQuery),
@@ -411,9 +410,9 @@ namespace Client
                         {
                             SaveDataFrame(stream, (DataFrame) args.Frame);
                         }
-                        else if (args.Frame is Headers)
+                        else if (args.Frame is HeadersFrame)
                         {
-                            Http2Logger.LogConsole("Headers received for stream: " + args.Frame.StreamId + " status:" + stream.Headers.GetValue(":status"));
+                            Http2Logger.LogConsole("Headers received for stream: " + args.Frame.StreamId + " status:" + ((HeadersFrame)args.Frame).Headers.GetValue(":status"));
                         }
                         break;
                 }

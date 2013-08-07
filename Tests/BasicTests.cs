@@ -5,7 +5,6 @@ using SharedProtocol.Compression;
 using SharedProtocol.Extensions;
 using Org.Mentalis.Security.Ssl;
 using SharedProtocol;
-using SharedProtocol.ExtendedMath;
 using SharedProtocol.FlowControl;
 using SharedProtocol.Framing;
 using Xunit;
@@ -201,7 +200,7 @@ namespace BasicTests
         [Fact]
         public void CompressionSuccessful()
         {
-            var clientHeaders = new List<KeyValuePair<string, string>>
+            var clientHeaders = new HeadersList
                 {
                     new KeyValuePair<string, string>(":method", "get"),
                     new KeyValuePair<string, string>(":path", "/test.txt"),
@@ -213,14 +212,14 @@ namespace BasicTests
             var serverDecompressor = new CompressionProcessor(ConnectionEnd.Server);
 
             var serializedHeaders = clientCompressor.Compress(clientHeaders);
-            var decompressedHeaders = new List<KeyValuePair<string, string>>(serverDecompressor.Decompress(serializedHeaders));
+            var decompressedHeaders = new HeadersList(serverDecompressor.Decompress(serializedHeaders));
 
             foreach (var t in clientHeaders)
             {
                 Assert.Equal(decompressedHeaders.GetValue(t.Key), t.Value);
             }
 
-            var serverHeaders = new List<KeyValuePair<string, string>>
+            var serverHeaders = new HeadersList
                 {
                     new KeyValuePair<string, string>(":status", StatusCode.Code200Ok.ToString()),
                 };
@@ -228,7 +227,7 @@ namespace BasicTests
             var clientDecompressor = new CompressionProcessor(ConnectionEnd.Client);
 
             serializedHeaders = serverCompressor.Compress(serverHeaders);
-            decompressedHeaders = new List<KeyValuePair<string, string>>(clientCompressor.Decompress(serializedHeaders));
+            decompressedHeaders = new HeadersList(clientCompressor.Decompress(serializedHeaders));
 
             foreach (var t in serverHeaders)
             {

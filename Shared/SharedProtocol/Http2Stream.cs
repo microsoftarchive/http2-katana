@@ -34,7 +34,7 @@ namespace SharedProtocol
         public event EventHandler<StreamClosedEventArgs> OnClose;
 
         //Incoming
-        internal Http2Stream(List<KeyValuePair<string, string>> headers, int id,
+        internal Http2Stream(HeadersList headers, int id,
                            WriteQueue writeQueue, FlowControlManager flowCrtlManager, 
                            ICompressionProcessor comprProc, Priority priority = Priority.Pri3)
             : this(id, writeQueue, flowCrtlManager, comprProc, priority)
@@ -118,7 +118,7 @@ namespace SharedProtocol
             set { Contract.Assert(value); _state |= StreamState.Disposed; }
         }
 
-        public List<KeyValuePair<string, string>> Headers { get; private set; }
+        public HeadersList Headers { get; private set; }
 
         #endregion
 
@@ -175,13 +175,13 @@ namespace SharedProtocol
 
         #region WriteMethods
 
-        public void WriteHeadersFrame(List<KeyValuePair<string, string>> headers, bool isEndStream)
+        public void WriteHeadersFrame(HeadersList headers, bool isEndStream)
         {
             Headers = headers;
 
             byte[] headerBytes = _compressionProc.Compress(headers);
 
-            var frame = new Headers(_id, headerBytes, Priority)
+            var frame = new HeadersFrame(_id, headerBytes, Priority)
                 {
                     IsEndHeaders = true,
                     IsEndStream = isEndStream,

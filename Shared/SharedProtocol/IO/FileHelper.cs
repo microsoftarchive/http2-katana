@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using Org.Mentalis.Security.Ssl;
-using SharedProtocol.ExtendedMath;
+using SharedProtocol.Extensions;
 using System.Linq;
 
 namespace SharedProtocol.IO
@@ -55,7 +55,7 @@ namespace SharedProtocol.IO
 
             if (_end == ConnectionEnd.Server)
             {
-                path = assemblyPath + rootPath + localPath;
+                path = assemblyPath + rootPath + "\\" + localPath.Trim('\\');
             }
             else
             {
@@ -64,7 +64,7 @@ namespace SharedProtocol.IO
 
             if (!File.Exists(path))
             {
-                throw new FileNotFoundException("Requested file not found");
+                throw new FileNotFoundException("Requested file not found", localPath);
             }
             return File.ReadAllBytes(path);
         }
