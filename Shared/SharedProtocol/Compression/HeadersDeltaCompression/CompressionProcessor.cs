@@ -216,7 +216,7 @@ namespace SharedProtocol.Compression.Http2DeltaHeadersCompression
             }
         }*/
 
-        public byte[] Compress(IList<KeyValuePair<string, string>> headers)
+        public byte[] Compress(HeadersList headers)
         {
             var toSend = new SizedHeadersList();
             var toDelete = new SizedHeadersList(_remoteRefSet);
@@ -388,25 +388,20 @@ namespace SharedProtocol.Compression.Http2DeltaHeadersCompression
             return indexationType;
         }
 
-        public IList<KeyValuePair<string, string>> Decompress(byte[] serializedHeaders)
+        public HeadersList Decompress(byte[] serializedHeaders)
         {
             try
             {
-                var workingSet = new SizedHeadersList(_localRefSet);
+                SizedHeadersList workingSet = new SizedHeadersList(_localRefSet);
 
                 _currentOffset = 0;
 
                 while (_currentOffset != serializedHeaders.Length)
                 {
                     var entry = ParseHeader(serializedHeaders);
-                    if (workingSet.Contains(entry))
-                    {
-                        workingSet.Remove(entry);
-                    }
-                    else
-                    {
+
+                    if (!workingSet.Contains(entry))
                         workingSet.Add(entry);
-                    }
                 }
 
                 _localRefSet = new SizedHeadersList(workingSet);

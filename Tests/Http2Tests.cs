@@ -186,7 +186,7 @@ namespace Http2Tests
             string scheme = uri.Scheme;
             string host = uri.Host;
 
-            var pairs = new List<KeyValuePair<string, string>>
+            var pairs = new HeadersList
                 {
                     new KeyValuePair<string, string>(":method", method),
                     new KeyValuePair<string, string>(":path", path),
@@ -238,7 +238,7 @@ namespace Http2Tests
             {
                 if (wasHeadersSent == false)
                 {
-                    wasHeadersSent = args.Frame is Headers;
+                    wasHeadersSent = args.Frame is HeadersFrame;
 
                     headersPlusPriSentRaisedEvent.Set();
                 }

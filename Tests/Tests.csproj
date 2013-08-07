@@ -166,14 +166,11 @@
     <Compile Include="..\Shared\SharedProtocol\Exceptions\ProtocolError.cs">
       <Link>Sources\ProtocolError.cs</Link>
     </Compile>
-    <Compile Include="..\Shared\SharedProtocol\ExtendedMath\MathEx.cs">
-      <Link>Sources\MathEx.cs</Link>
-    </Compile>
     <Compile Include="..\Shared\SharedProtocol\Extensions\Int32Extensions.cs">
       <Link>Sources\Int32Extensions.cs</Link>
     </Compile>
-    <Compile Include="..\Shared\SharedProtocol\Extensions\ListExtensions.cs">
-      <Link>Sources\ListExtensions.cs</Link>
+    <Compile Include="..\Shared\SharedProtocol\Extensions\MathEx.cs">
+      <Link>Sources\MathEx.cs</Link>
     </Compile>
     <Compile Include="..\Shared\SharedProtocol\FlowControl\FlowControlManager.cs">
       <Link>Sources\FlowControlManager.cs</Link>
@@ -258,6 +255,9 @@
     </Compile>
     <Compile Include="..\Shared\SharedProtocol\Handshake\UpgradeHandshaker.cs">
       <Link>Sources\UpgradeHandshaker.cs</Link>
+    </Compile>
+    <Compile Include="..\Shared\SharedProtocol\HeadersList.cs">
+      <Link>Sources\HeadersList.cs</Link>
     </Compile>
     <Compile Include="..\Shared\SharedProtocol\Http11\Http11Manager.cs">
       <Link>Sources\Http11Manager.cs</Link>

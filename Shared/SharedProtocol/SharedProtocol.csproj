@@ -73,15 +73,15 @@
     <Compile Include="Exceptions\InvalidHeaderException.cs" />
     <Compile Include="Exceptions\MonitorIsBusyException.cs" />
     <Compile Include="Exceptions\ProtocolError.cs" />
-    <Compile Include="ExtendedMath\MathEx.cs" />
+    <Compile Include="Extensions\MathEx.cs" />
     <Compile Include="Extensions\Int32Extensions.cs" />
-    <Compile Include="Extensions\ListExtensions.cs" />
     <Compile Include="FlowControl\FlowControlManager.cs" />
     <Compile Include="FlowControl\FlowControlOptions.cs" />
     <Compile Include="Framing\IEndStreamFrames.cs" />
     <Compile Include="Framing\PriorityFrame.cs" />
     <Compile Include="Handshake\HandshakeFailureReason.cs" />
     <Compile Include="Handshake\HandshakeManager.cs" />
+    <Compile Include="HeadersList.cs" />
     <Compile Include="Http11\Http11Manager.cs" />
     <Compile Include="IO\FileHelper.cs" />
     <Compile Include="Constants.cs" />
