@@ -292,10 +292,12 @@ namespace SharedProtocol.Compression.Http2DeltaHeadersCompression
                 case IndexationType.WithoutIndexation:
                 case IndexationType.Substitution:
                     //get replaced entry index. It's equal with the found index in our case
+                    int replacedIndex = index;
                     if (type == IndexationType.Substitution)
                     {
-                        index = GetIndex(bytes, type);
+                        replacedIndex = GetIndex(bytes, type);
                     }
+
                     if (index == 0)
                     {
                         nameLen = bytes[_currentOffset++];
@@ -307,11 +309,12 @@ namespace SharedProtocol.Compression.Http2DeltaHeadersCompression
                         //Index increased by 1 was sent
                         name = _localHeaderTable[index - 1].Key;
                     }
+
                     valueLen = bytes[_currentOffset++];
                     value = Encoding.UTF8.GetString(bytes, _currentOffset, valueLen);
                     _currentOffset += valueLen;
 
-                    ModifyTable(name, value, type, _localHeaderTable, index - 1);
+                    ModifyTable(name, value, type, _localHeaderTable, replacedIndex);
 
                     return new Tuple<string, string, IndexationType>(name, value, type);
             }
@@ -359,7 +362,7 @@ namespace SharedProtocol.Compression.Http2DeltaHeadersCompression
             Buffer.BlockCopy(bytes, _currentOffset, numberBytes, 0, i);
             _currentOffset += i;
 
-            return new int().FromUVarInt(numberBytes);
+            return Int32Extensions.FromUVarInt(numberBytes);
         }
 
         private IndexationType GetHeaderType(byte[] bytes)
@@ -431,7 +434,7 @@ namespace SharedProtocol.Compression.Http2DeltaHeadersCompression
             }
         }
 
-        #endregion
+        #endregion 
 
         private void WriteToOutput(byte[] bytes, int offset, int length)
         {

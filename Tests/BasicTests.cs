@@ -178,23 +178,23 @@ namespace BasicTests
         public void UVarIntConversionSuccessful()
         {
             var test1337 = 1337.ToUVarInt(5);
-            Assert.Equal(1337.FromUVarInt(test1337), 1337);
+            Assert.Equal(Int32Extensions.FromUVarInt(test1337), 1337);
             test1337 = 1337.ToUVarInt(3);
-            Assert.Equal(1337.FromUVarInt(test1337), 1337);
+            Assert.Equal(Int32Extensions.FromUVarInt(test1337), 1337);
             test1337 = 1337.ToUVarInt(0);
-            Assert.Equal(1337.FromUVarInt(test1337), 1337);
+            Assert.Equal(Int32Extensions.FromUVarInt(test1337), 1337);
 
             var test0 = 0.ToUVarInt(5);
-            Assert.Equal(0.FromUVarInt(test0), 0);
+            Assert.Equal(Int32Extensions.FromUVarInt(test0), 0);
             test0 = 0.ToUVarInt(0);
-            Assert.Equal(0.FromUVarInt(test0), 0);
+            Assert.Equal(Int32Extensions.FromUVarInt(test0), 0);
 
             var test0xfffff = 0xfffff.ToUVarInt(7);
-            Assert.Equal(0xfffff.FromUVarInt(test0xfffff), 0xfffff);
+            Assert.Equal(Int32Extensions.FromUVarInt(test0xfffff), 0xfffff);
             test0xfffff = 0xfffff.ToUVarInt(4);
-            Assert.Equal(0xfffff.FromUVarInt(test0xfffff), 0xfffff);
+            Assert.Equal(Int32Extensions.FromUVarInt(test0xfffff), 0xfffff);
             test0xfffff = 0xfffff.ToUVarInt(0);
-            Assert.Equal(0xfffff.FromUVarInt(test0xfffff), 0xfffff);
+            Assert.Equal(Int32Extensions.FromUVarInt(test0xfffff), 0xfffff);
         }
 
         [Fact]
