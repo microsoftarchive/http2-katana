@@ -5,11 +5,17 @@ using Org.Mentalis.Security.Ssl;
 namespace SharedProtocol.Handshake
 {
     /// <summary>
+    /// Handshake action delegate;
+    /// </summary>
+    /// <returns></returns>
+    public delegate IDictionary<string, object> HandshakeAction();
+
+    /// <summary>
     /// Class chooses which handshake must be performed.
     /// </summary>
     public static class HandshakeManager
     {
-        public static Func<IDictionary<string, object>>  GetHandshakeAction(IDictionary<string, object> handshakeEnvironment)
+        public static HandshakeAction GetHandshakeAction(IDictionary<string, object> handshakeEnvironment)
         {
             if (!handshakeEnvironment.ContainsKey("securityOptions") 
                 || !(handshakeEnvironment["securityOptions"] is SecurityOptions))

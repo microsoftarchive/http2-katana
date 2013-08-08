@@ -276,7 +276,9 @@ namespace SharedProtocol.Handshake
             int pathIndex = clientResponse.IndexOf("/", methodIndex, StringComparison.OrdinalIgnoreCase);
             int endPathIndex = clientResponse.IndexOf(" ", pathIndex, StringComparison.OrdinalIgnoreCase);
             string path = clientResponse.Substring(pathIndex, endPathIndex - pathIndex);
+            string method = clientResponse.Substring(methodIndex, pathIndex).Trim().ToLower();
             _handshakeResult.Add(":path", path);
+            _handshakeResult.Add(":method", method);
 
             string clientHeadersInBase64 = clientResponse.Substring(clientResponse.LastIndexOf(' ') + 1);
             byte[] buffer = Convert.FromBase64String(clientHeadersInBase64);
