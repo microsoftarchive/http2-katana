@@ -50,7 +50,7 @@ namespace SharedProtocol.Extensions
             }
         }
 
-        public static Int32 FromUVarInt(this Int32 number, byte[] binary)
+        public static Int32 FromUVarInt(byte[] binary)
         {
             int currentIntegral = 0;
 
