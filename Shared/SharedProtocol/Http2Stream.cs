@@ -53,6 +53,7 @@ namespace SharedProtocol
             _flowCrtlManager = flowCrtlManager;
 
             _unshippedFrames = new Queue<DataFrame>(16);
+            Headers = new HeadersList();
 
             SentDataAmount = 0;
             ReceivedDataAmount = 0;

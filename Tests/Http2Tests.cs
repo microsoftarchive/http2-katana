@@ -38,10 +38,10 @@ namespace Http2Tests
         private Task InvokeMiddleWare(IDictionary<string, object> environment)
         {
             if (environment["HandshakeAction"] is Func<Task>)
-                {
+            {
                 var handshakeAction = (Func<Task>)environment["HandshakeAction"];
                 return handshakeAction.Invoke();
-                }
+            }
             return null;
         }
 
@@ -80,9 +80,9 @@ namespace Http2Tests
             properties.Add("use-flowControl", useFlowControl);
 
             ServerThread = new Thread((ThreadStart)delegate
-                {
-                    new HttpSocketServer(InvokeMiddleWare, properties);
-                }){Name = "Http2ServerThread"};
+            {
+                new HttpSocketServer(InvokeMiddleWare, properties);
+            }) { Name = "Http2ServerThread" };
             ServerThread.Start();
 
             using (var waitForServersStart = new ManualResetEvent(false))
@@ -90,7 +90,7 @@ namespace Http2Tests
                 waitForServersStart.WaitOne(3000);
             }
         }
-   
+
         public void Dispose()
         {
             if (ServerThread.IsAlive)
@@ -129,7 +129,7 @@ namespace Http2Tests
             socket.Send(Encoding.UTF8.GetBytes(ClientSessionHeader));
         }
 
-        protected static SecureSocket GetHandshakedSocket(Uri uri)
+        protected static SecureSocket GetHandshakedSocket(Uri uri, bool doRequestInUpgrade = false, string alternativePath = "/")
         {
             string selectedProtocol = null;
 
@@ -154,14 +154,14 @@ namespace Http2Tests
                 monitor.OnProtocolSelected += (sender, args) => { selectedProtocol = args.SelectedProtocol; };
 
                 sessionSocket.Connect(new DnsEndPoint(uri.Host, uri.Port), monitor);
-
+                string path = !doRequestInUpgrade ? uri.PathAndQuery : alternativePath;
                 if (_useHandshake)
                 {
                     var handshakeEnv = new Dictionary<string, object>
                     {
                         {":method", "get"},
-                        {":version", Protocols.Http1},
-                        {":path", uri.PathAndQuery},
+                        {":version", Protocols.Http2},
+                        {":path", path},
                         {":scheme", uri.Scheme},
                         {":host", uri.Host},
                         {"securityOptions", options},
@@ -170,7 +170,7 @@ namespace Http2Tests
                     };
 
                     _handshakeResult = HandshakeManager.GetHandshakeAction(handshakeEnv).Invoke();
-                 }
+                }
             }
 
             SendSessionHeader(sessionSocket);
@@ -362,6 +362,53 @@ namespace Http2Tests
             {
                 StartSessionAndGet10MbDataSuccessful();
             }
+        }
+
+        [Fact]
+        public void StartSessionAndDoRequestInUpgrade()
+        {
+            string requestStr = GetAddress() + ConfigurationManager.AppSettings["smallTestFile"];
+            Uri uri;
+            Uri.TryCreate(requestStr, UriKind.Absolute, out uri);
+
+            bool wasSocketClosed = false;
+            int countOfFinalFrames = 0;
+
+            var socketClosedRaisedEvent = new ManualResetEvent(false);
+            var finalFrameReceivedRaisedEvent = new ManualResetEvent(false);
+
+            var socket = GetHandshakedSocket(uri, true);
+
+            socket.OnClose += (sender, args) =>
+            {
+                socketClosedRaisedEvent.Set();
+                wasSocketClosed = true;
+            };
+
+            var session = new Http2Session(socket, ConnectionEnd.Client, true, true, _handshakeResult);
+
+            session.OnFrameReceived += (sender, args) =>
+            {
+                if (args.Frame is IEndStreamFrame && ((IEndStreamFrame)args.Frame).IsEndStream)
+                {
+                    if (countOfFinalFrames > 0)
+                        finalFrameReceivedRaisedEvent.Set();
+                    countOfFinalFrames++;
+                }
+            };
+
+            session.Start();
+
+            SubmitRequest(session, uri);
+
+            finalFrameReceivedRaisedEvent.WaitOne(60000);
+
+            session.Dispose();
+
+            socketClosedRaisedEvent.WaitOne(60000);
+
+            Assert.Equal(countOfFinalFrames, 2);
+            Assert.Equal(wasSocketClosed, true);
         }
 
         [Theory]

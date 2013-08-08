@@ -113,7 +113,7 @@ namespace SocketServer
         private void HandleAcceptedClient(SecureSocket incomingClient)
         {
             bool backToHttp11 = false;
-            string alpnSelectedProtocol = Protocols.Http2;
+            string selectedProtocol = Protocols.Http2;
             var handshakeEnvironment = MakeHandshakeEnvironment(incomingClient);
             IDictionary<string, object> handshakeResult = null;
 
@@ -148,7 +148,7 @@ namespace SocketServer
                         return;
                     }
                     
-                    alpnSelectedProtocol = incomingClient.SelectedProtocol;
+                    selectedProtocol = incomingClient.SelectedProtocol;
                 }
                 catch (Http2HandshakeFailed ex)
                 {
@@ -172,7 +172,7 @@ namespace SocketServer
             }
             try
             {
-                HandleRequest(incomingClient, alpnSelectedProtocol, backToHttp11, handshakeResult);
+                HandleRequest(incomingClient, selectedProtocol, backToHttp11, handshakeResult);
             }
             catch (Exception e)
             {
@@ -316,7 +316,6 @@ namespace SocketServer
                 } 
                 else if (args.Frame is HeadersFrame)
                 {
-                    byte[] binary;
                     switch (method)
                     {
                         case "get":
@@ -324,14 +323,7 @@ namespace SocketServer
                             try
                             {
                                 string path = stream.Headers.GetValue(":path").Trim('/');
-                                // check if root is requested, in which case send index.html
-                                if (string.IsNullOrEmpty(path))
-                                    path = IndexHtml;
-
-                                binary = _fileHelper.GetFile(path);
-                                WriteStatus(stream, StatusCode.Code200Ok, false);
-                                SendDataTo(stream, binary);
-                                Http2Logger.LogDebug("File sent: " + path);
+                                SendFile(path, stream);
                             }
                             catch (FileNotFoundException e)
                             {
@@ -350,11 +342,24 @@ namespace SocketServer
                     }
                 }
             }
-            catch (Exception)
+            catch (Exception e)
             {
+                Http2Logger.LogDebug("Error: " + e.Message);
                 stream.WriteRst(ResetStatusCode.InternalError);
                 stream.Dispose();
             }
+        }
+
+        private void SendFile(string path, Http2Stream stream)
+        {
+            // check if root is requested, in which case send index.html
+            if (string.IsNullOrEmpty(path))
+                path = IndexHtml;
+
+            byte[] binary = _fileHelper.GetFile(path);
+            WriteStatus(stream, StatusCode.Code200Ok, false);
+            SendDataTo(stream, binary);
+            Http2Logger.LogDebug("File sent: " + path);
         }
 
         private void WriteStatus(Http2Stream stream, int statusCode, bool final)

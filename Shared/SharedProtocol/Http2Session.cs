@@ -253,14 +253,6 @@ namespace SharedProtocol
 
                         if (stream == null)
                         {
-                            // new stream
-                            if (ActiveStreams.GetOpenedStreamsBy(_remoteEnd) + 1 > OurMaxConcurrentStreams)
-                            {
-                                //Remote side tries to open more streams than allowed
-                                Dispose();
-                                return;
-                            }
-
                             string path = headers.GetValue(":path");
 
                             if (path == null)
@@ -269,19 +261,7 @@ namespace SharedProtocol
                                 headers.Add(new KeyValuePair<string, string>(":path", path));
                             }
 
-                            stream = new Http2Stream(headers, headersFrame.StreamId,
-                                                      _writeQueue, _flowControlManager,
-                                                      _comprProc);
-
-                            ActiveStreams[stream.Id] = stream;
-
-                            stream.OnClose += (o, args) =>
-                            {
-                                if (!ActiveStreams.Remove(ActiveStreams[args.Id]))
-                                {
-                                    throw new ArgumentException("Cant remove stream from ActiveStreams");
-                                }
-                            };
+                            stream = CreateStream(headers, frame.StreamId);
 
                             _toBeContinuedFrame = null;
                             _toBeContinuedHeaders = null;
@@ -345,7 +325,8 @@ namespace SharedProtocol
                         //Client initiates connection and sends settings before request. 
                         //It means that if server sent settings before it will not be a first frame,
                         //because client initiates connection.
-                        if (_ourEnd == ConnectionEnd.Server && !_wasSettingsReceived && ActiveStreams.Count != 0)
+                        if (_ourEnd == ConnectionEnd.Server && !_wasSettingsReceived
+                            && (ActiveStreams.Count > 0))
                         {
                             Dispose();
                             return;
@@ -355,6 +336,21 @@ namespace SharedProtocol
                         Http2Logger.LogDebug("Settings frame. Entry count: {0} StreamId: {1}", settingFrame.EntryCount, settingFrame.StreamId);
                         _wasSettingsReceived = true;
                         _settingsManager.ProcessSettings(settingFrame, this, _flowControlManager);
+
+                        if (_ourEnd == ConnectionEnd.Server && _sessionSocket.SecureProtocol == SecureProtocol.None)
+                        {
+                            //The HTTP/1.1 request that is sent prior to upgrade is associated with
+                            //stream 1 and is assigned the highest possible priority.  Stream 1 is
+                            //implicitly half closed from the client toward the server, since the
+                            //request is completed as an HTTP/1.1 request.  After commencing the
+                            //HTTP/2.0 connection, stream 1 is used for the response.
+                            stream = CreateStream(Priority.Pri0);
+                            stream.EndStreamSent = true;
+                            stream.Headers.Add(new KeyValuePair<string, string>(":method", _handshakeHeaders[":method"]));
+                            stream.Headers.Add(new KeyValuePair<string, string>(":path", _handshakeHeaders[":path"]));
+                            OnFrameReceived(this, new FrameReceivedEventArgs(stream, new HeadersFrame(stream.Id, true)));
+                        }
+
                         break;
                     case FrameType.WindowUpdate:
                         if (_useFlowControl)
@@ -426,6 +422,38 @@ namespace SharedProtocol
             }
         }
 
+        /// <summary>
+        /// Creates stream.
+        /// </summary>
+        /// <param name="headers"></param>
+        /// <param name="streamId"></param>
+        /// <returns></returns>
+        private Http2Stream CreateStream(HeadersList headers, int streamId)
+        {
+            if (ActiveStreams.GetOpenedStreamsBy(_remoteEnd) + 1 > OurMaxConcurrentStreams)
+            {
+                //Remote side tries to open more streams than allowed
+                Dispose();
+                throw new InvalidOperationException("Trying to create more streams than allowed!");
+            }
+
+            Http2Stream stream = new Http2Stream(headers, streamId,
+                                      _writeQueue, _flowControlManager,
+                                      _comprProc);
+
+            ActiveStreams[stream.Id] = stream;
+
+            stream.OnClose += (o, args) =>
+            {
+                if (!ActiveStreams.Remove(ActiveStreams[args.Id]))
+                {
+                    throw new ArgumentException("Cant remove stream from ActiveStreams");
+                }
+            };
+
+            return stream;
+        }
+
         private void ApplyHandshakeResults(IDictionary<string, object> handshakeResult)
         {
             foreach (var entry in handshakeResult.Keys.Where(entry => handshakeResult[entry] is string))
@@ -455,7 +483,7 @@ namespace SharedProtocol
             if (ActiveStreams.GetOpenedStreamsBy(_ourEnd) + 1 > RemoteMaxConcurrentStreams)
             {
                 Dispose();
-                throw new InvalidOperationException("Trying to create more streams than allowed by the remote side!");
+                throw new InvalidOperationException("Trying to create more streams than allowed!");
             }
 
             var id = GetNextId();
