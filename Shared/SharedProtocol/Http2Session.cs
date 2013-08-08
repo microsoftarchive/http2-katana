@@ -345,7 +345,7 @@ namespace SharedProtocol
                             //request is completed as an HTTP/1.1 request.  After commencing the
                             //HTTP/2.0 connection, stream 1 is used for the response.
                             stream = CreateStream(Priority.Pri0);
-                            stream.EndStreamSent = true;
+                            stream.EndStreamReceived = true;
                             stream.Headers.Add(new KeyValuePair<string, string>(":method", _handshakeHeaders[":method"]));
                             stream.Headers.Add(new KeyValuePair<string, string>(":path", _handshakeHeaders[":path"]));
                             OnFrameReceived(this, new FrameReceivedEventArgs(stream, new HeadersFrame(stream.Id, true)));
