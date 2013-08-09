@@ -3,6 +3,9 @@ using System.Linq;
 
 namespace SharedProtocol
 {
+    /// <summary>
+    /// Headers list class.
+    /// </summary>
     public class HeadersList : List<KeyValuePair<string, string>>
     {
         public HeadersList() { }

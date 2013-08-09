@@ -1,6 +1,6 @@
 ﻿namespace SharedProtocol.FlowControl
 {
-    enum FlowControlOptions : byte
+    internal enum FlowControlOptions : byte
     {
         UseFlowControl = 0x00,
         UseOnlyStreamsFlowControl = 0x02,
