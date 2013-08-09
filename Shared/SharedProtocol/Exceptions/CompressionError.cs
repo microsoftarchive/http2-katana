@@ -10,7 +10,6 @@ namespace SharedProtocol.Exceptions
     {
         public CompressionError(Exception e): base("", e)
         {
-
         }
 
         public override string Message

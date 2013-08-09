@@ -14,6 +14,8 @@ namespace SharedProtocol
     /// </summary>
     public class Http2Stream : IDisposable
     {
+        #region Fields
+
         private readonly int _id;
         private StreamState _state;
         private readonly WriteQueue _writeQueue;
@@ -22,6 +24,10 @@ namespace SharedProtocol
 
         private readonly Queue<DataFrame> _unshippedFrames;
         private readonly object _unshippedDeliveryLock = new object();
+
+        #endregion
+
+        #region Events
 
         /// <summary>
         /// Occurs when stream was sent frame.
@@ -32,6 +38,10 @@ namespace SharedProtocol
         /// Occurs when stream closes.
         /// </summary>
         public event EventHandler<StreamClosedEventArgs> OnClose;
+
+        #endregion
+
+        #region Constructors
 
         //Incoming
         internal Http2Stream(HeadersList headers, int id,
@@ -63,6 +73,8 @@ namespace SharedProtocol
 
             _flowCrtlManager.NewStreamOpenedHandler(this);
         }
+
+        #endregion
 
         #region Properties
 

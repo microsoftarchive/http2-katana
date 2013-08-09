@@ -2,6 +2,9 @@
 
 namespace ServerProtocol
 {
+    /// <summary>
+    /// Transport descriptor.
+    /// </summary>
     public class TransportInformation
     {
         public string LocalIpAddress { get; set; }

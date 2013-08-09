@@ -5,25 +5,21 @@
 // -----------------------------------------------------------------------
 
 using System;
-using System.IO;
 using System.Collections.Generic;
+using System.IO;
 using System.Net.Sockets;
 using System.Reflection;
 using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 using Org.Mentalis;
 using Org.Mentalis.Security.Ssl;
 using SharedProtocol;
-using SharedProtocol.Compression;
-using SharedProtocol.Compression.Http2DeltaHeadersCompression;
 using SharedProtocol.Exceptions;
 using SharedProtocol.Extensions;
 using SharedProtocol.Framing;
 using SharedProtocol.Handshake;
 using SharedProtocol.Http11;
 using SharedProtocol.IO;
-using SharedProtocol.Pages;
 using SharedProtocol.Utils;
 
 namespace SocketServer

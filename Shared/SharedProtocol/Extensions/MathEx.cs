@@ -12,10 +12,11 @@ namespace SharedProtocol.Extensions
     {
         public static T Min<T>(IComparer<T> comparer, params T[] items)
         {
-            if (items == null || comparer == null || items.Length <= 1)
-            {
-                throw new ArgumentException("Argument has null or empty value");
-            }
+            if (items == null || items.Length <= 1)
+                throw new ArgumentNullException("items");
+
+            if (comparer == null)
+                throw new ArgumentNullException("comparer");
 
             T result = items[0];
             for (int i = 0; i < items.Length - 1; i++)
@@ -30,7 +31,7 @@ namespace SharedProtocol.Extensions
         {
             if (items == null || items.Length <= 1)
             {
-                throw new ArgumentException("Argument is null or empty");
+                throw new ArgumentNullException("items");
             }
 
             T result = items[0];
@@ -48,6 +49,7 @@ namespace SharedProtocol.Extensions
             {
                 throw new FileNotFoundException(String.Format("Specified file not found {0}",path));
             }
+
             var fileData = File.ReadAllBytes(path);
             return new MD5CryptoServiceProvider().ComputeHash(fileData);
         }

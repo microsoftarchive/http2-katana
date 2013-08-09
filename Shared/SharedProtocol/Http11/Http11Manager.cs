@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
 using System.Net.Sockets;
@@ -8,7 +7,6 @@ using System.Reflection;
 using System.Text;
 using Org.Mentalis;
 using Org.Mentalis.Security.Ssl;
-using SharedProtocol.Pages;
 using SharedProtocol.Utils;
 
 namespace SharedProtocol.Http11

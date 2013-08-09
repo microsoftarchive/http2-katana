@@ -1,38 +1,36 @@
-﻿using System.Configuration;
-using System.IO;
-using System.Net.Sockets;
-using System;
+﻿using System;
 using System.Collections.Generic;
+using System.Configuration;
+using System.IO;
 using System.Net;
+using System.Net.Sockets;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
-using SharedProtocol.Compression.Http2DeltaHeadersCompression;
 using Org.Mentalis;
 using Org.Mentalis.Security.Ssl;
 using Org.Mentalis.Security.Ssl.Shared.Extensions;
 using SharedProtocol;
-using SharedProtocol.Compression;
 using SharedProtocol.Exceptions;
 using SharedProtocol.Extensions;
 using SharedProtocol.Framing;
 using SharedProtocol.Handshake;
 using SharedProtocol.Http11;
 using SharedProtocol.IO;
-using SharedProtocol.Pages;
 using SharedProtocol.Utils;
 
 namespace Client
 {
     public sealed class Http2SessionHandler : IDisposable
     {
+        #region Fields
+
         private const string CertificatePath = @"certificate.pfx";
         private const string Index = @"index.html";
         private const string ClientSessionHeader = "PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n";
-
+        private static readonly string AssemblyPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
         
         private Http2Session _clientSession;
-
         private SecureSocket _socket;
         private string _selectedProtocol;
         private bool _useHttp20 = true;
@@ -48,9 +46,18 @@ namespace Client
         private string _scheme;
         private string _host;
 
-        private static readonly string AssemblyPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+        #endregion
 
+        #region Events
+
+        /// <summary>
+        /// Session closed event.
+        /// </summary>
         public event EventHandler<EventArgs> OnClosed;
+
+        #endregion
+
+        #region Properties
 
         public string ServerUri { get; private set; }
 
@@ -60,6 +67,10 @@ namespace Client
         {
             get { return _useHttp20; }
         }
+
+        #endregion
+
+        #region Methods
 
         public Http2SessionHandler(IDictionary<string, object> environment)
         {
@@ -290,7 +301,6 @@ namespace Client
             return TimeSpan.Zero;
         }
 
-        //Method for future usage in server push 
         private void SendDataTo(Http2Stream stream, byte[] binaryData)
         {
             int i = 0;
@@ -460,5 +470,7 @@ namespace Client
 
             _isDisposed = true;
         }
+
+        #endregion
     }
 }
