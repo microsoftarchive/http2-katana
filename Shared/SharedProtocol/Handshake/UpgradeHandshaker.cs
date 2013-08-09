@@ -25,11 +25,11 @@ namespace SharedProtocol.Handshake
 
         private Thread _readThread;
         private readonly ConnectionEnd _end;
-        private readonly Dictionary<string, string> _headers;
+        private readonly Dictionary<string, object> _headers;
         private readonly ManualResetEvent _responseReceivedRaised;
         private bool _wasResponseReceived;
         private Exception _error;
-        private readonly IDictionary<string, object> _handshakeResult;
+        private IDictionary<string, object> _handshakeResult;
 
         public SecureSocket InternalSocket { get; private set; }
 
@@ -45,11 +45,11 @@ namespace SharedProtocol.Handshake
                 if (handshakeEnvironment.ContainsKey(":host") || (handshakeEnvironment[":host"] is string)
                     || handshakeEnvironment.ContainsKey(":version") || (handshakeEnvironment[":version"] is string))
                 {
-                    _headers = new Dictionary<string, string>
+                    _headers = new Dictionary<string, object>
                         {
-                            {":path", (string) handshakeEnvironment[":path"]},
-                            {":host", (string) handshakeEnvironment[":host"]},
-                            {":version", (string) handshakeEnvironment[":version"]}
+                            {":path",  handshakeEnvironment[":path"]},
+                            {":host",  handshakeEnvironment[":host"]},
+                            {":version",  handshakeEnvironment[":version"]}
                         };
                 }
                 else
@@ -111,6 +111,8 @@ namespace SharedProtocol.Handshake
                 }
                 builder.Append("\r\n\r\n");
                 byte[] requestBytes = Encoding.UTF8.GetBytes(builder.ToString());
+                _handshakeResult = new Dictionary<string, object>(_headers);
+                _handshakeResult.Add(":method", "get");
                 InternalSocket.Send(requestBytes, 0, requestBytes.Length, SocketFlags.None);
 
                 _responseReceivedRaised.WaitOne(Timeout);

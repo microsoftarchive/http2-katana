@@ -27,10 +27,10 @@ namespace Client
     public sealed class Http2SessionHandler : IDisposable
     {
         private const string CertificatePath = @"certificate.pfx";
-        private const string NotFound = @"NotFound.html";
+        private const string Index = @"index.html";
         private const string ClientSessionHeader = "PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n";
 
-        private SecurityOptions _options;
+        
         private Http2Session _clientSession;
 
         private SecureSocket _socket;
@@ -53,6 +53,8 @@ namespace Client
         public event EventHandler<EventArgs> OnClosed;
 
         public string ServerUri { get; private set; }
+
+        public SecurityOptions Options { get; private set; }
 
         public bool IsHttp2WillBeUsed 
         {
@@ -97,7 +99,7 @@ namespace Client
 					{":version", _version},
                     {":scheme", _scheme},
                     {":host", _host},
-                    {"securityOptions", _options},
+                    {"securityOptions", Options},
                     {"secureSocket", socket},
                     {"end", ConnectionEnd.Client}
 			};
@@ -135,18 +137,18 @@ namespace Client
                 //Connect alpn extension, set known protocols
                 var extensions = new[] {ExtensionType.Renegotiation, ExtensionType.ALPN};
 
-                _options = port == securePort
+                Options = port == securePort
                                ? new SecurityOptions(SecureProtocol.Tls1, extensions, new[] { Protocols.Http1, Protocols.Http2 },
                                                      ConnectionEnd.Client)
                                : new SecurityOptions(SecureProtocol.None, extensions, new[] { Protocols.Http1, Protocols.Http2 },
                                                      ConnectionEnd.Client);
 
-                _options.VerificationType = CredentialVerification.None;
-                _options.Certificate = Org.Mentalis.Security.Certificates.Certificate.CreateFromCerFile(CertificatePath);
-                _options.Flags = SecurityFlags.Default;
-                _options.AllowedAlgorithms = SslAlgorithms.RSA_AES_256_SHA | SslAlgorithms.NULL_COMPRESSION;
+                Options.VerificationType = CredentialVerification.None;
+                Options.Certificate = Org.Mentalis.Security.Certificates.Certificate.CreateFromCerFile(CertificatePath);
+                Options.Flags = SecurityFlags.Default;
+                Options.AllowedAlgorithms = SslAlgorithms.RSA_AES_256_SHA | SslAlgorithms.NULL_COMPRESSION;
 
-                _socket = new SecureSocket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp, _options);
+                _socket = new SecureSocket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp, Options);
                 IDictionary<string, object> handshakeResult = null;
                 using (var monitor = new ALPNExtensionMonitor())
                 {
@@ -322,7 +324,7 @@ namespace Client
             {
                 string originalPath = stream.Headers.GetValue(":path".ToLower()); 
                 //If user sets the empty file in get command we return notFound webpage
-                string fileName = string.IsNullOrEmpty(Path.GetFileName(originalPath)) ? NotFound : Path.GetFileName(originalPath);
+                string fileName = string.IsNullOrEmpty(Path.GetFileName(originalPath)) ? Index : Path.GetFileName(originalPath);
                 string path = Path.Combine(AssemblyPath, fileName);
 
                 try

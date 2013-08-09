@@ -253,14 +253,21 @@ namespace SharedProtocol
 
                         if (stream == null)
                         {
-                            string path = headers.GetValue(":path");
-
-                            if (path == null)
+                            if (_ourEnd == ConnectionEnd.Server)
                             {
-                                path = _handshakeHeaders.ContainsKey(":path") ? _handshakeHeaders[":path"] : @"\index.html";
-                                headers.Add(new KeyValuePair<string, string>(":path", path));
+                                string path = headers.GetValue(":path");
+                                if (path == null)
+                                {
+                                    path = _handshakeHeaders.ContainsKey(":path")
+                                               ? _handshakeHeaders[":path"]
+                                               : @"\index.html";
+                                    headers.Add(new KeyValuePair<string, string>(":path", path));
+                                }
                             }
-
+                            else
+                            {
+                                headers.AddRange(_handshakeHeaders);
+                            }
                             stream = CreateStream(headers, frame.StreamId);
 
                             _toBeContinuedFrame = null;
@@ -295,7 +302,7 @@ namespace SharedProtocol
                         stream = GetStream(dataFrame.StreamId);
 
                         //Aggressive window update
-                        if (stream.IsFlowControlEnabled)
+                        if (stream != null && stream.IsFlowControlEnabled)
                         {
                             stream.WriteWindowUpdate(2000000);
                         }

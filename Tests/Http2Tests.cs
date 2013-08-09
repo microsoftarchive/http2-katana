@@ -391,9 +391,9 @@ namespace Http2Tests
             {
                 if (args.Frame is IEndStreamFrame && ((IEndStreamFrame)args.Frame).IsEndStream)
                 {
-                    if (countOfFinalFrames > 0)
-                        finalFrameReceivedRaisedEvent.Set();
                     countOfFinalFrames++;
+                    if (countOfFinalFrames == 2)
+                        finalFrameReceivedRaisedEvent.Set();
                 }
             };
 

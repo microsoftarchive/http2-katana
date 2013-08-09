@@ -37,6 +37,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Client.Commands;
+using Org.Mentalis.Security.Ssl;
 using SharedProtocol.Utils;
 
 namespace Client
@@ -136,8 +137,8 @@ namespace Client
                             {
                                 waitForConnectionStart.WaitOne(200);
                             }
-
-                            sessionHandler.SendRequestAsync(uriCmd.Uri, method, localPath, serverPostAct);
+                            if (sessionHandler.Options.Protocol != SecureProtocol.None)
+                                sessionHandler.SendRequestAsync(uriCmd.Uri, method, localPath, serverPostAct);
                             break;
                         case CommandType.Help:
                             ((HelpCommand)cmd).ShowHelp.Invoke();
