@@ -98,10 +98,14 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>copy /y "$(TargetPath)" "$(SolutionDir)Drop\$(TargetFileName)"
+    <PostBuildEvent Condition=" '$(OS)' == 'Windows_NT' ">copy /y "$(TargetPath)" "$(SolutionDir)Drop\$(TargetFileName)"
 copy /y "$(ProjectDir)\certificate.pfx" "$(SolutionDir)Drop\certificate.pfx"
 copy /y "$(ProjectDir)\certificate.pfx" "$(TargetDir)\certificate.pfx"
 copy /y "$(TargetDir)\Client.exe.config" "$(SolutionDir)Drop\Client.exe.config"</PostBuildEvent>
+    <PostBuildEvent Condition=" '$(OS)' != 'Windows_NT' ">cp -Rf "$(TargetPath)" "$(SolutionDir)Drop\$(TargetFileName)"
+cp -Rf "$(ProjectDir)\certificate.pfx" "$(SolutionDir)Drop\certificate.pfx"
+cp -Rf "$(ProjectDir)\certificate.pfx" "$(TargetDir)\certificate.pfx"
+cp -Rf "$(TargetDir)\Client.exe.config" "$(SolutionDir)Drop\Client.exe.config"</PostBuildEvent>
   </PropertyGroup>
   <Import Project="$(SolutionDir)\.nuget\nuget.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

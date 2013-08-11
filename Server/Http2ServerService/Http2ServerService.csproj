@@ -114,11 +114,16 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>copy /y "$(SolutionDir)Drop\certificate.pfx"  "$(TargetDir)\certificate.pfx"
+    <PostBuildEvent Condition=" '$(OS)' == 'Windows_NT' ">copy /y "$(SolutionDir)Drop\certificate.pfx"  "$(TargetDir)\certificate.pfx"
 
 xcopy "$(ProjectDir)Root"  "$(TargetDir)Root" /S /F /R /Y /I
 copy /y "$(TargetPath)" "$(SolutionDir)Drop\$(TargetFileName)"
 copy /y "$(TargetDir)\$(TargetFileName).config" "$(SolutionDir)Drop\$(TargetFileName).config"</PostBuildEvent>
+    <PostBuildEvent Condition=" '$(OS)' != 'Windows_NT' ">cp -Rf "$(SolutionDir)Drop\certificate.pfx"  "$(TargetDir)\certificate.pfx"
+
+cp -Rf "$(ProjectDir)Root"  "$(TargetDir)Root"
+cp -Rf "$(TargetPath)" "$(SolutionDir)Drop\$(TargetFileName)"
+cp -Rf "$(TargetDir)\$(TargetFileName).config" "$(SolutionDir)Drop\$(TargetFileName).config"</PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

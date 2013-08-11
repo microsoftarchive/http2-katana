@@ -335,9 +335,13 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>copy /y "$(SolutionDir)Drop\certificate.pfx"  "$(TargetDir)\certificate.pfx"
+    <PostBuildEvent Condition=" '$(OS)' == 'Windows_NT' ">copy /y "$(SolutionDir)Drop\certificate.pfx"  "$(TargetDir)\certificate.pfx"
 
-xcopy "$(ProjectDir)Root"  "$(TargetDir)Root" /S /F /R /Y /I</PostBuildEvent>
+xcopy "$(ProjectDir)root"  "$(TargetDir)Root" /S /F /R /Y /I</PostBuildEvent>
+    <PostBuildEvent Condition=" '$(OS)' != 'Windows_NT' ">cp -Rf "$(SolutionDir)Drop\certificate.pfx"  "$(TargetDir)\certificate.pfx"
+
+cp -Rf "$(ProjectDir)root"  "$(TargetDir)Root"</PostBuildEvent>
+
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
