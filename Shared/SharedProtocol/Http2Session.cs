@@ -31,9 +31,9 @@ namespace SharedProtocol
         private readonly bool _usePriorities;
         private readonly bool _useFlowControl;
         private int _lastId;
-        private bool _wasSettingsReceived = false;
-        private bool _wasPingReceived = false;
-        private bool _wasResponseReceived = false;
+        private bool _wasSettingsReceived;
+        private bool _wasPingReceived;
+        private bool _wasResponseReceived;
         private IList<KeyValuePair<string, string>> _toBeContinuedHeaders = null;
         private Frame _toBeContinuedFrame = null;
         private readonly Dictionary<string, string> _handshakeHeaders;

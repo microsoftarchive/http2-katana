@@ -24,12 +24,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Shared", "Shared", "{1BD8D9
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharedProtocol", "Shared\SharedProtocol\SharedProtocol.csproj", "{E34AC310-324C-46BC-AF9F-1A41DF58E867}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".Welcome", ".Welcome", "{704883B9-54FB-4C2D-81E0-CED6B9FA9804}"
-	ProjectSection(SolutionItems) = preProject
-		ProtocolNotes.txt = ProtocolNotes.txt
-		ToDo.txt = ToDo.txt
-	EndProjectSection
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SecurityLibrary", "SecurityLibrary", "{273CBE86-F5C9-46D5-A833-8126E4E5646A}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Security Library", "MentalisSecurityLibrary\Security Library.csproj", "{5BFA5A70-D384-4417-AFCC-5C744485A85F}"
