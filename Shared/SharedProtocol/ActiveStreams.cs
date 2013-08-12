@@ -225,7 +225,7 @@ namespace SharedProtocol
 
         public bool Remove(Http2Stream item)
         {
-            return Remove(item.Id);
+            return item != null && Remove(item.Id);
         }
 
         public bool IsStreamFlowControlled(Http2Stream stream)

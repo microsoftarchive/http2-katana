@@ -5,13 +5,11 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using SharedProtocol.Compression.Http2DeltaHeadersCompression;
 using Org.Mentalis;
 using Org.Mentalis.Security.Ssl;
 using Org.Mentalis.Security.Ssl.Shared.Extensions;
 using Owin.Types;
 using SharedProtocol;
-using SharedProtocol.Compression;
 using SharedProtocol.Framing;
 using SharedProtocol.Handshake;
 using SocketServer;
@@ -367,6 +365,12 @@ namespace Http2Tests
         [Fact]
         public void StartSessionAndDoRequestInUpgrade()
         {
+            if (_useSecurePort)
+            {
+                Assert.Equal(true, true);
+                return;
+            }
+
             string requestStr = GetAddress() + ConfigurationManager.AppSettings["smallTestFile"];
             Uri uri;
             Uri.TryCreate(requestStr, UriKind.Absolute, out uri);
@@ -422,8 +426,7 @@ namespace Http2Tests
             Uri uri;
             Uri.TryCreate(requestStr, UriKind.Absolute, out uri);
             int finalFramesCounter = 0;
-
-            const int streamsQuantity = 100;
+            int streamsQuantity = _useSecurePort ? 100 : 99;
 
             bool wasAllResourcesDownloaded = false;
             bool wasSocketClosed = false;
@@ -462,8 +465,8 @@ namespace Http2Tests
             }
 
             allResourcesDowloadedRaisedEvent.WaitOne(120000);
-
-            Assert.Equal(session.ActiveStreams.Count, streamsQuantity);
+            //One stream is superfluous for request in upgrade
+            Assert.Equal(session.ActiveStreams.Count, _useSecurePort ? streamsQuantity : streamsQuantity + 1);
 
             session.Dispose();
 

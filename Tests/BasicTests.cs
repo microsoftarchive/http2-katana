@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using SharedProtocol.Compression;
 using SharedProtocol.Extensions;
 using Org.Mentalis.Security.Ssl;
 using SharedProtocol;
@@ -227,7 +226,7 @@ namespace BasicTests
             var clientDecompressor = new CompressionProcessor(ConnectionEnd.Client);
 
             serializedHeaders = serverCompressor.Compress(serverHeaders);
-            decompressedHeaders = new HeadersList(clientCompressor.Decompress(serializedHeaders));
+            decompressedHeaders = new HeadersList(clientDecompressor.Decompress(serializedHeaders));
 
             foreach (var t in serverHeaders)
             {
