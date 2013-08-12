@@ -22,7 +22,7 @@ namespace SharedProtocol.Compression.Http2DeltaHeadersCompression
         private readonly SizedHeadersList _localHeaderTable;
         private readonly SizedHeadersList _remoteHeaderTable;
         private SizedHeadersList _localRefSet;
-        private SizedHeadersList _remoteRefSet;
+        private readonly SizedHeadersList _remoteRefSet;
 
         private MemoryStream _serializerStream;
 
@@ -395,7 +395,7 @@ namespace SharedProtocol.Compression.Http2DeltaHeadersCompression
         {
             try
             {
-                SizedHeadersList workingSet = new SizedHeadersList(_localRefSet);
+                var workingSet = new SizedHeadersList(_localRefSet);
 
                 _currentOffset = 0;
 
