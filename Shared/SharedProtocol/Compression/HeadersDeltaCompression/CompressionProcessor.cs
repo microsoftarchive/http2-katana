@@ -396,7 +396,7 @@ namespace SharedProtocol.Compression.Http2DeltaHeadersCompression
             try
             {
                 var workingSet = new SizedHeadersList(_localRefSet);
-
+                var unindexedHeadersList = new SizedHeadersList();
                 _currentOffset = 0;
 
                 while (_currentOffset != serializedHeaders.Length)
@@ -410,6 +410,10 @@ namespace SharedProtocol.Compression.Http2DeltaHeadersCompression
                             workingSet.RemoveAll(h => h.Equals(header));
                         else
                             workingSet.Add(header);
+                    }
+                    else if (entry.Item3 == IndexationType.WithoutIndexation)
+                    {
+                        unindexedHeadersList.Add(header);
                     }
                     else
                     {
@@ -426,6 +430,7 @@ namespace SharedProtocol.Compression.Http2DeltaHeadersCompression
                         _localRefSet.RemoveAll(h => h.Equals(header));
                 }
 
+                workingSet.AddRange(unindexedHeadersList);
                 return workingSet;
             }
             catch (Exception e)
