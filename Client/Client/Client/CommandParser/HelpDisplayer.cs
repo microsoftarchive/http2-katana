@@ -1,5 +1,4 @@
 ﻿using System;
-using SharedProtocol.Utils;
 
 namespace Client
 {

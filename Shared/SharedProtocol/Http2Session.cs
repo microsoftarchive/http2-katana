@@ -10,9 +10,7 @@ using SharedProtocol.Settings;
 using SharedProtocol.FlowControl;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.Contracts;
 using System.Threading.Tasks;
-using SharedProtocol.Extensions;
 using SharedProtocol.Utils;
 
 namespace SharedProtocol
@@ -91,7 +89,7 @@ namespace SharedProtocol
         /// The remote max concurrent streams.
         /// </value>
         internal Int32 RemoteMaxConcurrentStreams { get; set; }
-
+        internal Int32 InitialWindowSize { get; set; }
         internal Int32 SessionWindowSize { get; set; }
  
         public Http2Session(SecureSocket sessionSocket, ConnectionEnd end, 
@@ -126,9 +124,18 @@ namespace SharedProtocol
 
             _writeQueue = new WriteQueue(_sessionSocket, ActiveStreams, _usePriorities);
 
-            OurMaxConcurrentStreams = 100; //Spec recommends value 100 by default
-            RemoteMaxConcurrentStreams = 100;
-
+            if (_sessionSocket != null && sessionSocket.SecureProtocol == SecureProtocol.None)
+            {
+                OurMaxConcurrentStreams = int.Parse(_handshakeHeaders[":max_concurrent_streams"]);
+                RemoteMaxConcurrentStreams = int.Parse(_handshakeHeaders[":max_concurrent_streams"]);
+                InitialWindowSize = int.Parse(_handshakeHeaders[":initial_window_size"]);
+            } 
+            else
+            {
+                OurMaxConcurrentStreams = 100; //Spec recommends value 100 by default
+                RemoteMaxConcurrentStreams = 100;
+                InitialWindowSize = 2000000;
+            }
             _flowControlManager = new FlowControlManager(this);
 
             if (!_useFlowControl)
@@ -304,7 +311,7 @@ namespace SharedProtocol
                         //Aggressive window update
                         if (stream != null && stream.IsFlowControlEnabled)
                         {
-                            stream.WriteWindowUpdate(2000000);
+                            stream.WriteWindowUpdate(InitialWindowSize);
                         }
                         break;
                     case FrameType.Ping:
@@ -419,12 +426,12 @@ namespace SharedProtocol
             catch (CompressionError ex)
             {
                 //The endpoint is unable to maintain the compression context for the connection.
-                Http2Logger.LogError("Compression error occured: " + ex.Message);
+                Http2Logger.LogError("Compression error occurred: " + ex.Message);
                 Close(ResetStatusCode.CompressionError);
             }
             catch (ProtocolError pEx)
             {
-                Http2Logger.LogError("Protocol error occured: " + pEx.Message);
+                Http2Logger.LogError("Protocol error occurred: " + pEx.Message);
                 Close(pEx.Code);
             }
         }
@@ -463,9 +470,9 @@ namespace SharedProtocol
 
         private void ApplyHandshakeResults(IDictionary<string, object> handshakeResult)
         {
-            foreach (var entry in handshakeResult.Keys.Where(entry => handshakeResult[entry] is string))
+            foreach (var entry in handshakeResult.Keys)
             {
-                _handshakeHeaders.Add(entry, handshakeResult[entry] as string);
+                _handshakeHeaders.Add(entry, handshakeResult[entry].ToString());
             }
         }
 

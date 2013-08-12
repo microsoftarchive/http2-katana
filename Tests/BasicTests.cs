@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using SharedProtocol.Compression;
 using SharedProtocol.Extensions;
 using Org.Mentalis.Security.Ssl;
 using SharedProtocol;
@@ -114,7 +113,11 @@ namespace BasicTests
         [Fact]
         public void ActiveStreamsSuccessful()
         {
-            var handshakeResult = new Dictionary<string, object>();
+            var handshakeResult = new Dictionary<string, object>()
+            {
+                {":max_concurrent_streams", 100},
+                {":initial_window_size", 2000000}
+            };
             var session = new Http2Session(null, ConnectionEnd.Client, true, true, handshakeResult);
             var testCollection = session.ActiveStreams;
             var fm = new FlowControlManager(session);
@@ -227,7 +230,7 @@ namespace BasicTests
             var clientDecompressor = new CompressionProcessor(ConnectionEnd.Client);
 
             serializedHeaders = serverCompressor.Compress(serverHeaders);
-            decompressedHeaders = new HeadersList(clientCompressor.Decompress(serializedHeaders));
+            decompressedHeaders = new HeadersList(clientDecompressor.Decompress(serializedHeaders));
 
             foreach (var t in serverHeaders)
             {

@@ -165,7 +165,7 @@ namespace Client
                 }
                 catch (Exception e)
                 {
-                    Http2Logger.LogError("Problems occured - please restart client. Error: " + e.Message);
+                    Http2Logger.LogError("Problems occurred - please restart client. Error: " + e.Message);
                 }
             }
         }
