@@ -113,7 +113,11 @@ namespace BasicTests
         [Fact]
         public void ActiveStreamsSuccessful()
         {
-            var handshakeResult = new Dictionary<string, object>();
+            var handshakeResult = new Dictionary<string, object>()
+            {
+                {":max_concurrent_streams", 100},
+                {":initial_window_size", 2000000}
+            };
             var session = new Http2Session(null, ConnectionEnd.Client, true, true, handshakeResult);
             var testCollection = session.ActiveStreams;
             var fm = new FlowControlManager(session);

@@ -16,11 +16,12 @@ namespace SharedProtocol.Settings
 
                 switch (settingsFrame[i].Id)
                 {
-                    case SettingsIds.MaxCurrentStreams:
+                    case SettingsIds.MaxConcurrentStreams:
                         session.RemoteMaxConcurrentStreams = settingsFrame[i].Value;
                         break;
                     case SettingsIds.InitialWindowSize:
                         flCtrlManager.StreamsInitialWindowSize = settingsFrame[i].Value;
+                        session.InitialWindowSize = settingsFrame[i].Value;
                         break;
                     case SettingsIds.FlowControlOptions:
                         flCtrlManager.Options = settingsFrame[i].Value;

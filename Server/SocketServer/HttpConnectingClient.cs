@@ -161,7 +161,7 @@ namespace SocketServer
                 }
                 catch (Exception e)
                 {
-                    Http2Logger.LogError("Exception occured. Closing client's socket. " + e.Message);
+                    Http2Logger.LogError("Exception occurred. Closing client's socket. " + e.Message);
                     incomingClient.Close();
                     return;
                 }
@@ -172,7 +172,7 @@ namespace SocketServer
             }
             catch (Exception e)
             {
-                Http2Logger.LogError("Exception occured. Closing client's socket. " + e.Message);
+                Http2Logger.LogError("Exception occurred. Closing client's socket. " + e.Message);
                 incomingClient.Close();
             }
         }
