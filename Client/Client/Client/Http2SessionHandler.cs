@@ -436,11 +436,11 @@ namespace Client
             }
         }
 
-        public void Dispose(bool wasErrorOccured)
+        public void Dispose(bool wasErrorOccurred)
         {
             Dispose();
 
-            if (wasErrorOccured && OnClosed != null)
+            if (wasErrorOccurred && OnClosed != null)
             {
                 OnClosed(this, null);
             }

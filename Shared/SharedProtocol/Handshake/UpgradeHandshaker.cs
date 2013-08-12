@@ -49,7 +49,9 @@ namespace SharedProtocol.Handshake
                         {
                             {":path",  handshakeEnvironment[":path"]},
                             {":host",  handshakeEnvironment[":host"]},
-                            {":version",  handshakeEnvironment[":version"]}
+                            {":version",  handshakeEnvironment[":version"]},
+                            {":max_concurrent_streams", 100},
+                            {":initial_window_size", 2000000},
                         };
                 }
                 else
@@ -111,8 +113,7 @@ namespace SharedProtocol.Handshake
                 }
                 builder.Append("\r\n\r\n");
                 byte[] requestBytes = Encoding.UTF8.GetBytes(builder.ToString());
-                _handshakeResult = new Dictionary<string, object>(_headers);
-                _handshakeResult.Add(":method", "get");
+                _handshakeResult = new Dictionary<string, object>(_headers) {{":method", "get"}};
                 InternalSocket.Send(requestBytes, 0, requestBytes.Length, SocketFlags.None);
 
                 _responseReceivedRaised.WaitOne(Timeout);
