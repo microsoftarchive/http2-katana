@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 
 namespace SharedProtocol.Compression.HeadersDeltaCompression
@@ -7,7 +8,7 @@ namespace SharedProtocol.Compression.HeadersDeltaCompression
     {
         public SizedHeadersList(){}
 
-        public SizedHeadersList(HeadersList headers)
+        public SizedHeadersList(IEnumerable<KeyValuePair<string,string>> headers)
             : base(headers)
         {
         }
@@ -26,7 +27,7 @@ namespace SharedProtocol.Compression.HeadersDeltaCompression
         public new void Add(KeyValuePair<string, string> header)
         {
             base.Add(header);
-            StoredHeadersSize += header.Key.Length + header.Value.Length;
+            StoredHeadersSize += header.Key.Length + header.Value.Length + sizeof(Int32);
         }
 
         public new bool Remove(KeyValuePair<string, string> header)
@@ -34,7 +35,7 @@ namespace SharedProtocol.Compression.HeadersDeltaCompression
             bool wasRemoved = base.Remove(header);
             if (wasRemoved)
             {
-                StoredHeadersSize -= header.Key.Length + header.Value.Length;
+                StoredHeadersSize -= header.Key.Length + header.Value.Length + sizeof(Int32);
             }
             return wasRemoved;
         }
@@ -44,18 +45,18 @@ namespace SharedProtocol.Compression.HeadersDeltaCompression
             Contract.Assert(index >= 0 && index < Count);
             var header = this[index];
             base.RemoveAt(index);
-            StoredHeadersSize -= header.Key.Length + header.Value.Length;
+            StoredHeadersSize -= header.Key.Length + header.Value.Length + sizeof(Int32);
         }
 
         public new void Insert(int offset, KeyValuePair<string, string> header)
         {
             base.Insert(offset, header);
-            StoredHeadersSize += header.Key.Length + header.Value.Length;
+            StoredHeadersSize += header.Key.Length + header.Value.Length + sizeof(Int32);
         }
 
         public new void Clear()
         {
-            Clear();
+            base.Clear();
             StoredHeadersSize = 0;
         }
     }
