@@ -1,0 +1,12 @@
+# Standard VS.NET and ReSharper Foo
+obj/
+bin/
+Bin/
+*.csproj.user
+*.suo
+*.cache
+Thumbs.db
+
+# Project specific
+/Drop/
+/debug.log
