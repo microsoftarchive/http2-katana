@@ -349,7 +349,9 @@
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PreBuildEvent />
-    <PostBuildEvent>mkdir "$(SolutionDir)Drop"
+    <PostBuildEvent Condition=" '$(OS)' == 'Windows_NT' ">mkdir "$(SolutionDir)Drop"
 copy /y "$(TargetPath)" "$(SolutionDir)Drop\$(TargetFileName)"</PostBuildEvent>
+    <PostBuildEvent Condition=" '$(OS)' != 'Windows_NT' ">mkdir "$(SolutionDir)Drop"
+cp -Rf "$(TargetPath)" "$(SolutionDir)Drop\$(TargetFileName)"</PostBuildEvent>
   </PropertyGroup>
 </Project>

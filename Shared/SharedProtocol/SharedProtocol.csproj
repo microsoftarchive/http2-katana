@@ -140,7 +140,7 @@
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="$(SolutionDir)\.nuget\nuget.targets" />
   <PropertyGroup>
-    <PostBuildEvent>copy /y "$(ProjectDir)packages\Microsoft.Owin.Hosting.dll" "$(SolutionDir)Drop\Microsoft.Owin.Hosting.dll"
+    <PostBuildEvent Condition=" '$(OS)' == 'Windows_NT' ">copy /y "$(ProjectDir)packages\Microsoft.Owin.Hosting.dll" "$(SolutionDir)Drop\Microsoft.Owin.Hosting.dll"
 copy /y "$(ProjectDir)packages\Owin.Types.dll" "$(SolutionDir)Drop\Owin.Types.dll"
 copy /y "$(ProjectDir)packages\Firefly.dll" "$(SolutionDir)Drop\Firefly.dll"
 copy /y "$(ProjectDir)packages\Owin.dll" "$(SolutionDir)Drop\Owin.dll"
@@ -154,6 +154,21 @@ copy /y "$(ProjectDir)packages\System.Web.Http.dll" "$(SolutionDir)Drop\System.W
 copy /y "$(ProjectDir)packages\zlib.net.dll" "$(SolutionDir)Drop\zlib.net.dll"
 copy /y "$(ProjectDir)packages\Newtonsoft.Json.dll" "$(SolutionDir)Drop\Newtonsoft.Json.dll"
 copy /y "$(TargetPath)" "$(SolutionDir)Drop\$(TargetFileName)"
+</PostBuildEvent>
+    <PostBuildEvent Condition=" '$(OS)' != 'Windows_NT' ">cp -Rf "$(ProjectDir)packages\Microsoft.Owin.Hosting.dll" "$(SolutionDir)Drop\Microsoft.Owin.Hosting.dll"
+cp -Rf "$(ProjectDir)packages\Owin.Types.dll" "$(SolutionDir)Drop\Owin.Types.dll"
+cp -Rf "$(ProjectDir)packages\Firefly.dll" "$(SolutionDir)Drop\Firefly.dll"
+cp -Rf "$(ProjectDir)packages\Owin.dll" "$(SolutionDir)Drop\Owin.dll"
+cp -Rf "$(ProjectDir)packages\Owin.Extensions.dll" "$(SolutionDir)Drop\Owin.Extensions.dll"
+cp -Rf "$(ProjectDir)packages\Microsoft.AspNet.WebApi.Owin.dll" "$(SolutionDir)Drop\Microsoft.AspNet.WebApi.Owin.dll"
+cp -Rf "$(ProjectDir)packages\Microsoft.Owin.Host.HttpListener.dll" "$(SolutionDir)Drop\Microsoft.Owin.Host.HttpListener.dll"
+cp -Rf "$(ProjectDir)packages\System.Net.Http.dll" "$(SolutionDir)Drop\System.Net.Http.dll"
+cp -Rf "$(ProjectDir)packages\System.Net.Http.Formatting.dll" "$(SolutionDir)Drop\System.Net.Http.Formatting.dll"
+cp -Rf "$(ProjectDir)packages\System.Net.Http.WebRequest.dll" "$(SolutionDir)Drop\System.Net.Http.WebRequest.dll"
+cp -Rf "$(ProjectDir)packages\System.Web.Http.dll" "$(SolutionDir)Drop\System.Web.Http.dll"
+cp -Rf "$(ProjectDir)packages\zlib.net.dll" "$(SolutionDir)Drop\zlib.net.dll"
+cp -Rf "$(ProjectDir)packages\Newtonsoft.Json.dll" "$(SolutionDir)Drop\Newtonsoft.Json.dll"
+cp -Rf "$(TargetPath)" "$(SolutionDir)Drop\$(TargetFileName)"
 </PostBuildEvent>
   </PropertyGroup>
   <PropertyGroup>
