@@ -2,8 +2,8 @@
 obj/
 bin/
 Bin/
-*.csproj.user
 *.suo
+*.user
 *.cache
 Thumbs.db
 
