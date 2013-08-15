@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using SharedProtocol.Compression.HeadersDeltaCompression;
 
 namespace SharedProtocol.Compression.Http2DeltaHeadersCompression
 {
@@ -49,7 +48,7 @@ namespace SharedProtocol.Compression.Http2DeltaHeadersCompression
               | 37    | warning             |              |
               +-------+---------------------+--------------+*/
 
-        private static readonly SizedHeadersList requestInitialHeaders = new SizedHeadersList
+        private static readonly KeyValuePair<string, string>[] requestInitialHeaders = new[]
             {
                 new KeyValuePair<string, string>(":scheme", "https"),
                 new KeyValuePair<string, string>(":scheme", "http"),
@@ -131,7 +130,7 @@ namespace SharedProtocol.Compression.Http2DeltaHeadersCompression
           | 34    | www-authenticate            |              |
           +-------+-----------------------------+--------------+*/
 
-        private static readonly SizedHeadersList responseInitialHeaders = new SizedHeadersList
+        private static readonly KeyValuePair<string,string>[] responseInitialHeaders = new []
             {
                 new KeyValuePair<string, string>(":status", "200"),
                 new KeyValuePair<string, string>("age", String.Empty),
@@ -170,14 +169,14 @@ namespace SharedProtocol.Compression.Http2DeltaHeadersCompression
                 new KeyValuePair<string, string>("www-authenticate", String.Empty),
             };
 
-        public static SizedHeadersList RequestInitialHeaders
+        public static HeadersList RequestInitialHeaders
         {
-            get { return new SizedHeadersList(requestInitialHeaders); }
+            get { return new HeadersList(requestInitialHeaders); }
         }
 
-        public static SizedHeadersList ResponseInitialHeaders
+        public static HeadersList ResponseInitialHeaders
         {
-            get { return new SizedHeadersList(responseInitialHeaders); }
+            get { return new HeadersList(responseInitialHeaders); }
         }
     }
 }

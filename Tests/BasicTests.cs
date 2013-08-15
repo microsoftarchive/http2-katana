@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using SharedProtocol.Extensions;
 using Org.Mentalis.Security.Ssl;
 using SharedProtocol;
@@ -43,35 +44,35 @@ namespace BasicTests
             var queue = new PriorityQueue(itemsCollection);
             Assert.Equal(queue.Count, 11);
             var firstItem1 = queue.First();
-            Assert.Equal(((PriorityQueueEntry)firstItem1).Priority, Priority.Pri0);
+            Assert.Equal(((PriorityQueueEntry) firstItem1).Priority, Priority.Pri0);
             var lastItem1 = queue.Last();
-            Assert.Equal(((PriorityQueueEntry)lastItem1).Priority, Priority.Pri7);
+            Assert.Equal(((PriorityQueueEntry) lastItem1).Priority, Priority.Pri7);
             var peekedItem1 = queue.Peek();
-            Assert.Equal(((PriorityQueueEntry)peekedItem1).Priority, Priority.Pri7);
+            Assert.Equal(((PriorityQueueEntry) peekedItem1).Priority, Priority.Pri7);
             var item1 = queue.Dequeue();
-            Assert.Equal(((PriorityQueueEntry)item1).Priority, Priority.Pri7);
+            Assert.Equal(((PriorityQueueEntry) item1).Priority, Priority.Pri7);
             var peekedItem2 = queue.Peek();
-            Assert.Equal(((PriorityQueueEntry)peekedItem2).Priority, Priority.Pri6);
+            Assert.Equal(((PriorityQueueEntry) peekedItem2).Priority, Priority.Pri6);
             var item2 = queue.Dequeue();
-            Assert.Equal(((PriorityQueueEntry)item2).Priority, Priority.Pri6);
+            Assert.Equal(((PriorityQueueEntry) item2).Priority, Priority.Pri6);
             var item3 = queue.Dequeue();
-            Assert.Equal(((PriorityQueueEntry)item3).Priority, Priority.Pri6);
+            Assert.Equal(((PriorityQueueEntry) item3).Priority, Priority.Pri6);
             var item4 = queue.Dequeue();
-            Assert.Equal(((PriorityQueueEntry)item4).Priority, Priority.Pri5);
+            Assert.Equal(((PriorityQueueEntry) item4).Priority, Priority.Pri5);
             var item5 = queue.Dequeue();
-            Assert.Equal(((PriorityQueueEntry)item5).Priority, Priority.Pri4);
+            Assert.Equal(((PriorityQueueEntry) item5).Priority, Priority.Pri4);
             var item6 = queue.Dequeue();
-            Assert.Equal(((PriorityQueueEntry)item6).Priority, Priority.Pri3);
+            Assert.Equal(((PriorityQueueEntry) item6).Priority, Priority.Pri3);
             var item7 = queue.Dequeue();
-            Assert.Equal(((PriorityQueueEntry)item7).Priority, Priority.Pri2);
+            Assert.Equal(((PriorityQueueEntry) item7).Priority, Priority.Pri2);
             var item8 = queue.Dequeue();
-            Assert.Equal(((PriorityQueueEntry)item8).Priority, Priority.Pri2);
+            Assert.Equal(((PriorityQueueEntry) item8).Priority, Priority.Pri2);
             var item9 = queue.Dequeue();
-            Assert.Equal(((PriorityQueueEntry)item9).Priority, Priority.Pri1);
+            Assert.Equal(((PriorityQueueEntry) item9).Priority, Priority.Pri1);
             var item10 = queue.Dequeue();
-            Assert.Equal(((PriorityQueueEntry)item10).Priority, Priority.Pri0);
+            Assert.Equal(((PriorityQueueEntry) item10).Priority, Priority.Pri0);
             var item11 = queue.Dequeue();
-            Assert.Equal(((PriorityQueueEntry)item11).Priority, Priority.Pri0);
+            Assert.Equal(((PriorityQueueEntry) item11).Priority, Priority.Pri0);
         }
 
         [Fact]
@@ -79,14 +80,14 @@ namespace BasicTests
         {
             var tests = new List<double[]>
                 {
-                    new [] {1, -2, (double)3, -6},
-                    new [] {float.MaxValue, double.MinValue, byte.MaxValue, -6},
-                    new [] {int.MaxValue, double.MaxValue, float.MinValue, int.MinValue}
+                    new[] {1, -2, (double) 3, -6},
+                    new[] {float.MaxValue, double.MinValue, byte.MaxValue, -6},
+                    new[] {int.MaxValue, double.MaxValue, float.MinValue, int.MinValue}
                 };
 
             var results = new[] {-6, double.MinValue, float.MinValue};
-  
-            for(int i = 0 ; i < tests.Count ; i++)
+
+            for (int i = 0; i < tests.Count; i++)
             {
                 Assert.Equal(MathEx.Min(tests[i]), results[i]);
             }
@@ -97,12 +98,12 @@ namespace BasicTests
         {
             var tests = new List<string[]>
                 {
-                    new [] {"abacaba", "me", "helloworld"},
-                    new [] {"get", "post", "server"},
-                    new [] {"james", "teylor", "euler", "lorentz"}
+                    new[] {"abacaba", "me", "helloworld"},
+                    new[] {"get", "post", "server"},
+                    new[] {"james", "teylor", "euler", "lorentz"}
                 };
 
-            var results = new[] { "me", "server", "teylor" };
+            var results = new[] {"me", "server", "teylor"};
 
             for (int i = 0; i < tests.Count; i++)
             {
@@ -114,10 +115,10 @@ namespace BasicTests
         public void ActiveStreamsSuccessful()
         {
             var handshakeResult = new Dictionary<string, object>()
-            {
-                {":max_concurrent_streams", 100},
-                {":initial_window_size", 2000000}
-            };
+                {
+                    {":max_concurrent_streams", 100},
+                    {":initial_window_size", 2000000}
+                };
             var session = new Http2Session(null, ConnectionEnd.Client, true, true, handshakeResult);
             var testCollection = session.ActiveStreams;
             var fm = new FlowControlManager(session);
@@ -236,6 +237,37 @@ namespace BasicTests
             {
                 Assert.Equal(decompressedHeaders.GetValue(t.Key), t.Value);
             }
+        }
+
+        [Fact]
+        public void HeadersCollectionSuccessful()
+        {
+            var collection = new HeadersList(new[]
+                {
+                    new KeyValuePair<string, string>("myKey1", "myValue1"), 
+                    new KeyValuePair<string, string>("myKey2", "myValue2"),
+                    new KeyValuePair<string, string>("myKey3", "myValue3"),
+                    new KeyValuePair<string, string>("myKey4", "myValue4"),
+                    new KeyValuePair<string, string>("myKey5", "myValue5"),
+                    new KeyValuePair<string, string>("myKey6", "myValue6"),
+                    new KeyValuePair<string, string>("myKey7", "myValue7"),
+                    new KeyValuePair<string, string>("myKey8", "myValue8"),
+                    new KeyValuePair<string, string>("myKey9", "myValue9"),
+                    new KeyValuePair<string, string>("myKey0", "myValue0"),
+                });
+
+            Assert.Equal(collection.Count, 10);
+            Assert.Equal(collection.StoredHeadersSize, 60 + 80 + sizeof(Int32) * collection.Count);
+
+            collection.Add(new KeyValuePair<string, string>("someAddKey1", "someAddValue1"));
+            collection.Add(new KeyValuePair<string, string>("someAddKey2", "someAddValue2"));
+
+            Assert.Equal(collection.Count, 12);
+            Assert.Equal(collection.StoredHeadersSize, 60 + 80 + sizeof(Int32) * collection.Count + 22 + 26);
+
+            int headersSize = collection.Sum(header => header.Key.Length + header.Value.Length + sizeof (Int32));
+
+            Assert.Equal(collection.StoredHeadersSize, headersSize);
         }
     }
 }
