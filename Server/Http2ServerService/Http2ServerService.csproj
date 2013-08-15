@@ -56,9 +56,8 @@
     <Reference Include="Owin.Types">
       <HintPath>..\..\Shared\SharedProtocol\packages\Owin.Types.dll</HintPath>
     </Reference>
-    <Reference Include="SocketServer, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\Server\bin\Debug\SocketServer.dll</HintPath>
+    <Reference Include="SocketServer">
+      <HintPath>..\SocketServer\bin\Debug\SocketServer.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Configuration" />
