@@ -47,7 +47,7 @@ namespace SharedProtocol.IO
 
             var priority = frame.StreamId != 0 ? _streams[frame.StreamId].Priority : Priority.Pri7;
 
-            IQueueItem entry = null;
+            IQueueItem entry;
 
             if (IsPriorityTurnedOn)
             {

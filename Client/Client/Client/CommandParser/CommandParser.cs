@@ -1,7 +1,7 @@
 ﻿using System;
 using Client.Commands;
 
-namespace Client
+namespace Client.CommandParser
 {
     internal static class CommandParser
     {

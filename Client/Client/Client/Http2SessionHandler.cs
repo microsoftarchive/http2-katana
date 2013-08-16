@@ -11,6 +11,7 @@ using Org.Mentalis;
 using Org.Mentalis.Security.Ssl;
 using Org.Mentalis.Security.Ssl.Shared.Extensions;
 using SharedProtocol;
+using SharedProtocol.EventArgs;
 using SharedProtocol.Exceptions;
 using SharedProtocol.Extensions;
 using SharedProtocol.Framing;
@@ -21,6 +22,9 @@ using SharedProtocol.Utils;
 
 namespace Client
 {
+    /// <summary>
+    /// This class express client logic. It can create client socket, accept server responses, make handshake and choose how to send requests to server.
+    /// </summary>
     public sealed class Http2SessionHandler : IDisposable
     {
         #region Fields

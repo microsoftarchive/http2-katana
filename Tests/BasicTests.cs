@@ -2,14 +2,14 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using SharedProtocol.Extensions;
 using Org.Mentalis.Security.Ssl;
 using SharedProtocol;
+using SharedProtocol.Compression.HeadersDeltaCompression;
+using SharedProtocol.Extensions;
 using SharedProtocol.FlowControl;
 using SharedProtocol.Framing;
-using Xunit;
-using SharedProtocol.Compression.Http2DeltaHeadersCompression;
 using SharedProtocol.IO;
+using Xunit;
 
 namespace BasicTests
 {
@@ -114,11 +114,11 @@ namespace BasicTests
         [Fact]
         public void ActiveStreamsSuccessful()
         {
-            var handshakeResult = new Dictionary<string, object>()
-                {
+            var handshakeResult = new Dictionary<string, object>
+            {
                     {":max_concurrent_streams", 100},
                     {":initial_window_size", 2000000}
-                };
+            };
             var session = new Http2Session(null, ConnectionEnd.Client, true, true, handshakeResult);
             var testCollection = session.ActiveStreams;
             var fm = new FlowControlManager(session);
@@ -253,7 +253,7 @@ namespace BasicTests
                     new KeyValuePair<string, string>("myKey7", "myValue7"),
                     new KeyValuePair<string, string>("myKey8", "myValue8"),
                     new KeyValuePair<string, string>("myKey9", "myValue9"),
-                    new KeyValuePair<string, string>("myKey0", "myValue0"),
+                    new KeyValuePair<string, string>("myKey0", "myValue0")
                 });
 
             Assert.Equal(collection.Count, 10);

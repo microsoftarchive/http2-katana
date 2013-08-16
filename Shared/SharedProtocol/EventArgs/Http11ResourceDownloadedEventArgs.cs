@@ -1,8 +1,9 @@
-﻿using System;
-
-namespace SharedProtocol
+﻿namespace SharedProtocol.EventArgs
 {
-    public class Http11ResourceDownloadedEventArgs : EventArgs
+    /// <summary>
+    /// This class for future usage
+    /// </summary>
+    public class Http11ResourceDownloadedEventArgs : System.EventArgs
     {
         public int ByteCount { get; private set; }
         public string Name { get; private set; }

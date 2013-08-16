@@ -4,6 +4,10 @@ using System.Diagnostics.Contracts;
 
 namespace SharedProtocol.Framing
 {
+    /// <summary>
+    /// Settings frame class
+    /// See spec: http://tools.ietf.org/html/draft-ietf-httpbis-http2-05#section-6.5
+    /// </summary>
     public class SettingsFrame : Frame
     {
         // The number of bytes in the frame.

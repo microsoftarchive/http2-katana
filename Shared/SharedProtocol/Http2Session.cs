@@ -1,7 +1,8 @@
 ﻿using System.Linq;
 using System.Threading;
+using SharedProtocol.Compression.HeadersDeltaCompression;
+using SharedProtocol.EventArgs;
 using SharedProtocol.Exceptions;
-using SharedProtocol.Compression.Http2DeltaHeadersCompression;
 using Org.Mentalis.Security.Ssl;
 using SharedProtocol.Compression;
 using SharedProtocol.Framing;
@@ -15,6 +16,10 @@ using SharedProtocol.Utils;
 
 namespace SharedProtocol
 {
+    /// <summary>
+    /// This class creates and closes session, pumps incoming and outcoming frames and dispatches them.
+    /// It can send requests of client and write setting and goaway frames.
+    /// </summary>
     public class Http2Session : IDisposable
     {
         private bool _goAwayReceived;
@@ -34,8 +39,8 @@ namespace SharedProtocol
         private bool _wasSettingsReceived;
         private bool _wasPingReceived;
         private bool _wasResponseReceived;
-        private IList<KeyValuePair<string, string>> _toBeContinuedHeaders = null;
-        private Frame _toBeContinuedFrame = null;
+        private IList<KeyValuePair<string, string>> _toBeContinuedHeaders;
+        private Frame _toBeContinuedFrame;
         private readonly Dictionary<string, string> _handshakeHeaders;
 
         /// <summary>
@@ -61,7 +66,7 @@ namespace SharedProtocol
         /// <summary>
         /// Session closed event.
         /// </summary>
-        public event EventHandler<EventArgs> OnSessionDisposed;
+        public event EventHandler<System.EventArgs> OnSessionDisposed;
 
 
         /// <summary>
@@ -451,7 +456,7 @@ namespace SharedProtocol
                 throw new InvalidOperationException("Trying to create more streams than allowed!");
             }
 
-            Http2Stream stream = new Http2Stream(headers, streamId,
+            var stream = new Http2Stream(headers, streamId,
                                       _writeQueue, _flowControlManager,
                                       _comprProc);
 

@@ -7,6 +7,7 @@ using System.Reflection;
 using System.Text;
 using Org.Mentalis;
 using Org.Mentalis.Security.Ssl;
+using SharedProtocol.EventArgs;
 using SharedProtocol.Utils;
 
 namespace SharedProtocol.Http11

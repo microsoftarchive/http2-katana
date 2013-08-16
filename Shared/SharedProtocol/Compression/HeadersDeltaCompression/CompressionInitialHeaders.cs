@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace SharedProtocol.Compression.Http2DeltaHeadersCompression
+namespace SharedProtocol.Compression.HeadersDeltaCompression
 {
     internal static class CompressionInitialHeaders
     {
@@ -48,47 +48,47 @@ namespace SharedProtocol.Compression.Http2DeltaHeadersCompression
               | 37    | warning             |              |
               +-------+---------------------+--------------+*/
 
-        private static readonly KeyValuePair<string, string>[] requestInitialHeaders = new[]
-            {
-                new KeyValuePair<string, string>(":scheme", "https"),
-                new KeyValuePair<string, string>(":scheme", "http"),
-                new KeyValuePair<string, string>(":host", String.Empty),
-                new KeyValuePair<string, string>(":path", "/"),
-                new KeyValuePair<string, string>(":method", "get"),
-                new KeyValuePair<string, string>("accept", String.Empty),
-                new KeyValuePair<string, string>("accept-charset", String.Empty),
-                new KeyValuePair<string, string>("accept-encoding", String.Empty),
-                new KeyValuePair<string, string>("accept-language", String.Empty),
-                new KeyValuePair<string, string>("cookie", String.Empty),
-                new KeyValuePair<string, string>("if-modified-since", String.Empty),
-                new KeyValuePair<string, string>("keep-alive", String.Empty),
-                new KeyValuePair<string, string>("user-agent", String.Empty),
-                new KeyValuePair<string, string>("proxy-connection", String.Empty),
-                new KeyValuePair<string, string>("referer", String.Empty),
-                new KeyValuePair<string, string>("accept-datetime", String.Empty),
-                new KeyValuePair<string, string>("authorization", String.Empty),
-                new KeyValuePair<string, string>("allow", String.Empty),
-                new KeyValuePair<string, string>("cache-control", String.Empty),
-                new KeyValuePair<string, string>("connection", String.Empty),
-                new KeyValuePair<string, string>("content-length", String.Empty),
-                new KeyValuePair<string, string>("content-md5", String.Empty),
-                new KeyValuePair<string, string>("content-type", String.Empty),
-                new KeyValuePair<string, string>("date", String.Empty),
-                new KeyValuePair<string, string>("expect", String.Empty),
-                new KeyValuePair<string, string>("from", String.Empty),//
-                new KeyValuePair<string, string>("if-match", String.Empty),
-                new KeyValuePair<string, string>("if-none-match", String.Empty),
-                new KeyValuePair<string, string>("if-range", String.Empty),
-                new KeyValuePair<string, string>("if-unmodified-since", String.Empty),
-                new KeyValuePair<string, string>("max-forwards", String.Empty),
-                new KeyValuePair<string, string>("pragma", String.Empty),
-                new KeyValuePair<string, string>("proxy-authorization", String.Empty),
-                new KeyValuePair<string, string>("range", String.Empty),
-                new KeyValuePair<string, string>("te", String.Empty),
-                new KeyValuePair<string, string>("upgrade", String.Empty),
-                new KeyValuePair<string, string>("via", String.Empty),
-                new KeyValuePair<string, string>("warning", String.Empty),
-            };
+        private static readonly KeyValuePair<string, string>[] requestInitialHeaders =
+        {
+            new KeyValuePair<string, string>(":scheme", "https"),
+            new KeyValuePair<string, string>(":scheme", "http"),
+            new KeyValuePair<string, string>(":host", String.Empty),
+            new KeyValuePair<string, string>(":path", "/"),
+            new KeyValuePair<string, string>(":method", "get"),
+            new KeyValuePair<string, string>("accept", String.Empty),
+            new KeyValuePair<string, string>("accept-charset", String.Empty),
+            new KeyValuePair<string, string>("accept-encoding", String.Empty),
+            new KeyValuePair<string, string>("accept-language", String.Empty),
+            new KeyValuePair<string, string>("cookie", String.Empty),
+            new KeyValuePair<string, string>("if-modified-since", String.Empty),
+            new KeyValuePair<string, string>("keep-alive", String.Empty),
+            new KeyValuePair<string, string>("user-agent", String.Empty),
+            new KeyValuePair<string, string>("proxy-connection", String.Empty),
+            new KeyValuePair<string, string>("referer", String.Empty),
+            new KeyValuePair<string, string>("accept-datetime", String.Empty),
+            new KeyValuePair<string, string>("authorization", String.Empty),
+            new KeyValuePair<string, string>("allow", String.Empty),
+            new KeyValuePair<string, string>("cache-control", String.Empty),
+            new KeyValuePair<string, string>("connection", String.Empty),
+            new KeyValuePair<string, string>("content-length", String.Empty),
+            new KeyValuePair<string, string>("content-md5", String.Empty),
+            new KeyValuePair<string, string>("content-type", String.Empty),
+            new KeyValuePair<string, string>("date", String.Empty),
+            new KeyValuePair<string, string>("expect", String.Empty),
+            new KeyValuePair<string, string>("from", String.Empty),//
+            new KeyValuePair<string, string>("if-match", String.Empty),
+            new KeyValuePair<string, string>("if-none-match", String.Empty),
+            new KeyValuePair<string, string>("if-range", String.Empty),
+            new KeyValuePair<string, string>("if-unmodified-since", String.Empty),
+            new KeyValuePair<string, string>("max-forwards", String.Empty),
+            new KeyValuePair<string, string>("pragma", String.Empty),
+            new KeyValuePair<string, string>("proxy-authorization", String.Empty),
+            new KeyValuePair<string, string>("range", String.Empty),
+            new KeyValuePair<string, string>("te", String.Empty),
+            new KeyValuePair<string, string>("upgrade", String.Empty),
+            new KeyValuePair<string, string>("via", String.Empty),
+            new KeyValuePair<string, string>("warning", String.Empty)
+        };
 
         /*+-------+-----------------------------+--------------+
           | Index | Header Name                 | Header Value |
@@ -130,44 +130,44 @@ namespace SharedProtocol.Compression.Http2DeltaHeadersCompression
           | 34    | www-authenticate            |              |
           +-------+-----------------------------+--------------+*/
 
-        private static readonly KeyValuePair<string,string>[] responseInitialHeaders = new []
-            {
-                new KeyValuePair<string, string>(":status", "200"),
-                new KeyValuePair<string, string>("age", String.Empty),
-                new KeyValuePair<string, string>("cache-control", String.Empty),
-                new KeyValuePair<string, string>("content-length",String.Empty),
-                new KeyValuePair<string, string>("content-type", String.Empty),
-                new KeyValuePair<string, string>("date", String.Empty),
-                new KeyValuePair<string, string>("etag", String.Empty),
-                new KeyValuePair<string, string>("expires", String.Empty),
-                new KeyValuePair<string, string>("last-modified", String.Empty),//
-                new KeyValuePair<string, string>("server", String.Empty),
-                new KeyValuePair<string, string>("set-cookie", String.Empty),
-                new KeyValuePair<string, string>("vary", String.Empty),
-                new KeyValuePair<string, string>("via", String.Empty),
-                new KeyValuePair<string, string>("access-control-allow-origin", String.Empty),
-                new KeyValuePair<string, string>("accept-ranges", String.Empty),
-                new KeyValuePair<string, string>("allow", String.Empty),//
-                new KeyValuePair<string, string>("connection", String.Empty),
-                new KeyValuePair<string, string>("content-disposition", String.Empty),
-                new KeyValuePair<string, string>("content-encoding", String.Empty),
-                new KeyValuePair<string, string>("content-language", String.Empty),
-                new KeyValuePair<string, string>("content-location", String.Empty),
-                new KeyValuePair<string, string>("content-md5", String.Empty),
-                new KeyValuePair<string, string>("content-range", String.Empty),//
-                new KeyValuePair<string, string>("link", String.Empty),
-                new KeyValuePair<string, string>("location", String.Empty),
-                new KeyValuePair<string, string>("p3p", String.Empty),
-                new KeyValuePair<string, string>("pragma", String.Empty),
-                new KeyValuePair<string, string>("proxy-authenticate", String.Empty),
-                new KeyValuePair<string, string>("refresh", String.Empty),//
-                new KeyValuePair<string, string>("retry-after", String.Empty),
-                new KeyValuePair<string, string>("strict-transport-security", String.Empty),
-                new KeyValuePair<string, string>("trailer", String.Empty),
-                new KeyValuePair<string, string>("transfer-encoding", String.Empty),
-                new KeyValuePair<string, string>("warning", String.Empty),
-                new KeyValuePair<string, string>("www-authenticate", String.Empty),
-            };
+        private static readonly KeyValuePair<string,string>[] responseInitialHeaders =
+        {
+            new KeyValuePair<string, string>(":status", "200"),
+            new KeyValuePair<string, string>("age", String.Empty),
+            new KeyValuePair<string, string>("cache-control", String.Empty),
+            new KeyValuePair<string, string>("content-length",String.Empty),
+            new KeyValuePair<string, string>("content-type", String.Empty),
+            new KeyValuePair<string, string>("date", String.Empty),
+            new KeyValuePair<string, string>("etag", String.Empty),
+            new KeyValuePair<string, string>("expires", String.Empty),
+            new KeyValuePair<string, string>("last-modified", String.Empty),//
+            new KeyValuePair<string, string>("server", String.Empty),
+            new KeyValuePair<string, string>("set-cookie", String.Empty),
+            new KeyValuePair<string, string>("vary", String.Empty),
+            new KeyValuePair<string, string>("via", String.Empty),
+            new KeyValuePair<string, string>("access-control-allow-origin", String.Empty),
+            new KeyValuePair<string, string>("accept-ranges", String.Empty),
+            new KeyValuePair<string, string>("allow", String.Empty),//
+            new KeyValuePair<string, string>("connection", String.Empty),
+            new KeyValuePair<string, string>("content-disposition", String.Empty),
+            new KeyValuePair<string, string>("content-encoding", String.Empty),
+            new KeyValuePair<string, string>("content-language", String.Empty),
+            new KeyValuePair<string, string>("content-location", String.Empty),
+            new KeyValuePair<string, string>("content-md5", String.Empty),
+            new KeyValuePair<string, string>("content-range", String.Empty),//
+            new KeyValuePair<string, string>("link", String.Empty),
+            new KeyValuePair<string, string>("location", String.Empty),
+            new KeyValuePair<string, string>("p3p", String.Empty),
+            new KeyValuePair<string, string>("pragma", String.Empty),
+            new KeyValuePair<string, string>("proxy-authenticate", String.Empty),
+            new KeyValuePair<string, string>("refresh", String.Empty),//
+            new KeyValuePair<string, string>("retry-after", String.Empty),
+            new KeyValuePair<string, string>("strict-transport-security", String.Empty),
+            new KeyValuePair<string, string>("trailer", String.Empty),
+            new KeyValuePair<string, string>("transfer-encoding", String.Empty),
+            new KeyValuePair<string, string>("warning", String.Empty),
+            new KeyValuePair<string, string>("www-authenticate", String.Empty)
+        };
 
         public static HeadersList RequestInitialHeaders
         {

@@ -14,6 +14,7 @@ using System.Threading.Tasks;
 using Org.Mentalis;
 using Org.Mentalis.Security.Ssl;
 using SharedProtocol;
+using SharedProtocol.EventArgs;
 using SharedProtocol.Exceptions;
 using SharedProtocol.Extensions;
 using SharedProtocol.Framing;
@@ -26,7 +27,7 @@ namespace SocketServer
 {
     using AppFunc = Func<IDictionary<string, object>, Task>;
     /// <summary>
-    /// This class handles incoming clients. It can accept them, make handshake and chose how to give a response.
+    /// This class handles incoming clients. It can accept them, make handshake and choose how to give a response.
     /// It encouraged to response with http11 or http20 
     /// </summary>
     internal sealed class HttpConnectingClient : IDisposable

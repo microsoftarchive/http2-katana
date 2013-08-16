@@ -1,9 +1,11 @@
-﻿using System;
-using SharedProtocol.Framing;
+﻿using SharedProtocol.Framing;
 
-namespace SharedProtocol
+namespace SharedProtocol.EventArgs
 {
-    public class FrameSentArgs : EventArgs
+    /// <summary>
+    /// This class for future usage
+    /// </summary>
+    public class FrameSentArgs : System.EventArgs
     {
         public Frame Frame { get; private set; }
 

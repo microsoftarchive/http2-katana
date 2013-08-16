@@ -1,12 +1,12 @@
-﻿using Org.Mentalis.Security.Ssl;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using Org.Mentalis.Security.Ssl;
 using SharedProtocol.Exceptions;
 using SharedProtocol.Extensions;
 
-namespace SharedProtocol.Compression.Http2DeltaHeadersCompression
+namespace SharedProtocol.Compression.HeadersDeltaCompression
 {
     //This headers compression algorithm is described in
     // http://tools.ietf.org/html/draft-ietf-httpbis-header-compression-01
@@ -54,6 +54,14 @@ namespace SharedProtocol.Compression.Http2DeltaHeadersCompression
             _currentOffset = 0;
         }
 
+        /// <summary>
+        /// Modifies the table.
+        /// </summary>
+        /// <param name="headerName">Name of the header.</param>
+        /// <param name="headerValue">The header value.</param>
+        /// <param name="headerType">Type of the header.</param>
+        /// <param name="useHeadersTable">The use headers table.</param>
+        /// <param name="index">The index.</param>
         private void ModifyTable(string headerName, string headerValue, IndexationType headerType,
                                         HeadersList useHeadersTable, int index)
         {

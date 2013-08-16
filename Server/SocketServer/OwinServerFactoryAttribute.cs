@@ -9,6 +9,9 @@ namespace SocketServer
 {
     using AppFunc = Func<IDictionary<string, object>, Task>;
 
+    /// <summary>
+    /// This class is used for specifying server properties and creating Http2SocketServer
+    /// </summary>
     [AttributeUsage(AttributeTargets.Assembly)]
     public class OwinServerFactoryAttribute : Attribute
     {

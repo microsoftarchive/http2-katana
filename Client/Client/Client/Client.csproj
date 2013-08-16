@@ -60,7 +60,7 @@
     <Compile Include="Commands\EmptyCommand.cs" />
     <Compile Include="Commands\ExitCommand.cs" />
     <Compile Include="Commands\GetCommand.cs" />
-    <Compile Include="CommandParser\CommandTypes.cs" />
+    <Compile Include="CommandTypes.cs" />
     <Compile Include="Commands\HelpCommand.cs" />
     <Compile Include="Commands\IUriCommand.cs" />
     <Compile Include="Commands\PingCommand.cs" />

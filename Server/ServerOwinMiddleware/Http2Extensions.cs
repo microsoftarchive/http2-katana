@@ -5,8 +5,6 @@ using ServerOwinMiddleware;
 
 namespace Owin
 {
-    using AppFunc = Func<IDictionary<string, object>, Task>;
-
     public static class Http2Extensions
     {
         // Upgrades incoming requests to HTTP/2.0 and passes them on to the normal pipeline.
@@ -20,7 +18,7 @@ namespace Owin
         {
             IAppBuilder builder1 = builder.New();
             configBranch(builder1);
-            return builder.Use(typeof(Http2Middleware), builder1.Build(typeof(AppFunc)));
+            return builder.Use(typeof(Http2Middleware), builder1.Build(typeof(Func<IDictionary<string, object>, Task>)));
         }
     }
 }

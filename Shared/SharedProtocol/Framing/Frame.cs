@@ -46,16 +46,13 @@ namespace SharedProtocol.Framing
 
         public ArraySegment<byte> Payload
         {
-            get 
+            get
             {
                 if (_buffer != null && _buffer.Length > 0)
                 {
                     return new ArraySegment<byte>(_buffer, Constants.FramePreambleSize, _buffer.Length - Constants.FramePreambleSize);  
                 }
-                else
-                {
-                    return new ArraySegment<byte>();
-                }
+                return new ArraySegment<byte>();
             }
         }
 
