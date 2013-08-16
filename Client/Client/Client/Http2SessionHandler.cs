@@ -23,7 +23,8 @@ using SharedProtocol.Utils;
 namespace Client
 {
     /// <summary>
-    /// This class express client logic. It can create client socket, accept server responses, make handshake and choose how to send requests to server.
+    /// This class expresses client's logic.
+    /// It can create client socket, accept server responses, make handshake and choose how to send requests to server.
     /// </summary>
     public sealed class Http2SessionHandler : IDisposable
     {

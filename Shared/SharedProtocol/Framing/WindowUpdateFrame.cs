@@ -3,7 +3,7 @@ namespace SharedProtocol.Framing
 {
     /// <summary>
     /// Window update class
-    /// See spec: http://tools.ietf.org/html/draft-ietf-httpbis-http2-05#section-6.9
+    /// See spec: http://tools.ietf.org/html/draft-ietf-httpbis-http2-04#section-6.9
     /// </summary>
     public class WindowUpdateFrame : Frame
     {

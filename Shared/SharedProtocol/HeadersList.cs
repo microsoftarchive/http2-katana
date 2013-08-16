@@ -12,6 +12,12 @@ namespace SharedProtocol
     {
         private readonly List<KeyValuePair<string, string>> _collection;
 
+        /// <summary>
+        /// Gets the size of the stored headers in bytes.
+        /// </summary>
+        /// <value>
+        /// The size of the stored headers in bytes.
+        /// </value>
         public int StoredHeadersSize { get; private set; }
 
         public HeadersList() 

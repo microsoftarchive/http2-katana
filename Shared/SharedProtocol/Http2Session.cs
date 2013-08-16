@@ -18,7 +18,7 @@ namespace SharedProtocol
 {
     /// <summary>
     /// This class creates and closes session, pumps incoming and outcoming frames and dispatches them.
-    /// It can send requests of client and write setting and goaway frames.
+    /// It defines events for request handling by subscriber. Also it is responsible for sending some frames.
     /// </summary>
     public class Http2Session : IDisposable
     {

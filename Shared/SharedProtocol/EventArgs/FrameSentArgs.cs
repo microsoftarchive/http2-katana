@@ -3,7 +3,7 @@
 namespace SharedProtocol.EventArgs
 {
     /// <summary>
-    /// This class for future usage
+    /// This class is designed for future usage
     /// </summary>
     public class FrameSentArgs : System.EventArgs
     {

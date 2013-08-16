@@ -5,7 +5,7 @@ using Org.Mentalis.Security.Ssl;
 namespace SharedProtocol.Framing
 {
     /// <summary>
-    /// This class reads frames and gets type of them
+    /// This class reads frames and gets their type
     /// </summary>
     public class FrameReader
     {
