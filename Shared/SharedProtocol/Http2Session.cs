@@ -468,11 +468,15 @@ namespace SharedProtocol
             return stream;
         }
 
-        private void ApplyHandshakeResults(IDictionary<string, object> handshakeResult)
+        private void ApplyHandshakeResults(IDictionary<string, object> environment)
         {
-            foreach (var entry in handshakeResult.Keys)
+            if (environment["HandshakeResult"] is IDictionary<string, object>)
             {
-                _handshakeHeaders.Add(entry, handshakeResult[entry].ToString());
+                var handshakeResult = environment["HandshakeResult"] as IDictionary<string, object>;
+                foreach (var entry in handshakeResult.Keys)
+                {
+                    _handshakeHeaders.Add(entry, handshakeResult[entry].ToString());
+                }
             }
         }
 

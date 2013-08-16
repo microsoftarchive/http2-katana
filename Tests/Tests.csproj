@@ -23,14 +23,6 @@
     <NoWarn>
     </NoWarn>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <DebugType>pdbonly</DebugType>
-    <Optimize>true</Optimize>
-    <OutputPath>bin\Release\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-  </PropertyGroup>
   <ItemGroup>
     <Reference Include="Microsoft.AspNet.WebApi.Owin">
       <HintPath>..\Shared\SharedProtocol\packages\Microsoft.AspNet.WebApi.Owin.dll</HintPath>
@@ -162,6 +154,9 @@
     </Compile>
     <Compile Include="..\Shared\SharedProtocol\Exceptions\ProtocolError.cs">
       <Link>Sources\ProtocolError.cs</Link>
+    </Compile>
+    <Compile Include="..\Shared\SharedProtocol\Extensions\DictionaryExtenstions.cs">
+      <Link>Sources\DictionaryExtenstions.cs</Link>
     </Compile>
     <Compile Include="..\Shared\SharedProtocol\Extensions\Int32Extensions.cs">
       <Link>Sources\Int32Extensions.cs</Link>

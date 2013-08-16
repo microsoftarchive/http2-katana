@@ -45,7 +45,7 @@ namespace Client
         private string _version;
         private string _scheme;
         private string _host;
-
+        private IDictionary<string, object> _environment; 
         #endregion
 
         #region Events
@@ -74,7 +74,10 @@ namespace Client
 
         public Http2SessionHandler(IDictionary<string, object> environment)
         {
-            if (environment["useFlowControl"] is bool)
+            _environment = new Dictionary<string, object>();
+            //Copy environment
+            _environment.AddRange(environment);
+            if (_environment["useFlowControl"] is bool)
             {
                 _useFlowControl = (bool) environment["useFlowControl"];
             }
@@ -82,7 +85,7 @@ namespace Client
             {
                 _useFlowControl = true;
             }
-            if (environment["usePriorities"] is bool)
+            if (_environment["usePriorities"] is bool)
             {
                 _usePriorities = (bool) environment["usePriorities"];
             }
@@ -90,7 +93,7 @@ namespace Client
             {
                 _usePriorities = true;
             }
-            if (environment["useHandshake"] is bool)
+            if (_environment["useHandshake"] is bool)
             {
                 _useHandshake = (bool) environment["useHandshake"];
             }
@@ -102,9 +105,9 @@ namespace Client
             _fileHelper = new FileHelper(ConnectionEnd.Client);
         }
 
-        private IDictionary<string, object> MakeHandshakeEnvironment(SecureSocket socket)
+        private void MakeHandshakeEnvironment(SecureSocket socket)
         {
-            var result = new Dictionary<string, object>
+            _environment.AddRange(new Dictionary<string, object>
 			{
                     {":path", _path},
 					{":version", _version},
@@ -113,9 +116,7 @@ namespace Client
                     {"securityOptions", Options},
                     {"secureSocket", socket},
                     {"end", ConnectionEnd.Client}
-			};
-
-            return result;
+			});
         }
 
         public bool Connect(Uri connectUri)
@@ -160,7 +161,6 @@ namespace Client
                 Options.AllowedAlgorithms = SslAlgorithms.RSA_AES_256_SHA | SslAlgorithms.NULL_COMPRESSION;
 
                 _socket = new SecureSocket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp, Options);
-                IDictionary<string, object> handshakeResult = null;
                 using (var monitor = new ALPNExtensionMonitor())
                 {
                     monitor.OnProtocolSelected += (o, args) => { _selectedProtocol = args.SelectedProtocol; };
@@ -168,9 +168,10 @@ namespace Client
                     
                     if (_useHandshake)
                     {
-                        var handshakeEnvironment = MakeHandshakeEnvironment(_socket);
+                        MakeHandshakeEnvironment(_socket);
                         //Handshake manager determines what handshake must be used: upgrade or secure
-                        handshakeResult = HandshakeManager.GetHandshakeAction(handshakeEnvironment).Invoke();
+                        var handshakeResult = HandshakeManager.GetHandshakeAction(_environment).Invoke();
+                        _environment.Add("HandshakeResult", handshakeResult);
 
                         Http2Logger.LogDebug("Handshake finished");
 
@@ -184,7 +185,7 @@ namespace Client
 
                 SendSessionHeader();
                 _useHttp20 = true;
-                _clientSession = new Http2Session(_socket, ConnectionEnd.Client, _usePriorities, _useFlowControl, handshakeResult);
+                _clientSession = new Http2Session(_socket, ConnectionEnd.Client, _usePriorities, _useFlowControl, _environment);
 
                 //For saving incoming data
                 _clientSession.OnFrameReceived += FrameReceivedHandler;

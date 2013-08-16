@@ -34,14 +34,14 @@ namespace SocketServer
         private const string IndexHtml = "\\index.html";
         private const string Root = "\\Root";
         private const string ClientSessionHeader = "PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n";
+        //Remove file:// from Assembly.GetExecutingAssembly().CodeBase
         private static readonly string AssemblyPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().CodeBase.Substring(8));
-
 
         private readonly SecureTcpListener _server;
         private readonly SecurityOptions _options;
         private readonly AppFunc _next;
         private Http2Session _session;
-        //Remove file:// from Assembly.GetExecutingAssembly().CodeBase
+        private IDictionary<string, object> _environment;        
         private readonly FileHelper _fileHelper;
         private readonly object _writeLock = new object();
         private readonly bool _useHandshake;
@@ -52,8 +52,10 @@ namespace SocketServer
 
         internal HttpConnectingClient(SecureTcpListener server, SecurityOptions options,
                                      AppFunc next, bool useHandshake, bool usePriorities, 
-                                     bool useFlowControl, List<string> listOfRootFiles)
+                                     bool useFlowControl, List<string> listOfRootFiles,
+                                     IDictionary<string, object> environment)
         {
+            _environment = environment;
             _listOfRootFiles = listOfRootFiles;
             _usePriorities = usePriorities;
             _useHandshake = useHandshake;
@@ -66,17 +68,18 @@ namespace SocketServer
 
         private IDictionary<string, object> MakeHandshakeEnvironment(SecureSocket incomingClient)
         {
-            var result = new Dictionary<string, object>
-                {
-                    {"securityOptions", _options},
-                    {"secureSocket", incomingClient},
-                    {"end", ConnectionEnd.Server}
-                };
+            var envCopy = new Dictionary<string, object>(_environment);
+            envCopy.AddRange(new Dictionary<string, object>
+                                    {
+                                        {"securityOptions", _options},
+                                        {"secureSocket", incomingClient},
+                                        {"end", ConnectionEnd.Server}
+                                    });
 
-            return result;
+            return envCopy;
         }
 
-	private void AddFileToRootFileList(string fileName)
+	    private void AddFileToRootFileList(string fileName)
         {
             lock (_listWriteLock)
             {
@@ -110,38 +113,18 @@ namespace SocketServer
         {
             bool backToHttp11 = false;
             string selectedProtocol = Protocols.Http2;
-            var handshakeEnvironment = MakeHandshakeEnvironment(incomingClient);
-            IDictionary<string, object> handshakeResult = null;
+            var environmentCopy = MakeHandshakeEnvironment(incomingClient);
 
-            //Think out smarter way to get handshake result.
-            //DO NOT change Middleware function. If you will do so, server will not even launch. (It's owin's problem)
-            Func<Task> handshakeAction = () =>
-                {
-                    var handshakeTask = new Task(() =>
-                        {
-                            handshakeResult = HandshakeManager.GetHandshakeAction(handshakeEnvironment).Invoke();
-                        });
-                    return handshakeTask;
-                };
-            
             if (_useHandshake)
             {
-                var environment = new Dictionary<string, object>
-                    {
-                        //Sets the handshake action depends on port.
-                        {"HandshakeAction", handshakeAction},
-                    };
-
+                environmentCopy.Add("HandshakeAction", HandshakeManager.GetHandshakeAction(environmentCopy));
                 try
                 {
-                    var handshakeTask = _next(environment);
-                    
-                    handshakeTask.Start();
-                    if (!handshakeTask.Wait(6000))
+                    _next(environmentCopy);
+
+                    if (!((bool)(environmentCopy["WasHandshakeFinished"])))
                     {
-                        incomingClient.Close();
-                        Http2Logger.LogError("Handshake timeout. Connection dropped.");
-                        return;
+                        throw new Http2HandshakeFailed(HandshakeFailureReason.Timeout);
                     }
                     
                     selectedProtocol = incomingClient.SelectedProtocol;
@@ -168,7 +151,7 @@ namespace SocketServer
             }
             try
             {
-                HandleRequest(incomingClient, selectedProtocol, backToHttp11, handshakeResult);
+                HandleRequest(incomingClient, selectedProtocol, backToHttp11, environmentCopy);
             }
             catch (Exception e)
             {
@@ -178,7 +161,7 @@ namespace SocketServer
         }
 
         private void HandleRequest(SecureSocket incomingClient, string alpnSelectedProtocol, 
-                                   bool backToHttp11, IDictionary<string, object> handshakeResult)
+                                   bool backToHttp11, IDictionary<string, object> environment)
         {
             if (backToHttp11 || alpnSelectedProtocol == Protocols.Http1)
             {
@@ -189,7 +172,7 @@ namespace SocketServer
 
             if (GetSessionHeaderAndVerifyIt(incomingClient))
             {
-                OpenHttp2Session(incomingClient, handshakeResult);
+                OpenHttp2Session(incomingClient, environment);
             }
             else
             {

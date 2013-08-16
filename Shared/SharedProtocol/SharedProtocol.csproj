@@ -23,14 +23,6 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <DebugType>pdbonly</DebugType>
-    <Optimize>true</Optimize>
-    <OutputPath>bin\Release\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-  </PropertyGroup>
   <ItemGroup>
     <Reference Include="Owin">
       <HintPath>packages\Owin.dll</HintPath>
@@ -72,6 +64,7 @@
     <Compile Include="Exceptions\InvalidHeaderException.cs" />
     <Compile Include="Exceptions\MonitorIsBusyException.cs" />
     <Compile Include="Exceptions\ProtocolError.cs" />
+    <Compile Include="Extensions\DictionaryExtenstions.cs" />
     <Compile Include="Extensions\MathEx.cs" />
     <Compile Include="Extensions\Int32Extensions.cs" />
     <Compile Include="FlowControl\FlowControlManager.cs" />

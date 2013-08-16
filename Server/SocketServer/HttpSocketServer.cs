@@ -36,11 +36,12 @@ namespace SocketServer
         private readonly SecurityOptions _options;
         private readonly SecureTcpListener _server;
         private List<string> _listOfRootFiles = new List<string>();
+        private readonly IDictionary<string, object> _properties;
 
         public HttpSocketServer(Func<IDictionary<string, object>, Task> next, IDictionary<string, object> properties)
         {
             _next = next;
-
+            _properties = properties;
             var addresses = (IList<IDictionary<string, object>>)properties[OwinConstants.CommonKeys.Addresses];
 
             var address = addresses.First();
@@ -116,7 +117,7 @@ namespace SocketServer
             {
                 try
                 {
-                    var client = new HttpConnectingClient(_server, _options, _next, _useHandshake, _usePriorities, _useFlowControl, _listOfRootFiles);
+                    var client = new HttpConnectingClient(_server, _options, _next, _useHandshake, _usePriorities, _useFlowControl, _listOfRootFiles, _properties);
                     client.Accept();
                 }
                 catch (Exception ex)
