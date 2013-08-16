@@ -5,10 +5,10 @@ using Org.Mentalis.Security.Ssl;
 namespace SharedProtocol.Handshake
 {
     /// <summary>
-    /// Handshake action delegate;
+    /// Handshake action alias;
     /// </summary>
     /// <returns></returns>
-    public delegate IDictionary<string, object> HandshakeAction();
+    using HandshakeAction = Func<IDictionary<string, object>>;
 
     /// <summary>
     /// Class chooses which handshake must be performed.
@@ -30,7 +30,7 @@ namespace SharedProtocol.Handshake
             }
 
             if (!handshakeEnvironment.ContainsKey("end")
-            || !(handshakeEnvironment["end"] is ConnectionEnd))
+                || !(handshakeEnvironment["end"] is ConnectionEnd))
             {
                 throw new ArgumentException("Provide connection end for handshake");
             }

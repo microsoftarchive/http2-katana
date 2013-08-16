@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 namespace ServerOwinMiddleware
 {
     using AppFunc = Func<IDictionary<string, object>, Task>;
-
+    using HandshakeAction = Func<IDictionary<string, object>>;
     // Http-01/2.0 uses a similar upgrade handshake to WebSockets. This middleware answers upgrade requests
     // using the Opaque Upgrade OWIN extension and then switches the pipeline to HTTP/2.0 binary framing.
     // Interestingly the HTTP/2.0 handshake does not need to be the first HTTP/1.1 request on a connection, only the last.
@@ -36,12 +36,25 @@ namespace ServerOwinMiddleware
         /// <returns></returns>
         public Task Invoke(IDictionary<string, object> environment)
         {
-            if (environment["HandshakeAction"] is Func<Task>)
+            bool wasHandshakeFinished = true;
+            var handshakeTask = new Task<IDictionary<string, object>>(() => new Dictionary<string, object>());
+
+            if (environment["HandshakeAction"] is HandshakeAction)
             {
-                var handshakeAction = (Func<Task>)environment["HandshakeAction"];
-                return handshakeAction.Invoke();
+                var handshakeAction = (HandshakeAction)environment["HandshakeAction"];
+                handshakeTask = Task.Factory.StartNew(handshakeAction);
+
+                if (!handshakeTask.Wait(6000))
+                {
+                    wasHandshakeFinished = false;
+                }
+
+                environment.Add("HandshakeResult", handshakeTask.Result);
             }
-            return null;
+
+            environment.Add("WasHandshakeFinished", wasHandshakeFinished);
+
+            return handshakeTask;
         }
     }
 }
