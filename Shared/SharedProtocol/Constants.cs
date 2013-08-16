@@ -1,5 +1,8 @@
 ﻿namespace SharedProtocol
 {
+    /// <summary>
+    /// This class contains the most commonly used constants
+    /// </summary>
     public class Constants
     {
         // There are always at least 8 bytes in a control frame or data frame

@@ -1,17 +1,20 @@
 ﻿using System;
 using SharedProtocol.Framing;
 
-namespace SharedProtocol
+namespace SharedProtocol.EventArgs
 {
-    public class DataFrameReceivedEventArgs : EventArgs
+    /// <summary>
+    /// This class for future usage
+    /// </summary>
+    public class DataFrameReceivedEventArgs : System.EventArgs
     {
         public Int32 DataAmount { get; private set; }
         public Int32 Id { get; private set; }
 
         public DataFrameReceivedEventArgs(DataFrame frame)
         {
-            this.Id = frame.StreamId;
-            this.DataAmount = frame.Buffer.Length - Constants.FramePreambleSize;
+            Id = frame.StreamId;
+            DataAmount = frame.Buffer.Length - Constants.FramePreambleSize;
         }
     }
 }

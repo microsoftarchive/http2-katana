@@ -5,7 +5,6 @@ using System.IO;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading;
 using Org.Mentalis.Security.Ssl;
 using SharedProtocol.Exceptions;
 using SharedProtocol.Framing;
@@ -14,12 +13,12 @@ using SharedProtocol.Utils;
 namespace SharedProtocol.Handshake
 {
     /// <summary>
-    /// Class is used to upgrade handshake
+    ///This class is used for upgrade handshake handling
     /// </summary>
     public class UpgradeHandshaker
     {
         private const int HandshakeResponseSizeLimit = 4096;
-        private static readonly byte[] CRLFCRLF = new[] { (byte)'\r', (byte)'\n', (byte)'\r', (byte)'\n' };
+        private static readonly byte[] CRLFCRLF = { (byte)'\r', (byte)'\n', (byte)'\r', (byte)'\n' };
 
 
         private readonly ConnectionEnd _end;

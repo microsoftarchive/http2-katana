@@ -1,8 +1,13 @@
 ﻿using Owin;
 using System.Web.Http;
+using ServerOwinMiddleware;
 
 namespace Server
 {
+    /// <summary>
+    /// This class is used for building katana stack.
+    /// See owin spec: http://owin.org/spec/owin-1.0.0.html
+    /// </summary>
     public class Startup
     {
         public void Configuration(IAppBuilder builder)

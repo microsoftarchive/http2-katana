@@ -1,9 +1,8 @@
-﻿using System;
-using SharedProtocol.Framing;
+﻿using SharedProtocol.Framing;
 
-namespace SharedProtocol
+namespace SharedProtocol.EventArgs
 {
-    public class FrameReceivedEventArgs : EventArgs
+    public class FrameReceivedEventArgs : System.EventArgs
     {
         public Frame Frame { get; private set; }
         public Http2Stream Stream { get; private set; }

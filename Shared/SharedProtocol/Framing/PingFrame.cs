@@ -49,7 +49,7 @@ namespace SharedProtocol.Framing
 
             if (payload != null)
             {
-                System.Buffer.BlockCopy(this.Buffer, Constants.FramePreambleSize, Buffer,
+                System.Buffer.BlockCopy(Buffer, Constants.FramePreambleSize, Buffer,
                     Constants.FramePreambleSize, FrameSize - Constants.FramePreambleSize);
             }
         }

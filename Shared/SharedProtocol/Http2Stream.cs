@@ -1,4 +1,5 @@
 ﻿using SharedProtocol.Compression;
+using SharedProtocol.EventArgs;
 using SharedProtocol.FlowControl;
 using SharedProtocol.Framing;
 using SharedProtocol.IO;

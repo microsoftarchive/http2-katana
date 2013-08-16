@@ -8,6 +8,9 @@ using System.Linq;
 
 namespace SharedProtocol.IO
 {
+    /// <summary>
+    /// This class compares files by their md5hash, gets the file content, saves data to file.
+    /// </summary>
     public class FileHelper : IDisposable
     {
         private readonly Dictionary<string, FileStream> _pathStreamDict;

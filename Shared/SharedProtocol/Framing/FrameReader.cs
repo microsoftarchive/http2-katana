@@ -4,6 +4,9 @@ using Org.Mentalis.Security.Ssl;
 
 namespace SharedProtocol.Framing
 {
+    /// <summary>
+    /// This class reads frames and gets type of them
+    /// </summary>
     public class FrameReader
     {
         private readonly SecureSocket _socket;

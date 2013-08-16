@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Client
+namespace Client.CommandParser
 {
     internal static class HelpDisplayer
     {

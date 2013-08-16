@@ -1,4 +1,5 @@
 ﻿using System;
+using SharedProtocol.EventArgs;
 
 namespace SharedProtocol.FlowControl
 {

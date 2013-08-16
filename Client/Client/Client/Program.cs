@@ -36,6 +36,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Client.CommandParser;
 using Client.Commands;
 using Org.Mentalis.Security.Ssl;
 using SharedProtocol.Utils;
@@ -79,7 +80,7 @@ namespace Client
 
                     try
                     {
-                        cmd = CommandParser.Parse(command);
+                        cmd = CommandParser.CommandParser.Parse(command);
                     }
                     catch (Exception ex)
                     {

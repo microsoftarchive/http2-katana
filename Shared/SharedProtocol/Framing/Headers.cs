@@ -13,7 +13,7 @@ namespace SharedProtocol.Framing
         // The number of bytes in the frame, not including the compressed headers.
         private const int PreambleSizeWithoutPriority = 8;
 
-        private HeadersList _headers = new HeadersList();
+        private readonly HeadersList _headers = new HeadersList();
 
         // 8 bits, 24-31
         public bool IsEndStream

@@ -1,4 +1,6 @@
-﻿namespace Client.Commands
+﻿using Client.CommandParser;
+
+namespace Client.Commands
 {
     internal abstract class Command
     {

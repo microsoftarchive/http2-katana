@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Configuration;
 using System.IO;
+using Client.CommandParser;
 
 namespace Client.Commands
 {

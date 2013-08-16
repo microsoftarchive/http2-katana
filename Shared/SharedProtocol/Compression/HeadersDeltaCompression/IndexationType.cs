@@ -1,4 +1,4 @@
-﻿namespace SharedProtocol.Compression.Http2DeltaHeadersCompression
+﻿namespace SharedProtocol.Compression.HeadersDeltaCompression
 {
     public enum IndexationType : byte
     {

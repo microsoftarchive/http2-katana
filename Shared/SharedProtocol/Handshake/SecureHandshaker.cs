@@ -80,7 +80,7 @@ namespace SharedProtocol.Handshake
             return new Dictionary<string, object>();
         }
 
-        private void HandshakeFinishedHandler(object sender, EventArgs args)
+        private void HandshakeFinishedHandler(object sender, System.EventArgs args)
         {
             _handshakeFinishedEventRaised.Set();
         }

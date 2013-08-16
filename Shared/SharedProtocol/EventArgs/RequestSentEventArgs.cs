@@ -1,8 +1,6 @@
-﻿using System;
-
-namespace SharedProtocol
+﻿namespace SharedProtocol.EventArgs
 {
-    public class RequestSentEventArgs : EventArgs
+    public class RequestSentEventArgs : System.EventArgs
     {
         public Http2Stream Stream { get; private set; }
 
