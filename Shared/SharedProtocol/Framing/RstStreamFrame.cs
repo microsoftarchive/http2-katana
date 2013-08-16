@@ -2,7 +2,7 @@
 {
     /// <summary>
     /// RstStream frame class
-    /// See spec: http://tools.ietf.org/html/draft-ietf-httpbis-http2-05#section-6.4
+    /// See spec: http://tools.ietf.org/html/draft-ietf-httpbis-http2-04#section-6.4
     /// </summary>
     public class RstStreamFrame : Frame
     {

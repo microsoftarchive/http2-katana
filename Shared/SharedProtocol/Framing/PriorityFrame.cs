@@ -2,6 +2,10 @@
 
 namespace SharedProtocol.Framing
 {
+    /// <summary>
+    /// Priority frame class
+    /// See spec: http://tools.ietf.org/html/draft-ietf-httpbis-http2-04#section-6.3
+    /// </summary>
     internal class PriorityFrame : Frame
     {
         public Priority Priority

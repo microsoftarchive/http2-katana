@@ -9,7 +9,7 @@ using System.Linq;
 namespace SharedProtocol.IO
 {
     /// <summary>
-    /// This class compares files by their md5hash, gets the file content, saves data to file.
+    /// This class compares files by their md5hash, gets file's content, saves data to specified file.
     /// </summary>
     public class FileHelper : IDisposable
     {

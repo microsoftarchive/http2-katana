@@ -3,6 +3,7 @@ namespace SharedProtocol.Framing
 {
     /// <summary>
     /// Ping frame class
+    /// See spec: http://tools.ietf.org/html/draft-ietf-httpbis-http2-04#section-6.7
     /// </summary>
     public class PingFrame : Frame
     {
