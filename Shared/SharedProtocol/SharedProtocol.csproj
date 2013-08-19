@@ -137,7 +137,6 @@
   </ItemGroup>
   <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <Import Project="$(SolutionDir)\.nuget\nuget.targets" />
   <PropertyGroup>
     <PostBuildEvent>copy /y "$(ProjectDir)packages\Microsoft.Owin.Hosting.dll" "$(SolutionDir)Drop\Microsoft.Owin.Hosting.dll"
 copy /y "$(ProjectDir)packages\Owin.Types.dll" "$(SolutionDir)Drop\Owin.Types.dll"
