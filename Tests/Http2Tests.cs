@@ -16,6 +16,7 @@ using SocketServer;
 using Xunit;
 using System.Configuration;
 using Xunit.Extensions;
+using HandshakeAction = System.Func<System.Collections.Generic.IDictionary<string, object>>;
 
 namespace Http2Tests
 {
@@ -33,14 +34,27 @@ namespace Http2Tests
         public bool UseHandshake { get; private set; }
 
 
-        private Task InvokeMiddleWare(IDictionary<string, object> environment)
+        private static Task InvokeMiddleWare(IDictionary<string, object> environment)
         {
-            if (environment["HandshakeAction"] is Func<Task>)
+            bool wasHandshakeFinished = true;
+            var handshakeTask = new Task<IDictionary<string, object>>(() => new Dictionary<string, object>());
+
+            if (environment["HandshakeAction"] is HandshakeAction)
             {
-                var handshakeAction = (Func<Task>)environment["HandshakeAction"];
-                return handshakeAction.Invoke();
+                var handshakeAction = (HandshakeAction)environment["HandshakeAction"];
+                handshakeTask = Task.Factory.StartNew(handshakeAction);
+
+                if (!handshakeTask.Wait(6000))
+                {
+                    wasHandshakeFinished = false;
+                }
+
+                environment.Add("HandshakeResult", handshakeTask.Result);
             }
-            return null;
+
+            environment.Add("WasHandshakeFinished", wasHandshakeFinished);
+
+            return handshakeTask;
         }
 
         public Http2Setup()
@@ -103,7 +117,7 @@ namespace Http2Tests
         private const string ClientSessionHeader = "PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n";
         private static bool _useSecurePort;
         private static bool _useHandshake;
-        private static IDictionary<string, object> _handshakeResult;
+        private static IDictionary<string, object> _environment;
 
         void IUseFixture<Http2Setup>.SetFixture(Http2Setup setupInstance)
         {
@@ -129,6 +143,7 @@ namespace Http2Tests
 
         protected static SecureSocket GetHandshakedSocket(Uri uri, bool doRequestInUpgrade = false, string alternativePath = "/")
         {
+            _environment = new Dictionary<string, object>();
             string selectedProtocol = null;
 
             var extensions = new[] { ExtensionType.Renegotiation, ExtensionType.ALPN };
@@ -166,8 +181,9 @@ namespace Http2Tests
                         {"secureSocket", sessionSocket},
                         {"end", ConnectionEnd.Client}
                     };
-
-                    _handshakeResult = HandshakeManager.GetHandshakeAction(handshakeEnv).Invoke();
+        
+                    var handshakeResult = HandshakeManager.GetHandshakeAction(handshakeEnv).Invoke();
+                    _environment.Add("HandshakeResult", handshakeResult);
                 }
             }
 
@@ -221,7 +237,7 @@ namespace Http2Tests
                 wasSocketClosed = true;
             };
 
-            var session = new Http2Session(socket, ConnectionEnd.Client, true, true, _handshakeResult);
+            var session = new Http2Session(socket, ConnectionEnd.Client, true, true, _environment);
 
             session.OnSettingsSent += (o, args) =>
             {
@@ -286,7 +302,7 @@ namespace Http2Tests
 
             try
             {
-                var session = new Http2Session(socket, ConnectionEnd.Client, true, true, _handshakeResult);
+                var session = new Http2Session(socket, ConnectionEnd.Client, true, true, _environment);
                 session.Start();
                 session.Dispose();
             }
@@ -328,7 +344,7 @@ namespace Http2Tests
                 wasSocketClosed = true;
             };
 
-            var session = new Http2Session(socket, ConnectionEnd.Client, true, true, _handshakeResult);
+            var session = new Http2Session(socket, ConnectionEnd.Client, true, true, _environment);
 
             session.OnFrameReceived += (sender, args) =>
             {
@@ -389,7 +405,7 @@ namespace Http2Tests
                 wasSocketClosed = true;
             };
 
-            var session = new Http2Session(socket, ConnectionEnd.Client, true, true, _handshakeResult);
+            var session = new Http2Session(socket, ConnectionEnd.Client, true, true, _environment);
 
             session.OnFrameReceived += (sender, args) =>
             {
@@ -442,7 +458,7 @@ namespace Http2Tests
                 socketClosedRaisedEvent.Set();
             };
 
-            var session = new Http2Session(socket, ConnectionEnd.Client, usePriorities, useFlowControl, _handshakeResult);
+            var session = new Http2Session(socket, ConnectionEnd.Client, usePriorities, useFlowControl, _environment);
 
             session.OnFrameReceived += (sender, args) =>
             {
