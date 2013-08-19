@@ -189,15 +189,15 @@ namespace SharedProtocol
 
         #region WriteMethods
 
-        public void WriteHeadersFrame(HeadersList headers, bool isEndStream)
+        public void WriteHeadersFrame(HeadersList headers, bool isEndStream, bool isEndHeaders)
         {
-            Headers = headers;
+            Headers.AddRange(headers);
 
             byte[] headerBytes = _compressionProc.Compress(headers);
 
             var frame = new HeadersFrame(_id, headerBytes, Priority)
                 {
-                    IsEndHeaders = true,
+                    IsEndHeaders = isEndHeaders,
                     IsEndStream = isEndStream,
                 };
 

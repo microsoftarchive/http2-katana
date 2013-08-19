@@ -139,7 +139,6 @@ namespace SharedProtocol.Framing
         {
             _buffer = new byte[PreambleSizeWithPriority];
             StreamId = streamId;
-            IsEndHeaders = true;
             IsEndStream = fin;
         }
     }

@@ -69,15 +69,14 @@ namespace SocketServer
 
         private IDictionary<string, object> MakeHandshakeEnvironment(SecureSocket incomingClient)
         {
-            var envCopy = new Dictionary<string, object>(_environment);
-            envCopy.AddRange(new Dictionary<string, object>
+            var handshakeEnv = new Dictionary<string, object>
                                     {
                                         {"securityOptions", _options},
                                         {"secureSocket", incomingClient},
                                         {"end", ConnectionEnd.Server}
-                                    });
+                                    };
 
-            return envCopy;
+            return handshakeEnv;
         }
 
 	    private void AddFileToRootFileList(string fileName)
@@ -114,20 +113,29 @@ namespace SocketServer
         {
             bool backToHttp11 = false;
             string selectedProtocol = Protocols.Http2;
-            var environmentCopy = MakeHandshakeEnvironment(incomingClient);
+            var handshakeEnv = MakeHandshakeEnvironment(incomingClient);
+            var environmentCopy = new Dictionary<string, object>(_environment);
 
             if (_useHandshake)
             {
-                environmentCopy.Add("HandshakeAction", HandshakeManager.GetHandshakeAction(environmentCopy));
                 try
                 {
-                    _next(environmentCopy);
+                    //_next(environmentCopy);
 
-                    if (!((bool)(environmentCopy["WasHandshakeFinished"])))
+                    bool wasHandshakeFinished = true;
+                    var handshakeTask = Task.Factory.StartNew(HandshakeManager.GetHandshakeAction(handshakeEnv));
+
+                    if (!handshakeTask.Wait(6000))
+                    {
+                        wasHandshakeFinished = false;
+                    }
+
+                    if (!wasHandshakeFinished)
                     {
                         throw new Http2HandshakeFailed(HandshakeFailureReason.Timeout);
                     }
-                    
+
+                    environmentCopy.Add("HandshakeResult", handshakeTask.Result);
                     selectedProtocol = incomingClient.SelectedProtocol;
                 }
                 catch (Http2HandshakeFailed ex)
@@ -348,7 +356,7 @@ namespace SocketServer
             {
                 new KeyValuePair<string, string>(":status", statusCode.ToString()),
             };
-            stream.WriteHeadersFrame(headers, final);
+            stream.WriteHeadersFrame(headers, final, true);
         }
 
         public void Dispose()
