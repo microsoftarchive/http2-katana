@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
+  <metadata>
+    <id>Firefly</id>
+    <version>0.6.3</version>
+    <title>Firefly - a .NET HTTP server</title>
+    <authors>Firefly contributors</authors>
+    <owners>Firefly contributors</owners>
+    <licenseUrl>https://raw.github.com/loudej/firefly/master/LICENSE.txt</licenseUrl>
+    <projectUrl>https://github.com/loudej/firefly</projectUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>Firefly - a .NET HTTP server</description>
+  </metadata>
+</package>
