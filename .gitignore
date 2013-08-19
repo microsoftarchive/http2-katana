@@ -2,7 +2,9 @@
 obj/
 bin/
 Bin/
+.nuget/
 *.suo
+*.pdb
 *.user
 *.cache
 Thumbs.db

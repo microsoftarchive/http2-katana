@@ -34,9 +34,9 @@ namespace ServerOwinMiddleware
         /// </summary>
         /// <param name="environment">The environment.</param>
         /// <returns></returns>
-        public Task Invoke(IDictionary<string, object> environment)
+        public async Task Invoke(IDictionary<string, object> environment)
         {
-            bool wasHandshakeFinished = true;
+            /*bool wasHandshakeFinished = true;
             var handshakeTask = new Task<IDictionary<string, object>>(() => new Dictionary<string, object>());
 
             if (environment["HandshakeAction"] is HandshakeAction)
@@ -54,7 +54,7 @@ namespace ServerOwinMiddleware
 
             environment.Add("WasHandshakeFinished", wasHandshakeFinished);
 
-            return handshakeTask;
+            return handshakeTask;*/
         }
     }
 }

@@ -39,7 +39,7 @@ namespace SharedProtocol
         private bool _wasSettingsReceived;
         private bool _wasPingReceived;
         private bool _wasResponseReceived;
-        private IList<KeyValuePair<string, string>> _toBeContinuedHeaders;
+        private HeadersList _toBeContinuedHeaders;
         private Frame _toBeContinuedFrame;
         private readonly Dictionary<string, string> _handshakeHeaders;
 
@@ -149,6 +149,7 @@ namespace SharedProtocol
             }
 
             SessionWindowSize = 0;
+            _toBeContinuedHeaders = new HeadersList();
         }
 
         /// <summary>
@@ -216,7 +217,7 @@ namespace SharedProtocol
 
             //Spec 03 tells that frame with continues flag MUST be followed by a frame with the same type
             //and the same stread id.
-            if (_toBeContinuedHeaders != null)
+            if (_toBeContinuedHeaders.Count != 0)
             {
                 if (_toBeContinuedFrame.FrameType != frame.FrameType
                     || _toBeContinuedFrame.StreamId != frame.StreamId)
@@ -245,16 +246,14 @@ namespace SharedProtocol
 
                         if (!headersFrame.IsEndHeaders)
                         {
-                            _toBeContinuedHeaders = decompressedHeaders;
+                            _toBeContinuedHeaders.AddRange(decompressedHeaders);
                             _toBeContinuedFrame = headersFrame;
                             break;
                         }
 
-                        if (_toBeContinuedHeaders != null)
-                        {
-                            headers.AddRange(_toBeContinuedHeaders);
-                        }
-
+                        headers.AddRange(_toBeContinuedHeaders);
+                        _toBeContinuedHeaders.Clear();
+                        _toBeContinuedFrame = null;
                         headersFrame.Headers.AddRange(headers);
                         foreach (var header in headers)
                         {
@@ -281,9 +280,6 @@ namespace SharedProtocol
                                 headers.AddRange(_handshakeHeaders);
                             }
                             stream = CreateStream(headers, frame.StreamId);
-
-                            _toBeContinuedFrame = null;
-                            _toBeContinuedHeaders = null;
                         }
 
                         break;
@@ -367,7 +363,7 @@ namespace SharedProtocol
                             stream.EndStreamReceived = true;
                             stream.Headers.Add(new KeyValuePair<string, string>(":method", _handshakeHeaders[":method"]));
                             stream.Headers.Add(new KeyValuePair<string, string>(":path", _handshakeHeaders[":path"]));
-                            OnFrameReceived(this, new FrameReceivedEventArgs(stream, new HeadersFrame(stream.Id, true)));
+                            OnFrameReceived(this, new FrameReceivedEventArgs(stream, new HeadersFrame(stream.Id, false)));
                         }
 
                         break;
@@ -548,7 +544,7 @@ namespace SharedProtocol
         {
             var stream = CreateStream(priority);
 
-            stream.WriteHeadersFrame(pairs, isEndStream);
+            stream.WriteHeadersFrame(pairs, isEndStream, true);
 
             if (OnRequestSent != null)
             {
