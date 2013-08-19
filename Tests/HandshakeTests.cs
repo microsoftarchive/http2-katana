@@ -14,6 +14,7 @@ using SharedProtocol.Handshake;
 using SocketServer;
 using Xunit;
 using SharedProtocol;
+using HandshakeAction = System.Func<System.Collections.Generic.IDictionary<string, object>>;
 
 namespace HandshakeTests
 {
@@ -22,14 +23,27 @@ namespace HandshakeTests
         public Thread Http2SecureServer { get; private set; }
         public Thread Http2UnsecureServer{ get; private set; }
 
-        private Task InvokeMiddleWare(IDictionary<string, object> environment)
+        private static Task InvokeMiddleWare(IDictionary<string, object> environment)
         {
-            if (environment["HandshakeAction"] is Func<Task>)
+            bool wasHandshakeFinished = true;
+            var handshakeTask = new Task<IDictionary<string, object>>(() => new Dictionary<string, object>());
+
+            if (environment["HandshakeAction"] is HandshakeAction)
             {
-                var handshakeAction = (Func<Task>)environment["HandshakeAction"];
-                return handshakeAction.Invoke();
+                var handshakeAction = (HandshakeAction)environment["HandshakeAction"];
+                handshakeTask = Task.Factory.StartNew(handshakeAction);
+
+                if (!handshakeTask.Wait(6000))
+                {
+                    wasHandshakeFinished = false;
                 }
-            return null;
+
+                environment.Add("HandshakeResult", handshakeTask.Result);
+            }
+
+            environment.Add("WasHandshakeFinished", wasHandshakeFinished);
+
+            return handshakeTask;
         }
 
         private IDictionary<string, object> GetProperties(bool useSecurePort)
