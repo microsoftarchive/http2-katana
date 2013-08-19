@@ -1,0 +1,62 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<DirectedGraph GraphDirection="LeftToRight" xmlns="http://schemas.microsoft.com/vs/2009/dgml">
+  <Nodes>
+    <Node Id="Shared\SharedProtocol" Label="SharedProtocol" Category="Project" />
+    <Node Id="zlib.net 1.0.4.0" Label="zlib.net 1.0.4.0" Category="Package" />
+    <Node Id="Server\SocketServer" Label="SocketServer" Category="Project" />
+    <Node Id="Owin.Types 0.8.5" Label="Owin.Types 0.8.5" Category="Package" />
+    <Node Id="Server\ServerOwinMiddleware" Label="ServerOwinMiddleware" Category="Project" />
+    <Node Id="Owin 1.0" Label="Owin 1.0" Category="Package" />
+    <Node Id="Owin.Types 0.8.5" Label="Owin.Types 0.8.5" Category="Package" />
+    <Node Id="Server\Server" Label="Server" Category="Project" />
+    <Node Id="Firefly 0.6.3" Label="Firefly 0.6.3" Category="Package" />
+    <Node Id="Microsoft.AspNet.WebApi.Client 4.0.30506.0" Label="Microsoft.AspNet.WebApi.Client 4.0.30506.0" Category="Package" />
+    <Node Id="Microsoft.AspNet.WebApi.Core 4.0.30506.0" Label="Microsoft.AspNet.WebApi.Core 4.0.30506.0" Category="Package" />
+    <Node Id="Microsoft.AspNet.WebApi.Owin 0.20-alpha-20220-88" Label="Microsoft.AspNet.WebApi.Owin 0.20-alpha-20220-88" Category="Package" />
+    <Node Id="Microsoft.Bcl 1.1.3" Label="Microsoft.Bcl 1.1.3" Category="Package" />
+    <Node Id="Microsoft.Bcl.Build 1.0.8" Label="Microsoft.Bcl.Build 1.0.8" Category="Package" />
+    <Node Id="Microsoft.Net.Http 2.2.13" Label="Microsoft.Net.Http 2.2.13" Category="Package" />
+    <Node Id="Microsoft.Owin.Host.HttpListener 0.20-alpha-20220-88" Label="Microsoft.Owin.Host.HttpListener 0.20-alpha-20220-88" Category="Package" />
+    <Node Id="Microsoft.Owin.Hosting 0.21.0-pre" Label="Microsoft.Owin.Hosting 0.21.0-pre" Category="Package" />
+    <Node Id="Owin 1.0" Label="Owin 1.0" Category="Package" />
+    <Node Id="Owin.Types 0.8.5" Label="Owin.Types 0.8.5" Category="Package" />
+    <Node Id="Client\Client" Label="Client" Category="Project" />
+    <Node Id="Microsoft.Owin.Hosting 0.21.0-pre" Label="Microsoft.Owin.Hosting 0.21.0-pre" Category="Package" />
+    <Node Id="Owin 1.0" Label="Owin 1.0" Category="Package" />
+  </Nodes>
+  <Links>
+    <Link Source="Shared\SharedProtocol" Target="zlib.net 1.0.4.0" Category="Installed Package" />
+    <Link Source="Server\SocketServer" Target="Owin.Types 0.8.5" Category="Installed Package" />
+    <Link Source="Server\ServerOwinMiddleware" Target="Owin 1.0" Category="Installed Package" />
+    <Link Source="Server\ServerOwinMiddleware" Target="Owin.Types 0.8.5" Category="Installed Package" />
+    <Link Source="Microsoft.AspNet.WebApi.Client 4.0.30506.0" Target="Microsoft.Net.Http 2.2.13" Category="Package Dependency" />
+    <Link Source="Microsoft.AspNet.WebApi.Core 4.0.30506.0" Target="Microsoft.AspNet.WebApi.Client 4.0.30506.0" Category="Package Dependency" />
+    <Link Source="Microsoft.AspNet.WebApi.Owin 0.20-alpha-20220-88" Target="Owin 1.0" Category="Package Dependency" />
+    <Link Source="Microsoft.AspNet.WebApi.Owin 0.20-alpha-20220-88" Target="Microsoft.AspNet.WebApi.Core 4.0.30506.0" Category="Package Dependency" />
+    <Link Source="Microsoft.Bcl 1.1.3" Target="Microsoft.Bcl.Build 1.0.8" Category="Package Dependency" />
+    <Link Source="Microsoft.Net.Http 2.2.13" Target="Microsoft.Bcl 1.1.3" Category="Package Dependency" />
+    <Link Source="Microsoft.Net.Http 2.2.13" Target="Microsoft.Bcl.Build 1.0.8" Category="Package Dependency" />
+    <Link Source="Microsoft.Owin.Hosting 0.21.0-pre" Target="Owin 1.0" Category="Package Dependency" />
+    <Link Source="Server\Server" Target="Firefly 0.6.3" Category="Installed Package" />
+    <Link Source="Server\Server" Target="Microsoft.AspNet.WebApi.Owin 0.20-alpha-20220-88" Category="Installed Package" />
+    <Link Source="Server\Server" Target="Microsoft.Owin.Host.HttpListener 0.20-alpha-20220-88" Category="Installed Package" />
+    <Link Source="Server\Server" Target="Microsoft.Owin.Hosting 0.21.0-pre" Category="Installed Package" />
+    <Link Source="Server\Server" Target="Owin.Types 0.8.5" Category="Installed Package" />
+    <Link Source="Microsoft.Owin.Hosting 0.21.0-pre" Target="Owin 1.0" Category="Package Dependency" />
+    <Link Source="Client\Client" Target="Microsoft.Owin.Hosting 0.21.0-pre" Category="Installed Package" />
+  </Links>
+  <Categories>
+    <Category Id="Project" />
+    <Category Id="Package" />
+  </Categories>
+  <Styles>
+    <Style TargetType="Node" GroupLabel="Project" ValueLabel="True">
+      <Condition Expression="HasCategory('Project')" />
+      <Setter Property="Background" Value="Blue" />
+    </Style>
+    <Style TargetType="Link" GroupLabel="Package Dependency" ValueLabel="True">
+      <Condition Expression="HasCategory('Package Dependency')" />
+      <Setter Property="Background" Value="Yellow" />
+    </Style>
+  </Styles>
+</DirectedGraph>

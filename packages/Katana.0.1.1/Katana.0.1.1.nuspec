@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
+  <metadata>
+    <id>Katana</id>
+    <version>0.1.1</version>
+    <title>Katana</title>
+    <authors>Katana contributors</authors>
+    <owners>Katana contributors</owners>
+    <licenseUrl>https://github.com/owin/gate/blob/master/LICENSE.txt</licenseUrl>
+    <projectUrl>https://github.com/katana/katana</projectUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>Katana</description>
+    <summary>Katana</summary>
+    <tags>chocolatey OWIN Gate</tags>
+  </metadata>
+</package>

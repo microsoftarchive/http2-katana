@@ -11,6 +11,8 @@
     <AssemblyName>HandshakeTests</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
+    <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\</SolutionDir>
+    <RestorePackages>true</RestorePackages>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -26,9 +28,6 @@
   <ItemGroup>
     <Reference Include="Microsoft.AspNet.WebApi.Owin">
       <HintPath>..\Shared\SharedProtocol\packages\Microsoft.AspNet.WebApi.Owin.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.Owin.Host.HttpListener">
-      <HintPath>..\Shared\SharedProtocol\packages\Microsoft.Owin.Host.HttpListener.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.Owin.Hosting">
       <HintPath>..\Shared\SharedProtocol\packages\Microsoft.Owin.Hosting.dll</HintPath>
@@ -331,6 +330,7 @@
 
 xcopy "$(ProjectDir)Root"  "$(TargetDir)Root" /S /F /R /Y /I</PostBuildEvent>
   </PropertyGroup>
+  <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">
