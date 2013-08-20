@@ -5,7 +5,7 @@ namespace Server
 {
     class Program
     {
-        static void Main(string[] args)
+        static void Main()
         {
             bool isSecure = ConfigurationManager.AppSettings["useSecurePort"] == "true";
             string connectString = isSecure

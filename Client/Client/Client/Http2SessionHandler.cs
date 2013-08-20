@@ -50,7 +50,7 @@ namespace Client
         private string _version;
         private string _scheme;
         private string _host;
-        private IDictionary<string, object> _environment; 
+        private readonly IDictionary<string, object> _environment; 
         #endregion
 
         #region Events

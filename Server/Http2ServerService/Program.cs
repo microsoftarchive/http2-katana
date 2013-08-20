@@ -10,12 +10,11 @@ namespace Http2ServerService
         /// </summary>
         static void Main()
         {
-            ServiceBase[] ServicesToRun;
-            ServicesToRun = new ServiceBase[] 
+            var servicesToRun = new ServiceBase[] 
             { 
                 new Http2ServerService() 
             };
-            ServiceBase.Run(ServicesToRun);
+            ServiceBase.Run(servicesToRun);
         }
     }
 }

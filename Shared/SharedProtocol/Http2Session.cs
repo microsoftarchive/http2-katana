@@ -39,7 +39,7 @@ namespace SharedProtocol
         private bool _wasSettingsReceived;
         private bool _wasPingReceived;
         private bool _wasResponseReceived;
-        private HeadersList _toBeContinuedHeaders;
+        private readonly HeadersList _toBeContinuedHeaders;
         private Frame _toBeContinuedFrame;
         private readonly Dictionary<string, string> _handshakeHeaders;
 

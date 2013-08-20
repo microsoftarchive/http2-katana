@@ -34,27 +34,27 @@ namespace Http2Tests
         public bool UseHandshake { get; private set; }
 
 
-        private static Task InvokeMiddleWare(IDictionary<string, object> environment)
+        private async static Task InvokeMiddleWare(IDictionary<string, object> environment)
         {
-            bool wasHandshakeFinished = true;
-            var handshakeTask = new Task<IDictionary<string, object>>(() => new Dictionary<string, object>());
+            //bool wasHandshakeFinished = true;
+            //var handshakeTask = new Task<IDictionary<string, object>>(() => new Dictionary<string, object>());
 
-            if (environment["HandshakeAction"] is HandshakeAction)
-            {
-                var handshakeAction = (HandshakeAction)environment["HandshakeAction"];
-                handshakeTask = Task.Factory.StartNew(handshakeAction);
+            //if (environment["HandshakeAction"] is HandshakeAction)
+            //{
+            //    var handshakeAction = (HandshakeAction)environment["HandshakeAction"];
+            //    handshakeTask = Task.Factory.StartNew(handshakeAction);
 
-                if (!handshakeTask.Wait(6000))
-                {
-                    wasHandshakeFinished = false;
-                }
+            //    if (!handshakeTask.Wait(6000))
+            //    {
+            //        wasHandshakeFinished = false;
+            //    }
 
-                environment.Add("HandshakeResult", handshakeTask.Result);
-            }
+            //    environment.Add("HandshakeResult", handshakeTask.Result);
+            //}
 
-            environment.Add("WasHandshakeFinished", wasHandshakeFinished);
+            //environment.Add("WasHandshakeFinished", wasHandshakeFinished);
 
-            return handshakeTask;
+            //return handshakeTask;
         }
 
         public Http2Setup()
