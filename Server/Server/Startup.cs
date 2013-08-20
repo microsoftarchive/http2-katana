@@ -1,6 +1,5 @@
 ﻿using Owin;
 using System.Web.Http;
-using ServerOwinMiddleware;
 
 namespace Server
 {

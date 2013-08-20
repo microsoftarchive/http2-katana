@@ -42,7 +42,7 @@ namespace SocketServer
         private readonly SecurityOptions _options;
         private readonly AppFunc _next;
         private Http2Session _session;
-        private IDictionary<string, object> _environment;        
+        private readonly IDictionary<string, object> _environment;        
         private readonly FileHelper _fileHelper;
         private readonly object _writeLock = new object();
         private readonly bool _useHandshake;
