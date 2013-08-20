@@ -201,12 +201,12 @@ namespace SharedProtocol
                     IsEndStream = isEndStream,
                 };
 
+            _writeQueue.WriteFrame(frame);
+
             if (frame.IsEndStream)
             {
                 EndStreamSent = true;
             }
-
-            _writeQueue.WriteFrame(frame);
 
             if (OnFrameSent != null)
             {
