@@ -37,16 +37,19 @@
     <Reference Include="Firefly">
       <HintPath>..\..\Shared\SharedProtocol\packages\Firefly.dll</HintPath>
     </Reference>
-    <Reference Include="Microsoft.AspNet.WebApi.Owin, Version=0.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\Shared\SharedProtocol\packages\Microsoft.AspNet.WebApi.Owin.dll</HintPath>
+    <Reference Include="Microsoft.AspNet.WebApi.Owin">
+      <HintPath>..\..\..\HTTP-SPEED-PLUS-MOBILITY-master\HTTP-SPEED-PLUS-MOBILITY-master\HTTP2Demo\packages\Microsoft.AspNet.WebApi.Owin.dll</HintPath>
     </Reference>
-    <Reference Include="Microsoft.Owin.Host.HttpListener">
-      <HintPath>..\..\Shared\SharedProtocol\packages\Microsoft.Owin.Host.HttpListener.dll</HintPath>
+    <Reference Include="Microsoft.Owin">
+      <HintPath>..\..\packages\Microsoft.Owin.1.1.0-beta2\lib\net45\Microsoft.Owin.dll</HintPath>
     </Reference>
-    <Reference Include="Microsoft.Owin.Hosting, Version=0.21.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+    <Reference Include="Microsoft.Owin.Host.HttpListener, Version=1.1.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\Shared\SharedProtocol\packages\Microsoft.Owin.Hosting.dll</HintPath>
+      <HintPath>..\..\packages\Microsoft.Owin.Host.HttpListener.1.1.0-beta2\lib\net45\Microsoft.Owin.Host.HttpListener.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Owin.Hosting, Version=1.1.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\packages\Microsoft.Owin.Hosting.1.1.0-beta2\lib\net40\Microsoft.Owin.Hosting.dll</HintPath>
     </Reference>
     <Reference Include="Newtonsoft.Json, Version=4.5.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
@@ -68,19 +71,18 @@
     <Reference Include="System.Configuration" />
     <Reference Include="System.Core" />
     <Reference Include="System.Net.Http" />
-    <Reference Include="System.Net.Http.Extensions">
-      <HintPath>..\..\packages\Microsoft.Net.Http.2.2.13\lib\net45\System.Net.Http.Extensions.dll</HintPath>
-    </Reference>
-    <Reference Include="System.Net.Http.Formatting, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
-      <HintPath>..\..\packages\Microsoft.AspNet.WebApi.Client.4.0.30506.0\lib\net40\System.Net.Http.Formatting.dll</HintPath>
-    </Reference>
-    <Reference Include="System.Net.Http.Primitives">
-      <HintPath>..\..\packages\Microsoft.Net.Http.2.2.13\lib\net45\System.Net.Http.Primitives.dll</HintPath>
+    <Reference Include="System.Net.Http.Formatting, Version=5.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\packages\Microsoft.AspNet.WebApi.Client.5.0.0-beta2\lib\net45\System.Net.Http.Formatting.dll</HintPath>
     </Reference>
     <Reference Include="System.Net.Http.WebRequest" />
     <Reference Include="System.Runtime.Serialization" />
-    <Reference Include="System.Web.Http, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
-      <HintPath>..\..\packages\Microsoft.AspNet.WebApi.Core.4.0.30506.0\lib\net40\System.Web.Http.dll</HintPath>
+    <Reference Include="System.Web.Http, Version=5.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\packages\Microsoft.AspNet.WebApi.Core.5.0.0-beta2\lib\net45\System.Web.Http.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Web.Http.Owin">
+      <HintPath>..\..\packages\Microsoft.AspNet.WebApi.Owin.5.0.0-beta2\lib\net45\System.Web.Http.Owin.dll</HintPath>
     </Reference>
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
@@ -131,7 +133,6 @@ copy /y "$(ProjectDir)\root\10mbTest.txt" "$(TargetDir)\root\10mbTest.txt"</Post
     <PreBuildEvent>
     </PreBuildEvent>
   </PropertyGroup>
-  <Import Project="..\..\packages\Microsoft.Bcl.Build.1.0.8\tools\Microsoft.Bcl.Build.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">
