@@ -3,6 +3,8 @@ obj/
 bin/
 Bin/
 .nuget/
+*.nupkg
+*.xml
 *.suo
 *.pdb
 *.user
