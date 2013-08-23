@@ -9,6 +9,7 @@ using Org.Mentalis.Security.Ssl;
 using Owin.Types;
 using SharedProtocol.Http11;
 using SharedProtocol;
+using SharedProtocol.IO;
 
 namespace SocketServer
 {
@@ -17,25 +18,26 @@ namespace SocketServer
 
     public static class Http11ProtocolOwinAdapter
     {
-        public static async Task ProcessRequest(SecureSocket client, Environment environment, AppFunc next)
+        public static async Task ProcessRequest(DuplexStream client, Environment environment, AppFunc next)
         {
             try
             {
-                if (client.IsClosed) return;
+                if (!client.CanRead) return;
 
+ 
                 // TODO check for upgrade and add coresponding settings
 
                 // upgrade 1.1->2.0 detection must be there
-                
+
                 string[] rawHeaders = Http11Manager.GetHttp11Headers(client);
                 // TODO - review if OwinRequest constructor can do this for us.
-
+ 
                 // headers[0] contains METHOD, URI and VERSION like "GET /api/values/1 HTTP/1.1"
                 var headers = ParseHeaders(rawHeaders.Skip(1).ToArray());
 
                 string[] splittedRequestString = rawHeaders[0].Split(' ');
                 string method = splittedRequestString[0];
-                string scheme = client.SecureProtocol == SecureProtocol.None ? "http" : "https";
+                string scheme = client.Socket.SecureProtocol == SecureProtocol.None ? "http" : "https";
                 string host = headers["Host"][0]; // client MUST include Host header due to HTTP/1.1 spec
                 if (host.IndexOf(':') == -1)
                 {
@@ -84,11 +86,12 @@ namespace SocketServer
             return dict;
         }
 
-        private static void EndResponse(SecureSocket socket, Exception ex)
+        private static void EndResponse(DuplexStream socket, Exception ex)
         {
             var msgBytes = Encoding.UTF8.GetBytes(ex.Message);
             // todo add content type
             Http11Manager.SendResponse(socket, msgBytes, StatusCode.Code500InternalServerError, "");
+            socket.Flush();
         }
 
         private static Dictionary<string, object> CreateOwinEnvironment(string method, string scheme, string hostHeaderValue, string pathBase, string path, byte[] requestBody = null)
@@ -107,7 +110,7 @@ namespace SocketServer
             return environment;
         }
 
-        private static void EndResponse(SecureSocket socket, IDictionary<string, object> env)
+        private static void EndResponse(DuplexStream socket, IDictionary<string, object> env)
         {
             OwinResponse owinResponse = new OwinResponse(env);
 
@@ -115,6 +118,8 @@ namespace SocketServer
             var bytes = (owinResponse.Body as MemoryStream).ToArray();
 
             Http11Manager.SendResponse(socket, bytes, owinResponse.StatusCode, owinResponse.ContentType);
+
+            socket.Flush();
 
         }
     }

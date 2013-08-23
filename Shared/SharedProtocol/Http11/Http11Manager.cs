@@ -8,6 +8,7 @@ using System.Text;
 using Org.Mentalis;
 using Org.Mentalis.Security.Ssl;
 using SharedProtocol.EventArgs;
+using SharedProtocol.IO;
 using SharedProtocol.Utils;
 
 namespace SharedProtocol.Http11
@@ -180,56 +181,56 @@ namespace SharedProtocol.Http11
             }
         }
 
-        public static void Http11SendResponse(SecureSocket socket)
-        {
-            string[] headers = GetHttp11Headers(socket);
-            string filename = GetFileName(headers);
+        //public static void Http11SendResponse(SecureSocket socket)
+        //{
+        //    string[] headers = GetHttp11Headers(socket);
+        //    string filename = GetFileName(headers);
 
 
-            if (headers.Length == 0)
-            {
-                Http2Logger.LogError("Request headers empty!");
-            }
+        //    if (headers.Length == 0)
+        //    {
+        //        Http2Logger.LogError("Request headers empty!");
+        //    }
 
-            string path = Path.GetFullPath(AssemblyPath + @"\root" + filename);
-            string contentType = ContentTypes.GetTypeFromFileName(filename);
-            if (!File.Exists(path))
-            {
-                Http2Logger.LogError("File " + filename + " not found");
-                SendResponse(socket, new byte[0], StatusCode.Code404NotFound, contentType);
-                socket.Close();
-                return;
-            }
+        //    string path = Path.GetFullPath(AssemblyPath + @"\root" + filename);
+        //    string contentType = ContentTypes.GetTypeFromFileName(filename);
+        //    if (!File.Exists(path))
+        //    {
+        //        Http2Logger.LogError("File " + filename + " not found");
+        //        SendResponse(socket, new byte[0], StatusCode.Code404NotFound, contentType);
+        //        socket.Close();
+        //        return;
+        //    }
 
-            try
-            {
-                using (var sr = new StreamReader(path))
-                {
-                    string file = sr.ReadToEnd();
+        //    try
+        //    {
+        //        using (var sr = new StreamReader(path))
+        //        {
+        //            string file = sr.ReadToEnd();
 
-                    var fileBytes = Encoding.UTF8.GetBytes(file);
+        //            var fileBytes = Encoding.UTF8.GetBytes(file);
 
-                    int sent = SendResponse(socket, fileBytes, StatusCode.Code200Ok, contentType);
-                    Http2Logger.LogDebug(string.Format("Sent: {0} bytes", sent));
-                    Http2Logger.LogInfo("File sent: " + filename);
+        //            int sent = SendResponse(socket, fileBytes, StatusCode.Code200Ok, contentType);
+        //            Http2Logger.LogDebug(string.Format("Sent: {0} bytes", sent));
+        //            Http2Logger.LogInfo("File sent: " + filename);
 
-                    socket.Close();
+        //            socket.Close();
 
-                    if (OnSocketClosed != null)
-                    {
-                        OnSocketClosed(null, new SocketCloseEventArgs());
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                var msgBytes = Encoding.UTF8.GetBytes(ex.Message);
-                SendResponse(socket, msgBytes, StatusCode.Code500InternalServerError, contentType);
-                Http2Logger.LogError(ex.Message);
-            }
-        }
+        //            if (OnSocketClosed != null)
+        //            {
+        //                OnSocketClosed(null, new SocketCloseEventArgs());
+        //            }
+        //        }
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        var msgBytes = Encoding.UTF8.GetBytes(ex.Message);
+        //        SendResponse(socket, msgBytes, StatusCode.Code500InternalServerError, contentType);
+        //        Http2Logger.LogError(ex.Message);
+        //    }
+        //}
 
-        public static int SendResponse(SecureSocket socket, byte[] data, int statusCode, string contentType)
+        public static int SendResponse(DuplexStream socket, byte[] data, int statusCode, string contentType)
         {
             string initialLine = "HTTP/1.1 " + statusCode + " " + StatusCode.GetReasonPhrase(statusCode) + "\r\n";
 
@@ -242,10 +243,11 @@ namespace SharedProtocol.Http11
             {
                 initialLine += "\r\n";
             }
-            int sent = socket.Send(Encoding.UTF8.GetBytes(initialLine));
+
+            int sent = socket.Write(Encoding.UTF8.GetBytes(initialLine));
             SendHeaders(socket, headers, data.Length);
             if (data.Length > 0)
-                sent += socket.Send(data);
+                sent += socket.Write(data);
 
             return sent;
         }
@@ -268,7 +270,7 @@ namespace SharedProtocol.Http11
         }
 
         //TODO must be reworked
-        public static void SendHeaders(SecureSocket socket, Dictionary<string, string> headers, int contentLength = 0)
+        public static void SendHeaders(DuplexStream socket, Dictionary<string, string> headers, int contentLength = 0)
         {
             var headersString = new StringBuilder();
 
@@ -278,10 +280,10 @@ namespace SharedProtocol.Http11
             }
             headersString.AppendFormat("Content-Length: {0}\r\n" + "\r\n", contentLength);
             byte[] headersBytes = Encoding.UTF8.GetBytes(headersString.ToString());
-            socket.Send(headersBytes);
+            socket.Write(headersBytes);
         }
 
-        public static string[] GetHttp11Headers(SecureSocket socket)
+        public static string[] GetHttp11Headers(DuplexStream socket)
         {
             var headers = new List<string>(5);
 
@@ -294,7 +296,7 @@ namespace SharedProtocol.Http11
             {
                 bool gotException = false;
                 var bf = new byte[1];
-                int bytesCame = socket.Receive(bf);
+                int bytesCame = socket.Read(bf, 0, 1);
                 if (bytesCame == 0)
                     break;
 

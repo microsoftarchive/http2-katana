@@ -120,6 +120,18 @@ namespace SharedProtocol.IO
                 throw new ObjectDisposedException("Duplex stream was already closed");
 
             _writeBuffer.Write(buffer, offset, count);
+
+        }
+
+        // TODO to extension methods ?? + check for args
+        public int Write(byte[] buffer)
+        {
+            if (_isClosed)
+                throw new ObjectDisposedException("Duplex stream was already closed");
+
+            _writeBuffer.Write(buffer, 0, buffer.Length);
+
+            return buffer.Length;
         }
 
         public override void WriteByte(byte value)
