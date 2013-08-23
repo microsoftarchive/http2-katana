@@ -34,8 +34,10 @@ namespace ServerOwinMiddleware
         /// </summary>
         /// <param name="environment">The environment.</param>
         /// <returns></returns>
-        public async Task Invoke(IDictionary<string, object> environment)
+        public Task Invoke(IDictionary<string, object> environment)
         {
+            return _next.Invoke(environment); 
+
             /*bool wasHandshakeFinished = true;
             var handshakeTask = new Task<IDictionary<string, object>>(() => new Dictionary<string, object>());
 

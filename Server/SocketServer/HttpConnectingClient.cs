@@ -10,6 +10,7 @@ using System.IO;
 using System.Net.Sockets;
 using System.Reflection;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Org.Mentalis;
 using Org.Mentalis.Security.Ssl;
@@ -281,11 +282,27 @@ namespace SocketServer
             }
         }
 
+        private static Dictionary<string, object> CreateOwinEnvironment(string method, string scheme, string hostHeaderValue, string pathBase, string path, byte[] requestBody = null)
+        {
+            var environment = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+            environment["owin.RequestMethod"] = method;
+            environment["owin.RequestScheme"] = scheme;
+            environment["owin.RequestHeaders"] = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase) { { "Host", new string[] { hostHeaderValue } } };
+            environment["owin.RequestPathBase"] = pathBase;
+            environment["owin.RequestPath"] = path;
+            environment["owin.RequestQueryString"] = "";
+            environment["owin.RequestBody"] = new MemoryStream(requestBody ?? new byte[0]);
+            environment["owin.CallCancelled"] = new CancellationToken();
+            environment["owin.ResponseHeaders"] = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase);
+            environment["owin.ResponseBody"] = new MemoryStream();
+            return environment;
+        }
+
         private void FrameReceivedHandler(object sender, FrameReceivedEventArgs args)
         {
             var stream = args.Stream;
             var method = stream.Headers.GetValue(":method");
-            if (!string.IsNullOrEmpty(method)) 
+            if (!string.IsNullOrEmpty(method))
                 method = method.ToLower();
 
             try
@@ -296,32 +313,17 @@ namespace SocketServer
                     {
                         case "post":
                         case "put":
-                            SaveDataFrame(stream, (DataFrame) args.Frame);
-                            //Avoid leading \ at the filename
-                            AddFileToRootFileList(stream.Headers.GetValue(":path").Substring(1));
+                            HandlePost(sender as Http2Session, args.Frame, stream);
                             break;
                     }
-                } 
+                }
                 else if (args.Frame is HeadersFrame)
                 {
                     switch (method)
                     {
                         case "get":
-                        case "dir":
-                            try
-                            {
-                                string path = stream.Headers.GetValue(":path").Trim('/');
-                                SendFile(path, stream);
-                            }
-                            catch (FileNotFoundException e)
-                            {
-                                Http2Logger.LogDebug("File not found: " + e.FileName);
-                                WriteStatus(stream, StatusCode.Code404NotFound, true);
-                            }
-
-                            break;
                         case "delete":
-                            WriteStatus(stream, StatusCode.Code401Forbidden, true);
+                            HandleGet(sender as Http2Session, stream);
                             break;
 
                         default:
@@ -336,6 +338,73 @@ namespace SocketServer
                 stream.WriteRst(ResetStatusCode.InternalError);
                 stream.Dispose();
             }
+        }
+
+        private void HandleGet(Http2Session session, Http2Stream stream)
+        {
+            string path = stream.Headers.GetValue(":path");
+            string scheme = stream.Headers.GetValue(":scheme");
+            string method = stream.Headers.GetValue(":method");
+            string host = stream.Headers.GetValue(":host") + ":" + (session.Socket.LocalEndPoint as System.Net.IPEndPoint).Port;
+
+            Http2Logger.LogDebug(method.ToUpper() + ": " + path);
+
+            var env = CreateOwinEnvironment(method.ToUpper(), scheme, host, "", path);
+            env["HandshakeAction"] = null;
+
+            _next(env).ContinueWith(r =>
+            {
+                try
+                {
+
+                    var bytes = (env["owin.ResponseBody"] as MemoryStream).ToArray();
+
+                    string res = Encoding.UTF8.GetString(bytes);
+
+                    Console.WriteLine("Done: " + res);
+
+                    SendDataTo(stream, bytes);
+                }
+                catch (Exception ex)
+                {
+                    Http2Logger.LogError("Error: " + ex.Message);
+                }
+            });
+        }
+
+        private void HandlePost(Http2Session session, Frame frame, Http2Stream stream)
+        {
+            string path = stream.Headers.GetValue(":path");
+            string scheme = stream.Headers.GetValue(":scheme");
+            string method = stream.Headers.GetValue(":method");
+            string host = stream.Headers.GetValue(":host") + ":" + (session.Socket.LocalEndPoint as System.Net.IPEndPoint).Port;
+            byte[] body = new byte[frame.Payload.Count];
+            Array.ConstrainedCopy(frame.Payload.Array, frame.Payload.Offset, body, 0, body.Length);
+
+            Http2Logger.LogDebug(method.ToUpper() + ": " + path);
+
+            var env = CreateOwinEnvironment(method.ToUpper(), scheme, host, "", path, frame.FrameType == FrameType.Data ? body : null);
+            env["HandshakeAction"] = null;
+            (env["owin.RequestHeaders"] as Dictionary<string, string[]>).Add("Content-Type", new string[] { stream.Headers.GetValue(":content-type") });
+
+            _next(env).ContinueWith(r =>
+            {
+                try
+                {
+
+                    var bytes = (env["owin.ResponseBody"] as MemoryStream).ToArray();
+
+                    string res = Encoding.UTF8.GetString(bytes);
+
+                    Console.WriteLine("Done: " + res);
+
+                    SendDataTo(stream, bytes);
+                }
+                catch (Exception ex)
+                {
+                    Http2Logger.LogError("Error: " + ex.Message);
+                }
+            });
         }
 
         private void SendFile(string path, Http2Stream stream)
