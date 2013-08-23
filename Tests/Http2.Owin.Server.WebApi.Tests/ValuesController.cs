@@ -6,12 +6,17 @@ namespace Owin.Test.WebApiTest
 {
     public class ValuesController : ApiController
     {
-        private static Dictionary<int, string> _store = new Dictionary<int, string>();
+        private static Dictionary<int, string> _store = null;
 
         public ValuesController()
         {
-            _store.Add(0, "value#0");
-            _store.Add(1, "value#1");
+            if (_store == null)
+            {
+                _store = new Dictionary<int, string>();
+
+                _store.Add(0, "value#0");
+                _store.Add(1, "value#1");
+            }
         }
 
         // GET api/values 

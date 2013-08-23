@@ -17,6 +17,10 @@ namespace Owin.Test.WebApiTest
                 defaults: new { id = RouteParameter.Optional }
             );
 
+            // config.Formatters.XmlFormatter.UseXmlSerializer = true;
+            // config.Formatters.Remove(config.Formatters.JsonFormatter);
+            config.Formatters.JsonFormatter.UseDataContractJsonSerializer = true;
+
             appBuilder.UseHttp2();
             appBuilder.UseWebApi(config);
         }
