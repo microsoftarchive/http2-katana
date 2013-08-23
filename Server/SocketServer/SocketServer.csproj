@@ -52,8 +52,8 @@
     <Compile Include="GlobalSuppressions.cs" />
     <Compile Include="HttpConnectingClient.cs" />
     <Compile Include="HttpSocketServer.cs" />
-    <Compile Include="OwinServerFactoryAttribute.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="SocketServerFactory.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\MentalisSecurityLibrary\Security Library.csproj">

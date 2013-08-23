@@ -83,6 +83,7 @@
     <Compile Include="Handshake\HandshakeManager.cs" />
     <Compile Include="HeadersList.cs" />
     <Compile Include="Http11\Http11Manager.cs" />
+    <Compile Include="IO\DuplexStream.cs" />
     <Compile Include="IO\FileHelper.cs" />
     <Compile Include="Constants.cs" />
     <Compile Include="IO\IPriorityItem.cs" />
@@ -92,6 +93,7 @@
     <Compile Include="IO\PriorityQueueEntry.cs" />
     <Compile Include="IO\QueueEntry.cs" />
     <Compile Include="IO\QueueWrapper.cs" />
+    <Compile Include="IO\StreamBuffer.cs" />
     <Compile Include="Protocols.cs" />
     <Compile Include="Settings\SettingsManager.cs" />
     <Compile Include="Framing\DataFrame.cs" />

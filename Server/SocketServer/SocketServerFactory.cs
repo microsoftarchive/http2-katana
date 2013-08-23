@@ -3,15 +3,10 @@ using System.Collections.Generic;
 using System.Configuration;
 using System.Threading.Tasks;
 
-//[assembly: SocketServer.OwinServerFactoryAttribute]
-
 namespace SocketServer
 {
     using AppFunc = Func<IDictionary<string, object>, Task>;
 
-    /// <summary>
-    /// This class is used for specifying server properties and creating Http2SocketServer
-    /// </summary>
     public class SocketServerFactory
     {
         public static void Initialize(IDictionary<string, object> properties)

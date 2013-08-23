@@ -90,9 +90,6 @@
     <Compile Include="..\Server\SocketServer\HttpSocketServer.cs">
       <Link>Sources\HttpSocketServer.cs</Link>
     </Compile>
-    <Compile Include="..\Server\SocketServer\OwinServerFactoryAttribute.cs">
-      <Link>Sources\OwinServerFactoryAttribute.cs</Link>
-    </Compile>
     <Compile Include="..\Shared\SharedProtocol\ActiveStreams.cs">
       <Link>Sources\ActiveStreams.cs</Link>
     </Compile>
