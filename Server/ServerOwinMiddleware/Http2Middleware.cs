@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Owin.Types;
 
 namespace ServerOwinMiddleware
 {
@@ -34,29 +35,20 @@ namespace ServerOwinMiddleware
         /// </summary>
         /// <param name="environment">The environment.</param>
         /// <returns></returns>
-        public Task Invoke(IDictionary<string, object> environment)
+        public async Task Invoke(IDictionary<string, object> environment)
         {
-            return _next.Invoke(environment); 
+            var req = new OwinRequest(environment);
 
-            /*bool wasHandshakeFinished = true;
-            var handshakeTask = new Task<IDictionary<string, object>>(() => new Dictionary<string, object>());
-
-            if (environment["HandshakeAction"] is HandshakeAction)
+            if (req.UpgradeDelegate != null)
             {
-                var handshakeAction = (HandshakeAction)environment["HandshakeAction"];
-                handshakeTask = Task.Factory.StartNew(handshakeAction);
-
-                if (!handshakeTask.Wait(6000))
-                {
-                    wasHandshakeFinished = false;
-                }
-
-                environment.Add("HandshakeResult", handshakeTask.Result);
+                //_next is next layer call (Application?) it fill owinResponce
+                //need to think about which environment should be passed
+                req.UpgradeDelegate.Invoke(environment, _next);
+                return;
             }
 
-            environment.Add("WasHandshakeFinished", wasHandshakeFinished);
-
-            return handshakeTask;*/
+            //If we dont have upgrade delegate then pass request to the next layer
+            await _next(environment);
         }
     }
 }

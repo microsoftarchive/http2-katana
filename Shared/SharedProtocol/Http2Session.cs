@@ -1,5 +1,7 @@
 ﻿using System.Linq;
+using System.Text;
 using System.Threading;
+using Owin.Types;
 using SharedProtocol.Compression.HeadersDeltaCompression;
 using SharedProtocol.EventArgs;
 using SharedProtocol.Exceptions;
@@ -16,6 +18,7 @@ using SharedProtocol.Utils;
 
 namespace SharedProtocol
 {
+    using AppFunc = Func<IDictionary<string, object>, Task>;
     /// <summary>
     /// This class creates and closes session, pumps incoming and outcoming frames and dispatches them.
     /// It defines events for request handling by subscriber. Also it is responsible for sending some frames.
@@ -25,7 +28,7 @@ namespace SharedProtocol
         private bool _goAwayReceived;
         private readonly FrameReader _frameReader;
         private readonly WriteQueue _writeQueue;
-        private readonly SecureSocket _sessionSocket;
+        private readonly DuplexStream _ioStream;
         private readonly ManualResetEvent _pingReceived = new ManualResetEvent(false);
         private bool _disposed;
         private readonly SettingsManager _settingsManager;
@@ -43,8 +46,12 @@ namespace SharedProtocol
         private Frame _toBeContinuedFrame;
         private readonly Dictionary<string, string> _handshakeHeaders;
 
-        public SecureSocket Socket { get { return _sessionSocket; } }
+        //public SecureSocket Socket { get { return _sessionSocket; } }
 
+        private const string ClientSessionHeader = "PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n";
+        private AppFunc _next;
+        private IDictionary<string, object> _environment;
+ 
         /// <summary>
         /// Occurs when settings frame was sent.
         /// </summary>
@@ -69,7 +76,6 @@ namespace SharedProtocol
         /// Session closed event.
         /// </summary>
         public event EventHandler<System.EventArgs> OnSessionDisposed;
-
 
         /// <summary>
         /// Gets the active streams.
@@ -99,15 +105,17 @@ namespace SharedProtocol
         internal Int32 InitialWindowSize { get; set; }
         internal Int32 SessionWindowSize { get; set; }
  
-        public Http2Session(SecureSocket sessionSocket, ConnectionEnd end, 
+        public Http2Session(DuplexStream stream, ConnectionEnd end, 
                             bool usePriorities, bool useFlowControl,
-                            IDictionary<string, object> handshakeResult = null)
+                            AppFunc next, IDictionary<string, object> environment = null)
         {
+            _environment = environment;
             _ourEnd = end;
+            _next = next;
             _usePriorities = usePriorities;
             _useFlowControl = useFlowControl;
             _handshakeHeaders = new Dictionary<string, string>(16);
-            ApplyHandshakeResults(handshakeResult);
+            //ApplyHandshakeResults(handshakeResult);
 
             if (_ourEnd == ConnectionEnd.Client)
             {
@@ -123,9 +131,9 @@ namespace SharedProtocol
             _goAwayReceived = false;
             _settingsManager = new SettingsManager();
             _comprProc = new CompressionProcessor(_ourEnd);
-            _sessionSocket = sessionSocket;
+            _ioStream = stream;
 
-            _frameReader = new FrameReader(_sessionSocket);
+            /*_frameReader = new FrameReader(_sessionSocket);
 
             ActiveStreams = new ActiveStreams();
 
@@ -151,7 +159,87 @@ namespace SharedProtocol
             }
 
             SessionWindowSize = 0;
-            _toBeContinuedHeaders = new HeadersList();
+            _toBeContinuedHeaders = new HeadersList();*/
+        }
+
+        private async Task<bool> GetSessionHeaderAndVerifyIt(DuplexStream incomingClient)
+        {
+            var sessionHeaderBuffer = new byte[ClientSessionHeader.Length];
+
+            if (!incomingClient.WaitForDataAvailable(5000))
+            {
+                throw new TimeoutException(String.Format("Session header was not received in timeout {0}", 5000));
+            }
+            
+            await incomingClient.ReadAsync(sessionHeaderBuffer, 0, 
+                                           sessionHeaderBuffer.Length, 
+                                           CancellationToken.None);
+
+
+            var receivedHeader = Encoding.UTF8.GetString(sessionHeaderBuffer);
+
+            return string.Equals(receivedHeader, ClientSessionHeader, StringComparison.OrdinalIgnoreCase);
+        }
+
+        private async Task DispatchInitialRequest()
+        {
+            //Http2 -> middle -> application. Last one fills owinResponse.
+            await _next(_environment);
+
+            //Need to open first http2 stream then and send response
+        }
+
+        //Move to http2 stream class
+        private async Task PopulateEnvironment()
+        {
+            var owinRequest = new OwinRequest(_environment);
+            var owinResponse = new OwinResponse(_environment);
+        }
+
+        /// <summary>
+        /// Starts session.
+        /// </summary>
+        /// <returns></returns>
+        public async Task Start()
+        {
+            Http2Logger.LogDebug("Session start");
+
+            if (!await GetSessionHeaderAndVerifyIt(_ioStream))
+            {
+                Dispose();
+                //throw something?
+                return;
+            }
+
+            //Write settings. Settings must be the first frame in session.
+            if (_useFlowControl)
+            {
+                WriteSettings(new[]
+                    {
+                        new SettingsPair(SettingsFlags.None, SettingsIds.InitialWindowSize, 200000)
+                    });
+            }
+            else
+            {
+                WriteSettings(new[]
+                    {
+                        new SettingsPair(SettingsFlags.None, SettingsIds.InitialWindowSize, 200000),
+                        new SettingsPair(SettingsFlags.None, SettingsIds.FlowControlOptions, (byte) FlowControlOptions.DontUseFlowControl)
+                    });
+            }
+            // Listen for incoming Http/2.0 frames
+            var incomingTask = new Task(PumpIncommingData);
+            // Send outgoing Http/2.0 frames
+            var outgoingTask = new Task(() => PumpOutgoingData());
+            incomingTask.Start();
+            outgoingTask.Start();
+            var endPumpsTask = Task.WhenAll(incomingTask, outgoingTask);
+
+            //Handle upgrade handshake headers.
+            await DispatchInitialRequest();
+
+            //Cancellation token
+            endPumpsTask.Wait();
         }
 
         /// <summary>
@@ -354,7 +442,8 @@ namespace SharedProtocol
                         _wasSettingsReceived = true;
                         _settingsManager.ProcessSettings(settingFrame, this, _flowControlManager);
 
-                        if (_ourEnd == ConnectionEnd.Server && _sessionSocket.SecureProtocol == SecureProtocol.None)
+                        //DispatchInitialRequest should handle this.
+                        /*if (_ourEnd == ConnectionEnd.Server && .SecureProtocol == SecureProtocol.None)
                         {
                             //The HTTP/1.1 request that is sent prior to upgrade is associated with
                             //stream 1 and is assigned the highest possible priority.  Stream 1 is
@@ -366,7 +455,7 @@ namespace SharedProtocol
                             stream.Headers.Add(new KeyValuePair<string, string>(":method", _handshakeHeaders[":method"]));
                             stream.Headers.Add(new KeyValuePair<string, string>(":path", _handshakeHeaders[":path"]));
                             OnFrameReceived(this, new FrameReceivedEventArgs(stream, new HeadersFrame(stream.Id, false)));
-                        }
+                        }*/
 
                         break;
                     case FrameType.WindowUpdate:
@@ -570,40 +659,6 @@ namespace SharedProtocol
         }
 
         /// <summary>
-        /// Starts session.
-        /// </summary>
-        /// <returns></returns>
-        public Task Start()
-        {
-            Http2Logger.LogDebug("Session start");
-            //Write settings. Settings must be the first frame in session.
-
-            if (_useFlowControl)
-            {
-                WriteSettings(new[]
-                    {
-                        new SettingsPair(SettingsFlags.None, SettingsIds.InitialWindowSize, 200000)
-                    });
-            }
-            else
-            {
-                WriteSettings(new[]
-                    {
-                        new SettingsPair(SettingsFlags.None, SettingsIds.InitialWindowSize, 200000),
-                        new SettingsPair(SettingsFlags.None, SettingsIds.FlowControlOptions, (byte) FlowControlOptions.DontUseFlowControl)
-                    });
-            }
-            // Listen for incoming Http/2.0 frames
-            var incomingTask = new Task(PumpIncommingData);
-            // Send outgoing Http/2.0 frames
-            var outgoingTask = new Task(() => PumpOutgoingData());
-            incomingTask.Start();
-            outgoingTask.Start();
-
-            return Task.WhenAll(incomingTask, outgoingTask);
-        }
-
-        /// <summary>
         /// Writes the settings frame.
         /// </summary>
         /// <param name="settings">The settings.</param>
@@ -706,7 +761,7 @@ namespace SharedProtocol
             }
 
             _comprProc.Dispose();
-            _sessionSocket.Close();
+            _ioStream.Close();
 
             if (OnSessionDisposed != null)
             {

@@ -1,21 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using Org.Mentalis.Security.Ssl;
 
 namespace SharedProtocol.Handshake
 {
     /// <summary>
-    /// Handshake action alias;
-    /// </summary>
-    /// <returns></returns>
-    using HandshakeAction = Func<IDictionary<string, object>>;
-
-    /// <summary>
     /// Class chooses which handshake must be performed.
     /// </summary>
     public static class HandshakeManager
     {
-        public static HandshakeAction GetHandshakeAction(IDictionary<string, object> handshakeEnvironment)
+        public static Task GetHandshakeAction(IDictionary<string, object> handshakeEnvironment)
         {
             if (!handshakeEnvironment.ContainsKey("securityOptions") 
                 || !(handshakeEnvironment["securityOptions"] is SecurityOptions))
@@ -40,11 +35,11 @@ namespace SharedProtocol.Handshake
             if (options.Protocol == SecureProtocol.None)
             {
                 //Choose upgrade handshake
-                return new UpgradeHandshaker(handshakeEnvironment).Handshake;
+                //return new UpgradeHandshaker(handshakeEnvironment).Handshake();
             }
-
+            return null;
             //Choose secure handshake
-            return new SecureHandshaker(handshakeEnvironment).Handshake;
+            //return new SecureHandshaker(handshakeEnvironment).Handshake;
         }
     }
 }

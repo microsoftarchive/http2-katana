@@ -5,6 +5,7 @@ using System.IO;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using Org.Mentalis.Security.Ssl;
 using SharedProtocol.Exceptions;
 using SharedProtocol.Framing;
@@ -15,9 +16,9 @@ namespace SharedProtocol.Handshake
     /// <summary>
     ///This class is used for upgrade handshake handling
     /// </summary>
-    public class UpgradeHandshaker
+    public static class UpgradeHandshaker
     {
-        private const int HandshakeResponseSizeLimit = 4096;
+        /*private const int HandshakeResponseSizeLimit = 4096;
         private static readonly byte[] CRLFCRLF = { (byte)'\r', (byte)'\n', (byte)'\r', (byte)'\n' };
 
 
@@ -26,9 +27,9 @@ namespace SharedProtocol.Handshake
         private bool _wasResponseReceived;
         private IDictionary<string, object> _handshakeResult;
         private HandshakeResponse _response;
-        public SecureSocket InternalSocket { get; private set; }
+        public SecureSocket InternalSocket { get; private set; }*/
 
-        public UpgradeHandshaker(IDictionary<string, object> handshakeEnvironment)
+        /*public UpgradeHandshaker(IDictionary<string, object> handshakeEnvironment)
         {
             InternalSocket = (SecureSocket)handshakeEnvironment["secureSocket"];
             _end = (ConnectionEnd)handshakeEnvironment["end"];
@@ -53,14 +54,14 @@ namespace SharedProtocol.Handshake
                     throw new InvalidConstraintException("Incorrect header for upgrade handshake");
                 }
             }
-        }
+        }*/
 
-        public void ReadHeadersAndInspectHandshake()
+        private static void ReadHeadersAndInspectHandshake()
         {
             try
             {
-                _response = Read11Headers();
-                _wasResponseReceived = true;
+                //_response = Read11Headers();
+                //_wasResponseReceived = true;
             }
             catch (Exception ex)
             {
@@ -69,73 +70,76 @@ namespace SharedProtocol.Handshake
             }
         }
 
-        public IDictionary<string, object> Handshake()
+        public static Task Handshake(IDictionary<string, object> environment)
         {
-            if (_end == ConnectionEnd.Client)
-            {
-                // Build the request
-                var builder = new StringBuilder();
-                builder.AppendFormat("{0} {1} {2}\r\n", "GET", _headers[":path"], "HTTP/1.1");
-                //TODO pass here requested filename
-                builder.AppendFormat("Host: {0}\r\n", _headers[":host"]);
-                builder.Append("Connection: Upgrade, Http2-Settings\r\n");
-                builder.Append("Upgrade: HTTP-DRAFT-04/2.0\r\n");
-                builder.Append("Http2-Settings: ");
-                //TODO check out how to send window size and max_conc_streams
-
-                if (_headers != null)
+            var performHandshake = new Task (() =>
                 {
-                    var http2Settings = new StringBuilder();
-                    foreach (var key in _headers.Keys)
+                    /*if (_end == ConnectionEnd.Client)
                     {
-                        if (!string.Equals(":path", key, StringComparison.OrdinalIgnoreCase))
-                            http2Settings.AppendFormat("{0}: {1}\r\n", key, _headers[key]);
+                        // Build the request
+                        var builder = new StringBuilder();
+                        builder.AppendFormat("{0} {1} {2}\r\n", "GET", _headers[":path"], "HTTP/1.1");
+                        //TODO pass here requested filename
+                        builder.AppendFormat("Host: {0}\r\n", _headers[":host"]);
+                        builder.Append("Connection: Upgrade, Http2-Settings\r\n");
+                        builder.Append("Upgrade: HTTP-DRAFT-04/2.0\r\n");
+                        builder.Append("Http2-Settings: ");
+                        //TODO check out how to send window size and max_conc_streams
+
+                        if (_headers != null)
+                        {
+                            var http2Settings = new StringBuilder();
+                            foreach (var key in _headers.Keys)
+                            {
+                                if (!string.Equals(":path", key, StringComparison.OrdinalIgnoreCase))
+                                    http2Settings.AppendFormat("{0}: {1}\r\n", key, _headers[key]);
+                            }
+                            byte[] settingsBytes = Encoding.UTF8.GetBytes(http2Settings.ToString());
+                            builder.Append(Convert.ToBase64String(settingsBytes));
+                        }
+                        builder.Append("\r\n\r\n");
+                        byte[] requestBytes = Encoding.UTF8.GetBytes(builder.ToString());
+                        _handshakeResult = new Dictionary<string, object>(_headers) { { ":method", "get" } };
+                        InternalSocket.Send(requestBytes, 0, requestBytes.Length, SocketFlags.None);
+                        ReadHeadersAndInspectHandshake();
                     }
-                    byte[] settingsBytes = Encoding.UTF8.GetBytes(http2Settings.ToString());
-                    builder.Append(Convert.ToBase64String(settingsBytes));
-                }
-                builder.Append("\r\n\r\n");
-                byte[] requestBytes = Encoding.UTF8.GetBytes(builder.ToString());
-                _handshakeResult = new Dictionary<string, object>(_headers) {{":method", "get"}};
-                InternalSocket.Send(requestBytes, 0, requestBytes.Length, SocketFlags.None);
-                ReadHeadersAndInspectHandshake();
-            }
-            else
-            {
-                ReadHeadersAndInspectHandshake();
-                if (_response.Result == HandshakeResult.Upgrade)
-                {
-                    const string status = "101";
-                    const string protocol = "HTTP/1.1";
-                    const string postfix = "Switching Protocols";
+                    else
+                    {
+                        ReadHeadersAndInspectHandshake();
+                        if (_response.Result == HandshakeResult.Upgrade)
+                        {
+                            const string status = "101";
+                            const string protocol = "HTTP/1.1";
+                            const string postfix = "Switching Protocols";
 
-                    var builder = new StringBuilder();
-                    builder.AppendFormat("{0} {1} {2}\r\n", protocol, status, postfix);
-                    builder.Append("Connection: Upgrade\r\n");
-                    builder.Append("Upgrade: HTTP-draft-04/2.0\r\n");
-                    builder.Append("\r\n");
+                            var builder = new StringBuilder();
+                            builder.AppendFormat("{0} {1} {2}\r\n", protocol, status, postfix);
+                            builder.Append("Connection: Upgrade\r\n");
+                            builder.Append("Upgrade: HTTP-draft-04/2.0\r\n");
+                            builder.Append("\r\n");
 
-                    byte[] requestBytes = Encoding.ASCII.GetBytes(builder.ToString());
-                    InternalSocket.Send(requestBytes, 0, requestBytes.Length, SocketFlags.None);
-                }
-            }
+                            byte[] requestBytes = Encoding.ASCII.GetBytes(builder.ToString());
+                            InternalSocket.Send(requestBytes, 0, requestBytes.Length, SocketFlags.None);
+                        }
+                    }
 
-            if (!_wasResponseReceived)
-            {
-                throw new Http2HandshakeFailed(HandshakeFailureReason.Timeout);
-            }
+                    if (!_wasResponseReceived)
+                    {
+                        throw new Http2HandshakeFailed(HandshakeFailureReason.Timeout);
+                    }
 
-            if (_response.Result != HandshakeResult.Upgrade)
-            {
-                throw new Http2HandshakeFailed(HandshakeFailureReason.InternalError);
-            }
+                    if (_response.Result != HandshakeResult.Upgrade)
+                    {
+                        throw new Http2HandshakeFailed(HandshakeFailureReason.InternalError);
+                    }*/
+                });
 
-            return _handshakeResult;
+            return performHandshake;
         }
 
-        private HandshakeResponse Read11Headers()
+        private static HandshakeResponse Read11Headers()
         {
-            byte[] buffer = new byte[HandshakeResponseSizeLimit];
+            /*byte[] buffer = new byte[HandshakeResponseSizeLimit];
             int readOffset = 0;
             do
             {
@@ -164,10 +168,12 @@ namespace SharedProtocol.Handshake
 
             } while (readOffset < HandshakeResponseSizeLimit);
 
-            throw new InvalidOperationException("Handshake response size limit exceeded");
+            throw new InvalidOperationException("Handshake response size limit exceeded");*/
+
+            return default(HandshakeResponse);
         }
 
-        private bool TryFindRangeMatch(byte[] buffer, int offset, int limit, byte[] matchSequence, out int matchIndex)
+        private static bool TryFindRangeMatch(byte[] buffer, int offset, int limit, byte[] matchSequence, out int matchIndex)
         {
             matchIndex = 0;
             for (int master = offset; master < limit && master + matchSequence.Length <= limit; master++)
@@ -181,7 +187,7 @@ namespace SharedProtocol.Handshake
             return false;
         }
 
-        private bool TryRangeMatch(byte[] buffer, int offset, int limit, byte[] matchSequence)
+        private static bool TryRangeMatch(byte[] buffer, int offset, int limit, byte[] matchSequence)
         {
             bool matched = (limit - offset) >= matchSequence.Length;
             for (int sequence = 0; sequence < matchSequence.Length && matched; sequence++)
@@ -196,9 +202,9 @@ namespace SharedProtocol.Handshake
         }
 
         // We've found a CRLFCRLF sequence.  Confirm the status code is 101 for upgrade.
-        private HandshakeResponse InspectHanshake(byte[] buffer, int split, int limit)
+        private static HandshakeResponse InspectHanshake(byte[] buffer, int split, int limit)
         {
-            var handshake = new HandshakeResponse
+            /*var handshake = new HandshakeResponse
                 {
                     ResponseBytes = new ArraySegment<byte>(buffer, 0, split),
                     ExtraData = new ArraySegment<byte>(buffer, split, limit),
@@ -233,12 +239,13 @@ namespace SharedProtocol.Handshake
                 }
             }
 
-            return handshake;
+            return handshake;*/
+            return default(HandshakeResponse);
         }
 
-        private void GetHeaders(string clientResponse)
+        private static void GetHeaders(string clientResponse)
         {
-            int methodIndex = clientResponse.IndexOf("GET", StringComparison.OrdinalIgnoreCase);
+            /*int methodIndex = clientResponse.IndexOf("GET", StringComparison.OrdinalIgnoreCase);
             int pathIndex = clientResponse.IndexOf("/", methodIndex, StringComparison.OrdinalIgnoreCase);
             int endPathIndex = clientResponse.IndexOf(" ", pathIndex, StringComparison.OrdinalIgnoreCase);
             string path = clientResponse.Substring(pathIndex, endPathIndex - pathIndex);
@@ -254,7 +261,7 @@ namespace SharedProtocol.Handshake
             {
                 string[] nameValue = header.Value.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
                 _handshakeResult.Add(nameValue[0].ToLower().TrimEnd(':'), nameValue[1].TrimEnd('\r', '\n'));
-            }
+            }*/
         }
     }
 }

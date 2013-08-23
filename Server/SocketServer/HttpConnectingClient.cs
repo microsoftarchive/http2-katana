@@ -51,6 +51,7 @@ namespace SocketServer
         private readonly bool _useFlowControl;
         private readonly List<string> _listOfRootFiles;
         private readonly object _listWriteLock = new object();
+        private AppFunc _upgradeDelegate;
 
         internal HttpConnectingClient(SecureTcpListener server, SecurityOptions options,
                                      AppFunc next, bool useHandshake, bool usePriorities, 
@@ -66,42 +67,37 @@ namespace SocketServer
             _next = next;
             _options = options;
             _fileHelper = new FileHelper(ConnectionEnd.Server);
+            
+            //Provide this delegate from somewhere?
+            _upgradeDelegate = UpgradeHandshaker.Handshake;
         }
 
-        private IDictionary<string, object> MakeHandshakeEnvironment(SecureSocket incomingClient)
+        private IDictionary<string, object> MakeUpgradeEnvironment(DuplexStream incomingClient, string selectedProtocol)
         {
-            var handshakeEnv = new Dictionary<string, object>
-                                    {
-                                        {"securityOptions", _options},
-                                        {"secureSocket", incomingClient},
-                                        {"end", ConnectionEnd.Server}
-                                    };
-
-            return handshakeEnv;
-        }
-
-	    private void AddFileToRootFileList(string fileName)
-        {
-            lock (_listWriteLock)
+            //Http1 layer will call middle. middle will call upgrade delegate
+            if (selectedProtocol == Protocols.Http1)
             {
-                //if file is located in root directory then add it to the index
-                if (!_listOfRootFiles.Contains(fileName) && !fileName.Contains("/"))
-                {
-                    using (var indexFile = new StreamWriter(AssemblyPath + Root + IndexHtml, true))
+                var upgradeEnv = new Dictionary<string, object>
                     {
-                        _listOfRootFiles.Add(fileName);
-                        indexFile.Write(fileName + "<br>\n");
-                    }
-                }
+                        {"opaque.upgrade", _upgradeDelegate},
+                        {"opaque.Stream", incomingClient},
+                        //Provide canc token
+                        {"opaque.CallCancelled", CancellationToken.None}
+                    };
+
+                return upgradeEnv;
             }
+
+            return new Dictionary<string, object>();
         }
-		
+
         /// <summary>
         /// Accepts client and deals handshake with it.
         /// </summary>
         internal void Accept()
         {
             SecureSocket incomingClient;
+
             using (var monitor = new ALPNExtensionMonitor())
             {
                 incomingClient = _server.AcceptSocket(monitor);
@@ -114,29 +110,18 @@ namespace SocketServer
         {
             bool backToHttp11 = false;
             string selectedProtocol = Protocols.Http2;
-            var handshakeEnv = MakeHandshakeEnvironment(incomingClient);
             var environmentCopy = new Dictionary<string, object>(_environment);
-
+            
             if (_useHandshake)
             {
                 try
                 {
-                    //_next(environmentCopy);
-
-                    bool wasHandshakeFinished = true;
-                    var handshakeTask = Task.Factory.StartNew(HandshakeManager.GetHandshakeAction(handshakeEnv));
-
-                    if (!handshakeTask.Wait(6000))
+                    if (_options.Protocol != SecureProtocol.None)
                     {
-                        wasHandshakeFinished = false;
+                        //TODO Make securehandshaker methods static
+                        new SecureHandshaker(environmentCopy).Handshake();
                     }
 
-                    if (!wasHandshakeFinished)
-                    {
-                        throw new Http2HandshakeFailed(HandshakeFailureReason.Timeout);
-                    }
-
-                    environmentCopy.Add("HandshakeResult", handshakeTask.Result);
                     selectedProtocol = incomingClient.SelectedProtocol;
                 }
                 catch (Http2HandshakeFailed ex)
@@ -159,9 +144,13 @@ namespace SocketServer
                     return;
                 }
             }
+
+            var clientStream = new DuplexStream(incomingClient, true);
+            environmentCopy.AddRange(MakeUpgradeEnvironment(clientStream, selectedProtocol));
+
             try
             {
-                HandleRequest(incomingClient, selectedProtocol, backToHttp11, environmentCopy);
+                HandleRequest(clientStream, selectedProtocol, backToHttp11, environmentCopy);
             }
             catch (Exception e)
             {
@@ -170,45 +159,29 @@ namespace SocketServer
             }
         }
 
-        private void HandleRequest(SecureSocket incomingClient, string alpnSelectedProtocol, 
+        private void HandleRequest(DuplexStream incomingClient, string alpnSelectedProtocol, 
                                    bool backToHttp11, IDictionary<string, object> environment)
         {
+            //Server checks selected protocol and calls http2 or http11 layer
             if (backToHttp11 || alpnSelectedProtocol == Protocols.Http1)
             {
-                Http2Logger.LogDebug("Sending with http11");
-                Http11Manager.Http11SendResponse(incomingClient);
+                Http2Logger.LogDebug("Ssl chose http11");
+                
+                //Http11 should get initial headers (they can contain upgrade) 
+                //after it got headers it should call middleware. 
+                //Environment should contain upgrade delegate
+                //Http11Manager.Http11SendResponse(incomingClient);
                 return;
             }
 
-            if (GetSessionHeaderAndVerifyIt(incomingClient))
-            {
-                OpenHttp2Session(incomingClient, environment);
-            }
-            else
-            {
-                Http2Logger.LogError("Client has wrong session header. It was disconnected");
-                incomingClient.Close();
-            }
+            //ALPN selected http2. No need to perform upgrade handshake.
+            OpenHttp2Session(incomingClient, environment);
         }
 
-        private bool GetSessionHeaderAndVerifyIt(SecureSocket incomingClient)
-        {
-            var sessionHeaderBuffer = new byte[ClientSessionHeader.Length];
-
-            int received = incomingClient.Receive(sessionHeaderBuffer, 0,
-                                                   sessionHeaderBuffer.Length, SocketFlags.None);
-
-
-            var receivedHeader = Encoding.UTF8.GetString(sessionHeaderBuffer);
-
-            return string.Equals(receivedHeader, ClientSessionHeader, StringComparison.OrdinalIgnoreCase);
-        }
-
-        private async void OpenHttp2Session(SecureSocket incomingClient, IDictionary<string, object> handshakeResult)
+        private async void OpenHttp2Session(DuplexStream incomingClient, IDictionary<string, object> environment)
         {
             Http2Logger.LogDebug("Handshake successful");
-            _session = new Http2Session(incomingClient, ConnectionEnd.Server, _usePriorities,_useFlowControl, handshakeResult);
-            _session.OnFrameReceived += FrameReceivedHandler;
+            _session = new Http2Session(incomingClient, ConnectionEnd.Server, _usePriorities, _useFlowControl, _next, environment);
 
             try
             {
@@ -220,7 +193,23 @@ namespace SocketServer
             }
         }
 
-        private void SendDataTo(Http2Stream stream, byte[] binaryData)
+        //Should be moved into application layer
+        /*private void AddFileToRootFileList(string fileName)
+        {
+            lock (_listWriteLock)
+            {
+                //if file is located in root directory then add it to the index
+                if (!_listOfRootFiles.Contains(fileName) && !fileName.Contains("/"))
+                {
+                    using (var indexFile = new StreamWriter(AssemblyPath + Root + IndexHtml, true))
+                    {
+                        _listOfRootFiles.Add(fileName);
+                        indexFile.Write(fileName + "<br>\n");
+                    }
+                }
+            }
+        }*/
+        /*private void SendDataTo(Http2Stream stream, byte[] binaryData)
         {
             int i = 0;
 
@@ -426,7 +415,7 @@ namespace SocketServer
                 new KeyValuePair<string, string>(":status", statusCode.ToString()),
             };
             stream.WriteHeadersFrame(headers, final, true);
-        }
+        }*/
 
         public void Dispose()
         {

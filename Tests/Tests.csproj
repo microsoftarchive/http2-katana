@@ -264,6 +264,9 @@
     <Compile Include="..\Shared\SharedProtocol\Http2Stream.cs">
       <Link>Sources\Http2Stream.cs</Link>
     </Compile>
+    <Compile Include="..\Shared\SharedProtocol\IO\DuplexStream.cs">
+      <Link>Sources\DuplexStream.cs</Link>
+    </Compile>
     <Compile Include="..\Shared\SharedProtocol\IO\FileHelper.cs">
       <Link>Sources\FileHelper.cs</Link>
     </Compile>
@@ -287,6 +290,9 @@
     </Compile>
     <Compile Include="..\Shared\SharedProtocol\IO\QueueWrapper.cs">
       <Link>Sources\QueueWrapper.cs</Link>
+    </Compile>
+    <Compile Include="..\Shared\SharedProtocol\IO\StreamBuffer.cs">
+      <Link>Sources\StreamBuffer.cs</Link>
     </Compile>
     <Compile Include="..\Shared\SharedProtocol\IO\WriteQueue.cs">
       <Link>Sources\WriteQueue.cs</Link>
