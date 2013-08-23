@@ -14,6 +14,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Org.Mentalis;
 using Org.Mentalis.Security.Ssl;
+using Owin.Types;
 using SharedProtocol;
 using SharedProtocol.EventArgs;
 using SharedProtocol.Exceptions;
@@ -79,10 +80,10 @@ namespace SocketServer
             {
                 var upgradeEnv = new Dictionary<string, object>
                     {
-                        {"opaque.upgrade", _upgradeDelegate},
-                        {"opaque.Stream", incomingClient},
+                        {OwinConstants.Opaque.Upgrade, _upgradeDelegate},
+                        {OwinConstants.Opaque.Stream, incomingClient},
                         //Provide canc token
-                        {"opaque.CallCancelled", CancellationToken.None}
+                        {OwinConstants.Opaque.CallCancelled, CancellationToken.None}
                     };
 
                 return upgradeEnv;
@@ -118,11 +119,24 @@ namespace SocketServer
                 {
                     if (_options.Protocol != SecureProtocol.None)
                     {
-                        //TODO Make securehandshaker methods static
+                        
+                        // TODO Make securehandshaker methods static
+                        // TODO refactor
+                        environmentCopy["secureSocket"] = incomingClient;
+                        environmentCopy["securityOptions"] = _options;
+                        environmentCopy["end"] = ConnectionEnd.Server;
+
                         new SecureHandshaker(environmentCopy).Handshake();
                     }
 
                     selectedProtocol = incomingClient.SelectedProtocol;
+
+                    // TODO investigate why selectedProtocol is null after Handshake;
+                    if (selectedProtocol == null)
+                    {
+                        selectedProtocol = Protocols.Http1;
+                        backToHttp11 = true;
+                    }
                 }
                 catch (Http2HandshakeFailed ex)
                 {
@@ -171,6 +185,7 @@ namespace SocketServer
                 //after it got headers it should call middleware. 
                 //Environment should contain upgrade delegate
                 //Http11Manager.Http11SendResponse(incomingClient);
+                Http11ProtocolOwinAdapter.ProcessRequest(incomingClient.Socket, environment, _next);
                 return;
             }
 

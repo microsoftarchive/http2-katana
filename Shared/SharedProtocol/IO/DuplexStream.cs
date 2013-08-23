@@ -14,6 +14,11 @@ namespace SharedProtocol.IO
         private bool _isClosed;
         private readonly bool _ownsSocket;
 
+        // TODO tmp solution (SG) To be removed
+        public SecureSocket Socket {
+            get { return _socket; }
+        }
+
         public DuplexStream(SecureSocket socket, bool ownsSocket = false)
         {
             _writeBuffer = new StreamBuffer(1024);

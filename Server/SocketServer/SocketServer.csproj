@@ -50,6 +50,7 @@
     <Compile Include="EventArgs\ServerStartEventArgs.cs" />
     <Compile Include="EventArgs\ServerStopEventArgs.cs" />
     <Compile Include="GlobalSuppressions.cs" />
+    <Compile Include="OwinAdapter\Http11ProtocolOwinAdapter.cs" />
     <Compile Include="HttpConnectingClient.cs" />
     <Compile Include="HttpSocketServer.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
