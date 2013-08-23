@@ -171,21 +171,22 @@ namespace Client
                     monitor.OnProtocolSelected += (o, args) => { _selectedProtocol = args.SelectedProtocol; };
                     _socket.Connect(new DnsEndPoint(connectUri.Host, connectUri.Port), monitor);
                     
-                    if (_useHandshake)
-                    {
-                        MakeHandshakeEnvironment(_socket);
-                        //Handshake manager determines what handshake must be used: upgrade or secure
-                        var handshakeResult = HandshakeManager.GetHandshakeAction(_environment).Invoke();
-                        _environment.Add("HandshakeResult", handshakeResult);
+                    // TODO 
+                    //if (_useHandshake)
+                    //{
+                    //    MakeHandshakeEnvironment(_socket);
+                    //    //Handshake manager determines what handshake must be used: upgrade or secure
+                    //    var handshakeResult = HandshakeManager.GetHandshakeAction(_environment).Invoke();
+                    //    _environment.Add("HandshakeResult", handshakeResult);
 
-                        Http2Logger.LogDebug("Handshake finished");
+                    //    Http2Logger.LogDebug("Handshake finished");
 
-                        if (_selectedProtocol == Protocols.Http1)
-                        {
-                            _useHttp20 = false;
-                            return true;
-                        }
-                    }
+                    //    if (_selectedProtocol == Protocols.Http1)
+                    //    {
+                    //        _useHttp20 = false;
+                    //        return true;
+                    //    }
+                    //}
                 }
 
                 SendSessionHeader();
