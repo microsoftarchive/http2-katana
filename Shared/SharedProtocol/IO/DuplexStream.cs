@@ -47,11 +47,15 @@ namespace SharedProtocol.IO
                     break;
                 }
 
+                Available = true;
+
                 _readBuffer.Write(tmpBuffer, 0, received);
 
                 //Signal data available and it can be read
                 if (OnDataAvailable != null)
                     OnDataAvailable(this, null);
+
+                break; // TODO IMPORTANT tmp fix for #28.
             }
         }
 

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -10,6 +11,7 @@ using Owin.Types;
 using SharedProtocol.Http11;
 using SharedProtocol;
 using SharedProtocol.IO;
+using SharedProtocol.Utils;
 
 namespace SocketServer
 {
@@ -18,20 +20,24 @@ namespace SocketServer
 
     public static class Http11ProtocolOwinAdapter
     {
-        public static async Task ProcessRequest(DuplexStream client, Environment environment, AppFunc next)
+        public static async void ProcessRequest(DuplexStream client, Environment environment, AppFunc next)
         {
             try
             {
-                if (!client.CanRead) return;
+                if (!client.CanRead || !client.WaitForDataAvailable(500)) return;
 
- 
+
                 // TODO check for upgrade and add coresponding settings
 
                 // upgrade 1.1->2.0 detection must be there
 
-                string[] rawHeaders = Http11Manager.GetHttp11Headers(client);
+                string[] rawHeaders = Http11Manager.ReadHeaders(client);
                 // TODO - review if OwinRequest constructor can do this for us.
- 
+
+                Http2Logger.LogDebug("Http1.1 Protocol Handler. Process request " + string.Join(" ", rawHeaders));
+
+                if (rawHeaders == null || rawHeaders.Length == 0) return;
+
                 // headers[0] contains METHOD, URI and VERSION like "GET /api/values/1 HTTP/1.1"
                 var headers = ParseHeaders(rawHeaders.Skip(1).ToArray());
 
@@ -56,6 +62,10 @@ namespace SocketServer
             catch (Exception ex)
             {
                 EndResponse(client, ex);
+            }
+            finally
+            {
+                client.Close();
             }
         }
 
@@ -117,10 +127,22 @@ namespace SocketServer
             // TODO constants, better check
             var bytes = (owinResponse.Body as MemoryStream).ToArray();
 
-            Http11Manager.SendResponse(socket, bytes, owinResponse.StatusCode, owinResponse.ContentType);
+            var headers = new Dictionary<string, string>();
+            //headers["Connection"] = "Close";
 
+            foreach (KeyValuePair<string, string[]> pair in owinResponse.Headers)
+            {
+                var key = pair.Key.ToLowerInvariant();
+
+                // these two are special and passed separatly// TODO move this check to httpmanager
+                if (key == "content-length" || key == "content-type") continue;
+
+                headers[key] = string.Join("\0", pair.Value);
+            }
+
+            Http11Manager.SendResponse(socket, bytes, owinResponse.StatusCode, owinResponse.ContentType, headers);
+            
             socket.Flush();
-
         }
     }
 }
