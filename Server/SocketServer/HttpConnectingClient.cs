@@ -99,14 +99,7 @@ namespace SocketServer
                 {
                     if (_options.Protocol != SecureProtocol.None)
                     {
-                        
-                        // TODO Make securehandshaker methods static
-                        // TODO refactor
-                        environmentCopy["secureSocket"] = incomingClient;
-                        environmentCopy["securityOptions"] = _options;
-                        environmentCopy["end"] = ConnectionEnd.Server;
-
-                        new SecureHandshaker(environmentCopy).Handshake();
+                        incomingClient.MakeSecureHandshake(_options);
                     }
 
                     selectedProtocol = incomingClient.SelectedProtocol;

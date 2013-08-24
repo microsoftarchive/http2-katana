@@ -39,12 +39,19 @@ namespace SharedProtocol.Handshake
         public SecurityOptions Options { get; private set; }
         public SecureSocket InternalSocket { get; private set; }
 
-        public SecureHandshaker(IDictionary<string, object> handshakeEnvironment)
+        public SecureHandshaker(IDictionary<string, object> handshakeEnvironment) :
+            this(
+            (SecureSocket) handshakeEnvironment["secureSocket"],
+            (SecurityOptions) handshakeEnvironment["securityOptions"])
         {
-            InternalSocket = (SecureSocket) handshakeEnvironment["secureSocket"];
+        }
+
+        public SecureHandshaker(SecureSocket socket, SecurityOptions options)
+        {
+            InternalSocket = socket;
             InternalSocket.OnHandshakeFinish += HandshakeFinishedHandler;
 
-            Options = (SecurityOptions) handshakeEnvironment["securityOptions"];
+            Options = options;
             _handshakeFinishedEventRaised = new ManualResetEvent(false);
 
             if (Options.Protocol == SecureProtocol.None)

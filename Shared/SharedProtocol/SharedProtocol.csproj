@@ -79,6 +79,7 @@
     <Compile Include="FlowControl\FlowControlOptions.cs" />
     <Compile Include="Framing\IEndStreamFrames.cs" />
     <Compile Include="Framing\PriorityFrame.cs" />
+    <Compile Include="Handshake\HandshakeExtensions.cs" />
     <Compile Include="Handshake\HandshakeFailureReason.cs" />
     <Compile Include="Handshake\HandshakeManager.cs" />
     <Compile Include="HeadersList.cs" />
