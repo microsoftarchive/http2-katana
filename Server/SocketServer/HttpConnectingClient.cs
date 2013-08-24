@@ -6,22 +6,15 @@
 
 using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Net.Sockets;
-using System.Reflection;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Org.Mentalis;
 using Org.Mentalis.Security.Ssl;
 using Owin.Types;
 using SharedProtocol;
-using SharedProtocol.EventArgs;
 using SharedProtocol.Exceptions;
 using SharedProtocol.Extensions;
-using SharedProtocol.Framing;
 using SharedProtocol.Handshake;
-using SharedProtocol.Http11;
 using SharedProtocol.IO;
 using SharedProtocol.Utils;
 
@@ -34,40 +27,27 @@ namespace SocketServer
     /// </summary>
     internal sealed class HttpConnectingClient : IDisposable
     {
-        private const string IndexHtml = "\\index.html";
-        private const string Root = "\\Root";
-        private const string ClientSessionHeader = "PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n";
-        //Remove file:// from Assembly.GetExecutingAssembly().CodeBase
-        private static readonly string AssemblyPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().CodeBase.Substring(8));
-
         private readonly SecureTcpListener _server;
         private readonly SecurityOptions _options;
         private readonly AppFunc _next;
         private Http2Session _session;
         private readonly IDictionary<string, object> _environment;        
-        private readonly FileHelper _fileHelper;
-        private readonly object _writeLock = new object();
         private readonly bool _useHandshake;
         private readonly bool _usePriorities;
         private readonly bool _useFlowControl;
-        private readonly List<string> _listOfRootFiles;
-        private readonly object _listWriteLock = new object();
         private AppFunc _upgradeDelegate;
 
         internal HttpConnectingClient(SecureTcpListener server, SecurityOptions options,
                                      AppFunc next, bool useHandshake, bool usePriorities, 
-                                     bool useFlowControl, List<string> listOfRootFiles,
-                                     IDictionary<string, object> environment)
+                                     bool useFlowControl, IDictionary<string, object> environment)
         {
             _environment = environment;
-            _listOfRootFiles = listOfRootFiles;
             _usePriorities = usePriorities;
             _useHandshake = useHandshake;
             _useFlowControl = useFlowControl;
             _server = server;
             _next = next;
             _options = options;
-            _fileHelper = new FileHelper(ConnectionEnd.Server);
             
             //Provide this delegate from somewhere?
             _upgradeDelegate = UpgradeHandshaker.Handshake;
@@ -214,8 +194,6 @@ namespace SocketServer
             {
                 _session.Dispose();
             }
-
-            _fileHelper.Dispose();
         }
     }
 }

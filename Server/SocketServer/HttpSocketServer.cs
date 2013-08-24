@@ -24,7 +24,6 @@ namespace SocketServer
     {
         private static readonly string AssemblyName = Path.GetDirectoryName(Assembly.GetExecutingAssembly().CodeBase.Substring(8));
         private const string CertificateFilename = @"\certificate.pfx";
-        private const string IndexFileName = @"\index.html";
 
         private readonly AppFunc _next;
         private readonly int _port;
@@ -35,7 +34,6 @@ namespace SocketServer
         private bool _disposed;
         private readonly SecurityOptions _options;
         private readonly SecureTcpListener _server;
-        private List<string> _listOfRootFiles = new List<string>();
         private readonly IDictionary<string, object> _properties;
 
         public HttpSocketServer(Func<IDictionary<string, object>, Task> next, IDictionary<string, object> properties)
@@ -89,35 +87,17 @@ namespace SocketServer
             new Thread(Listen).Start();
         }
 
-        private void InitializeRootFileList()
-        {
-            lock (IndexFileName)
-            {
-                using (var indexFile = new StreamWriter(AssemblyName + @"\Root" + IndexFileName))
-                {
-                    string dirPath = AssemblyName + @"\Root";
-                    _listOfRootFiles =
-                        Directory.EnumerateFiles(dirPath, "*", SearchOption.TopDirectoryOnly)
-                                 .Select(Path.GetFileName)
-                                 .ToList();
-                    foreach (var fileName in _listOfRootFiles)
-                    {
-                        indexFile.Write(fileName + "<br>\n");
-                    }
-                }
-            }
-        }
+        
 
         private void Listen()
         {
-            InitializeRootFileList();
             Http2Logger.LogInfo("Started on port " + _port);
             _server.Start();
             while (!_disposed)
             {
                 try
                 {
-                    var client = new HttpConnectingClient(_server, _options, _next, _useHandshake, _usePriorities, _useFlowControl, _listOfRootFiles, _properties);
+                    var client = new HttpConnectingClient(_server, _options, _next, _useHandshake, _usePriorities, _useFlowControl, _properties);
                     client.Accept();
                 }
                 catch (Exception ex)
