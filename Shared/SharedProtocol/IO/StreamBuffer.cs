@@ -12,6 +12,8 @@ namespace SharedProtocol.IO
         internal byte[] Buffer { get { return _buffer; } }
         internal bool Available { get { return _position != 0; } }
 
+        public int BufferedDataSize {get { return _position; } }
+
         internal StreamBuffer(int initialSize)
         {
             _buffer = new byte[initialSize];

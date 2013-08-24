@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using Org.Mentalis.Security.Ssl;
@@ -77,7 +78,7 @@ namespace SharedProtocol.IO
             if (_isClosed)
                 throw new ObjectDisposedException("Duplex stream was already closed");
 
-            _socket.Send(_writeBuffer.Buffer);
+            _socket.Send(_writeBuffer.Buffer, 0, _writeBuffer.BufferedDataSize, SocketFlags.None);
         }
 
         public async override Task FlushAsync(CancellationToken cancellationToken)
