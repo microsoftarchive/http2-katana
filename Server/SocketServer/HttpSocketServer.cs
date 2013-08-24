@@ -86,7 +86,7 @@ namespace SocketServer
 
             ThreadPool.SetMaxThreads(30, 10);
 
-            Listen();
+            new Thread(Listen).Start();
         }
 
         private void InitializeRootFileList()

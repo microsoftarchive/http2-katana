@@ -22,6 +22,8 @@ namespace Http2.Server.Owin.WebApi.Tests
                 // Start OWIN host 
                 using (WebApp.Start<Startup>(startOpt))
                 {
+                    Console.WriteLine("Press Enter to stop the server");
+
                     // Create HttpCient and make a request to api/values 
                     //HttpClient client = new HttpClient();
 
@@ -29,6 +31,9 @@ namespace Http2.Server.Owin.WebApi.Tests
 
                     //Console.WriteLine(response);
                     //Console.WriteLine(response.Content.ReadAsStringAsync().Result);
+
+                    
+                    Console.ReadLine(); 
                 } 
             }
             catch (Exception ex)
@@ -36,10 +41,11 @@ namespace Http2.Server.Owin.WebApi.Tests
                 Console.WriteLine(String.Format("Error => {0} : {1}", 
                     ex.Message, 
                     (ex.InnerException != null) ? ex.InnerException.Message : String.Empty));
+               	Console.ReadLine(); 
            
             }
 
-            Console.ReadLine(); 
+            
         } 
     }
 }
