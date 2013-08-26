@@ -108,11 +108,28 @@ namespace SocketServer
         {
             try
             {
-                // TODO UpgradeHandshaker.Handshake method must be refactored
-                UpgradeHandshaker.Handshake(env);
+                var resp = new OwinResponse(env)
+                    {
+                        Body = new MemoryStream(),
+                        Headers = new Dictionary<string, string[]>
+                            {
+                                {"Connection", new[] {"Upgrade"}},
+                                {"Upgrade", new[] {Protocols.Http2}},
+                                //TODO make base64
+                                {"Http2-Settings", new[] {"200000, 100"}},//initial window size + max concurrent streams
+                            },
+                        StatusCode = 101,
+                        Protocol = "HTTP/1.1"
+                    };
+
+                env["owin.ResponseBody"] = resp.Body;
+                env["owin.ResponseHeaders"] = resp.Headers;
+                env["owin.ResponseStatusCode"] = 101;
+                env["owin.ResponseProtocol"] = resp.Protocol;
             }
             finally
             {
+                //await?
                 next(env);
             }
         }
@@ -211,9 +228,14 @@ namespace SocketServer
             environment["owin.RequestPath"] = path;
             environment["owin.RequestQueryString"] = "";
             environment["owin.RequestBody"] = new MemoryStream(requestBody ?? new byte[0]);
+
             environment["owin.CallCancelled"] = new CancellationToken();
+
             environment["owin.ResponseHeaders"] = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase);
             environment["owin.ResponseBody"] = new MemoryStream();
+            environment["owin.ResponseStatusCode"] = 500;
+            environment["owin.ResponseProtocol"] = "HTTP/1.1";
+
             return environment;
         }
         

@@ -42,35 +42,22 @@ namespace ServerOwinMiddleware
         public async Task Invoke(IDictionary<string, object> environment)
         {
             var request = new OwinRequest(environment);
-            var inspectResult = InspectHanshake(request);
 
             //After upgrade happened upgrade delegate should be null for next requests in a single connection
-            if (request.UpgradeDelegate != null && inspectResult)
+            if (request.UpgradeDelegate != null)
             {
-                //_next is next layer call (Application?) it fills owinResponce
-                request.Upgrade(opaque =>
-                    {
-                        //TODO think about opaque.Stream is not DuplexStream.
-                        //TODO get settings for session start
-                        var session = new Http2Session(opaque.Stream as DuplexStream, ConnectionEnd.Server, true, true, _next);
-                        return session.Start();
-                    });
+                //Should open session here
+                request.UpgradeDelegate.Invoke(environment, opaque =>
+                {
+                    //var session = new Http2Session(opaque.Stream as DuplexStream, ConnectionEnd.Server, true, true, _next);
+                    //return session.Start();
+                    return null;
+                });
                 return;
-            }
-            if (request.UpgradeDelegate != null && !inspectResult)
-            {
-                //Call http11 handler
             }
 
             //If we dont have upgrade delegate then pass request to the next layer
             await _next(environment);
-        }
-
-        private static bool InspectHanshake(OwinRequest request)
-        {
-            return string.Equals(request.GetHeader("Connection"), "Upgrade", StringComparison.OrdinalIgnoreCase)
-                   && string.Equals(request.GetHeader("Upgrade"), Protocols.Http2, StringComparison.OrdinalIgnoreCase)
-                   && request.GetHeader("HTTP2 - SETTINGS") != null;
         }
     }
 }
