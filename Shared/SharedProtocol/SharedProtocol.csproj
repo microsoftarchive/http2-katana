@@ -58,6 +58,7 @@
     <Compile Include="Compression\HeadersDeltaCompression\Indexation.cs" />
     <Compile Include="Compression\HeadersDeltaCompression\IndexationType.cs" />
     <Compile Include="ContentTypes.cs" />
+    <Compile Include="EventArgs\DataAvailableEventArgs.cs" />
     <Compile Include="EventArgs\DataFrameReceivedEventArgs.cs" />
     <Compile Include="EventArgs\DataFrameSentEventArgs.cs" />
     <Compile Include="EventArgs\FrameReceivedEventArgs.cs" />

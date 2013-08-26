@@ -25,6 +25,7 @@ namespace SocketServer
         private static readonly string AssemblyName = Path.GetDirectoryName(Assembly.GetExecutingAssembly().CodeBase.Substring(8));
         private const string CertificateFilename = @"\certificate.pfx";
 
+        private Thread _listenThread;
         private readonly AppFunc _next;
         private readonly int _port;
         private readonly string _scheme;
@@ -84,7 +85,8 @@ namespace SocketServer
 
             ThreadPool.SetMaxThreads(30, 10);
 
-            new Thread(Listen).Start();
+            _listenThread = new Thread(Listen);
+            _listenThread.Start();
         }
 
         
@@ -116,6 +118,11 @@ namespace SocketServer
             if (_server != null)
             {
                 _server.Stop();
+            }
+            if (_listenThread != null && _listenThread.IsAlive)
+            {
+                _listenThread.Abort();
+                _listenThread.Join();
             }
         }
     }

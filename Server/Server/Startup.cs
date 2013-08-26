@@ -1,6 +1,6 @@
 ﻿using System.Web.Http;
 using Owin;
-using Microsoft.Owin;
+using SocketServer;
 
 namespace Server
 {
@@ -13,12 +13,14 @@ namespace Server
         public void Configuration(IAppBuilder builder)
         {
             builder.UseHttp2();
-            ConfigureWebApi(builder);
+            //We can not use builder.UseHttpServer(config); because server creates by the factory
+            //ConfigureWebApi(builder);
         }
 
         private void ConfigureWebApi(IAppBuilder builder)
         {
             var config = new HttpConfiguration();
+            builder.Use(typeof(HttpSocketServer), config);
             builder.UseHttpServer(config);
         }
     }

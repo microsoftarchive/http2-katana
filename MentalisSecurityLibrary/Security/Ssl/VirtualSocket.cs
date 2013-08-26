@@ -428,7 +428,16 @@ namespace Org.Mentalis.Security.Ssl {
 		/// <exception cref="ObjectDisposedException">The VirtualSocket has been closed.</exception>
 		/// <remarks>To maintain the asynchronous nature of the operation, call this method from the callback delegate. You can pass either the <see cref="IAsyncResult"/> returned from <see cref="BeginReceive"/> or the callback delegate used as an input parameter to BeginReceive as the asyncResult parameter. The EndReceive method blocks until the read ends.</remarks>
 		public virtual int EndReceive(IAsyncResult asyncResult) {
-			return InternalSocket.EndReceive(asyncResult);
+		    try
+		    {
+                return InternalSocket.EndReceive(asyncResult);
+		    }
+		    catch (ObjectDisposedException)
+		    {
+            
+		    }
+
+		    return 0;
 		}
 		/// <summary>
 		/// Ends a pending asynchronous read from a specific endpoint.

@@ -50,7 +50,7 @@ namespace SocketServer
             _options = options;
             
             //Provide this delegate from somewhere?
-            _upgradeDelegate = UpgradeHandshaker.Handshake;
+            //_upgradeDelegate = UpgradeHandshaker.Handshake;
         }
 
         private IDictionary<string, object> MakeUpgradeEnvironment(DuplexStream incomingClient, string selectedProtocol)

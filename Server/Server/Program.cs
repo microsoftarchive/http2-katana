@@ -1,4 +1,5 @@
-﻿using System.Configuration;
+﻿using System;
+using System.Configuration;
 using Microsoft.Owin.Hosting;
 using SocketServer;
 
@@ -21,7 +22,12 @@ namespace Server
             // Start socket server depends on chosen port
             using (WebApp.Start<Startup>(startOpt))
             {
-
+                //Avoid main thred termination without using Console.ReadKey or something.
+                //These methods intercept server console output 
+                while (true)
+                {
+                    
+                }
             }
         }
     }

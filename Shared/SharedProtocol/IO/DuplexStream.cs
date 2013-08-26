@@ -4,6 +4,7 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using Org.Mentalis.Security.Ssl;
+using SharedProtocol.EventArgs;
 
 namespace SharedProtocol.IO
 {
@@ -14,11 +15,9 @@ namespace SharedProtocol.IO
         private SecureSocket _socket;
         private bool _isClosed;
         private readonly bool _ownsSocket;
+        private readonly object _closeLock;
 
-        // TODO tmp solution (SG) To be removed
-        public SecureSocket Socket {
-            get { return _socket; }
-        }
+        public SecureSocket Socket { get { return _socket; } }
 
         public DuplexStream(SecureSocket socket, bool ownsSocket = false)
         {
@@ -28,16 +27,17 @@ namespace SharedProtocol.IO
             _socket = socket;
             _isClosed = false;
             Available = false;
+            _closeLock = new object();
 
             Task.Run(() => PumpIncomingData());
         }
 
-        public async Task PumpIncomingData()
+        private async Task PumpIncomingData()
         {
             while (!_isClosed)
             {
                 var tmpBuffer = new byte[1024];
-                int received = await Task.Factory.FromAsync<int>(_socket.BeginReceive(tmpBuffer, 0, tmpBuffer.Length, System.Net.Sockets.SocketFlags.None, null, null),
+                int received = await Task.Factory.FromAsync<int>(_socket.BeginReceive(tmpBuffer, 0, tmpBuffer.Length, SocketFlags.None, null, null),
                         _socket.EndReceive, TaskCreationOptions.None, TaskScheduler.Default);
 
                 //TODO Connection was lost
@@ -53,26 +53,42 @@ namespace SharedProtocol.IO
 
                 //Signal data available and it can be read
                 if (OnDataAvailable != null)
-                    OnDataAvailable(this, null);
+                    OnDataAvailable(this, new DataAvailableEventArgs(tmpBuffer));
 
-                break; // TODO IMPORTANT tmp fix for #28.
+                //break; // TODO IMPORTANT tmp fix for #28.
             }
         }
 
-        public bool WaitForDataAvailable(int timeout)
+        //Method receives bytes from socket until match predicate returns false.
+        //Usable for receiving headers. Header block finishes with \r\n\r\n
+        public bool WaitForDataAvailable(int timeout, Predicate<byte[]> match = null)
         {
             if (Available)
                 return true;
-
+            
             bool result;
+
             using (var wait = new ManualResetEvent(false))
             {
+                EventHandler<DataAvailableEventArgs> dataReceivedHandler = delegate (object sender, DataAvailableEventArgs args)
+                {
+                    var receivedBuffer = args.ReceivedBytes;
+                    if (match != null && match.Invoke(receivedBuffer))
+                    {
+                        wait.Set();
+                    }
+                    else if (match == null)
+                    {
+                        wait.Set();
+                    }
+                };
+
                 //TODO think about if wait was already disposed
-                OnDataAvailable += (sender, args) => wait.Set();
+                OnDataAvailable += dataReceivedHandler;
 
                 result = wait.WaitOne(timeout);
 
-                OnDataAvailable -= (sender, args) => wait.Set();
+                OnDataAvailable -= dataReceivedHandler;
             }
             return result;
         }
@@ -199,21 +215,25 @@ namespace SharedProtocol.IO
             set { throw new NotImplementedException(); }
         }
 
-        private event EventHandler<System.EventArgs> OnDataAvailable; 
+        private event EventHandler<DataAvailableEventArgs> OnDataAvailable; 
 
         public override void Close()
         {
-            if (_isClosed)
-                throw new ObjectDisposedException("Trying to close stream twice");
-
-            if (_ownsSocket && _socket != null)
+            lock (_closeLock)
             {
-                _socket.Close();
-                _socket = null;
-            }
+                if (_isClosed)
+                    throw new ObjectDisposedException("Trying to close stream twice");
 
-            base.Close();
-            _isClosed = true;
+                _isClosed = true;
+
+                if (_ownsSocket && _socket != null)
+                {
+                    _socket.Close();
+                    _socket = null;
+                }
+
+                base.Close();
+            }
         }
     }
 }
