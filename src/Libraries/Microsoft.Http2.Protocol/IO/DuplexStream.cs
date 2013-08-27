@@ -26,7 +26,6 @@ namespace SharedProtocol.IO
             _ownsSocket = ownsSocket;
             _socket = socket;
             _isClosed = false;
-            Available = false;
             _closeLock = new object();
 
             Task.Run(() => PumpIncomingData());
@@ -47,15 +46,11 @@ namespace SharedProtocol.IO
                     break;
                 }
 
-                Available = true;
-
                 _readBuffer.Write(tmpBuffer, 0, received);
 
                 //Signal data available and it can be read
                 if (OnDataAvailable != null)
                     OnDataAvailable(this, new DataAvailableEventArgs(tmpBuffer));
-
-                //break; // TODO IMPORTANT tmp fix for #28.
             }
         }
 
@@ -63,8 +58,10 @@ namespace SharedProtocol.IO
         //Usable for receiving headers. Header block finishes with \r\n\r\n
         public bool WaitForDataAvailable(int timeout, Predicate<byte[]> match = null)
         {
-            if (Available)
+            if (Available != 0)
+            {
                 return true;
+            }
             
             bool result;
 
@@ -113,7 +110,7 @@ namespace SharedProtocol.IO
             var flushBuffer = new byte[bufferLen];
             _writeBuffer.Read(flushBuffer, 0, bufferLen);
 
-            await Task.Factory.FromAsync<int>(_socket.BeginSend(flushBuffer, 0, flushBuffer.Length, System.Net.Sockets.SocketFlags.None, null, null),
+            await Task.Factory.FromAsync<int>(_socket.BeginSend(flushBuffer, 0, flushBuffer.Length, SocketFlags.None, null, null),
                                                 _socket.EndSend, TaskCreationOptions.None, TaskScheduler.Default);
         }
 
@@ -187,7 +184,7 @@ namespace SharedProtocol.IO
             return await Task.Factory.StartNew(() => _readBuffer.Read(buffer, offset, count));
         }
 
-        public bool Available { get; private set; }
+        public int Available { get { return _readBuffer.Available; } }
 
         public override bool CanRead
         {

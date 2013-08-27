@@ -165,7 +165,7 @@ namespace SharedProtocol
         {
             var sessionHeaderBuffer = new byte[ClientSessionHeader.Length];
 
-            if (!incomingClient.WaitForDataAvailable(5000))
+            if(!incomingClient.WaitForDataAvailable(60000))
             {
                 throw new TimeoutException(String.Format("Session header was not received in timeout {0}", 5000));
             }

@@ -10,8 +10,7 @@ namespace SharedProtocol.IO
         private readonly object _readLock;
 
         internal byte[] Buffer { get { return _buffer; } }
-        internal bool Available { get { return _position != 0; } }
-
+        internal int Available { get { return _position; } }
         public int BufferedDataSize {get { return _position; } }
 
         internal StreamBuffer(int initialSize)
@@ -55,13 +54,13 @@ namespace SharedProtocol.IO
             }
 
             _buffer = result;
-            _position -= length - 1;
+            _position -= length;
         }
 
         internal int Read(byte[] buffer, int offset, int count)
         {
             Contract.Assert(offset + count <= buffer.Length);
-            if (!Available)
+            if (Available == 0)
                 return 0;
 
             lock (_readLock)

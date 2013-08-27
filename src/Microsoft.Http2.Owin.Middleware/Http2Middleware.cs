@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using Org.Mentalis.Security.Ssl;
 using Owin.Types;
@@ -48,11 +49,11 @@ namespace ServerOwinMiddleware
             {
                 //Should open session here
                 request.UpgradeDelegate.Invoke(environment, opaque =>
-                {
-                    //var session = new Http2Session(opaque.Stream as DuplexStream, ConnectionEnd.Server, true, true, _next);
-                    //return session.Start();
-                    return null;
-                });
+                    {
+                        var opaqueStream = opaque[OwinConstants.Opaque.Stream] as DuplexStream;
+                        var session = new Http2Session(opaqueStream, ConnectionEnd.Server, true, true, _next);
+                        return session.Start();
+                    });
                 return;
             }
 

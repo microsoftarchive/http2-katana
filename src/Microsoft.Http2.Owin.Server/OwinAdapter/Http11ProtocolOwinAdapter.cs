@@ -79,14 +79,18 @@ namespace SocketServer
                 var env = CreateOwinEnvironment(method, scheme, host, "", path);
 
                 // we may need to populate additional fields if request supports UPGRADE
-                AddOpaqueUpgradeIfNeeded(headers, env);
+                AddOpaqueUpgradeIfNeeded(headers, env, client);
                 
                 if (next != null)
                 {
                     await next(env);
                 }
 
-                EndResponse(client, env);
+                //Application layer was called and formed response.
+                if (!env.ContainsKey(OwinConstants.Opaque.Upgrade))
+                {
+                    EndResponse(client, env);
+                }
             }
             catch (Exception ex)
             {
@@ -94,6 +98,7 @@ namespace SocketServer
             }
             finally
             {
+                Http2Logger.LogDebug("Closing connection");
                 client.Close();
             }
         }
@@ -128,8 +133,6 @@ namespace SocketServer
                             {
                                 {"Connection", new[] {"Upgrade"}},
                                 {"Upgrade", new[] {Protocols.Http2}},
-                                //TODO make base64
-                                {"Http2-Settings", new[] {"200000, 100"}},//initial window size + max concurrent streams
                             },
                         StatusCode = 101,
                         Protocol = "HTTP/1.1"
@@ -139,10 +142,12 @@ namespace SocketServer
                 env["owin.ResponseHeaders"] = resp.Headers;
                 env["owin.ResponseStatusCode"] = 101;
                 env["owin.ResponseProtocol"] = resp.Protocol;
+
+                EndResponse(env[OwinConstants.Opaque.Stream] as DuplexStream, env);
             }
             finally
             {
-                //await?
+                //TODO await?
                 next(env);
             }
         }
@@ -152,9 +157,12 @@ namespace SocketServer
         /// </summary>
         /// <param name="headers">Parsed request headers.</param>
         /// <param name="env">The OWIN request paremeters to update.</param>
-        private static void AddOpaqueUpgradeIfNeeded(IDictionary<string, string[]> headers, IDictionary<string, object> env)
+        private static void AddOpaqueUpgradeIfNeeded(IDictionary<string, string[]> headers,
+                                                     IDictionary<string, object> env, DuplexStream client)
         {
-            if (!headers.ContainsKey("Upgrade") || !headers.ContainsKey("HTTP2-Settings"))
+            if (!headers.ContainsKey("Connection") 
+                || !headers.ContainsKey("Upgrade") 
+                || !headers.ContainsKey("HTTP2-Settings"))
             {
                 return;
             }
@@ -165,6 +173,8 @@ namespace SocketServer
                 it.IndexOf("2.0", StringComparison.Ordinal) != -1) != null)
             {
                 env[OwinConstants.Opaque.Upgrade] = new UpgradeDelegate(OpaqueUpgradeDelegate);
+                env[OwinConstants.Opaque.Stream] = client;
+                env[OwinConstants.Opaque.Version] = "1.0";
             }
 
         }

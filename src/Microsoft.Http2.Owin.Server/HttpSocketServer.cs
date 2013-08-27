@@ -119,7 +119,7 @@ namespace SocketServer
             {
                 _server.Stop();
             }
-            if (_listenThread != null && _listenThread.IsAlive)
+            if (_listenThread != null || !_listenThread.IsAlive)
             {
                 _listenThread.Abort();
                 _listenThread.Join();

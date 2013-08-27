@@ -35,7 +35,6 @@ namespace SocketServer
         private readonly bool _useHandshake;
         private readonly bool _usePriorities;
         private readonly bool _useFlowControl;
-        private AppFunc _upgradeDelegate;
 
         internal HttpConnectingClient(SecureTcpListener server, SecurityOptions options,
                                      AppFunc next, bool useHandshake, bool usePriorities, 
@@ -48,28 +47,6 @@ namespace SocketServer
             _server = server;
             _next = next;
             _options = options;
-            
-            //Provide this delegate from somewhere?
-            //_upgradeDelegate = UpgradeHandshaker.Handshake;
-        }
-
-        private IDictionary<string, object> MakeUpgradeEnvironment(DuplexStream incomingClient, string selectedProtocol)
-        {
-            //Http1 layer will call middle. middle will call upgrade delegate
-            if (selectedProtocol == Protocols.Http1)
-            {
-                var upgradeEnv = new Dictionary<string, object>
-                    {
-                        {OwinConstants.Opaque.Upgrade, _upgradeDelegate},
-                        {OwinConstants.Opaque.Stream, incomingClient},
-                        //Provide canc token
-                        {OwinConstants.Opaque.CallCancelled, CancellationToken.None}
-                    };
-
-                return upgradeEnv;
-            }
-
-            return new Dictionary<string, object>();
         }
 
         /// <summary>
@@ -133,7 +110,6 @@ namespace SocketServer
             }
 
             var clientStream = new DuplexStream(incomingClient, true);
-            environmentCopy.AddRange(MakeUpgradeEnvironment(clientStream, selectedProtocol));
 
             try
             {

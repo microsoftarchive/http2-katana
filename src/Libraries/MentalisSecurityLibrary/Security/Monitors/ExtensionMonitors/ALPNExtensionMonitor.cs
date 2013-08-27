@@ -31,6 +31,13 @@ namespace Org.Mentalis
 	public class ALPNExtensionMonitor : ExtensionMonitor, IDisposable
 	{
         internal ALPNExtension AlpnExtension { get; private set; }
+        internal bool IsDisposed { get; private set; }
+
+        public ALPNExtensionMonitor()
+        {
+            IsDisposed = false;
+            this.AlpnExtension = null;
+        }
 
         public override void Attach(SecureSocket socket)
         {
@@ -74,11 +81,12 @@ namespace Org.Mentalis
 
         public void Dispose()
         {
-            if (AlpnExtension != null)
+            if (!IsDisposed && this.AlpnExtension != null)
             {
                 this.AlpnExtension.OnAddedToClientHello -= this.AddedToClientHelloHandler;
                 this.AlpnExtension.OnParsedFromServerHello -= this.ParsedFromServerHelloHandler;
                 this.AlpnExtension.OnProtocolSelected -= this.ProtocolSelectedHandler;
+                IsDisposed = true;
             }
         }
 	}

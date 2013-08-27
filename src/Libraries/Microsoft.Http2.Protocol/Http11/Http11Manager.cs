@@ -20,27 +20,28 @@ namespace SharedProtocol.Http11
     {
       
    
-        public static int SendResponse(DuplexStream socket, byte[] data, int statusCode, string contentType, Dictionary<string,string> headers = null)
+        public static int SendResponse(DuplexStream stream, byte[] data, int statusCode, string contentType, Dictionary<string,string> headers = null)
         {
             string initialLine = "HTTP/1.1 " + statusCode + " " + StatusCode.GetReasonPhrase(statusCode) + "\r\n";
+            string headersPack = initialLine;
 
             if (headers == null)
                 headers = new Dictionary<string,string>();
 
             if (data.Length > 0)
             {
-                headers.Add("Content-Type", contentType);
-            }
-            else
-            {
-                initialLine += "\r\n";
+                headers.Add("Content-Type:", contentType);
             }
 
-            int sent = socket.Write(Encoding.UTF8.GetBytes(initialLine));
-            SendHeaders(socket, headers, data.Length);
+            headersPack = headers.Aggregate(headersPack, (current, header) => current + (header.Key + ": " + header.Value + "\r\n")) + "\r\n";
+
+            int sent = stream.Write(Encoding.UTF8.GetBytes(headersPack));
+            //SendHeaders(stream, headers, data.Length);
+
             if (data.Length > 0)
-                sent += socket.Write(data);
+                sent += stream.Write(data);
 
+            stream.Flush();
             return sent;
         }
 
