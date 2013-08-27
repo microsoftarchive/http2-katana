@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -12,7 +11,6 @@ using SharedProtocol.Http11;
 using SharedProtocol;
 using SharedProtocol.IO;
 using SharedProtocol.Utils;
-using SharedProtocol.Handshake;
 
 namespace SocketServer
 {
@@ -51,8 +49,7 @@ namespace SocketServer
                 if (!client.CanRead || !client.WaitForDataAvailable(ReadTimeout)) return;
 
                 var rawHeaders = Http11Manager.ReadHeaders(client);
-                // TODO - review if OwinRequest constructor can do this for us.
-
+                
                 Http2Logger.LogDebug("Http1.1 Protocol Handler. Process request " + string.Join(" ", rawHeaders));
                 
                 // invalid connection, skip
@@ -64,6 +61,12 @@ namespace SocketServer
                 // parse request parameters: method, path, host, etc
                 string[] splittedRequestString = rawHeaders[0].Split(' ');
                 string method = splittedRequestString[0];
+
+                if (!IsMethodSupported(method))
+                {
+                    throw new NotSupportedException(method + " method is not currently supported via HTTP/1.1");
+                }
+
                 string scheme = client.Socket.SecureProtocol == SecureProtocol.None ? "http" : "https";
                 string host = headers["Host"][0]; // client MUST include Host header due to HTTP/1.1 spec
                 if (host.IndexOf(':') == -1)
@@ -71,9 +74,7 @@ namespace SocketServer
                     host += (scheme == "http" ? ":80" : ":443"); // use default port
                 }
                 string path = splittedRequestString[1];
-
-                // TODO get body from request
-
+                
                 // main owin environment components
                 var env = CreateOwinEnvironment(method, scheme, host, "", path);
 
@@ -95,6 +96,18 @@ namespace SocketServer
             {
                 client.Close();
             }
+        }
+
+        /// <summary>
+        /// Checks if request method is supported by current protocol implementation.
+        /// </summary>
+        /// <param name="method">Http method to perform check for.</param>
+        /// <returns>True if method is supported, otherwise False.</returns>
+        private static bool IsMethodSupported(string method)
+        {
+            var supported = new[] {"GET","DELETE" };
+
+            return supported.Contains(method.ToUpper());
         }
 
         #region Opague Upgrade
@@ -165,14 +178,15 @@ namespace SocketServer
         /// <param name="ex">The error occured.</param>
         private static void EndResponse(DuplexStream client, Exception ex)
         {
-            Http11Manager.SendResponse(client, Encoding.UTF8.GetBytes(ex.Message), StatusCode.Code500InternalServerError, ""); // TODO content-type ??
+            Http11Manager.SendResponse(client, Encoding.UTF8.GetBytes(ex.Message), StatusCode.Code500InternalServerError, ContentTypes.TextPlain,
+                new Dictionary<string, string> { { "Connection", "close" } }); // we don’t currently support persistent connection via Http1.1
             client.Flush();
         }
 
         /// <summary>
         /// Completes response by sending result back to the client.
         /// </summary>
-        /// <param name="client">The client connection./param>
+        /// <param name="client">The client connection.</param>
         /// <param name="env">Reponse instance in form of OWIN dictionaty.</param>
         private static void EndResponse(DuplexStream client, IDictionary<string, object> env)
         {
@@ -189,6 +203,15 @@ namespace SocketServer
             {
                 bytes = new byte[0];
             }
+
+            #region We don’t currently support persistent connection via Http1.1
+
+            if (!owinResponse.Headers.ContainsKey("Connection")) // don't overwrite Connection: UPGRADE
+            {
+                owinResponse.Headers.Add("Connection", new[] { "close" });
+            }
+
+            #endregion
 
             // response headers
             var headers = new Dictionary<string, string>();
@@ -223,7 +246,7 @@ namespace SocketServer
             var environment = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
             environment["owin.RequestMethod"] = method;
             environment["owin.RequestScheme"] = scheme;
-            environment["owin.RequestHeaders"] = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase) { { "Host", new string[] { hostHeaderValue } } };
+            environment["owin.RequestHeaders"] = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase) { { "Host", new []{ hostHeaderValue } } };
             environment["owin.RequestPathBase"] = pathBase;
             environment["owin.RequestPath"] = path;
             environment["owin.RequestQueryString"] = "";
