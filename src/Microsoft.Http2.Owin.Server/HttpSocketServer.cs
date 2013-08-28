@@ -25,7 +25,8 @@ namespace SocketServer
         private static readonly string AssemblyName = Path.GetDirectoryName(Assembly.GetExecutingAssembly().CodeBase.Substring(8));
         private const string CertificateFilename = @"\certificate.pfx";
 
-        private Thread _listenThread;
+        private readonly Thread _listenThread;
+        private readonly CancellationTokenSource _cancelAccept;
         private readonly AppFunc _next;
         private readonly int _port;
         private readonly string _scheme;
@@ -46,6 +47,8 @@ namespace SocketServer
             var address = addresses.First();
             _port = Int32.Parse(address.Get<string>("port"));
             _scheme = address.Get<string>("scheme");
+
+            _cancelAccept = new CancellationTokenSource();
 
             _useHandshake = (bool)properties["use-handshake"];
             _usePriorities = (bool)properties["use-priorities"];
@@ -100,13 +103,15 @@ namespace SocketServer
                 try
                 {
                     var client = new HttpConnectingClient(_server, _options, _next, _useHandshake, _usePriorities, _useFlowControl, _properties);
-                    client.Accept();
+                    client.Accept(_cancelAccept.Token);
                 }
                 catch (Exception ex)
                 {
                     Http2Logger.LogError("Unhandled exception was caught: " + ex.Message);
                 }
             }
+
+            Http2Logger.LogDebug("Listen thread was finished");
         }
 
         public void Dispose()
@@ -114,15 +119,13 @@ namespace SocketServer
             if (_disposed)
                 return;
 
+            _cancelAccept.Cancel();
+            _cancelAccept.Dispose();
+
             _disposed = true;
             if (_server != null)
             {
                 _server.Stop();
-            }
-            if (_listenThread != null || !_listenThread.IsAlive)
-            {
-                _listenThread.Abort();
-                _listenThread.Join();
             }
         }
     }

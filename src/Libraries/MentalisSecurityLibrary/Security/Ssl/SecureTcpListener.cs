@@ -34,6 +34,7 @@
 using System;
 using System.Net;
 using System.Net.Sockets;
+using System.Threading;
 
 namespace Org.Mentalis.Security.Ssl {
 	/// <summary>
@@ -157,10 +158,10 @@ namespace Org.Mentalis.Security.Ssl {
 		/// <exception cref="SocketException">An operating system error occurs while accessing the SecureSocket.</exception>
 		/// <exception cref="SecurityException">Unable to create the SSPI credentials.</exception>
 		/// <remarks>AcceptSocket returns a SecureSocket that you can use to send and receive data. This SecureSocket is initialized with the IP address and port number of the remote machine. You can use any of the Send and Receive methods available in the Socket class to communicate with the remote machine.<br><b>Note</b>   When you finish using the Socket, be sure to call its Close method.</br><br><b>Note</b>   If your application is relatively simple, consider using the AcceptTcpClient method rather than AcceptSocket. SecureTcpClient provides you with simple methods for sending and receiving data over a network.</br></remarks>
-		public virtual SecureSocket AcceptSocket(ISocketMonitor monitor = null) {
+		public virtual SecureSocket AcceptSocket(CancellationToken cancel, ISocketMonitor monitor = null) {
 			if (Server == null)
 				throw new InvalidOperationException();
-			return (SecureSocket)Server.Accept(monitor);
+            return (SecureSocket)Server.Accept(cancel, monitor);
 		}
 		/// <summary>
 		/// Accepts a pending connection request.
@@ -177,7 +178,7 @@ namespace Org.Mentalis.Security.Ssl {
 		public virtual SecureTcpClient AcceptTcpClient() {
 			if (Server == null)
 				throw new InvalidOperationException();
-			return new SecureTcpClient(AcceptSocket());
+			return new SecureTcpClient(AcceptSocket(CancellationToken.None));
 		}
 
         public virtual SecureSocket AcceptSocket(AsyncCallback callback)

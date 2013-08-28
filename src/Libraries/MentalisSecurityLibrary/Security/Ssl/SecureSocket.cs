@@ -56,6 +56,7 @@
 using System;
 using System.Net;
 using System.Net.Sockets;
+using System.Threading;
 using Org.Mentalis.Security.Certificates;
 using Org.Mentalis.Security.Ssl.Shared;
 
@@ -275,14 +276,14 @@ namespace Org.Mentalis.Security.Ssl
         /// <exception cref="SocketException">An operating system error occurs while accessing the SecureSocket.</exception>
         /// <exception cref="ObjectDisposedException">The SecureSocket has been closed.</exception>
         /// <exception cref="SecurityException">Unable to create the credentials.</exception>
-        public override VirtualSocket Accept(ISocketMonitor monitor = null)
+        public override VirtualSocket Accept(CancellationToken cancel, ISocketMonitor monitor = null)
         {
-            return EndAccept(BeginAccept(null, null), monitor);
+            return EndAccept(BeginAccept(null, null), cancel, monitor);
         }
 
         public VirtualSocket Accept(AsyncCallback callback)
         {
-            return EndAccept(BeginAccept(callback, null));
+            return EndAccept(BeginAccept(callback, null), CancellationToken.None);
         }
         
         /// <summary>
@@ -328,7 +329,7 @@ namespace Org.Mentalis.Security.Ssl
         /// <exception cref="SocketException">An operating system error occurs while accessing the SecureSocket.</exception>
         /// <exception cref="ObjectDisposedException">The SecureSocket has been closed.</exception>
         /// <exception cref="SecurityException">Unable to create the credentials -or- client authentication error.</exception>
-        public override VirtualSocket EndAccept(IAsyncResult asyncResult, ISocketMonitor monitor = null)
+        public override VirtualSocket EndAccept(IAsyncResult asyncResult, CancellationToken cancel, ISocketMonitor monitor = null)
         {
             // Make sure everything is in order
             if (asyncResult == null)
@@ -344,6 +345,13 @@ namespace Org.Mentalis.Security.Ssl
             {
                 ar.AsyncWaitHandle.WaitOne(200, false);
             }
+
+            if (cancel.IsCancellationRequested)
+            {
+                cancel.ThrowIfCancellationRequested();
+                return null;
+            }
+
             m_AcceptResult = null;
             if (ar.AsyncException != null)
                 throw ar.AsyncException;

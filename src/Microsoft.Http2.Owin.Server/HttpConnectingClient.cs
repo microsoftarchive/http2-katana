@@ -52,13 +52,21 @@ namespace SocketServer
         /// <summary>
         /// Accepts client and deals handshake with it.
         /// </summary>
-        internal void Accept()
+        internal void Accept(CancellationToken cancel)
         {
-            SecureSocket incomingClient;
+            SecureSocket incomingClient = null;
 
             using (var monitor = new ALPNExtensionMonitor())
             {
-                incomingClient = _server.AcceptSocket(monitor);
+                try
+                {
+                    incomingClient = _server.AcceptSocket(cancel, monitor);
+                }
+                catch (OperationCanceledException ex)
+                {
+                    Http2Logger.LogDebug("Listen was cancelled");
+                    return;
+                }  
             }
             Http2Logger.LogDebug("New connection accepted");
             Task.Run(() => HandleAcceptedClient(incomingClient));
