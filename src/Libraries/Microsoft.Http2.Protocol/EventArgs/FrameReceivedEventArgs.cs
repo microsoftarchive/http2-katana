@@ -2,7 +2,7 @@
 
 namespace SharedProtocol.EventArgs
 {
-    public class FrameReceivedEventArgs : System.EventArgs
+    internal class FrameReceivedEventArgs : System.EventArgs
     {
         public Frame Frame { get; private set; }
         public Http2Stream Stream { get; private set; }

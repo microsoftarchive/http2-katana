@@ -1,5 +1,6 @@
 ﻿namespace SharedProtocol
 {
+    //TODO move it from the http2 proto
     /// <summary>
     /// Enum of supported protocols.
     /// </summary>

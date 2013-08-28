@@ -1,6 +1,6 @@
 ﻿namespace SharedProtocol.Framing
 {
-    public enum ResetStatusCode : uint
+    internal enum ResetStatusCode : uint
     {
         None = 0,
         ProtocolError = 1,

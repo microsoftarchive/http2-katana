@@ -2,7 +2,7 @@
 
 namespace SharedProtocol.Framing
 {
-    public struct SettingsPair
+    internal struct SettingsPair
     {
         //TODO Make sure, that 8 bytes instead of 7. (3 bytes to settings Id, 4 for value)
         public const int PairSize = 8; // Bytes

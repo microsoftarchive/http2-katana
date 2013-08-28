@@ -1,6 +1,4 @@
-﻿using System.Net.Sockets;
-using Org.Mentalis.Security.Ssl;
-using SharedProtocol.Framing;
+﻿using SharedProtocol.Framing;
 using System;
 using System.Threading;
 
@@ -10,14 +8,14 @@ namespace SharedProtocol.IO
     internal sealed class WriteQueue : IDisposable
     {
         private readonly IQueue _messageQueue;
-        private readonly SecureSocket _socket;
+        private readonly DuplexStream _stream;
         private bool _disposed;
         private readonly object _writeLock = new object();
         private readonly ActiveStreams _streams;
 
         public bool IsPriorityTurnedOn { get; private set; }
 
-        public WriteQueue(SecureSocket socket, ActiveStreams streams, bool isPriorityTurnedOn)
+        public WriteQueue(DuplexStream stream, ActiveStreams streams, bool isPriorityTurnedOn)
         {
             IsPriorityTurnedOn = isPriorityTurnedOn;
             _streams = streams;
@@ -29,7 +27,7 @@ namespace SharedProtocol.IO
             {
                 _messageQueue = new QueueWrapper();
             }
-            _socket = socket;
+            _stream = stream;
             _disposed = false;
         }
 
@@ -73,7 +71,7 @@ namespace SharedProtocol.IO
                         var entry = _messageQueue.Dequeue();
                         if (entry != null)
                         {
-                            int sent = _socket.Send(entry.Buffer, 0, entry.Buffer.Length, SocketFlags.None);
+                            _stream.Write(entry.Buffer, 0, entry.Buffer.Length);
                         }
                     }
                     else
@@ -81,6 +79,8 @@ namespace SharedProtocol.IO
                         Thread.Sleep(10);
                     }
                 }
+
+                _stream.Flush();
             }
         }
 
@@ -91,8 +91,7 @@ namespace SharedProtocol.IO
                 var entry = _messageQueue.Dequeue();
                 if (entry != null)
                 {
-                    if (!_socket.IsClosed)
-                        _socket.Send(entry.Buffer, 0, entry.Buffer.Length, SocketFlags.None);
+                    _stream.Write(entry.Buffer, 0, entry.Buffer.Length);
                 }
             }
         }

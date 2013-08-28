@@ -5,7 +5,7 @@ namespace SharedProtocol.EventArgs
     /// <summary>
     /// This class is designed for future usage
     /// </summary>
-    public class SettingsSentEventArgs : System.EventArgs
+    internal class SettingsSentEventArgs : System.EventArgs
     {
         public SettingsFrame SettingsFrame { get; private set; }
         

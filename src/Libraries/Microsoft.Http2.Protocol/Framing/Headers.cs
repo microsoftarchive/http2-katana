@@ -5,7 +5,7 @@ namespace SharedProtocol.Framing
     /// <summary>
     /// Frame headers class
     /// </summary>
-    public class HeadersFrame : Frame, IEndStreamFrame
+    internal class HeadersFrame : Frame, IEndStreamFrame
     {
         // The number of bytes in the frame, not including the compressed headers.
         private const int PreambleSizeWithPriority = 12;

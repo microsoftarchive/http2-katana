@@ -5,7 +5,7 @@ namespace SharedProtocol.Framing
     /// Ping frame class
     /// See spec: http://tools.ietf.org/html/draft-ietf-httpbis-http2-04#section-6.7
     /// </summary>
-    public class PingFrame : Frame
+    internal class PingFrame : Frame
     {
         /// <summary>
         /// Ping frame expected payload length

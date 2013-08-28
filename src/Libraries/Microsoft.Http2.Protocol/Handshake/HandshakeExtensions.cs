@@ -1,4 +1,5 @@
-﻿using Org.Mentalis.Security.Ssl;
+﻿using Org.Mentalis.Security;
+using Org.Mentalis.Security.Ssl;
 
 namespace SharedProtocol.Handshake
 {

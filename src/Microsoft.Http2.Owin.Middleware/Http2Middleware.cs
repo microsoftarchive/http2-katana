@@ -11,7 +11,6 @@ using SharedProtocol.IO;
 namespace ServerOwinMiddleware
 {
     using AppFunc = Func<IDictionary<string, object>, Task>;
-    using HandshakeAction = Func<IDictionary<string, object>>;
     // Http-01/2.0 uses a similar upgrade handshake to WebSockets. This middleware answers upgrade requests
     // using the Opaque Upgrade OWIN extension and then switches the pipeline to HTTP/2.0 binary framing.
     // Interestingly the HTTP/2.0 handshake does not need to be the first HTTP/1.1 request on a connection, only the last.
@@ -19,19 +18,10 @@ namespace ServerOwinMiddleware
     {
         // Pass requests onto this pipeline if not upgrading to HTTP/2.0.
         private readonly AppFunc _next;
-        // Pass requests onto this pipeline if upgraded to HTTP/2.0.
-        private AppFunc _nextHttp2;
 
         public Http2Middleware(AppFunc next)
         {
             _next = next;
-            _nextHttp2 = _next;
-        }
-
-        public Http2Middleware(AppFunc next, AppFunc branch)
-        {
-            _next = next;
-            _nextHttp2 = branch;
         }
 
         /// <summary>
@@ -51,8 +41,9 @@ namespace ServerOwinMiddleware
                 request.UpgradeDelegate.Invoke(environment, opaque =>
                     {
                         var opaqueStream = opaque[OwinConstants.Opaque.Stream] as DuplexStream;
-                        var session = new Http2Session(opaqueStream, ConnectionEnd.Server, true, true, _next);
-                        return session.Start();
+                        //var session = new Http2Session(opaqueStream, ConnectionEnd.Server, true, true, _next);
+                        //return session.Start();
+                        return null;
                     });
                 return;
             }

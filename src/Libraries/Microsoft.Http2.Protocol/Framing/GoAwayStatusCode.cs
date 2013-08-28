@@ -1,6 +1,6 @@
 ﻿namespace SharedProtocol.Framing
 {
-    public enum GoAwayStatusCode : int
+    internal enum GoAwayStatusCode : int
     {
         Ok = 0,
         ProtocolError = 1,

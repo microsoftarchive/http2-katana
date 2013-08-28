@@ -1,6 +1,6 @@
 ﻿namespace SharedProtocol.Framing
 {
-    public enum SettingsIds : int
+    internal enum SettingsIds : int
     {
         MaxConcurrentStreams = 4,
         InitialWindowSize = 7,

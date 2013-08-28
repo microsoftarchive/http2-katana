@@ -1,19 +1,20 @@
 ﻿using System;
 using System.Net.Sockets;
 using Org.Mentalis.Security.Ssl;
+using SharedProtocol.IO;
 
 namespace SharedProtocol.Framing
 {
     /// <summary>
     /// This class reads frames and gets their type
     /// </summary>
-    public class FrameReader
+    internal class FrameReader
     {
-        private readonly SecureSocket _socket;
+        private readonly DuplexStream _stream;
 
-        public FrameReader(SecureSocket socket)
+        public FrameReader(DuplexStream stream)
         {
-            _socket = socket;
+            _stream = stream;
         }
 
         public Frame ReadFrame()
@@ -67,8 +68,11 @@ namespace SharedProtocol.Framing
             int totalRead = 0;
             while (totalRead < count)
             {
+                //Infinite wait
+                _stream.WaitForDataAvailable(-1);
                 // TODO: Over-read into a buffer to reduce the number of native read operations.
-                int read = _socket.Receive(buffer, offset + totalRead, count - totalRead, SocketFlags.None);
+                int read = _stream.Read(buffer, offset + totalRead, count - totalRead);
+
                 if (read <= 0)
                 {
                     // The stream ended before we could get as much as we needed.

@@ -3,7 +3,7 @@
 namespace SharedProtocol.Framing
 {
     [Flags]
-    public enum FrameFlags
+    internal enum FrameFlags
     {
         None = 0x00,
         EndStream = 0x01,

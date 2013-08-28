@@ -22,7 +22,7 @@ namespace SharedProtocol
     /// This class creates and closes session, pumps incoming and outcoming frames and dispatches them.
     /// It defines events for request handling by subscriber. Also it is responsible for sending some frames.
     /// </summary>
-    public class Http2Session : IDisposable
+    internal class Http2Session : IDisposable
     {
         private bool _goAwayReceived;
         private readonly FrameReader _frameReader;
@@ -44,8 +44,6 @@ namespace SharedProtocol
         private readonly HeadersList _toBeContinuedHeaders;
         private Frame _toBeContinuedFrame;
         private readonly Dictionary<string, string> _handshakeHeaders;
-
-        //public SecureSocket Socket { get { return _sessionSocket; } }
 
         private const string ClientSessionHeader = "PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n";
         private AppFunc _next;
@@ -106,11 +104,11 @@ namespace SharedProtocol
  
         public Http2Session(DuplexStream stream, ConnectionEnd end, 
                             bool usePriorities, bool useFlowControl,
-                            AppFunc next, IDictionary<string, object> environment = null)
+                            CancellationToken cancel,
+                            IDictionary<string, object> environment = null)
         {
             _environment = environment;
             _ourEnd = end;
-            _next = next;
             _usePriorities = usePriorities;
             _useFlowControl = useFlowControl;
             _handshakeHeaders = new Dictionary<string, string>(16);
@@ -132,13 +130,15 @@ namespace SharedProtocol
             _comprProc = new CompressionProcessor(_ourEnd);
             _ioStream = stream;
 
-            /*_frameReader = new FrameReader(_sessionSocket);
+            _frameReader = new FrameReader(_ioStream);
 
             ActiveStreams = new ActiveStreams();
 
-            _writeQueue = new WriteQueue(_sessionSocket, ActiveStreams, _usePriorities);
-
-            if (_sessionSocket != null && sessionSocket.SecureProtocol == SecureProtocol.None)
+            _writeQueue = new WriteQueue(_ioStream, ActiveStreams, _usePriorities);
+            OurMaxConcurrentStreams = 100;
+            RemoteMaxConcurrentStreams = 100;
+            InitialWindowSize = 200000;
+            /*if (_sessionSocket != null && sessionSocket.SecureProtocol == SecureProtocol.None)
             {
                 OurMaxConcurrentStreams = int.Parse(_handshakeHeaders[":max_concurrent_streams"]);
                 RemoteMaxConcurrentStreams = int.Parse(_handshakeHeaders[":max_concurrent_streams"]);
@@ -149,7 +149,7 @@ namespace SharedProtocol
                 OurMaxConcurrentStreams = 100; //Spec recommends value 100 by default
                 RemoteMaxConcurrentStreams = 100;
                 InitialWindowSize = 2000000;
-            }
+            }*/
             _flowControlManager = new FlowControlManager(this);
 
             if (!_useFlowControl)
@@ -158,7 +158,7 @@ namespace SharedProtocol
             }
 
             SessionWindowSize = 0;
-            _toBeContinuedHeaders = new HeadersList();*/
+            _toBeContinuedHeaders = new HeadersList();
         }
 
         private async Task<bool> GetSessionHeaderAndVerifyIt(DuplexStream incomingClient)
@@ -183,7 +183,7 @@ namespace SharedProtocol
         private async Task DispatchInitialRequest()
         {
             //Http2 -> middle -> application. Last one fills owinResponse.
-            await _next(_environment);
+            //await _next(_environment);
 
             //Need to open first http2 stream then and send response
         }
@@ -280,7 +280,7 @@ namespace SharedProtocol
                      {
                          _writeQueue.PumpToStream();
                      }
-                     catch (Exception)
+                     catch (Exception ex)
                      {
                          Http2Logger.LogError("Sending frame was cancelled because connection was lost");
                          Dispose();

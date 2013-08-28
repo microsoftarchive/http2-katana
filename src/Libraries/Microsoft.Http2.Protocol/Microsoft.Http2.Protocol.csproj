@@ -32,6 +32,9 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Owin.Types">
+      <HintPath>..\..\..\packages\Owin.Types.0.8.5\lib\net40\Owin.Types.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
@@ -76,6 +79,7 @@
     <Compile Include="Handshake\HandshakeManager.cs" />
     <Compile Include="HeadersList.cs" />
     <Compile Include="Http11\Http11Manager.cs" />
+    <Compile Include="Http2OwinAdapter.cs" />
     <Compile Include="IO\DuplexStream.cs" />
     <Compile Include="IO\FileHelper.cs" />
     <Compile Include="Constants.cs" />
@@ -116,7 +120,6 @@
     <Compile Include="Handshake\UpgradeHandshaker.cs" />
     <Compile Include="Handshake\HandshakeResponse.cs" />
     <Compile Include="Handshake\HandshakeResult.cs" />
-    <Compile Include="Handshake\SecureHandshaker.cs" />
     <Compile Include="TransportInformation.cs" />
     <Compile Include="Utils\Http2Logger.cs" />
     <Compile Include="Utils\Http2LoggerState.cs" />

@@ -8,7 +8,7 @@ namespace SharedProtocol
     /// <summary>
     /// Headers list class.
     /// </summary>
-    public class HeadersList : IList<KeyValuePair<string, string>>
+    internal class HeadersList : IList<KeyValuePair<string, string>>
     {
         private readonly List<KeyValuePair<string, string>> _collection;
 
@@ -28,6 +28,17 @@ namespace SharedProtocol
         {
             _collection = new List<KeyValuePair<string, string>>();
             AddRange(list);
+        }
+
+        public HeadersList(IDictionary<string, string[]> headers)
+        {
+            _collection = new List<KeyValuePair<string, string>>();
+
+            //Send only first value?
+            foreach (var header in headers)
+            {
+                _collection.Add(new KeyValuePair<string, string>(header.Key, header.Value[0]));
+            }
         }
 
         public HeadersList(int capacity)

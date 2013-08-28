@@ -4,7 +4,7 @@ namespace SharedProtocol.Framing
     /// <summary>
     /// Priority enum
     /// </summary>
-    public enum Priority : int
+    internal enum Priority : int
     {
         None = -1,
         Pri0 = 0,

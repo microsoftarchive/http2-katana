@@ -3,7 +3,7 @@
 namespace SharedProtocol.Framing
 {
     [Flags]
-    public enum SettingsFlags : byte
+    internal enum SettingsFlags : byte
     {
         None = 0x0,
         PresistValue = 0x1,

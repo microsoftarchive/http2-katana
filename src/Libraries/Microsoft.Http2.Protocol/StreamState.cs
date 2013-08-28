@@ -5,7 +5,7 @@ namespace SharedProtocol
     [Flags]
     // Normal state events on a HTTP/2.0 stream.
     // Using flags as these may happen in various orders due to race conditions.
-    public enum StreamState
+    internal enum StreamState
     {
         None = 0,
         RequestHeaders = 0x01, // sent (client) or received (server)

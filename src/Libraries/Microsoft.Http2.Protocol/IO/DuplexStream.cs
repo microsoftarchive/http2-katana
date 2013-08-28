@@ -95,7 +95,11 @@ namespace SharedProtocol.IO
             if (_isClosed)
                 throw new ObjectDisposedException("Duplex stream was already closed");
 
-            _socket.Send(_writeBuffer.Buffer, 0, _writeBuffer.BufferedDataSize, SocketFlags.None);
+            var bufferLen = _writeBuffer.BufferedDataSize;
+            var flushBuffer = new byte[bufferLen];
+            _writeBuffer.Read(flushBuffer, 0, bufferLen);
+
+            _socket.Send(flushBuffer, 0, flushBuffer.Length, SocketFlags.None);
         }
 
         public async override Task FlushAsync(CancellationToken cancellationToken)
@@ -106,7 +110,7 @@ namespace SharedProtocol.IO
             if (cancellationToken.IsCancellationRequested)
                 cancellationToken.ThrowIfCancellationRequested();
 
-            var bufferLen = _writeBuffer.Buffer.Length;
+            var bufferLen = _writeBuffer.BufferedDataSize;
             var flushBuffer = new byte[bufferLen];
             _writeBuffer.Read(flushBuffer, 0, bufferLen);
 

@@ -15,7 +15,7 @@ namespace SharedProtocol.Framing
     /// <summary>
     /// Represents the initial frame fields on every frame.
     /// </summary>
-    public class Frame
+    internal class Frame
     {
         protected byte[] _buffer;
 

@@ -6,7 +6,7 @@ using System.Text;
 namespace SharedProtocol.Framing
 {
     // Helpers for reading binary fields of various sizes
-    public static class FrameHelpers
+    internal static class FrameHelpers
     {
         public static byte SetBit(byte input, bool value, byte offset)
         {

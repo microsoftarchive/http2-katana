@@ -5,7 +5,7 @@ namespace SharedProtocol.Framing
     /// Window update class
     /// See spec: http://tools.ietf.org/html/draft-ietf-httpbis-http2-04#section-6.9
     /// </summary>
-    public class WindowUpdateFrame : Frame
+    internal class WindowUpdateFrame : Frame
     {
         // The number of bytes in the frame.
         private const int InitialFrameSize = 12;

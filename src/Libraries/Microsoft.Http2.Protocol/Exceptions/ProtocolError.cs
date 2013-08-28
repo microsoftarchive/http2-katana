@@ -6,7 +6,7 @@ namespace SharedProtocol.Exceptions
     /// <summary>
     /// Generic protocol error exception.
     /// </summary>
-    public class ProtocolError: Exception
+    internal class ProtocolError : Exception
     {
         public ResetStatusCode Code { get; set; }
 

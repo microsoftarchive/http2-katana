@@ -6,7 +6,7 @@ namespace SharedProtocol.Framing
     // |C|       Stream-ID (31bits)       |
     // +----------------------------------+
     // | Flags (8)  |  Length (24 bits)   |
-    public class DataFrame : Frame, IEndStreamFrame
+    internal class DataFrame : Frame, IEndStreamFrame
     {
         // For incoming
         public DataFrame(Frame preamble)

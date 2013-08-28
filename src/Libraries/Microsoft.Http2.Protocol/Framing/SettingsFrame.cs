@@ -8,7 +8,7 @@ namespace SharedProtocol.Framing
     /// Settings frame class
     /// See spec: http://tools.ietf.org/html/draft-ietf-httpbis-http2-04#section-6.5
     /// </summary>
-    public class SettingsFrame : Frame
+    internal class SettingsFrame : Frame
     {
         // The number of bytes in the frame.
         private const int InitialFrameSize = 8;

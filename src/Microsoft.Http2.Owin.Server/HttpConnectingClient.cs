@@ -6,6 +6,8 @@
 
 using System;
 using System.Collections.Generic;
+using System.Globalization;
+using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using Org.Mentalis;
@@ -30,16 +32,17 @@ namespace SocketServer
         private readonly SecureTcpListener _server;
         private readonly SecurityOptions _options;
         private readonly AppFunc _next;
-        private Http2Session _session;
         private readonly IDictionary<string, object> _environment;        
         private readonly bool _useHandshake;
         private readonly bool _usePriorities;
         private readonly bool _useFlowControl;
+        private bool _isDisposed;
 
         internal HttpConnectingClient(SecureTcpListener server, SecurityOptions options,
                                      AppFunc next, bool useHandshake, bool usePriorities, 
                                      bool useFlowControl, IDictionary<string, object> environment)
         {
+            _isDisposed = false;
             _environment = environment;
             _usePriorities = usePriorities;
             _useHandshake = useHandshake;
@@ -54,25 +57,23 @@ namespace SocketServer
         /// </summary>
         internal void Accept(CancellationToken cancel)
         {
-            SecureSocket incomingClient = null;
+            SecureSocket incomingClient;
 
-            using (var monitor = new ALPNExtensionMonitor())
+            var monitor = new ALPNExtensionMonitor();
+            try
             {
-                try
-                {
-                    incomingClient = _server.AcceptSocket(cancel, monitor);
-                }
-                catch (OperationCanceledException ex)
-                {
-                    Http2Logger.LogDebug("Listen was cancelled");
-                    return;
-                }  
+                incomingClient = _server.AcceptSocket(cancel, monitor);
             }
+            catch (OperationCanceledException)
+            {
+                Http2Logger.LogDebug("Listen was cancelled");
+                return;
+            }  
             Http2Logger.LogDebug("New connection accepted");
-            Task.Run(() => HandleAcceptedClient(incomingClient));
+            Task.Run(() => HandleAcceptedClient(incomingClient, monitor));
         }
 
-        private void HandleAcceptedClient(SecureSocket incomingClient)
+        private void HandleAcceptedClient(SecureSocket incomingClient, ALPNExtensionMonitor monitor)
         {
             bool backToHttp11 = false;
             string selectedProtocol = Protocols.Http2;
@@ -118,10 +119,11 @@ namespace SocketServer
             }
 
             var clientStream = new DuplexStream(incomingClient, true);
-
+            var transportInfo = GetTransportInfo(incomingClient);
+            monitor.Dispose();
             try
             {
-                HandleRequest(clientStream, selectedProtocol, backToHttp11, environmentCopy);
+                HandleRequest(clientStream, selectedProtocol, transportInfo, backToHttp11, environmentCopy);
             }
             catch (Exception e)
             {
@@ -131,6 +133,7 @@ namespace SocketServer
         }
 
         private void HandleRequest(DuplexStream incomingClient, string alpnSelectedProtocol, 
+                                   TransportInformation transportInformation,
                                    bool backToHttp11, IDictionary<string, object> environment)
         {
             //Server checks selected protocol and calls http2 or http11 layer
@@ -147,30 +150,67 @@ namespace SocketServer
             }
 
             //ALPN selected http2. No need to perform upgrade handshake.
-            OpenHttp2Session(incomingClient, environment);
+            OpenHttp2Session(incomingClient, transportInformation, environment);
         }
 
-        private async void OpenHttp2Session(DuplexStream incomingClient, IDictionary<string, object> environment)
+        private async void OpenHttp2Session(DuplexStream incomingClientStream, 
+                                            TransportInformation transportInformation,
+                                            IDictionary<string, object> environment)
         {
             Http2Logger.LogDebug("Handshake successful");
-            _session = new Http2Session(incomingClient, ConnectionEnd.Server, _usePriorities, _useFlowControl, _next, environment);
+            using (var http2Adapter = new Http2OwinAdapter(incomingClientStream, transportInformation,
+                                                           environment, _next, CancellationToken.None))
+            {
+                try
+                {
+                   await http2Adapter.StartSession();
+                }
+                catch (Exception ex)
+                {
+                    Http2Logger.LogError("Client was disconnected");
+                }
+            }
+        }
 
-            try
+        private TransportInformation GetTransportInfo(SecureSocket incomingClient)
+        {
+            var localEndPoint = (IPEndPoint)incomingClient.LocalEndPoint;
+            var remoteEndPoint = (IPEndPoint)incomingClient.RemoteEndPoint;
+
+            var transportInfo = new TransportInformation
             {
-                await _session.Start();
-            }
-            catch (Exception)
+                LocalPort = localEndPoint.Port.ToString(CultureInfo.InvariantCulture),
+                RemotePort = remoteEndPoint.Port.ToString(CultureInfo.InvariantCulture),
+            };
+
+            // Side effect of using dual mode sockets, the IPv4 addresses look like 0::ffff:127.0.0.1.
+            if (localEndPoint.Address.IsIPv4MappedToIPv6)
             {
-                Http2Logger.LogError("Client was disconnected");
+                transportInfo.LocalIpAddress = localEndPoint.Address.MapToIPv4().ToString();
             }
+            else
+            {
+                transportInfo.LocalIpAddress = localEndPoint.Address.ToString();
+            }
+
+            if (remoteEndPoint.Address.IsIPv4MappedToIPv6)
+            {
+                transportInfo.RemoteIpAddress = remoteEndPoint.Address.MapToIPv4().ToString();
+            }
+            else
+            {
+                transportInfo.RemoteIpAddress = remoteEndPoint.Address.ToString();
+            }
+
+            return transportInfo;
         }
 
         public void Dispose()
         {
-            if (_session != null)
-            {
-                _session.Dispose();
-            }
+            if (_isDisposed)
+                return;
+
+            _isDisposed = true;
         }
     }
 }

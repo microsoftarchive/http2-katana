@@ -13,7 +13,7 @@ namespace SharedProtocol.Compression.HeadersDeltaCompression
     /// <summary>
     /// This class implement header compression.
     /// </summary>
-    public class CompressionProcessor : ICompressionProcessor
+    internal class CompressionProcessor : ICompressionProcessor
     {
         private const int HeadersLimit = 200;
         private const int MaxHeaderByteSize = 4096;

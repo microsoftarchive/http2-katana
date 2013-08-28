@@ -4,7 +4,7 @@
     /// RstStream frame class
     /// See spec: http://tools.ietf.org/html/draft-ietf-httpbis-http2-04#section-6.4
     /// </summary>
-    public class RstStreamFrame : Frame
+    internal class RstStreamFrame : Frame
     {
         // The number of bytes in the frame.
         private const int InitialFrameSize = 12;

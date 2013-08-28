@@ -5,7 +5,7 @@ namespace SharedProtocol.Framing
     /// This class defines GoAway frame
     /// See spec: http://tools.ietf.org/html/draft-ietf-httpbis-http2-04#section-6.8
     /// </summary>
-    public class GoAwayFrame : Frame
+    internal class GoAwayFrame : Frame
     {
         // The number of bytes in the frame.
         private const int InitialFrameSize = 24;

@@ -25,9 +25,8 @@ using System.Collections.Generic;
 using Org.Mentalis.Security.Ssl;
 using System;
 using System.Threading;
-using SharedProtocol.Exceptions;
 
-namespace SharedProtocol.Handshake
+namespace Org.Mentalis.Security
 {
     /// <summary>
     /// This class provides secure handshake methods
@@ -68,10 +67,11 @@ namespace SharedProtocol.Handshake
             }
             catch (Exception)
             {
-                throw new Http2HandshakeFailed(HandshakeFailureReason.InternalError);
+                //TODO throw internal error ex
+                //throw new Http2HandshakeFailed(HandshakeFailureReason.InternalError);
             }
 
-            _handshakeFinishedEventRaised.WaitOne(8000);
+            _handshakeFinishedEventRaised.WaitOne(60000);
             InternalSocket.OnHandshakeFinish -= HandshakeFinishedHandler;
 
             if (!InternalSocket.Connected)
@@ -81,7 +81,8 @@ namespace SharedProtocol.Handshake
 
             if (Options.Protocol != SecureProtocol.None && !InternalSocket.IsNegotiationCompleted)
             {
-                throw new Http2HandshakeFailed(HandshakeFailureReason.Timeout);
+                //TODO throw timeout ex
+                //throw new Http2HandshakeFailed(HandshakeFailureReason.Timeout);
             }
 
             return new Dictionary<string, object>();

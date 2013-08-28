@@ -13,7 +13,7 @@ namespace SharedProtocol
     /// <summary>
     /// Class represents http2 stream.
     /// </summary>
-    public class Http2Stream : IDisposable
+    internal class Http2Stream : IDisposable
     {
         #region Fields
 
