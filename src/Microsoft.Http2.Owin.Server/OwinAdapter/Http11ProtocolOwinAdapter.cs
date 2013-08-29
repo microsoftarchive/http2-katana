@@ -92,14 +92,13 @@ namespace SocketServer
                 if (!env.ContainsKey(OwinConstants.Opaque.Upgrade))
                 {
                     EndResponse(client, env);
+                    Http2Logger.LogDebug("Closing connection");
+                    client.Close();
                 }
             }
             catch (Exception ex)
             {
                 EndResponse(client, ex);
-            }
-            finally
-            {
                 Http2Logger.LogDebug("Closing connection");
                 client.Close();
             }

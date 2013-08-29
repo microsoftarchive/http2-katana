@@ -8,7 +8,7 @@ namespace Http2.Owin.StaticFiles.Sample
     {
         static void Main(string[] args)
         {
-            const string address = "https://localhost:8443/";
+            const string address = "http://localhost:8080/";
             // open https://localhost:8443/simpleTest.txt or https://localhost:8443/10mbTest.txt for example
 
             var startOpt = new StartOptions(address)

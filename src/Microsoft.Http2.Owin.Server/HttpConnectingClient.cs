@@ -165,7 +165,7 @@ namespace SocketServer
                 {
                    await http2Adapter.StartSession();
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
                     Http2Logger.LogError("Client was disconnected");
                 }

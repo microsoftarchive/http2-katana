@@ -131,15 +131,5 @@ namespace SharedProtocol.Framing
             : base(preamble)
         {
         }
-
-        /// <summary>
-        /// Creates headers frame
-        /// </summary>
-        public HeadersFrame(int streamId, bool fin)
-        {
-            _buffer = new byte[PreambleSizeWithPriority];
-            StreamId = streamId;
-            IsEndStream = fin;
-        }
     }
 }

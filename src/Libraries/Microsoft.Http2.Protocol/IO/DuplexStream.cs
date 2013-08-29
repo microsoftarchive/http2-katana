@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Org.Mentalis.Security.Ssl;
 using SharedProtocol.EventArgs;
+using SharedProtocol.Exceptions;
 
 namespace SharedProtocol.IO
 {
@@ -93,7 +94,7 @@ namespace SharedProtocol.IO
         public override void Flush()
         {
             if (_isClosed)
-                throw new ObjectDisposedException("Duplex stream was already closed");
+                throw new DuplexStreamAlreadyClosedException("Duplex stream was already closed");
 
             if (_writeBuffer.Available == 0)
                 return;
@@ -108,7 +109,7 @@ namespace SharedProtocol.IO
         public async override Task FlushAsync(CancellationToken cancellationToken)
         {
             if (_isClosed)
-                throw new ObjectDisposedException("Duplex stream was already closed");
+                throw new DuplexStreamAlreadyClosedException("Duplex stream was already closed");
 
             if (cancellationToken.IsCancellationRequested)
                 cancellationToken.ThrowIfCancellationRequested();
@@ -137,7 +138,7 @@ namespace SharedProtocol.IO
         public override int Read(byte[] buffer, int offset, int count)
         {
             if (_isClosed)
-                throw new ObjectDisposedException("Duplex stream was already closed");
+                throw new DuplexStreamAlreadyClosedException("Duplex stream was already closed");
 
             return _readBuffer.Read(buffer, offset, count);
         }
@@ -145,7 +146,7 @@ namespace SharedProtocol.IO
         public override void Write(byte[] buffer, int offset, int count)
         {
             if (_isClosed)
-                throw new ObjectDisposedException("Duplex stream was already closed");
+                throw new DuplexStreamAlreadyClosedException("Duplex stream was already closed");
 
             _writeBuffer.Write(buffer, offset, count);
 
@@ -165,7 +166,7 @@ namespace SharedProtocol.IO
         public override void WriteByte(byte value)
         {
             if (_isClosed)
-                throw new ObjectDisposedException("Duplex stream was already closed");
+                throw new DuplexStreamAlreadyClosedException("Duplex stream was already closed");
 
             Write(new [] {value}, 0, 1);
         }
@@ -173,7 +174,7 @@ namespace SharedProtocol.IO
         public async override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
         {
             if (_isClosed)
-                throw new ObjectDisposedException("Duplex stream was already closed");
+                throw new DuplexStreamAlreadyClosedException("Duplex stream was already closed");
 
             if (cancellationToken.IsCancellationRequested)
                 cancellationToken.ThrowIfCancellationRequested();
@@ -185,7 +186,7 @@ namespace SharedProtocol.IO
         public async override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
         {
             if (_isClosed)
-                throw new ObjectDisposedException("Duplex stream was already closed");
+                throw new DuplexStreamAlreadyClosedException("Duplex stream was already closed");
 
             if (cancellationToken.IsCancellationRequested)
                 cancellationToken.ThrowIfCancellationRequested();
@@ -229,7 +230,7 @@ namespace SharedProtocol.IO
             lock (_closeLock)
             {
                 if (_isClosed)
-                    throw new ObjectDisposedException("Trying to close stream twice");
+                    throw new DuplexStreamAlreadyClosedException("Duplex stream was already closed");
 
                 _isClosed = true;
 

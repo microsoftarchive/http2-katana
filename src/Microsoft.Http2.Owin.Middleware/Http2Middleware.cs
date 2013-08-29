@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
 using Org.Mentalis.Security.Ssl;
@@ -40,16 +41,37 @@ namespace ServerOwinMiddleware
                 //Should open session here
                 request.UpgradeDelegate.Invoke(environment, opaque =>
                     {
+                        //Copy Dictionary
+                        var envCopy = CopyEnvironment(request, opaque);
                         var opaqueStream = opaque[OwinConstants.Opaque.Stream] as DuplexStream;
-                        //var session = new Http2Session(opaqueStream, ConnectionEnd.Server, true, true, _next);
-                        //return session.Start();
-                        return null;
+                        var trInfo = CreateTransportInfo(request);
+                        var http2Adapter = new Http2OwinAdapter(opaqueStream, trInfo, envCopy, _next, CancellationToken.None);
+
+                        return http2Adapter.StartSession();
                     });
+                environment[OwinConstants.Opaque.Upgrade] = null;
                 return;
             }
 
             //If we dont have upgrade delegate then pass request to the next layer
             await _next(environment);
+        }
+
+        private IDictionary<string, object> CopyEnvironment(OwinRequest request, IDictionary<string, object> original)
+        {
+            //May add other headers
+            return new Dictionary<string, object>(original);
+        }
+
+        private TransportInformation CreateTransportInfo(OwinRequest owinRequest)
+        {
+            return new TransportInformation()
+            {
+                RemoteIpAddress = owinRequest.RemoteIpAddress,
+                RemotePort = owinRequest.RemotePort,
+                LocalIpAddress = owinRequest.LocalIpAddress,
+                LocalPort = owinRequest.LocalPort,
+            };
         }
     }
 }

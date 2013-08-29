@@ -25,6 +25,7 @@ namespace SharedProtocol
         private CancellationToken _cancToken;
         private readonly AppFunc _next;
         private TransportInformation _transportInfo;
+        private IDictionary<string, object> _environment;
 
         public Http2OwinAdapter(DuplexStream stream, TransportInformation transportInfo, 
                                 IDictionary<string, object> environment, AppFunc next, 
@@ -35,6 +36,7 @@ namespace SharedProtocol
             _cancToken = cancel;
             _next = next;
             _stream = stream;
+            _environment = environment;
             DepopulateEnvironment(environment);
         }
 
@@ -114,17 +116,14 @@ namespace SharedProtocol
 
             WriteStatus(stream, responseStatusCode, responseBody == null, responseHeaders);
 
-            if (responseBody != null)
-            {
-                var responseDataBuffer = new byte[responseBody.Position];
+            var responseDataBuffer = new byte[responseBody.Position];
 
-                //If thread is empty then do not send anything
-                if (responseBody.Position != 0)
-                {
-                    //Get data from stream, chunk it and send
-                    responseBody.ReadAsync(responseDataBuffer, 0, responseDataBuffer.Length);
-                    SendDataTo(stream, responseDataBuffer);
-                }
+            //If thread is empty then do not send anything
+            if (responseBody.Position != 0)
+            {
+                //Get data from stream, chunk it and send
+                responseBody.ReadAsync(responseDataBuffer, 0, responseDataBuffer.Length);
+                SendDataTo(stream, responseDataBuffer);
             }
         }
 
@@ -172,7 +171,7 @@ namespace SharedProtocol
             var stream = args.Stream;
             var frame = args.Frame;
 
-            switch (frame.FrameType)
+                switch (frame.FrameType)
             {
                 case FrameType.Headers:
                     ProcessRequest(stream, stream.Headers);
@@ -185,7 +184,21 @@ namespace SharedProtocol
             //TODO provide cancellation token
             _session = new Http2Session(_stream, ConnectionEnd.Server, true, true, _cancToken);
             _session.OnFrameReceived += OnFrameReceivedHandler;
-            return _session.Start();
+
+            var path =  _environment.ContainsKey(OwinConstants.RequestPath)
+                           ? (string) _environment[OwinConstants.RequestPath]
+                           : "/index.html";
+            var method =  _environment.ContainsKey(OwinConstants.RequestMethod)
+                           ? (string) _environment[OwinConstants.RequestMethod]
+                           : "get";
+
+            var initialRequest = new Dictionary<string, string>
+                {
+                    //Add more headers
+                    {":path", path},
+                    {":method", method}
+                };
+            return _session.Start(initialRequest);
         }
 
         public void Dispose()

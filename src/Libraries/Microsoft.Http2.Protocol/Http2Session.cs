@@ -43,11 +43,9 @@ namespace SharedProtocol
         private bool _wasResponseReceived;
         private readonly HeadersList _toBeContinuedHeaders;
         private Frame _toBeContinuedFrame;
-        private readonly Dictionary<string, string> _handshakeHeaders;
+        private readonly CancellationToken _cancelSessionToken;
 
         private const string ClientSessionHeader = "PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n";
-        private AppFunc _next;
-        private IDictionary<string, object> _environment;
  
         /// <summary>
         /// Occurs when settings frame was sent.
@@ -104,15 +102,12 @@ namespace SharedProtocol
  
         public Http2Session(DuplexStream stream, ConnectionEnd end, 
                             bool usePriorities, bool useFlowControl,
-                            CancellationToken cancel,
-                            IDictionary<string, object> environment = null)
+                            CancellationToken cancel)
         {
-            _environment = environment;
             _ourEnd = end;
             _usePriorities = usePriorities;
             _useFlowControl = useFlowControl;
-            _handshakeHeaders = new Dictionary<string, string>(16);
-            //ApplyHandshakeResults(handshakeResult);
+            _cancelSessionToken = cancel;
 
             if (_ourEnd == ConnectionEnd.Client)
             {
@@ -167,7 +162,7 @@ namespace SharedProtocol
 
             if(!incomingClient.WaitForDataAvailable(60000))
             {
-                throw new TimeoutException(String.Format("Session header was not received in timeout {0}", 5000));
+                throw new TimeoutException(String.Format("Session header was not received in timeout {0}", 60000));
             }
             
             await incomingClient.ReadAsync(sessionHeaderBuffer, 0, 
@@ -180,19 +175,26 @@ namespace SharedProtocol
             return string.Equals(receivedHeader, ClientSessionHeader, StringComparison.OrdinalIgnoreCase);
         }
 
-        private async Task DispatchInitialRequest()
+        private void DispatchInitialRequest(IDictionary<string, string> initialRequest)
         {
-            //Http2 -> middle -> application. Last one fills owinResponse.
-            //await _next(_environment);
+            if (!initialRequest.ContainsKey(":path"))
+            {
+                initialRequest.Add(":path", "/index.html");
+            }
 
-            //Need to open first http2 stream then and send response
+            var initialStream = CreateStream(new HeadersList(initialRequest), 1);
+
+            if (OnFrameReceived != null)
+            {
+                OnFrameReceived(this, new FrameReceivedEventArgs(initialStream, new HeadersFrame(1, new byte[0])));
+            }
         }
 
         /// <summary>
         /// Starts session.
         /// </summary>
         /// <returns></returns>
-        public async Task Start()
+        public async Task Start(IDictionary<string, string> initialRequest = null)
         {
             Http2Logger.LogDebug("Session start");
 
@@ -228,7 +230,7 @@ namespace SharedProtocol
             var endPumpsTask = Task.WhenAll(incomingTask, outgoingTask);
 
             //Handle upgrade handshake headers.
-            await DispatchInitialRequest();
+            DispatchInitialRequest(initialRequest);
 
             //Cancellation token
             endPumpsTask.Wait();
@@ -280,7 +282,11 @@ namespace SharedProtocol
                      {
                          _writeQueue.PumpToStream();
                      }
-                     catch (Exception ex)
+                     catch (DuplexStreamAlreadyClosedException)
+                     {
+                         
+                     }
+                     catch (Exception)
                      {
                          Http2Logger.LogError("Sending frame was cancelled because connection was lost");
                          Dispose();
@@ -342,27 +348,7 @@ namespace SharedProtocol
                             Http2Logger.LogDebug("Stream {0} header: {1}={2}", frame.StreamId, header.Key, header.Value);
                         }
 
-                        stream = GetStream(headersFrame.StreamId);
-
-                        if (stream == null)
-                        {
-                            if (_ourEnd == ConnectionEnd.Server)
-                            {
-                                string path = headers.GetValue(":path");
-                                if (path == null)
-                                {
-                                    path = _handshakeHeaders.ContainsKey(":path")
-                                               ? _handshakeHeaders[":path"]
-                                               : @"\index.html";
-                                    headers.Add(new KeyValuePair<string, string>(":path", path));
-                                }
-                            }
-                            else
-                            {
-                                headers.AddRange(_handshakeHeaders);
-                            }
-                            stream = CreateStream(headers, frame.StreamId);
-                        }
+                        stream = GetStream(headersFrame.StreamId) ?? CreateStream(headers, frame.StreamId);
 
                         break;
 
@@ -422,33 +408,17 @@ namespace SharedProtocol
                         //Client initiates connection and sends settings before request. 
                         //It means that if server sent settings before it will not be a first frame,
                         //because client initiates connection.
-                        if (_ourEnd == ConnectionEnd.Server && !_wasSettingsReceived
+                        /*if (_ourEnd == ConnectionEnd.Server && !_wasSettingsReceived
                             && (ActiveStreams.Count > 0))
                         {
                             Dispose();
                             return;
-                        }
+                        }*/
 
                         var settingFrame = (SettingsFrame)frame;
                         Http2Logger.LogDebug("Settings frame. Entry count: {0} StreamId: {1}", settingFrame.EntryCount, settingFrame.StreamId);
                         _wasSettingsReceived = true;
                         _settingsManager.ProcessSettings(settingFrame, this, _flowControlManager);
-
-                        //DispatchInitialRequest should handle this.
-                        /*if (_ourEnd == ConnectionEnd.Server && .SecureProtocol == SecureProtocol.None)
-                        {
-                            //The HTTP/1.1 request that is sent prior to upgrade is associated with
-                            //stream 1 and is assigned the highest possible priority.  Stream 1 is
-                            //implicitly half closed from the client toward the server, since the
-                            //request is completed as an HTTP/1.1 request.  After commencing the
-                            //HTTP/2.0 connection, stream 1 is used for the response.
-                            stream = CreateStream(Priority.Pri0);
-                            stream.EndStreamReceived = true;
-                            stream.Headers.Add(new KeyValuePair<string, string>(":method", _handshakeHeaders[":method"]));
-                            stream.Headers.Add(new KeyValuePair<string, string>(":path", _handshakeHeaders[":path"]));
-                            OnFrameReceived(this, new FrameReceivedEventArgs(stream, new HeadersFrame(stream.Id, false)));
-                        }*/
-
                         break;
                     case FrameType.WindowUpdate:
                         if (_useFlowControl)
@@ -536,32 +506,20 @@ namespace SharedProtocol
             }
 
             var stream = new Http2Stream(headers, streamId,
-                                      _writeQueue, _flowControlManager,
-                                      _comprProc);
+                                         _writeQueue, _flowControlManager,
+                                         _comprProc);
 
             ActiveStreams[stream.Id] = stream;
 
             stream.OnClose += (o, args) =>
-            {
-                if (!ActiveStreams.Remove(ActiveStreams[args.Id]))
                 {
-                    throw new ArgumentException("Cant remove stream from ActiveStreams");
-                }
-            };
+                    if (!ActiveStreams.Remove(ActiveStreams[args.Id]))
+                    {
+                        throw new ArgumentException("Cant remove stream from ActiveStreams");
+                    }
+                };
 
             return stream;
-        }
-
-        private void ApplyHandshakeResults(IDictionary<string, object> environment)
-        {
-            if (environment["HandshakeResult"] is IDictionary<string, object>)
-            {
-                var handshakeResult = environment["HandshakeResult"] as IDictionary<string, object>;
-                foreach (var entry in handshakeResult.Keys)
-                {
-                    _handshakeHeaders.Add(entry, handshakeResult[entry].ToString());
-                }
-            }
         }
 
         /// <summary>
@@ -730,7 +688,7 @@ namespace SharedProtocol
             _disposed = true;
 
             // Dispose of all streams
-            foreach (Http2Stream stream in ActiveStreams.Values)
+            foreach (var stream in ActiveStreams.Values)
             {
                 //Cancel all opened streams
                 stream.WriteRst(ResetStatusCode.Cancel);
@@ -753,8 +711,16 @@ namespace SharedProtocol
             }
 
             _comprProc.Dispose();
-            _ioStream.Close();
 
+            try
+            {
+                _ioStream.Close();
+            }
+            catch (DuplexStreamAlreadyClosedException)
+            {
+                
+            }
+            
             if (OnSessionDisposed != null)
             {
                 OnSessionDisposed(this, null);
