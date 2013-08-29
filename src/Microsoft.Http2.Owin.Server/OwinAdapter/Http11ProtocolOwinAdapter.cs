@@ -64,6 +64,8 @@ namespace SocketServer
 
                 if (!IsMethodSupported(method))
                 {
+                    // TODO consider generating corresponding OwinEnvironment and sending it through owin pipeline so that another 
+                    // middlewares can handle/update it, for example Microsoft.Owin.Diagnostics.UseErrorPage
                     throw new NotSupportedException(method + " method is not currently supported via HTTP/1.1");
                 }
 
@@ -188,7 +190,9 @@ namespace SocketServer
         /// <param name="ex">The error occured.</param>
         private static void EndResponse(DuplexStream client, Exception ex)
         {
-            Http11Manager.SendResponse(client, Encoding.UTF8.GetBytes(ex.Message), StatusCode.Code500InternalServerError, ContentTypes.TextPlain,
+            int statusCode = (ex is NotSupportedException) ? StatusCode.Code501NotImplemented : StatusCode.Code500InternalServerError;
+            
+            Http11Manager.SendResponse(client, new byte[0], statusCode, ContentTypes.TextPlain,
                 new Dictionary<string, string> { { "Connection", "close" } }); // we don’t currently support persistent connection via Http1.1
             client.Flush();
         }
@@ -253,7 +257,7 @@ namespace SocketServer
         /// <returns>OWIN representation for provided request parameters.</returns>
         private static Dictionary<string, object> CreateOwinEnvironment(string method, string scheme, string hostHeaderValue, string pathBase, string path, byte[] requestBody = null)
         {
-            var environment = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+            var environment = new Dictionary<string, object>(StringComparer.Ordinal);
             environment["owin.RequestMethod"] = method;
             environment["owin.RequestScheme"] = scheme;
             environment["owin.RequestHeaders"] = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase) { { "Host", new []{ hostHeaderValue } } };
@@ -266,7 +270,7 @@ namespace SocketServer
 
             environment["owin.ResponseHeaders"] = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase);
             environment["owin.ResponseBody"] = new MemoryStream();
-            environment["owin.ResponseStatusCode"] = 500;
+            environment["owin.ResponseStatusCode"] = StatusCode.Code500InternalServerError;
             environment["owin.ResponseProtocol"] = "HTTP/1.1";
 
             return environment;
