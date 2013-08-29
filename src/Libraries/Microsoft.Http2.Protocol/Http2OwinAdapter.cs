@@ -49,7 +49,10 @@ namespace SharedProtocol
             var owinRequest = new OwinRequest(environment);
             var owinResponse = new OwinResponse(environment);
 
+            owinRequest.Method = headers.GetValue(":method");
+            owinRequest.Path = headers.GetValue(":path");
             owinRequest.CallCancelled = CancellationToken.None;
+            
             owinRequest.OwinVersion = Constants.OwinVersion;
             owinRequest.Headers = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase);
             owinRequest.RemoteIpAddress = _transportInfo.RemoteIpAddress;
@@ -59,6 +62,7 @@ namespace SharedProtocol
             owinRequest.IsLocal = string.Equals(_transportInfo.RemoteIpAddress, _transportInfo.LocalPort);
 
             owinResponse.Headers = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase);
+            owinResponse.Body = new MemoryStream();
 
             foreach (var header in headers)
             {

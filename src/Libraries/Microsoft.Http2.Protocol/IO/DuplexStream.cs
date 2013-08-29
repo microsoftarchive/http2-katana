@@ -95,6 +95,9 @@ namespace SharedProtocol.IO
             if (_isClosed)
                 throw new ObjectDisposedException("Duplex stream was already closed");
 
+            if (_writeBuffer.Available == 0)
+                return;
+
             var bufferLen = _writeBuffer.BufferedDataSize;
             var flushBuffer = new byte[bufferLen];
             _writeBuffer.Read(flushBuffer, 0, bufferLen);
@@ -109,6 +112,9 @@ namespace SharedProtocol.IO
 
             if (cancellationToken.IsCancellationRequested)
                 cancellationToken.ThrowIfCancellationRequested();
+
+            if (_writeBuffer.Available == 0)
+                return;
 
             var bufferLen = _writeBuffer.BufferedDataSize;
             var flushBuffer = new byte[bufferLen];
