@@ -1,6 +1,7 @@
 ﻿using System;
 using Microsoft.Owin.Hosting;
 using SocketServer;
+using System.Configuration;
 
 namespace Http2.Owin.WebApi.Sample
 {
@@ -8,9 +9,11 @@ namespace Http2.Owin.WebApi.Sample
     {
         static void Main(string[] args)
         {
-            string connectString = "https://localhost:8443/";
+            var address = ConfigurationManager.AppSettings["useSecurePort"] == "true" 
+                                   ? "https://localhost:8443/"
+                                   : "http://localhost:8080/";
 
-            var startOpt = new StartOptions(connectString)
+            var startOpt = new StartOptions(address)
             {
                 ServerFactory = typeof(SocketServerFactory).AssemblyQualifiedName,
             };
@@ -22,15 +25,6 @@ namespace Http2.Owin.WebApi.Sample
                 using (WebApp.Start<Startup>(startOpt))
                 {
                     Console.WriteLine("Press Enter to stop the server");
-
-                    // Create HttpCient and make a request to api/values 
-                    //HttpClient client = new HttpClient();
-
-                    //var response = client.GetAsync(baseAddress + "api/values").Result;
-
-                    //Console.WriteLine(response);
-                    //Console.WriteLine(response.Content.ReadAsStringAsync().Result);
-
                     
                     Console.ReadLine(); 
                 } 

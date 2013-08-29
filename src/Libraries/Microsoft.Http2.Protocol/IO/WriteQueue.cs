@@ -59,10 +59,13 @@ namespace SharedProtocol.IO
             _messageQueue.Enqueue(entry);
         }
 
-        public void PumpToStream()
+        public void PumpToStream(CancellationToken cancel)
         {
             while (!_disposed)
             {
+                if (cancel.IsCancellationRequested)
+                    cancel.ThrowIfCancellationRequested();
+
                 //Send one at a time
                 lock (_writeLock)
                 {

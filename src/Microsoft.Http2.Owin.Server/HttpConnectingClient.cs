@@ -12,10 +12,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Org.Mentalis;
 using Org.Mentalis.Security.Ssl;
-using Owin.Types;
 using SharedProtocol;
 using SharedProtocol.Exceptions;
-using SharedProtocol.Extensions;
 using SharedProtocol.Handshake;
 using SharedProtocol.IO;
 using SharedProtocol.Utils;
@@ -36,6 +34,7 @@ namespace SocketServer
         private readonly bool _useHandshake;
         private readonly bool _usePriorities;
         private readonly bool _useFlowControl;
+        private readonly CancellationTokenSource _cancelClientHandling;
         private bool _isDisposed;
 
         internal HttpConnectingClient(SecureTcpListener server, SecurityOptions options,
@@ -50,6 +49,7 @@ namespace SocketServer
             _server = server;
             _next = next;
             _options = options;
+            _cancelClientHandling = new CancellationTokenSource();
         }
 
         /// <summary>
@@ -120,7 +120,9 @@ namespace SocketServer
 
             var clientStream = new DuplexStream(incomingClient, true);
             var transportInfo = GetTransportInfo(incomingClient);
+
             monitor.Dispose();
+
             try
             {
                 HandleRequest(clientStream, selectedProtocol, transportInfo, backToHttp11, environmentCopy);
@@ -159,7 +161,7 @@ namespace SocketServer
         {
             Http2Logger.LogDebug("Handshake successful");
             using (var http2Adapter = new Http2OwinAdapter(incomingClientStream, transportInformation,
-                                                           environment, _next, CancellationToken.None))
+                                                           environment, _next, _cancelClientHandling.Token))
             {
                 try
                 {

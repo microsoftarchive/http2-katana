@@ -1,12 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
-using Org.Mentalis.Security.Ssl;
 using Owin.Types;
 using SharedProtocol;
-using SharedProtocol.Extensions;
 using SharedProtocol.IO;
 
 namespace ServerOwinMiddleware
@@ -42,13 +39,18 @@ namespace ServerOwinMiddleware
                 request.UpgradeDelegate.Invoke(environment, opaque =>
                     {
                         //Copy Dictionary
-                        var envCopy = CopyEnvironment(request, opaque);
+                        var envCopy = CopyEnvironment(opaque);
+
+                        //use the same stream which was used during upgrade
                         var opaqueStream = opaque[OwinConstants.Opaque.Stream] as DuplexStream;
                         var trInfo = CreateTransportInfo(request);
+
+                        //Provide cancellation token here
                         var http2Adapter = new Http2OwinAdapter(opaqueStream, trInfo, envCopy, _next, CancellationToken.None);
 
                         return http2Adapter.StartSession();
                     });
+
                 environment[OwinConstants.Opaque.Upgrade] = null;
                 return;
             }
@@ -57,7 +59,7 @@ namespace ServerOwinMiddleware
             await _next(environment);
         }
 
-        private IDictionary<string, object> CopyEnvironment(OwinRequest request, IDictionary<string, object> original)
+        private IDictionary<string, object> CopyEnvironment(IDictionary<string, object> original)
         {
             //May add other headers
             return new Dictionary<string, object>(original);
@@ -65,7 +67,7 @@ namespace ServerOwinMiddleware
 
         private TransportInformation CreateTransportInfo(OwinRequest owinRequest)
         {
-            return new TransportInformation()
+            return new TransportInformation
             {
                 RemoteIpAddress = owinRequest.RemoteIpAddress,
                 RemotePort = owinRequest.RemotePort,

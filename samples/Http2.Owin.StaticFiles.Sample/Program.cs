@@ -1,4 +1,5 @@
-﻿using Microsoft.Owin.Hosting;
+﻿using System.Configuration;
+using Microsoft.Owin.Hosting;
 using SocketServer;
 using System;
 
@@ -8,8 +9,9 @@ namespace Http2.Owin.StaticFiles.Sample
     {
         static void Main(string[] args)
         {
-            const string address = "http://localhost:8080/";
-            // open https://localhost:8443/simpleTest.txt or https://localhost:8443/10mbTest.txt for example
+            var address = ConfigurationManager.AppSettings["useSecurePort"] == "true"
+                                   ? "https://localhost:8443/"
+                                   : "http://localhost:8080/";
 
             var startOpt = new StartOptions(address)
             {

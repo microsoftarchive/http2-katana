@@ -166,8 +166,8 @@ namespace SharedProtocol
             }
             
             await incomingClient.ReadAsync(sessionHeaderBuffer, 0, 
-                                           sessionHeaderBuffer.Length, 
-                                           CancellationToken.None);
+                                           sessionHeaderBuffer.Length,
+                                           _cancelSessionToken);
 
 
             var receivedHeader = Encoding.UTF8.GetString(sessionHeaderBuffer);
@@ -280,11 +280,16 @@ namespace SharedProtocol
                  {
                      try
                      {
-                         _writeQueue.PumpToStream();
+                         _writeQueue.PumpToStream(_cancelSessionToken);
                      }
                      catch (DuplexStreamAlreadyClosedException)
                      {
-                         
+
+                     }
+                     catch (OperationCanceledException)
+                     {
+                         Http2Logger.LogError("Handling session was cancelled");
+                         Dispose();
                      }
                      catch (Exception)
                      {
