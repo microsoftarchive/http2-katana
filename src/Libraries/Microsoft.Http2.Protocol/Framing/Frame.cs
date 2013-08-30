@@ -1,7 +1,7 @@
 ﻿
 using System;
 
-namespace SharedProtocol.Framing
+namespace Microsoft.Http2.Protocol.Framing
 {
     //0                   1                   2                   3
     //0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
@@ -15,7 +15,7 @@ namespace SharedProtocol.Framing
     /// <summary>
     /// Represents the initial frame fields on every frame.
     /// </summary>
-    internal class Frame
+    public class Frame
     {
         protected byte[] _buffer;
 

@@ -1,4 +1,4 @@
-﻿namespace SharedProtocol.Handshake
+﻿namespace Client.Handshake
 {
     public enum HandshakeFailureReason : byte
     {

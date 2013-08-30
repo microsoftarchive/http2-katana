@@ -1,4 +1,4 @@
-﻿namespace SharedProtocol.EventArgs
+﻿namespace Microsoft.Http2.Protocol.EventArgs
 {
     internal class DataAvailableEventArgs : System.EventArgs
     {

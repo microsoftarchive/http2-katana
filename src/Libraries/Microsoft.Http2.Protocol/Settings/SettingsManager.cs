@@ -1,7 +1,7 @@
-﻿using SharedProtocol.FlowControl;
-using SharedProtocol.Framing;
+﻿using Microsoft.Http2.Protocol.FlowControl;
+using Microsoft.Http2.Protocol.Framing;
 
-namespace SharedProtocol.Settings
+namespace Microsoft.Http2.Protocol.Settings
 {
     /// <summary>
     /// This class is designed for incoming settings frame processing

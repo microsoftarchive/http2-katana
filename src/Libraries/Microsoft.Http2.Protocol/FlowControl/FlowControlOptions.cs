@@ -1,4 +1,4 @@
-﻿namespace SharedProtocol.FlowControl
+﻿namespace Microsoft.Http2.Protocol.FlowControl
 {
     internal enum FlowControlOptions : byte
     {

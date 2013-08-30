@@ -1,10 +1,10 @@
 ﻿
-namespace SharedProtocol.Framing
+namespace Microsoft.Http2.Protocol.Framing
 {
     /// <summary>
     /// Frame type enum.
     /// </summary>
-    internal enum FrameType : byte
+    public enum FrameType : byte
     {
         Data = 0,
         Headers = 1,

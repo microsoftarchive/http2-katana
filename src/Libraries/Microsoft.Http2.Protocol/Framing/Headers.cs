@@ -1,11 +1,11 @@
 ﻿using System;
 
-namespace SharedProtocol.Framing
+namespace Microsoft.Http2.Protocol.Framing
 {
     /// <summary>
     /// Frame headers class
     /// </summary>
-    internal class HeadersFrame : Frame, IEndStreamFrame
+    public class HeadersFrame : Frame, IEndStreamFrame
     {
         // The number of bytes in the frame, not including the compressed headers.
         private const int PreambleSizeWithPriority = 12;

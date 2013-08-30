@@ -1,6 +1,6 @@
-﻿namespace SharedProtocol.EventArgs
+﻿namespace Microsoft.Http2.Protocol.EventArgs
 {
-    internal class RequestSentEventArgs : System.EventArgs
+    public class RequestSentEventArgs : System.EventArgs
     {
         public Http2Stream Stream { get; private set; }
 

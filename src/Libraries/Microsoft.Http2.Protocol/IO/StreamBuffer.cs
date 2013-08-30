@@ -1,6 +1,6 @@
 ﻿using System.Diagnostics.Contracts;
 
-namespace SharedProtocol.IO
+namespace Microsoft.Http2.Protocol.IO
 {
     internal struct StreamBuffer
     {

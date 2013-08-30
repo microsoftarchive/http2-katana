@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Text;
 
-namespace SharedProtocol.Framing
+namespace Microsoft.Http2.Protocol.Framing
 {
     // Helpers for reading binary fields of various sizes
     internal static class FrameHelpers

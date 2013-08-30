@@ -1,10 +1,10 @@
 ﻿
-namespace SharedProtocol.Framing
+namespace Microsoft.Http2.Protocol.Framing
 {
     /// <summary>
     /// Priority enum
     /// </summary>
-    internal enum Priority : int
+    public enum Priority : int
     {
         None = -1,
         Pri0 = 0,

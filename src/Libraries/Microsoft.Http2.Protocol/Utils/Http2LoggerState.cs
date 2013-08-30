@@ -31,7 +31,7 @@
 //
 // </copyright>
 // -----------------------------------------------------------------------
-namespace SharedProtocol.Utils
+namespace Microsoft.Http2.Protocol.Utils
 {
     /// <summary>
     /// Logger states.

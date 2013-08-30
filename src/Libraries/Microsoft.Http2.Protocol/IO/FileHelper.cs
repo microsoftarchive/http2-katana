@@ -2,11 +2,12 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
+using System.Threading.Tasks;
 using Org.Mentalis.Security.Ssl;
-using SharedProtocol.Extensions;
+using Microsoft.Http2.Protocol.Extensions;
 using System.Linq;
 
-namespace SharedProtocol.IO
+namespace Microsoft.Http2.Protocol.IO
 {
     /// <summary>
     /// This class compares files by their md5hash, gets file's content, saves data to specified file.
@@ -81,7 +82,7 @@ namespace SharedProtocol.IO
         /// <param name="count">The count.</param>
         /// <param name="path">The path to file.</param>
         /// <param name="append">if set to <c>true</c> content will be append to the existing file.</param>
-        public void SaveToFile(byte[] data, int offset, int count, string path, bool append)
+        public async Task SaveToFile(byte[] data, int offset, int count, string path, bool append)
         {
             //Sync write streams and do not let multiple streams to write the same file. Avoid data mixing and access exceptions.
             if (!append && File.Exists(path))
@@ -93,7 +94,8 @@ namespace SharedProtocol.IO
             {
                 _pathStreamDict.Add(path, new FileStream(path, FileMode.Append));
             }
-            _pathStreamDict[path].Write(data, offset, count);
+            
+            await _pathStreamDict[path].WriteAsync(data, offset, count);
         }
 
         public void RemoveStream(string path)

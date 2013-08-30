@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace SharedProtocol
+namespace Microsoft.Http2.Protocol
 {
     [Flags]
     // Normal state events on a HTTP/2.0 stream.

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Org.Mentalis.Security.Ssl;
 
-namespace SharedProtocol.Handshake
+namespace Client.Handshake
 {
     /// <summary>
     /// Class chooses which handshake must be performed.

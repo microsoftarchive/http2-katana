@@ -3,10 +3,10 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using Org.Mentalis.Security.Ssl;
-using SharedProtocol.Exceptions;
-using SharedProtocol.Extensions;
+using Microsoft.Http2.Protocol.Exceptions;
+using Microsoft.Http2.Protocol.Extensions;
 
-namespace SharedProtocol.Compression.HeadersDeltaCompression
+namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
 {
     //This headers compression algorithm is described in
     // http://tools.ietf.org/html/draft-ietf-httpbis-header-compression-01

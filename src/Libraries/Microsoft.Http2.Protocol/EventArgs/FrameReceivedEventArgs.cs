@@ -1,8 +1,8 @@
-﻿using SharedProtocol.Framing;
+﻿using Microsoft.Http2.Protocol.Framing;
 
-namespace SharedProtocol.EventArgs
+namespace Microsoft.Http2.Protocol.EventArgs
 {
-    internal class FrameReceivedEventArgs : System.EventArgs
+    public class FrameReceivedEventArgs : System.EventArgs
     {
         public Frame Frame { get; private set; }
         public Http2Stream Stream { get; private set; }

@@ -37,7 +37,7 @@ using System;
 using System.Reflection;
 using System.Threading;
 
-namespace SharedProtocol.Utils
+namespace Microsoft.Http2.Protocol.Utils
 {
     /// <summary>
     /// Http2 logger class

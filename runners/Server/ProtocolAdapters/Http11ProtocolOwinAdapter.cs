@@ -7,12 +7,12 @@ using System.Threading;
 using System.Threading.Tasks;
 using Org.Mentalis.Security.Ssl;
 using Owin.Types;
-using SharedProtocol.Http11;
-using SharedProtocol;
-using SharedProtocol.IO;
-using SharedProtocol.Utils;
+using Microsoft.Http2.Protocol.Http11;
+using Microsoft.Http2.Protocol;
+using Microsoft.Http2.Protocol.IO;
+using Microsoft.Http2.Protocol.Utils;
 
-namespace SocketServer
+namespace ProtocolAdapters
 {
     using AppFunc = Func<IDictionary<string, object>, Task>;
     using Environment = IDictionary<string, object>;

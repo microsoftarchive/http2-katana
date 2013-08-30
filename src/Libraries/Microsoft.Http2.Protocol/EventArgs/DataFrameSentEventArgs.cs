@@ -1,7 +1,7 @@
 ﻿using System;
-using SharedProtocol.Framing;
+using Microsoft.Http2.Protocol.Framing;
 
-namespace SharedProtocol.EventArgs
+namespace Microsoft.Http2.Protocol.EventArgs
 {
     internal class DataFrameSentEventArgs : System.EventArgs
     {

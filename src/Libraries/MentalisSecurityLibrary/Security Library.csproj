@@ -104,6 +104,9 @@
     <Compile Include="AssemblyInfo.cs">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="Security\Ssl\HandshakeExtensions.cs" />
+    <Compile Include="Security\Ssl\SecureHandshakeException.cs" />
+    <Compile Include="Security\Ssl\SecureHandshakeFailureReason.cs" />
     <Compile Include="Security\Ssl\SecureHandshaker.cs" />
     <Compile Include="Security\BinaryHelper\BinaryHelper.cs" />
     <Compile Include="Security\Certificates\Certificate.cs">

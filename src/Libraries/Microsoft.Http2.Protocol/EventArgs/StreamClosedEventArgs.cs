@@ -1,4 +1,4 @@
-﻿namespace SharedProtocol.EventArgs
+﻿namespace Microsoft.Http2.Protocol.EventArgs
 {
     public class StreamClosedEventArgs : System.EventArgs
     {

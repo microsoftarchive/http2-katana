@@ -1,4 +1,4 @@
-﻿namespace SharedProtocol
+﻿namespace Microsoft.Http2.Protocol
 {
     using System.IO;
 

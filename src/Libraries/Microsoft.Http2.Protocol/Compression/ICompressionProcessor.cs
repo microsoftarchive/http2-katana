@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace SharedProtocol.Compression
+namespace Microsoft.Http2.Protocol.Compression
 {
     internal interface ICompressionProcessor : IDisposable
     {

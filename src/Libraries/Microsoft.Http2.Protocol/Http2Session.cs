@@ -1,28 +1,28 @@
 ﻿using System.Linq;
 using System.Text;
 using System.Threading;
-using SharedProtocol.Compression.HeadersDeltaCompression;
-using SharedProtocol.EventArgs;
-using SharedProtocol.Exceptions;
+using Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression;
+using Microsoft.Http2.Protocol.EventArgs;
+using Microsoft.Http2.Protocol.Exceptions;
 using Org.Mentalis.Security.Ssl;
-using SharedProtocol.Compression;
-using SharedProtocol.Framing;
-using SharedProtocol.IO;
-using SharedProtocol.Settings;
-using SharedProtocol.FlowControl;
+using Microsoft.Http2.Protocol.Compression;
+using Microsoft.Http2.Protocol.Framing;
+using Microsoft.Http2.Protocol.IO;
+using Microsoft.Http2.Protocol.Settings;
+using Microsoft.Http2.Protocol.FlowControl;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using SharedProtocol.Utils;
+using Microsoft.Http2.Protocol.Utils;
 
-namespace SharedProtocol
+namespace Microsoft.Http2.Protocol
 {
     using AppFunc = Func<IDictionary<string, object>, Task>;
     /// <summary>
     /// This class creates and closes session, pumps incoming and outcoming frames and dispatches them.
     /// It defines events for request handling by subscriber. Also it is responsible for sending some frames.
     /// </summary>
-    internal class Http2Session : IDisposable
+    public class Http2Session : IDisposable
     {
         private bool _goAwayReceived;
         private readonly FrameReader _frameReader;
@@ -156,6 +156,11 @@ namespace SharedProtocol
             _toBeContinuedHeaders = new HeadersList();
         }
 
+        private void SendSessionHeader()
+        {
+            _ioStream.Write(Encoding.UTF8.GetBytes(ClientSessionHeader));
+        }
+
         private async Task<bool> GetSessionHeaderAndVerifyIt(DuplexStream incomingClient)
         {
             var sessionHeaderBuffer = new byte[ClientSessionHeader.Length];
@@ -198,11 +203,19 @@ namespace SharedProtocol
         {
             Http2Logger.LogDebug("Session start");
 
-            if (!await GetSessionHeaderAndVerifyIt(_ioStream))
+            if (_ourEnd == ConnectionEnd.Server)
             {
-                Dispose();
-                //throw something?
-                return;
+
+                if (!await GetSessionHeaderAndVerifyIt(_ioStream))
+                {
+                    Dispose();
+                    //throw something?
+                    return;
+                }
+            }
+            else
+            {
+                SendSessionHeader();
             }
 
             //Write settings. Settings must be the first frame in session.
@@ -230,7 +243,8 @@ namespace SharedProtocol
             var endPumpsTask = Task.WhenAll(incomingTask, outgoingTask);
 
             //Handle upgrade handshake headers.
-            DispatchInitialRequest(initialRequest);
+            if (initialRequest != null)
+                DispatchInitialRequest(initialRequest);
 
             //Cancellation token
             endPumpsTask.Wait();
@@ -383,9 +397,13 @@ namespace SharedProtocol
                         stream = GetStream(dataFrame.StreamId);
 
                         //Aggressive window update
-                        if (stream != null && stream.IsFlowControlEnabled)
+                        if (stream != null)
                         {
-                            stream.WriteWindowUpdate(InitialWindowSize);
+                            if (stream.IsFlowControlEnabled)
+                            {
+                                stream.WriteWindowUpdate(InitialWindowSize);
+                            }
+                            stream.EnqueueDataFrame(dataFrame);
                         }
                         break;
                     case FrameType.Ping:

@@ -1,6 +1,6 @@
 ﻿using System.Diagnostics.Contracts;
 
-namespace SharedProtocol.Framing
+namespace Microsoft.Http2.Protocol.Framing
 {
     /// <summary>
     /// Priority frame class

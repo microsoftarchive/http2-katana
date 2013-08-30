@@ -3,8 +3,9 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Owin.Types;
-using SharedProtocol;
-using SharedProtocol.IO;
+using ProtocolAdapters;
+using Microsoft.Http2.Protocol;
+using Microsoft.Http2.Protocol.IO;
 
 namespace ServerOwinMiddleware
 {
@@ -46,9 +47,9 @@ namespace ServerOwinMiddleware
                         var trInfo = CreateTransportInfo(request);
 
                         //Provide cancellation token here
-                        var http2Adapter = new Http2OwinAdapter(opaqueStream, trInfo, envCopy, _next, CancellationToken.None);
+                        var http2Adapter = new Http2OwinAdapter(opaqueStream, trInfo, _next, CancellationToken.None);
 
-                        return http2Adapter.StartSession();
+                        return http2Adapter.StartSession(GetInitialRequestParams(envCopy));
                     });
 
                 environment[OwinConstants.Opaque.Upgrade] = null;
@@ -64,6 +65,24 @@ namespace ServerOwinMiddleware
             //May add other headers
             return new Dictionary<string, object>(original);
         }
+
+        private IDictionary<string, string> GetInitialRequestParams(IDictionary<string, object> environment)
+        {
+            var path =  environment.ContainsKey(OwinConstants.RequestPath)
+                            ? (string) environment[OwinConstants.RequestPath]
+                            : "/index.html";
+            var method =  environment.ContainsKey(OwinConstants.RequestMethod)
+                            ? (string) environment[OwinConstants.RequestMethod]
+                            : "get";
+
+            return new Dictionary<string, string>
+                {
+                    //Add more headers
+                    {":path", path},
+                    {":method", method}
+                };
+        }
+        
 
         private TransportInformation CreateTransportInfo(OwinRequest owinRequest)
         {

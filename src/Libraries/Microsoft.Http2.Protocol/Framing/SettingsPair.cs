@@ -1,8 +1,8 @@
 ﻿using System;
 
-namespace SharedProtocol.Framing
+namespace Microsoft.Http2.Protocol.Framing
 {
-    internal struct SettingsPair
+    public struct SettingsPair
     {
         //TODO Make sure, that 8 bytes instead of 7. (3 bytes to settings Id, 4 for value)
         public const int PairSize = 8; // Bytes

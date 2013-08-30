@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 
-namespace SharedProtocol.IO
+namespace Microsoft.Http2.Protocol.IO
 {
     internal class QueueWrapper : IQueue
     {

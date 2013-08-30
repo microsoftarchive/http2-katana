@@ -1,19 +1,19 @@
-﻿using SharedProtocol.Compression;
-using SharedProtocol.EventArgs;
-using SharedProtocol.FlowControl;
-using SharedProtocol.Framing;
-using SharedProtocol.IO;
+﻿using Microsoft.Http2.Protocol.Compression;
+using Microsoft.Http2.Protocol.EventArgs;
+using Microsoft.Http2.Protocol.FlowControl;
+using Microsoft.Http2.Protocol.Framing;
+using Microsoft.Http2.Protocol.IO;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
-using SharedProtocol.Utils;
+using Microsoft.Http2.Protocol.Utils;
 
-namespace SharedProtocol
+namespace Microsoft.Http2.Protocol
 {
     /// <summary>
     /// Class represents http2 stream.
     /// </summary>
-    internal class Http2Stream : IDisposable
+    public class Http2Stream : IDisposable
     {
         #region Fields
 
@@ -65,6 +65,7 @@ namespace SharedProtocol
 
             _unshippedFrames = new Queue<DataFrame>(16);
             Headers = new HeadersList();
+            ReceivedDataFrames = new Queue<DataFrame>(16);
 
             SentDataAmount = 0;
             ReceivedDataAmount = 0;
@@ -78,6 +79,8 @@ namespace SharedProtocol
         #endregion
 
         #region Properties
+
+        public Queue<DataFrame> ReceivedDataFrames; 
 
         public int Id
         {
@@ -225,7 +228,13 @@ namespace SharedProtocol
         {
             var dataFrame = new DataFrame(_id, new ArraySegment<byte>(data), isEndStream);
 
-            if (IsFlowControlBlocked == false)
+            if (isEndStream && _unshippedFrames.Count != 0)
+            {
+                _unshippedFrames.Enqueue(dataFrame);
+                return;
+            }
+
+            if (!IsFlowControlBlocked)
             {
                 _writeQueue.WriteFrame(dataFrame);
                 SentDataAmount += dataFrame.FrameLength;
@@ -303,6 +312,17 @@ namespace SharedProtocol
                 OnFrameSent(this, new FrameSentArgs(frame));
             }
         }
+
+        public void EnqueueDataFrame(DataFrame frame)
+        {
+            ReceivedDataFrames.Enqueue(frame);
+        }
+
+        public DataFrame DequeueDataFrame()
+        {
+            return ReceivedDataFrames.Dequeue();
+        }
+
         #endregion
 
         public void Dispose()

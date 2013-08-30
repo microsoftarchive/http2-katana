@@ -3,12 +3,12 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 
-namespace SharedProtocol
+namespace Microsoft.Http2.Protocol
 {
     /// <summary>
     /// Headers list class.
     /// </summary>
-    internal class HeadersList : IList<KeyValuePair<string, string>>
+    public class HeadersList : IList<KeyValuePair<string, string>>
     {
         private readonly List<KeyValuePair<string, string>> _collection;
 

@@ -1,8 +1,8 @@
-﻿using SharedProtocol.Framing;
+﻿using Microsoft.Http2.Protocol.Framing;
 using System;
 using System.Threading;
 
-namespace SharedProtocol.IO
+namespace Microsoft.Http2.Protocol.IO
 {
     // Queue up frames to send, including headers, body, flush, pings, etc.
     internal sealed class WriteQueue : IDisposable

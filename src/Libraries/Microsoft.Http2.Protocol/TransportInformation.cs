@@ -1,6 +1,6 @@
 ﻿using System.Security.Cryptography.X509Certificates;
 
-namespace SharedProtocol
+namespace Microsoft.Http2.Protocol
 {
     /// <summary>
     /// Transport descriptor.

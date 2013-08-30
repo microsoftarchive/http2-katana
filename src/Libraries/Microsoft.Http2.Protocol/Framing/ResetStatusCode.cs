@@ -1,6 +1,6 @@
-﻿namespace SharedProtocol.Framing
+﻿namespace Microsoft.Http2.Protocol.Framing
 {
-    internal enum ResetStatusCode : uint
+    public enum ResetStatusCode : uint
     {
         None = 0,
         ProtocolError = 1,

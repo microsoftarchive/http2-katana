@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using SharedProtocol.Framing;
+using Microsoft.Http2.Protocol.Framing;
 
-namespace SharedProtocol.IO
+namespace Microsoft.Http2.Protocol.IO
 {
     internal class PriorityQueue : IQueue
     {

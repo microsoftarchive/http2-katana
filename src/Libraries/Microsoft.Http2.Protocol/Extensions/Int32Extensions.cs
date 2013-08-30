@@ -2,7 +2,7 @@
 using System.Diagnostics.Contracts;
 using System.IO;
 
-namespace SharedProtocol.Extensions
+namespace Microsoft.Http2.Protocol.Extensions
 {
     //Algorithm is described in
     //https://github.com/yoavnir/compression-spec/blob/7f67f0dbecdbe65bc22f3e3b57e2d5adefeb08dd/compression-spec.txt

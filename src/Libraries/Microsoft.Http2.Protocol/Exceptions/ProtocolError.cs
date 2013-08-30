@@ -1,7 +1,7 @@
 ﻿using System;
-using SharedProtocol.Framing;
+using Microsoft.Http2.Protocol.Framing;
 
-namespace SharedProtocol.Exceptions
+namespace Microsoft.Http2.Protocol.Exceptions
 {
     /// <summary>
     /// Generic protocol error exception.

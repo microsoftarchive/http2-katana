@@ -1,9 +1,7 @@
 ﻿using System;
-using System.Net.Sockets;
-using Org.Mentalis.Security.Ssl;
-using SharedProtocol.IO;
+using Microsoft.Http2.Protocol.IO;
 
-namespace SharedProtocol.Framing
+namespace Microsoft.Http2.Protocol.Framing
 {
     /// <summary>
     /// This class reads frames and gets their type

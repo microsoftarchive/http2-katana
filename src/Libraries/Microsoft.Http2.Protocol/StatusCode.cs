@@ -1,4 +1,4 @@
-﻿namespace SharedProtocol
+﻿namespace Microsoft.Http2.Protocol
 {
     //TODO move it from the http2 proto
     /// <summary>

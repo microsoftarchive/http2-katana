@@ -1,9 +1,9 @@
 ﻿using System;
 
-namespace SharedProtocol.Framing
+namespace Microsoft.Http2.Protocol.Framing
 {
     [Flags]
-    internal enum FrameFlags
+    public enum FrameFlags
     {
         None = 0x00,
         EndStream = 0x01,

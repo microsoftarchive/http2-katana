@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace SharedProtocol.Exceptions
+namespace Microsoft.Http2.Protocol.Exceptions
 {
     public class InvalidHeaderException : Exception
     {

@@ -1,4 +1,4 @@
-﻿namespace SharedProtocol.Exceptions
+﻿namespace Microsoft.Http2.Protocol.Exceptions
 {
     internal class DuplexStreamAlreadyClosedException : System.Exception
     {

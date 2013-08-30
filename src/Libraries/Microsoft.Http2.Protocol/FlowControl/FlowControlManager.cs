@@ -1,7 +1,7 @@
 ﻿using System;
-using SharedProtocol.EventArgs;
+using Microsoft.Http2.Protocol.EventArgs;
 
-namespace SharedProtocol.FlowControl
+namespace Microsoft.Http2.Protocol.FlowControl
 {
     /// <summary>
     /// This class is designed for flow control monitoring and processing.

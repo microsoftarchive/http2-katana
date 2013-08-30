@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Org.Mentalis.Security.Ssl;
 
-namespace SharedProtocol
+namespace Microsoft.Http2.Protocol
 {
     /// <summary>
     /// This collection consists of two collection - flow controlled and nonflowcontrolled streams.

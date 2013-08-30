@@ -63,7 +63,6 @@
     <Compile Include="EventArgs\StreamClosedEventArgs.cs" />
     <Compile Include="Exceptions\CompressionError.cs" />
     <Compile Include="Exceptions\DuplexStreamAlreadyClosedException.cs" />
-    <Compile Include="Exceptions\HTTP2HandshakeFailed.cs" />
     <Compile Include="Exceptions\Http2StreamNotFoundException.cs" />
     <Compile Include="Exceptions\InvalidHeaderException.cs" />
     <Compile Include="Exceptions\MonitorIsBusyException.cs" />
@@ -75,12 +74,9 @@
     <Compile Include="FlowControl\FlowControlOptions.cs" />
     <Compile Include="Framing\IEndStreamFrames.cs" />
     <Compile Include="Framing\PriorityFrame.cs" />
-    <Compile Include="Handshake\HandshakeExtensions.cs" />
-    <Compile Include="Handshake\HandshakeFailureReason.cs" />
-    <Compile Include="Handshake\HandshakeManager.cs" />
     <Compile Include="HeadersList.cs" />
     <Compile Include="Http11\Http11Manager.cs" />
-    <Compile Include="Http2OwinAdapter.cs" />
+    <Compile Include="AbstractHttp2Adapter.cs" />
     <Compile Include="IO\DuplexStream.cs" />
     <Compile Include="IO\FileHelper.cs" />
     <Compile Include="Constants.cs" />
@@ -118,9 +114,6 @@
     <Compile Include="IO\WriteQueue.cs" />
     <Compile Include="StatusCode.cs" />
     <Compile Include="StreamState.cs" />
-    <Compile Include="Handshake\UpgradeHandshaker.cs" />
-    <Compile Include="Handshake\HandshakeResponse.cs" />
-    <Compile Include="Handshake\HandshakeResult.cs" />
     <Compile Include="TransportInformation.cs" />
     <Compile Include="Utils\Http2Logger.cs" />
     <Compile Include="Utils\Http2LoggerState.cs" />

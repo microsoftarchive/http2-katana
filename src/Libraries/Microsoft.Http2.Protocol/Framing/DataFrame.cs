@@ -1,12 +1,12 @@
 ﻿using System;
 using System.Diagnostics.Contracts;
 
-namespace SharedProtocol.Framing
+namespace Microsoft.Http2.Protocol.Framing
 {
     // |C|       Stream-ID (31bits)       |
     // +----------------------------------+
     // | Flags (8)  |  Length (24 bits)   |
-    internal class DataFrame : Frame, IEndStreamFrame
+    public class DataFrame : Frame, IEndStreamFrame
     {
         // For incoming
         public DataFrame(Frame preamble)

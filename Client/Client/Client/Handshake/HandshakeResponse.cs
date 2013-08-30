@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace SharedProtocol.Handshake
+namespace Client.Handshake
 {
     public struct HandshakeResponse
     {

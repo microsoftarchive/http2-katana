@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace SharedProtocol.Extensions
+namespace Microsoft.Http2.Protocol.Extensions
 {
     public static class DictionaryExtenstions
     {

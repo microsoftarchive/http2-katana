@@ -1,4 +1,4 @@
-﻿namespace SharedProtocol
+﻿namespace Microsoft.Http2.Protocol
 {
     /// <summary>
     /// This class contains the most commonly used constants

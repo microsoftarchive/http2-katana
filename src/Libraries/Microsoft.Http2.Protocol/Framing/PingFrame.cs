@@ -1,5 +1,5 @@
 ﻿
-namespace SharedProtocol.Framing
+namespace Microsoft.Http2.Protocol.Framing
 {
     /// <summary>
     /// Ping frame class

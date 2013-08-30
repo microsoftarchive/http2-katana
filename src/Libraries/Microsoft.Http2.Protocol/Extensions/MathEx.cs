@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Security.Cryptography;
 
-namespace SharedProtocol.Extensions
+namespace Microsoft.Http2.Protocol.Extensions
 {
     /// <summary>
     /// Extended math class. It's partial for future extending.

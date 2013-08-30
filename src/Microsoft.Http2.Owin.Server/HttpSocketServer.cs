@@ -10,8 +10,8 @@ using Org.Mentalis.Security.Ssl;
 using Org.Mentalis.Security.Ssl.Shared.Extensions;
 using Owin.Types;
 using System.Configuration;
-using SharedProtocol;
-using SharedProtocol.Utils;
+using Microsoft.Http2.Protocol;
+using Microsoft.Http2.Protocol.Utils;
 
 namespace SocketServer
 {

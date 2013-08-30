@@ -1,7 +1,7 @@
 ﻿using System;
-using SharedProtocol.Handshake;
+using Client.Handshake.Handshake;
 
-namespace SharedProtocol.Exceptions
+namespace Client.Handshake.Exceptions
 {
     public class Http2HandshakeFailed : Exception
     {

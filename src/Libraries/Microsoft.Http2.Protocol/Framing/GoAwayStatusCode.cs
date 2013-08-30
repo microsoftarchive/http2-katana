@@ -1,4 +1,4 @@
-﻿namespace SharedProtocol.Framing
+﻿namespace Microsoft.Http2.Protocol.Framing
 {
     internal enum GoAwayStatusCode : int
     {

@@ -11,12 +11,13 @@ using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using Org.Mentalis;
+using Org.Mentalis.Security;
 using Org.Mentalis.Security.Ssl;
-using SharedProtocol;
-using SharedProtocol.Exceptions;
-using SharedProtocol.Handshake;
-using SharedProtocol.IO;
-using SharedProtocol.Utils;
+using ProtocolAdapters;
+using Security.Ssl;
+using Microsoft.Http2.Protocol;
+using Microsoft.Http2.Protocol.IO;
+using Microsoft.Http2.Protocol.Utils;
 
 namespace SocketServer
 {
@@ -97,17 +98,21 @@ namespace SocketServer
                         backToHttp11 = true;
                     }
                 }
-                catch (Http2HandshakeFailed ex)
+                catch (SecureHandshakeException ex)
                 {
-                    if (ex.Reason == HandshakeFailureReason.InternalError)
+                    switch (ex.Reason)
                     {
-                        backToHttp11 = true;
-                    }
-                    else
-                    {
-                        incomingClient.Close();
-                        Http2Logger.LogError("Handshake timeout. Client was disconnected.");
-                        return;
+                        case SecureHandshakeFailureReason.HandshakeInternalError:
+                            backToHttp11 = true;
+                            break;
+                        case SecureHandshakeFailureReason.HandshakeTimeout:
+                            incomingClient.Close();
+                            Http2Logger.LogError("Handshake timeout. Client was disconnected.");
+                            return;
+                        default:
+                            incomingClient.Close();
+                            Http2Logger.LogError("Unknown error occurred during secure handshake");
+                            return;
                     }
                 }
                 catch (Exception e)
@@ -160,8 +165,7 @@ namespace SocketServer
                                             IDictionary<string, object> environment)
         {
             Http2Logger.LogDebug("Handshake successful");
-            using (var http2Adapter = new Http2OwinAdapter(incomingClientStream, transportInformation,
-                                                           environment, _next, _cancelClientHandling.Token))
+            using (var http2Adapter = new Http2OwinAdapter(incomingClientStream, transportInformation, _next, _cancelClientHandling.Token))
             {
                 try
                 {

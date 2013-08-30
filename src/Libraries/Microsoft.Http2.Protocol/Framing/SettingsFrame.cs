@@ -2,13 +2,13 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 
-namespace SharedProtocol.Framing
+namespace Microsoft.Http2.Protocol.Framing
 {
     /// <summary>
     /// Settings frame class
     /// See spec: http://tools.ietf.org/html/draft-ietf-httpbis-http2-04#section-6.5
     /// </summary>
-    internal class SettingsFrame : Frame
+    public class SettingsFrame : Frame
     {
         // The number of bytes in the frame.
         private const int InitialFrameSize = 8;

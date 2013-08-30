@@ -4,10 +4,10 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using Org.Mentalis.Security.Ssl;
-using SharedProtocol.EventArgs;
-using SharedProtocol.Exceptions;
+using Microsoft.Http2.Protocol.EventArgs;
+using Microsoft.Http2.Protocol.Exceptions;
 
-namespace SharedProtocol.IO
+namespace Microsoft.Http2.Protocol.IO
 {
     public class DuplexStream : Stream
     {

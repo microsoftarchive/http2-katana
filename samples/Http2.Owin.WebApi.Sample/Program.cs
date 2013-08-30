@@ -37,8 +37,6 @@ namespace Http2.Owin.WebApi.Sample
                	Console.ReadLine(); 
            
             }
-
-            
         } 
     }
 }

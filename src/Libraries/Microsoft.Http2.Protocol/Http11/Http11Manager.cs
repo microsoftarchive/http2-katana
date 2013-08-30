@@ -7,19 +7,17 @@ using System.Reflection;
 using System.Text;
 using Org.Mentalis;
 using Org.Mentalis.Security.Ssl;
-using SharedProtocol.EventArgs;
-using SharedProtocol.IO;
-using SharedProtocol.Utils;
+using Microsoft.Http2.Protocol.EventArgs;
+using Microsoft.Http2.Protocol.IO;
+using Microsoft.Http2.Protocol.Utils;
 
-namespace SharedProtocol.Http11
+namespace Microsoft.Http2.Protocol.Http11
 {
     /// <summary>
     /// This class is designed for http11 handling.
     /// </summary>
     public static class Http11Manager
     {
-      
-   
         public static int SendResponse(DuplexStream stream, byte[] data, int statusCode, string contentType, Dictionary<string,string> headers = null)
         {
             string initialLine = "HTTP/1.1 " + statusCode + " " + StatusCode.GetReasonPhrase(statusCode) + "\r\n";

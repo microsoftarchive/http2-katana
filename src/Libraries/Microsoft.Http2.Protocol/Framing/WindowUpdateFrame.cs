@@ -1,5 +1,4 @@
-﻿
-namespace SharedProtocol.Framing
+﻿namespace Microsoft.Http2.Protocol.Framing
 {
     /// <summary>
     /// Window update class

@@ -1,6 +1,6 @@
-﻿namespace SharedProtocol.Framing
+﻿namespace Microsoft.Http2.Protocol.Framing
 {
-    internal enum SettingsIds : int
+    public enum SettingsIds : int
     {
         MaxConcurrentStreams = 4,
         InitialWindowSize = 7,

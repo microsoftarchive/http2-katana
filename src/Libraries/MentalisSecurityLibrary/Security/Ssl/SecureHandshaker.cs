@@ -25,6 +25,7 @@ using System.Collections.Generic;
 using Org.Mentalis.Security.Ssl;
 using System;
 using System.Threading;
+using Security.Ssl;
 
 namespace Org.Mentalis.Security
 {
@@ -67,8 +68,7 @@ namespace Org.Mentalis.Security
             }
             catch (Exception)
             {
-                //TODO throw internal error ex
-                //throw new Http2HandshakeFailed(HandshakeFailureReason.InternalError);
+                throw new SecureHandshakeException(SecureHandshakeFailureReason.HandshakeInternalError);
             }
 
             _handshakeFinishedEventRaised.WaitOne(60000);
@@ -81,8 +81,7 @@ namespace Org.Mentalis.Security
 
             if (Options.Protocol != SecureProtocol.None && !InternalSocket.IsNegotiationCompleted)
             {
-                //TODO throw timeout ex
-                //throw new Http2HandshakeFailed(HandshakeFailureReason.Timeout);
+                throw new SecureHandshakeException(SecureHandshakeFailureReason.HandshakeTimeout);
             }
 
             return new Dictionary<string, object>();
