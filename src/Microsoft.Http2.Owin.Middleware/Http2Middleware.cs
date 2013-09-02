@@ -1,5 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Owin;
@@ -35,17 +38,17 @@ namespace ServerOwinMiddleware
             var request = new OwinRequest(environment);
             
             //After upgrade happened upgrade delegate should be null for next requests in a single connection
-            if (environment.ContainsKey("opaque.Upgrade") && environment["opaque.Upgrade"] is UpgradeDelegate)
+            if (CheckForHttp2UpgradeHeaders(request)
+                && CheckForUpgrade(environment))
             {
                 var upgradeDelegate = environment["opaque.Upgrade"] as UpgradeDelegate;
-                //Should open session here
-                upgradeDelegate.Invoke(environment, opaque =>
-                    {
-                        //Copy Dictionary
-                        //use the same stream which was used during upgrade
 
+                var trInfo = CreateTransportInfo(request);
+
+                upgradeDelegate.Invoke(new Dictionary<string, object>(), opaque =>
+                    {
+                        //use the same stream which was used during upgrade
                         var opaqueStream = opaque["opaque.Stream"] as DuplexStream;
-                        var trInfo = CreateTransportInfo(request);
 
                         //Provide cancellation token here
                         var http2Adapter = new Http2OwinAdapter(opaqueStream, trInfo, _next, CancellationToken.None);
@@ -61,22 +64,76 @@ namespace ServerOwinMiddleware
             await _next(environment);
         }
 
-        private IDictionary<string, string> GetInitialRequestParams(IDictionary<string, object> environment)
+        private bool CheckForHttp2UpgradeHeaders(OwinRequest request)
         {
-            var request = new OwinRequest(environment);
+            var headers = request.Headers as IDictionary<string, string[]>;
+            return  headers.ContainsKey("Connection")
+                    && headers.ContainsKey("HTTP2-Settings")
+                    && headers.ContainsKey("Upgrade") 
+                    && headers["Upgrade"].FirstOrDefault(it =>
+                                         it.ToUpper().IndexOf("HTTP", StringComparison.Ordinal) != -1 &&
+                                         it.IndexOf("2.0", StringComparison.Ordinal) != -1) != null;
+        }
+
+        private bool CheckForUpgrade(IDictionary<string, object> environment)
+        {
+            return environment.ContainsKey("opaque.Upgrade")
+                   && environment["opaque.Upgrade"] is UpgradeDelegate;
+        }
+
+        private IDictionary<string, string> GetInitialRequestParams(IDictionary<string, object> properties)
+        {
+            var request = new OwinRequest(properties);
+
+            var defaultWindowSize = 200000.ToString();
+            var defaultMaxStreams = 100.ToString();
+
+            bool areSettingsOk = true;
 
             var path = !String.IsNullOrEmpty(request.Path)
                             ? request.Path
                             : "/index.html";
-            var method =  !String.IsNullOrEmpty(request.Method)
+            var method = !String.IsNullOrEmpty(request.Method)
                             ? request.Method
                             : "get";
+
+
+            var splittedSettings = new string[0];
+            try
+            {            
+                var settingsBytes = Convert.FromBase64String(request.Headers["Http2-Settings"]);
+                var http2Settings = Encoding.UTF8.GetString(settingsBytes);
+                string settingsValue = String.Empty;
+                if (http2Settings.IndexOf(':') != -1 || (http2Settings.IndexOf(',') != -1))
+                {
+                    settingsValue = http2Settings.Split(new[] { ':' }, StringSplitOptions.RemoveEmptyEntries)[1];
+                    splittedSettings = settingsValue.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+                }
+                else
+                {
+                    areSettingsOk = false;
+                }
+
+                if (splittedSettings.Length < 2)
+                {
+                    areSettingsOk = false;
+                }
+            }
+            catch (Exception)
+            {
+                areSettingsOk = false;
+            }
+
+            var windowSize = areSettingsOk ? splittedSettings[0].Trim() : defaultWindowSize;
+            var maxStreams = areSettingsOk ? splittedSettings[1].Trim() : defaultMaxStreams;
 
             return new Dictionary<string, string>
                 {
                     //Add more headers
                     {":path", path},
-                    {":method", method}
+                    {":method", method},
+                    {":initial_window_size", windowSize},
+                    {":max_concurrent_streams", maxStreams},
                 };
         }
         

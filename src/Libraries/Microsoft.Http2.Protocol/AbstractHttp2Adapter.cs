@@ -49,8 +49,21 @@ namespace Microsoft.Http2.Protocol
 
         public Task StartSession(IDictionary<string, string> initRequest = null)
         {
+            int initialWindowSize = 200000;
+            int maxStreams = 100;
+
+            if (initRequest.ContainsKey(":initial_window_size"))
+            {
+                initialWindowSize = int.Parse(initRequest[":initial_window_size"]);
+            }
+
+            if (initRequest.ContainsKey(":max_concurrent_streams"))
+            {
+                maxStreams = int.Parse(initRequest[":max_concurrent_streams"]);
+            }
+
             //TODO provide cancellation token and transport info
-            _session = new Http2Session(_stream, ConnectionEnd.Server, true, true, _cancToken);
+            _session = new Http2Session(_stream, ConnectionEnd.Server, true, true, _cancToken, initialWindowSize, maxStreams);
             _session.OnFrameReceived += OnFrameReceivedHandler;
 
             return _session.Start(initRequest);

@@ -77,7 +77,7 @@ namespace SocketServer
         private void HandleAcceptedClient(SecureSocket incomingClient, ALPNExtensionMonitor monitor)
         {
             bool backToHttp11 = false;
-            string selectedProtocol = Protocols.Http2;
+            string selectedProtocol = Protocols.Http1;
             var environmentCopy = new Dictionary<string, object>(_environment);
             
             if (_useHandshake)
@@ -87,16 +87,15 @@ namespace SocketServer
                     if (_options.Protocol != SecureProtocol.None)
                     {
                         incomingClient.MakeSecureHandshake(_options);
+                        selectedProtocol = incomingClient.SelectedProtocol;
                     }
 
-                    selectedProtocol = incomingClient.SelectedProtocol;
-
                     // TODO investigate why selectedProtocol is null after Handshake;
-                    if (selectedProtocol == null)
+                    /*if (selectedProtocol == null)
                     {
                         selectedProtocol = Protocols.Http1;
                         backToHttp11 = true;
-                    }
+                    }*/
                 }
                 catch (SecureHandshakeException ex)
                 {
@@ -147,8 +146,8 @@ namespace SocketServer
             if (backToHttp11 || alpnSelectedProtocol == Protocols.Http1)
             {
                 Http2Logger.LogDebug("Ssl chose http11");
-                
-                Http11ProtocolOwinAdapter.ProcessRequest(incomingClient, incomingClient.Socket.SecureProtocol, _next);
+
+                new Http11ProtocolOwinAdapter(incomingClient, incomingClient.Socket.SecureProtocol, _next).ProcessRequest();
                 return;
             }
 

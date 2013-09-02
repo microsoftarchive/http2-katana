@@ -102,7 +102,9 @@ namespace Microsoft.Http2.Protocol
  
         public Http2Session(DuplexStream stream, ConnectionEnd end, 
                             bool usePriorities, bool useFlowControl,
-                            CancellationToken cancel)
+                            CancellationToken cancel,
+                            int initialWindowSize = 200000,
+                            int maxConcurrentStream = 100)
         {
             _ourEnd = end;
             _usePriorities = usePriorities;
@@ -130,21 +132,10 @@ namespace Microsoft.Http2.Protocol
             ActiveStreams = new ActiveStreams();
 
             _writeQueue = new WriteQueue(_ioStream, ActiveStreams, _usePriorities);
-            OurMaxConcurrentStreams = 100;
-            RemoteMaxConcurrentStreams = 100;
-            InitialWindowSize = 200000;
-            /*if (_sessionSocket != null && sessionSocket.SecureProtocol == SecureProtocol.None)
-            {
-                OurMaxConcurrentStreams = int.Parse(_handshakeHeaders[":max_concurrent_streams"]);
-                RemoteMaxConcurrentStreams = int.Parse(_handshakeHeaders[":max_concurrent_streams"]);
-                InitialWindowSize = int.Parse(_handshakeHeaders[":initial_window_size"]);
-            } 
-            else
-            {
-                OurMaxConcurrentStreams = 100; //Spec recommends value 100 by default
-                RemoteMaxConcurrentStreams = 100;
-                InitialWindowSize = 2000000;
-            }*/
+            OurMaxConcurrentStreams = maxConcurrentStream;
+            RemoteMaxConcurrentStreams = maxConcurrentStream;
+            InitialWindowSize = initialWindowSize;
+
             _flowControlManager = new FlowControlManager(this);
 
             if (!_useFlowControl)
