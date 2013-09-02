@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Org.Mentalis.Security.Ssl;
@@ -25,17 +24,12 @@ namespace ProtocolAdapters
     public static class Http11ProtocolOwinAdapter
     {
         /// <summary>
-        /// Request parameters read timeout.
-        /// </summary>
-        private const int ReadTimeout = 6000; // TODO use global constants instead
-
-        /// <summary>
         /// Processes incoming request.
         /// </summary>
         /// <param name="client">The client connection.</param>
-        /// <param name="environment">The OWIN environment</param>
+        /// <param name="protocol">Security protocol which is used for connection.</param>
         /// <param name="next">The next component in the pipeline.</param>
-        public static async void ProcessRequest(DuplexStream client, Environment environment, AppFunc next)
+        public static async void ProcessRequest(Stream client, SecureProtocol protocol, AppFunc next)
         {
             // args checking
             if (client == null)
@@ -46,7 +40,7 @@ namespace ProtocolAdapters
             try
             {
                 // invalid connection, skip
-                if (!client.CanRead || !client.WaitForDataAvailable(ReadTimeout)) return;
+                if (!client.CanRead) return;
 
                 var rawHeaders = Http11Manager.ReadHeaders(client);
                 
@@ -64,12 +58,10 @@ namespace ProtocolAdapters
 
                 if (!IsMethodSupported(method))
                 {
-                    // TODO consider generating corresponding OwinEnvironment and sending it through owin pipeline so that another 
-                    // middlewares can handle/update it, for example Microsoft.Owin.Diagnostics.UseErrorPage
                     throw new NotSupportedException(method + " method is not currently supported via HTTP/1.1");
                 }
 
-                string scheme = client.Socket.SecureProtocol == SecureProtocol.None ? "http" : "https";
+                string scheme = protocol == SecureProtocol.None ? "http" : "https";
                 string host = headers["Host"][0]; // client MUST include Host header due to HTTP/1.1 spec
                 if (host.IndexOf(':') == -1)
                 {
@@ -159,11 +151,11 @@ namespace ProtocolAdapters
         /// <param name="headers">Parsed request headers.</param>
         /// <param name="env">The OWIN request paremeters to update.</param>
         private static void AddOpaqueUpgradeIfNeeded(IDictionary<string, string[]> headers,
-                                                     IDictionary<string, object> env, DuplexStream client)
+                                                     IDictionary<string, object> env, Stream client)
         {
             if (!headers.ContainsKey("Connection") 
                 || !headers.ContainsKey("Upgrade") 
-                || !headers.ContainsKey("HTTP2-Settings"))
+                || !headers.ContainsKey("HTTP2-Settings")) // TODOSG remove Settings check - move to Middleware
             {
                 return;
             }
@@ -174,6 +166,8 @@ namespace ProtocolAdapters
                 it.IndexOf("2.0", StringComparison.Ordinal) != -1) != null)
             {
                 env[OwinConstants.Opaque.Upgrade] = new UpgradeDelegate(OpaqueUpgradeDelegate);
+
+                // TODOSG - remove below
                 env[OwinConstants.Opaque.Stream] = client;
                 env[OwinConstants.Opaque.Version] = "1.0";
             }
@@ -187,12 +181,11 @@ namespace ProtocolAdapters
         /// </summary>
         /// <param name="client">The client connection.</param>
         /// <param name="ex">The error occured.</param>
-        private static void EndResponse(DuplexStream client, Exception ex)
+        private static void EndResponse(Stream client, Exception ex)
         {
             int statusCode = (ex is NotSupportedException) ? StatusCode.Code501NotImplemented : StatusCode.Code500InternalServerError;
-            
-            Http11Manager.SendResponse(client, new byte[0], statusCode, ContentTypes.TextPlain,
-                new Dictionary<string, string> { { "Connection", "close" } }); // we don’t currently support persistent connection via Http1.1
+
+            Http11Manager.SendResponse(client, new byte[0], statusCode, ContentTypes.TextPlain); 
             client.Flush();
         }
 
@@ -201,7 +194,7 @@ namespace ProtocolAdapters
         /// </summary>
         /// <param name="client">The client connection.</param>
         /// <param name="env">Reponse instance in form of OWIN dictionaty.</param>
-        private static void EndResponse(DuplexStream client, IDictionary<string, object> env)
+        private static void EndResponse(Stream client, IDictionary<string, object> env)
         {
             var owinResponse = new OwinResponse(env);
             
@@ -217,28 +210,7 @@ namespace ProtocolAdapters
                 bytes = new byte[0];
             }
 
-            #region We don’t currently support persistent connection via Http1.1
-
-            if (!owinResponse.Headers.ContainsKey("Connection")) // don't overwrite Connection: UPGRADE
-            {
-                owinResponse.Headers.Add("Connection", new[] { "close" });
-            }
-
-            #endregion
-
-            // response headers
-            var headers = new Dictionary<string, string>();
-            foreach (KeyValuePair<string, string[]> pair in owinResponse.Headers)
-            {
-                var key = pair.Key.ToLowerInvariant();
-
-                // these two are special and passed separatly// TODO move this check to httpmanager
-                if (key == "content-length" || key == "content-type") continue;
-
-                headers[key] = string.Join("\0", pair.Value);
-            }
-
-            Http11Manager.SendResponse(client, bytes, owinResponse.StatusCode, owinResponse.ContentType, headers);
+            Http11Manager.SendResponse(client, bytes, owinResponse.StatusCode, owinResponse.ContentType, owinResponse.Headers);
 
             client.Flush();
         }
@@ -269,7 +241,7 @@ namespace ProtocolAdapters
 
             environment["owin.ResponseHeaders"] = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase);
             environment["owin.ResponseBody"] = new MemoryStream();
-            environment["owin.ResponseStatusCode"] = StatusCode.Code500InternalServerError;
+            environment["owin.ResponseStatusCode"] = StatusCode.Code200Ok;
             environment["owin.ResponseProtocol"] = "HTTP/1.1";
 
             return environment;

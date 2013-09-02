@@ -17,6 +17,9 @@ namespace Microsoft.Http2.Protocol.IO
         private bool _isClosed;
         private readonly bool _ownsSocket;
         private readonly object _closeLock;
+        public override int ReadTimeout {
+            get { return 60000; }
+        }
 
         public SecureSocket Socket { get { return _socket; } }
 
@@ -43,7 +46,10 @@ namespace Microsoft.Http2.Protocol.IO
                 //TODO Connection was lost
                 if (received == 0)
                 {
-                    Close();
+                    if (!_isClosed)
+                    {
+                        Close();
+                    }
                     break;
                 }
 
@@ -139,6 +145,12 @@ namespace Microsoft.Http2.Protocol.IO
         {
             if (_isClosed)
                 throw new DuplexStreamAlreadyClosedException("Duplex stream was already closed");
+
+            if (!WaitForDataAvailable(ReadTimeout))
+            {
+                // TODO consider throwing appropriate timeout exception
+                return 0;
+            }
 
             return _readBuffer.Read(buffer, offset, count);
         }

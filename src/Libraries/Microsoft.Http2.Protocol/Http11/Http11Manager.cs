@@ -2,14 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Net.Sockets;
-using System.Reflection;
 using System.Text;
-using Org.Mentalis;
-using Org.Mentalis.Security.Ssl;
-using Microsoft.Http2.Protocol.EventArgs;
-using Microsoft.Http2.Protocol.IO;
-using Microsoft.Http2.Protocol.Utils;
 
 namespace Microsoft.Http2.Protocol.Http11
 {
@@ -18,20 +11,48 @@ namespace Microsoft.Http2.Protocol.Http11
     /// </summary>
     public static class Http11Manager
     {
-        public static int SendResponse(DuplexStream stream, byte[] data, int statusCode, string contentType, Dictionary<string,string> headers = null)
+
+        public static int Write(this Stream stream, byte[] buffer)
+        {
+            stream.Write(buffer, 0,buffer.Length);
+            return buffer.Length;
+        }
+
+        /// <summary>
+        /// // TODO
+        /// </summary>
+        /// <param name="stream"></param>
+        /// <param name="data"></param>
+        /// <param name="statusCode"></param>
+        /// <param name="contentType"></param>
+        /// <param name="headers"></param>
+        /// <param name="closeConnection">we don’t currently support persistent connection via Http1.1 so closeConnection:true</param>
+        /// <returns></returns>
+        public static int SendResponse(Stream stream, byte[] data, int statusCode, string contentType, IDictionary<string,string[]> headers = null, bool closeConnection = true)
         {
             string initialLine = "HTTP/1.1 " + statusCode + " " + StatusCode.GetReasonPhrase(statusCode) + "\r\n";
             string headersPack = initialLine;
 
             if (headers == null)
-                headers = new Dictionary<string,string>();
+                headers = new Dictionary<string,string[]>(StringComparer.OrdinalIgnoreCase);
 
-            if (data.Length > 0)
+            // TODO replace  hardcoded strigns with constants
+            if (!headers.ContainsKey("Content-Type") && data.Length > 0)
             {
-                headers.Add("Content-Type:", contentType);
+                headers.Add("Content-Type", new []{contentType});
             }
 
-            headersPack = headers.Aggregate(headersPack, (current, header) => current + (header.Key + ": " + header.Value + "\r\n")) + "\r\n";
+            if (!headers.ContainsKey("Conection") && closeConnection)
+            {
+                headers.Add("Connection", new[] { "Close" });
+            }
+
+            if (!headers.ContainsKey("Content-Lenght"))
+            {
+                headers.Add("Content-Lenght", new [] { Convert.ToString(data.Length) });
+            }
+
+            headersPack = headers.Aggregate(headersPack, (current, header) => current + (header.Key + ": " + String.Join(",", header.Value) + "\r\n")) + "\r\n";
 
             int sent = stream.Write(Encoding.UTF8.GetBytes(headersPack));
             //SendHeaders(stream, headers, data.Length);
@@ -43,38 +64,7 @@ namespace Microsoft.Http2.Protocol.Http11
             return sent;
         }
 
-        public static string ConstructHeaders(Uri uri)
-        {
-            string requestHeaders = string.Format(
-                        "GET {2} HTTP/1.1\r\n"
-                        + "Host: {0}:{1}\r\n"
-                        + "Connection: Keep-Alive\r\n"
-                        + "User-Agent: Http2Client\r\n"
-                        + "Accept: {3},application/xml;q=0.9,*/*;q=0.8\r\n"
-                        + "\r\n",
-                        uri.Host,
-                        uri.Port,
-                        uri.AbsolutePath, // match what Chrome has in GET request
-                        ContentTypes.GetTypeFromFileName(uri.ToString()));
-
-            return requestHeaders;
-        }
-
-        //TODO must be reworked
-        public static void SendHeaders(DuplexStream socket, Dictionary<string, string> headers, int contentLength = 0)
-        {
-            var headersString = new StringBuilder();
-
-            foreach (var header in headers)
-            {
-                headersString.AppendFormat("{0}: {1}\r\n", header.Key, header.Value);
-            }
-            headersString.AppendFormat("Content-Length: {0}\r\n" + "\r\n", contentLength);
-            byte[] headersBytes = Encoding.UTF8.GetBytes(headersString.ToString());
-            socket.Write(headersBytes);
-        }
-
-        public static string[] ReadHeaders(DuplexStream socket)
+        public static string[] ReadHeaders(Stream socket)
         {
             var headers = new List<string>(5);
 

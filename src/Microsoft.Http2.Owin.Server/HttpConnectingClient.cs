@@ -148,11 +148,7 @@ namespace SocketServer
             {
                 Http2Logger.LogDebug("Ssl chose http11");
                 
-                //Http11 should get initial headers (they can contain upgrade) 
-                //after it got headers it should call middleware. 
-                //Environment should contain upgrade delegate
-                //Http11Manager.Http11SendResponse(incomingClient);
-                Http11ProtocolOwinAdapter.ProcessRequest(incomingClient, environment, _next);
+                Http11ProtocolOwinAdapter.ProcessRequest(incomingClient, incomingClient.Socket.SecureProtocol, _next);
                 return;
             }
 
