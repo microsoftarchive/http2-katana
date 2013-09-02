@@ -47,9 +47,9 @@ namespace Microsoft.Http2.Protocol.Http11
                 headers.Add("Connection", new[] { "Close" });
             }
 
-            if (!headers.ContainsKey("Content-Lenght"))
+            if (!headers.ContainsKey("Content-Length"))
             {
-                headers.Add("Content-Lenght", new [] { Convert.ToString(data.Length) });
+                headers.Add("Content-Length", new [] { Convert.ToString(data.Length) });
             }
 
             headersPack = headers.Aggregate(headersPack, (current, header) => current + (header.Key + ": " + String.Join(",", header.Value) + "\r\n")) + "\r\n";
