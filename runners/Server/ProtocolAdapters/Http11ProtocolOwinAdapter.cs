@@ -4,8 +4,8 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Owin;
 using Org.Mentalis.Security.Ssl;
-using Owin.Types;
 using Microsoft.Http2.Protocol.Http11;
 using Microsoft.Http2.Protocol;
 using Microsoft.Http2.Protocol.IO;
@@ -81,7 +81,7 @@ namespace ProtocolAdapters
                 }
 
                 //Application layer was called and formed response.
-                if (!env.ContainsKey(OwinConstants.Opaque.Upgrade))
+                if (!env.ContainsKey("opaque.Upgrade"))
                 {
                     EndResponse(client, env);
                     Http2Logger.LogDebug("Closing connection");
@@ -122,21 +122,19 @@ namespace ProtocolAdapters
                 var resp = new OwinResponse(env)
                     {
                         Body = new MemoryStream(),
-                        Headers = new Dictionary<string, string[]>
-                            {
-                                {"Connection", new[] {"Upgrade"}},
-                                {"Upgrade", new[] {Protocols.Http2}},
-                            },
                         StatusCode = 101,
                         Protocol = "HTTP/1.1"
                     };
+
+                resp.Headers.Add("Connection", new[] { "Upgrade" });
+                resp.Headers.Add("Upgrade", new[] { Protocols.Http2 });
 
                 env["owin.ResponseBody"] = resp.Body;
                 env["owin.ResponseHeaders"] = resp.Headers;
                 env["owin.ResponseStatusCode"] = 101;
                 env["owin.ResponseProtocol"] = resp.Protocol;
 
-                EndResponse(env[OwinConstants.Opaque.Stream] as DuplexStream, env);
+                EndResponse(env["opaque.Stream"] as DuplexStream, env);
             }
             finally
             {
@@ -165,11 +163,11 @@ namespace ProtocolAdapters
                 it.ToUpper().IndexOf("HTTP", StringComparison.Ordinal) != -1 &&
                 it.IndexOf("2.0", StringComparison.Ordinal) != -1) != null)
             {
-                env[OwinConstants.Opaque.Upgrade] = new UpgradeDelegate(OpaqueUpgradeDelegate);
+                env["opaque.Upgrade"] = new UpgradeDelegate(OpaqueUpgradeDelegate);
 
                 // TODOSG - remove below
-                env[OwinConstants.Opaque.Stream] = client;
-                env[OwinConstants.Opaque.Version] = "1.0";
+                env["opaque.Stream"] = client;
+                env["opaque.Version"] = "1.0";
             }
 
         }

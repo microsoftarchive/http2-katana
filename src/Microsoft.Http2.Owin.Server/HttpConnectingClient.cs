@@ -181,8 +181,8 @@ namespace SocketServer
 
             var transportInfo = new TransportInformation
             {
-                LocalPort = localEndPoint.Port.ToString(CultureInfo.InvariantCulture),
-                RemotePort = remoteEndPoint.Port.ToString(CultureInfo.InvariantCulture),
+                LocalPort = localEndPoint.Port,
+                RemotePort = remoteEndPoint.Port,
             };
 
             // Side effect of using dual mode sockets, the IPv4 addresses look like 0::ffff:127.0.0.1.

@@ -1,5 +1,5 @@
 ﻿using System;
-using Client.Handshake.Handshake;
+using Client.Handshake;
 
 namespace Client.Handshake.Exceptions
 {

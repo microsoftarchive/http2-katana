@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using Owin.Types;
+using Microsoft.Owin;
 using ProtocolAdapters;
 using Microsoft.Http2.Protocol;
 using Microsoft.Http2.Protocol.IO;
@@ -10,6 +10,7 @@ using Microsoft.Http2.Protocol.IO;
 namespace ServerOwinMiddleware
 {
     using AppFunc = Func<IDictionary<string, object>, Task>;
+    using UpgradeDelegate = Action<IDictionary<string, object>, Func<IDictionary<string, object>, Task>>;
     // Http-01/2.0 uses a similar upgrade handshake to WebSockets. This middleware answers upgrade requests
     // using the Opaque Upgrade OWIN extension and then switches the pipeline to HTTP/2.0 binary framing.
     // Interestingly the HTTP/2.0 handshake does not need to be the first HTTP/1.1 request on a connection, only the last.
@@ -32,27 +33,27 @@ namespace ServerOwinMiddleware
         public async Task Invoke(IDictionary<string, object> environment)
         {
             var request = new OwinRequest(environment);
-
+            
             //After upgrade happened upgrade delegate should be null for next requests in a single connection
-            if (request.UpgradeDelegate != null)
+            if (environment.ContainsKey("opaque.Upgrade") && environment["opaque.Upgrade"] is UpgradeDelegate)
             {
+                var upgradeDelegate = environment["opaque.Upgrade"] as UpgradeDelegate;
                 //Should open session here
-                request.UpgradeDelegate.Invoke(environment, opaque =>
+                upgradeDelegate.Invoke(environment, opaque =>
                     {
                         //Copy Dictionary
-                        var envCopy = CopyEnvironment(opaque);
-
                         //use the same stream which was used during upgrade
-                        var opaqueStream = opaque[OwinConstants.Opaque.Stream] as DuplexStream;
+
+                        var opaqueStream = opaque["opaque.Stream"] as DuplexStream;
                         var trInfo = CreateTransportInfo(request);
 
                         //Provide cancellation token here
                         var http2Adapter = new Http2OwinAdapter(opaqueStream, trInfo, _next, CancellationToken.None);
 
-                        return http2Adapter.StartSession(GetInitialRequestParams(envCopy));
+                        return http2Adapter.StartSession(GetInitialRequestParams(opaque));
                     });
 
-                environment[OwinConstants.Opaque.Upgrade] = null;
+                environment["opaque.Upgrade"] = null;
                 return;
             }
 
@@ -60,19 +61,15 @@ namespace ServerOwinMiddleware
             await _next(environment);
         }
 
-        private IDictionary<string, object> CopyEnvironment(IDictionary<string, object> original)
-        {
-            //May add other headers
-            return new Dictionary<string, object>(original);
-        }
-
         private IDictionary<string, string> GetInitialRequestParams(IDictionary<string, object> environment)
         {
-            var path =  environment.ContainsKey(OwinConstants.RequestPath)
-                            ? (string) environment[OwinConstants.RequestPath]
+            var request = new OwinRequest(environment);
+
+            var path = !String.IsNullOrEmpty(request.Path)
+                            ? request.Path
                             : "/index.html";
-            var method =  environment.ContainsKey(OwinConstants.RequestMethod)
-                            ? (string) environment[OwinConstants.RequestMethod]
+            var method =  !String.IsNullOrEmpty(request.Method)
+                            ? request.Method
                             : "get";
 
             return new Dictionary<string, string>
@@ -89,9 +86,9 @@ namespace ServerOwinMiddleware
             return new TransportInformation
             {
                 RemoteIpAddress = owinRequest.RemoteIpAddress,
-                RemotePort = owinRequest.RemotePort,
+                RemotePort = owinRequest.RemotePort != null ? (int) owinRequest.RemotePort : 8080,
                 LocalIpAddress = owinRequest.LocalIpAddress,
-                LocalPort = owinRequest.LocalPort,
+                LocalPort = owinRequest.LocalPort != null ? (int) owinRequest.LocalPort : 8080,
             };
         }
     }

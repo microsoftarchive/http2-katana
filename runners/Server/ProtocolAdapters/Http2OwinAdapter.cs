@@ -3,11 +3,11 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
-using Owin.Types;
 using Microsoft.Http2.Protocol;
 using Microsoft.Http2.Protocol.Extensions;
 using Microsoft.Http2.Protocol.IO;
 using Microsoft.Http2.Protocol.Utils;
+using Microsoft.Owin;
 
 namespace ProtocolAdapters
 {
@@ -34,15 +34,16 @@ namespace ProtocolAdapters
             owinRequest.Path = headers.GetValue(":path");
             owinRequest.CallCancelled = CancellationToken.None;
 
-            owinRequest.OwinVersion = Constants.OwinVersion;
-            owinRequest.Headers = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase);
+            owinRequest.PathBase = "/";
+            owinRequest.QueryString = String.Empty;
+            owinRequest.Body = new MemoryStream();
+            owinRequest.Protocol = Protocols.Http1;
+            owinRequest.Scheme = Uri.UriSchemeHttp;
             owinRequest.RemoteIpAddress = _transportInfo.RemoteIpAddress;
-            owinRequest.RemotePort = _transportInfo.RemotePort;
+            owinRequest.RemotePort = Convert.ToInt32(_transportInfo.RemotePort);
             owinRequest.LocalIpAddress = _transportInfo.LocalIpAddress;
             owinRequest.LocalPort = _transportInfo.LocalPort;
-            owinRequest.IsLocal = string.Equals(_transportInfo.RemoteIpAddress, _transportInfo.LocalPort);
 
-            owinResponse.Headers = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase);
             owinResponse.Body = new MemoryStream();
 
             foreach (var header in headers)
@@ -80,20 +81,23 @@ namespace ProtocolAdapters
             Stream responseBody = null;
             IDictionary<string, string[]> owinResponseHeaders = null;
             HeadersList responseHeaders = null;
-            if (environment.ContainsKey(OwinConstants.ResponseBody))
-                responseBody = (Stream) environment[OwinConstants.ResponseBody];
 
-            if (environment.ContainsKey(OwinConstants.ResponseHeaders))
-                owinResponseHeaders = (IDictionary<string, string[]>) environment[OwinConstants.ResponseHeaders];
+            var response = new OwinResponse(environment);
 
-            var responseStatusCode = (int) environment[OwinConstants.ResponseStatusCode];
+            if (response.Body != null)
+                responseBody = response.Body;
+
+            if (response.Headers != null)
+                owinResponseHeaders = response.Headers;
+
+            var responseStatusCode = response.StatusCode;
 
             if (owinResponseHeaders != null)
                 responseHeaders = new HeadersList(owinResponseHeaders);
 
             if (ex != null)
             {
-                WriteStatus(stream, responseStatusCode, false, responseHeaders);
+                WriteStatus(stream, StatusCode.Code500InternalServerError, false, responseHeaders);
                 return;
             }
 

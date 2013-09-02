@@ -8,7 +8,6 @@ using System.Threading.Tasks;
 using Org.Mentalis.Security.Certificates;
 using Org.Mentalis.Security.Ssl;
 using Org.Mentalis.Security.Ssl.Shared.Extensions;
-using Owin.Types;
 using System.Configuration;
 using Microsoft.Http2.Protocol;
 using Microsoft.Http2.Protocol.Utils;
@@ -42,7 +41,7 @@ namespace SocketServer
         {
             _next = next;
             _properties = properties;
-            var addresses = (IList<IDictionary<string, object>>)properties[OwinConstants.CommonKeys.Addresses];
+            var addresses = (IList<IDictionary<string, object>>)properties["host.Addresses"];
 
             var address = addresses.First();
             _port = Int32.Parse(address.Get<string>("port"));

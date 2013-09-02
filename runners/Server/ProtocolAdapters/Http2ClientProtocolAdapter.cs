@@ -14,7 +14,6 @@ namespace ProtocolAdapters
     public class Http2ClientProtocolAdapter : AbstractHttp2Adapter
     {
         private readonly FileHelper _fileHelper;
-        private readonly object _writeLock = new object();
         private const string Index = @"index.html";
         private static readonly string AssemblyPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
 
