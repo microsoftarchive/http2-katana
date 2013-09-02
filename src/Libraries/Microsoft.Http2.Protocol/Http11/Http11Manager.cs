@@ -42,7 +42,7 @@ namespace Microsoft.Http2.Protocol.Http11
                 headers.Add("Content-Type", new []{contentType});
             }
 
-            if (!headers.ContainsKey("Conection") && closeConnection)
+            if (!headers.ContainsKey("Connection") && closeConnection)
             {
                 headers.Add("Connection", new[] { "Close" });
             }

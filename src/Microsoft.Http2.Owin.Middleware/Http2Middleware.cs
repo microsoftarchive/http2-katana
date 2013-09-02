@@ -36,10 +36,9 @@ namespace ServerOwinMiddleware
         public async Task Invoke(IDictionary<string, object> environment)
         {
             var request = new OwinRequest(environment);
-            
-            //After upgrade happened upgrade delegate should be null for next requests in a single connection
-            if (CheckForHttp2UpgradeHeaders(request)
-                && CheckForUpgrade(environment))
+
+
+            if (IsOpaqueUpgradePossible(request) && IsRequestForHttp2Upgrade(request))
             {
                 var upgradeDelegate = environment["opaque.Upgrade"] as UpgradeDelegate;
 
@@ -56,7 +55,6 @@ namespace ServerOwinMiddleware
                         return http2Adapter.StartSession(GetInitialRequestParams(opaque));
                     });
 
-                environment["opaque.Upgrade"] = null;
                 return;
             }
 
@@ -64,7 +62,7 @@ namespace ServerOwinMiddleware
             await _next(environment);
         }
 
-        private bool CheckForHttp2UpgradeHeaders(OwinRequest request)
+        private static bool IsRequestForHttp2Upgrade(OwinRequest request)
         {
             var headers = request.Headers as IDictionary<string, string[]>;
             return  headers.ContainsKey("Connection")
@@ -75,8 +73,10 @@ namespace ServerOwinMiddleware
                                          it.IndexOf("2.0", StringComparison.Ordinal) != -1) != null;
         }
 
-        private bool CheckForUpgrade(IDictionary<string, object> environment)
+        private static bool IsOpaqueUpgradePossible(OwinRequest request)
         {
+            var environment = request.Environment;
+
             return environment.ContainsKey("opaque.Upgrade")
                    && environment["opaque.Upgrade"] is UpgradeDelegate;
         }

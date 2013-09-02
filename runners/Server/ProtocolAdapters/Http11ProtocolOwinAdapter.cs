@@ -8,7 +8,6 @@ using Microsoft.Owin;
 using Org.Mentalis.Security.Ssl;
 using Microsoft.Http2.Protocol.Http11;
 using Microsoft.Http2.Protocol;
-using Microsoft.Http2.Protocol.IO;
 using Microsoft.Http2.Protocol.Utils;
 
 namespace ProtocolAdapters
@@ -27,8 +26,16 @@ namespace ProtocolAdapters
         private readonly SecureProtocol _protocol;
         private readonly AppFunc _next;
         private Environment _environment;
-        private AppFunc _opaqueCallback = null;
+        private OwinRequest _request;
+        private OwinResponse _response;
+        private AppFunc _opaqueCallback;
 
+        /// <summary>
+        /// Creates new isntaces of the Http11ProtocolOwinAdapter class
+        /// </summary>
+        /// <param name="client">The client connection.</param>
+        /// <param name="protocol">Security protocol which is used for connection.</param>
+        /// <param name="next">The next component in the OWIN pipeline.</param>
         public Http11ProtocolOwinAdapter(Stream client, SecureProtocol protocol, AppFunc next)
         {
             // args checking
@@ -45,18 +52,9 @@ namespace ProtocolAdapters
         /// <summary>
         /// Processes incoming request.
         /// </summary>
-        /// <param name="client">The client connection.</param>
-        /// <param name="protocol">Security protocol which is used for connection.</param>
-        /// <param name="next">The next component in the pipeline.</param>
         public async void ProcessRequest()
         {
-            // args checking
-            if (_client == null)
-            {
-                throw new ArgumentNullException("client");
-            }
-
-            try
+           try
             {
                 // invalid connection, skip
                 if (!_client.CanRead) return;
@@ -72,27 +70,33 @@ namespace ProtocolAdapters
                 var headers = Http11Manager.ParseHeaders(rawHeaders.Skip(1).ToArray());
 
                 // parse request parameters: method, path, host, etc
-                string[] splittedRequestString = rawHeaders[0].Split(' ');
-                string method = splittedRequestString[0];
+                var splittedRequestString = rawHeaders[0].Split(' ');
+                var method = splittedRequestString[0];
 
                 if (!IsMethodSupported(method))
                 {
                     throw new NotSupportedException(method + " method is not currently supported via HTTP/1.1");
                 }
 
-                string scheme = _protocol == SecureProtocol.None ? "http" : "https";
-                string host = headers["Host"][0]; // client MUST include Host header due to HTTP/1.1 spec
+                var scheme = _protocol == SecureProtocol.None ? "http" : "https";
+                var host = headers["Host"][0]; // client MUST include Host header due to HTTP/1.1 spec
                 if (host.IndexOf(':') == -1)
                 {
                     host += (scheme == "http" ? ":80" : ":443"); // use default port
                 }
-                string path = splittedRequestString[1];
+                headers["Host"] = new[] {host};
+
+                var path = splittedRequestString[1];
 
                 // main owin environment components
-                _environment = CreateOwinEnvironment(method, scheme, host, "", path, headers);
+                _environment = CreateOwinEnvironment(method, scheme, "", path, headers);
+                
+               // OWIN request and reponse below shares the same environment dictionary 
+                _request = new OwinRequest(_environment);
+                _response = new OwinResponse(_environment);
 
                 // we may need to populate additional fields if request supports UPGRADE
-                AddOpaqueUpgrade();
+                AddOpaqueUpgradeIfNeeded();
                 
                 if (_next != null)
                 {
@@ -101,32 +105,22 @@ namespace ProtocolAdapters
 
                 if (_opaqueCallback == null)
                 {
-                    EndResponse(new OwinResponse(_environment));
+                    EndResponse();
                 }
                 else
                 {
-                    var request = new OwinRequest(_environment);
-                    EndResponse(new OwinResponse(_environment), false);
-                    var env = new Dictionary<string, object>();
-                    env["opaque.Stream"] = _client;
-                    env["opaque.Version"] = "1.0";
-                    env["opaque.CallCancelled"] = new CancellationToken();
+                    // do not close connection
+                    EndResponse(false);
 
-                    env["owin.RequestHeaders"] = request.Headers;
-                    env["owin.RequestPath"] = request.Path;
-                    env["owin.RequestPathBase"] = request.PathBase;
-                    env["owin.RequestMethod"] = request.Method;
-                    env["owin.RequestProtocol"] = request.Protocol;
-                    env["owin.RequestScheme"] = request.Scheme;
-                    env["owin.RequestBody"] = request.Body;
-                    env["owin.RequestQueryString"] = request.QueryString;
-
-                    _opaqueCallback(env);
+                    var opaqueEnvironment = CreateOpaqueEnvironment();
+                    _opaqueCallback(opaqueEnvironment);
                 }
             }
             catch (Exception ex)
             {
-                EndResponse(_client, ex);
+
+                Http2Logger.LogError(ex.Message);
+                EndResponse(ex);
                 Http2Logger.LogDebug("Closing connection");
                 _client.Close();
             }
@@ -137,7 +131,7 @@ namespace ProtocolAdapters
         /// </summary>
         /// <param name="method">Http method to perform check for.</param>
         /// <returns>True if method is supported, otherwise False.</returns>
-        private bool IsMethodSupported(string method)
+        private static bool IsMethodSupported(string method)
         {
             var supported = new[] {"GET","DELETE" };
 
@@ -147,19 +141,19 @@ namespace ProtocolAdapters
         #region Opague Upgrade
 
         /// <summary>
-        /// Implements Http1 to Http2 apgrade delegate according to 'OWIN Opaque Stream Extension'.
+        /// Implements OWIN upgrade delegate according to 'OWIN Opaque Stream Extension'.
+        /// http://owin.org/extensions/owin-OpaqueStream-Extension-v0.3.0.htm
         /// </summary>
-        /// <param name="env">The OWIN environment.</param>
-        /// <param name="next">The callback delegate to be executed after Opague Upgarde is done.</param>
+        /// <param name="settings">The opaque parameters. Not currently used.</param>
+        /// <param name="opaqueCallback">The OpaqueFunc callback</param>
         private void OpaqueUpgradeDelegate(Environment settings, AppFunc opaqueCallback)
         {
-            var resp = new OwinResponse(_environment)
-            {
-                StatusCode = 101,
-                Protocol = "HTTP/1.1"
-            };
-            resp.Headers.Add("Connection", new[] {"Upgrade"});
-            resp.Headers.Add("Upgrade", new[] {Protocols.Http2});
+            // TODO 101 to constants
+            _response.StatusCode = 101;
+            _response.ReasonPhrase = "Switching Protocols"; // TODO is ReasonPhrase necessary here
+            _response.Protocol = "HTTP/1.1";
+            _response.Headers.Add("Connection", new[] {"Upgrade"});
+            _response.Headers.Add("Upgrade", new[] {Protocols.Http2});
 
             _opaqueCallback = opaqueCallback;
         }
@@ -167,11 +161,39 @@ namespace ProtocolAdapters
         /// <summary>
         /// Inspects request headers to see if supported UPGRADE method is defined; if so, specifies Opague.Upgarde delegate as per 'OWIN Opaque Stream Extension'.
         /// </summary>
-        /// <param name="headers">Parsed request headers.</param>
-        /// <param name="env">The OWIN request paremeters to update.</param>
-        private void AddOpaqueUpgrade()
+        private void AddOpaqueUpgradeIfNeeded()
         {
-            _environment["opaque.Upgrade"] = new UpgradeDelegate(OpaqueUpgradeDelegate);
+
+            var headers = _request.Headers;
+
+            if (headers.ContainsKey("Connection") && headers.ContainsKey("Upgrade"))
+            {
+                _environment["opaque.Upgrade"] = new UpgradeDelegate(OpaqueUpgradeDelegate);
+            }
+       
+        }
+
+        /// <summary>
+        /// Creates new Opaque Environment dictionary.
+        /// </summary>
+        /// <returns>New instance of the Opaque Environment dictionary</returns>
+        private Environment CreateOpaqueEnvironment()
+        {
+            var env = new Dictionary<string, object>(StringComparer.Ordinal);
+            env["opaque.Stream"] = _client;
+            env["opaque.Version"] = "1.0";
+            env["opaque.CallCancelled"] = new CancellationToken();
+
+            env["owin.RequestHeaders"] = _request.Headers;
+            env["owin.RequestPath"] = _request.Path;
+            env["owin.RequestPathBase"] = _request.PathBase;
+            env["owin.RequestMethod"] = _request.Method;
+            env["owin.RequestProtocol"] = _request.Protocol;
+            env["owin.RequestScheme"] = _request.Scheme;
+            env["owin.RequestBody"] = _request.Body;
+            env["owin.RequestQueryString"] = _request.QueryString;
+
+            return env;
         }
 
         #endregion
@@ -179,33 +201,29 @@ namespace ProtocolAdapters
         /// <summary>
         /// Completes response by sending result back to the client.
         /// </summary>
-        /// <param name="client">The client connection.</param>
         /// <param name="ex">The error occured.</param>
-        private void EndResponse(Stream client, Exception ex)
+        private void EndResponse(Exception ex)
         {
             int statusCode = (ex is NotSupportedException) ? StatusCode.Code501NotImplemented : StatusCode.Code500InternalServerError;
 
-            Http11Manager.SendResponse(client, new byte[0], statusCode, ContentTypes.TextPlain); 
-            client.Flush();
+            Http11Manager.SendResponse(_client, new byte[0], statusCode, ContentTypes.TextPlain);
         }
 
-        private void EndResponse(OwinResponse owinResponse, bool closeConnection = true)
+        private void EndResponse(bool closeConnection = true)
         {
             byte[] bytes;
 
             // response body
-            if (owinResponse.Body is MemoryStream)
+            if (_response.Body is MemoryStream)
             {
-                bytes = (owinResponse.Body as MemoryStream).ToArray();
+                bytes = (_response.Body as MemoryStream).ToArray();
             }
             else
             {
                 bytes = new byte[0];
             }
 
-            Http11Manager.SendResponse(_client, bytes, owinResponse.StatusCode, owinResponse.ContentType, owinResponse.Headers, closeConnection);
-
-            _client.Flush();
+            Http11Manager.SendResponse(_client, bytes, _response.StatusCode, _response.ContentType, _response.Headers, closeConnection);
 
             if (closeConnection)
             {
@@ -220,12 +238,12 @@ namespace ProtocolAdapters
         /// </summary>
         /// <param name="method">The request method.</param>
         /// <param name="scheme">The request scheme.</param>
-        /// <param name="hostHeaderValue">The request host.</param>
         /// <param name="pathBase">The request base path.</param>
         /// <param name="path">The request path.</param>
+        /// <param name="headers">The request headers.</param>
         /// <param name="requestBody">The body of request.</param>
         /// <returns>OWIN representation for provided request parameters.</returns>
-        private Dictionary<string, object> CreateOwinEnvironment(string method, string scheme, string hostHeaderValue, string pathBase, 
+        private static Dictionary<string, object> CreateOwinEnvironment(string method, string scheme, string pathBase, 
                                                                         string path, IDictionary<string, string[]> headers, byte[] requestBody = null)
         {
             var environment = new Dictionary<string, object>(StringComparer.Ordinal);
