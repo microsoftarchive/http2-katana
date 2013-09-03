@@ -36,7 +36,6 @@ namespace ServerOwinMiddleware
         {
             var request = new OwinRequest(environment);
 
-
             if (IsOpaqueUpgradePossible(request) && IsRequestForHttp2Upgrade(request))
             {
                 var upgradeDelegate = environment["opaque.Upgrade"] as UpgradeDelegate;
@@ -49,7 +48,7 @@ namespace ServerOwinMiddleware
                         var opaqueStream = opaque["opaque.Stream"] as DuplexStream;
 
                         //Provide cancellation token here
-                        var http2Adapter = new Http2OwinAdapter(opaqueStream, trInfo, _next, CancellationToken.None);
+                        var http2Adapter = new Http2OwinAdapter(opaqueStream, trInfo, Invoke, CancellationToken.None);
 
                         return http2Adapter.StartSession(GetInitialRequestParams(opaque));
                     });
@@ -63,7 +62,7 @@ namespace ServerOwinMiddleware
 
         private static bool IsRequestForHttp2Upgrade(OwinRequest request)
         {
-            var headers = request.Headers as IDictionary<string, string[]>;
+            var headers = request.Environment["owin.RequestHeaders"] as IDictionary<string, string[]>;
             return  headers.ContainsKey("Connection")
                     && headers.ContainsKey("HTTP2-Settings")
                     && headers.ContainsKey("Upgrade") 

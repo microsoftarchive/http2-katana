@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Http2.Protocol;
@@ -27,6 +28,12 @@ namespace ProtocolAdapters
         private IDictionary<string, object> PopulateEnvironment(HeadersList headers)
         {
             var environment = new Dictionary<string, object>();
+
+            var headersAsDict = headers.ToDictionary(header => header.Key, header => new[] {header.Value});
+
+            environment["owin.RequestHeaders"] = headersAsDict;
+            environment["owin.ResponseHeaders"] = new Dictionary<string, string[]>();
+
             var owinRequest = new OwinRequest(environment);
             var owinResponse = new OwinResponse(environment);
 
@@ -45,11 +52,6 @@ namespace ProtocolAdapters
             owinRequest.LocalPort = _transportInfo.LocalPort;
 
             owinResponse.Body = new MemoryStream();
-
-            foreach (var header in headers)
-            {
-                owinRequest.Headers.Add(header.Key, new[] {header.Value});
-            }
 
             return environment;
         }
