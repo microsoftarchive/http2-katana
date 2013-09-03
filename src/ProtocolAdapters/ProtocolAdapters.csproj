@@ -51,11 +51,11 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\src\Libraries\MentalisSecurityLibrary\Security Library.csproj">
+    <ProjectReference Include="..\Libraries\MentalisSecurityLibrary\Security Library.csproj">
       <Project>{5bfa5a70-d384-4417-afcc-5c744485a85f}</Project>
       <Name>Security Library</Name>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\src\Libraries\Microsoft.Http2.Protocol\Microsoft.Http2.Protocol.csproj">
+    <ProjectReference Include="..\Libraries\Microsoft.Http2.Protocol\Microsoft.Http2.Protocol.csproj">
       <Project>{e34ac310-324c-46bc-af9f-1a41df58e867}</Project>
       <Name>Microsoft.Http2.Protocol</Name>
     </ProjectReference>

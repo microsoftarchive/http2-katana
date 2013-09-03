@@ -52,10 +52,6 @@
     <Compile Include="SocketServerFactory.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\runners\Server\ProtocolAdapters\ProtocolAdapters.csproj">
-      <Project>{855ebb2f-b7c0-4525-9dd6-a3b66de268d1}</Project>
-      <Name>ProtocolAdapters</Name>
-    </ProjectReference>
     <ProjectReference Include="..\Libraries\MentalisSecurityLibrary\Security Library.csproj">
       <Project>{5bfa5a70-d384-4417-afcc-5c744485a85f}</Project>
       <Name>Security Library</Name>
@@ -63,6 +59,10 @@
     <ProjectReference Include="..\Libraries\Microsoft.Http2.Protocol\Microsoft.Http2.Protocol.csproj">
       <Project>{e34ac310-324c-46bc-af9f-1a41df58e867}</Project>
       <Name>Microsoft.Http2.Protocol</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\ProtocolAdapters\ProtocolAdapters.csproj">
+      <Project>{855ebb2f-b7c0-4525-9dd6-a3b66de268d1}</Project>
+      <Name>ProtocolAdapters</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
