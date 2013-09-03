@@ -79,12 +79,12 @@ namespace ProtocolAdapters
                 }
 
                 var scheme = _protocol == SecureProtocol.None ? "http" : "https";
-                var host = headers["Host"][0]; // client MUST include Host header due to HTTP/1.1 spec
+                var host = headers[":host"][0]; // client MUST include Host header due to HTTP/1.1 spec
                 if (host.IndexOf(':') == -1)
                 {
                     host += (scheme == "http" ? ":80" : ":443"); // use default port
                 }
-                headers["Host"] = new[] {host};
+                headers[":host"] = new[] {host};
 
                 var path = splittedRequestString[1];
 

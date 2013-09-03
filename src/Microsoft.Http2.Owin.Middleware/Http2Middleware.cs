@@ -98,15 +98,14 @@ namespace ServerOwinMiddleware
 
 
             var splittedSettings = new string[0];
+            //var headers = request.Headers as IDictionary<string, string[]>;
             try
-            {            
-                var settingsBytes = Convert.FromBase64String(request.Headers["Http2-Settings"]);
-                var http2Settings = Encoding.UTF8.GetString(settingsBytes);
-                string settingsValue = String.Empty;
-                if (http2Settings.IndexOf(':') != -1 || (http2Settings.IndexOf(',') != -1))
+            {
+                //var settingsBytes = Convert.FromBase64String(headers["Http2-Settings"][0]);
+                var http2Settings = request.Headers["Http2-Settings"];//Encoding.UTF8.GetString(settingsBytes);
+                if (http2Settings.IndexOf(',') != -1)
                 {
-                    settingsValue = http2Settings.Split(new[] { ':' }, StringSplitOptions.RemoveEmptyEntries)[1];
-                    splittedSettings = settingsValue.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+                    splittedSettings = http2Settings.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
                 }
                 else
                 {

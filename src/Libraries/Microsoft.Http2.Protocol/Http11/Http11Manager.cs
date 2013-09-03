@@ -109,16 +109,38 @@ namespace Microsoft.Http2.Protocol.Http11
             return headers.ToArray();
         }
 
+        private static string ConvertFromBase64(string toConvert)
+        {
+            var bytes = Convert.FromBase64String(toConvert);
+            return Encoding.UTF8.GetString(bytes);
+        }
+
         // TODO find better way
         public static IDictionary<string, string[]> ParseHeaders(IEnumerable<string> headers)
         {
             var dict = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase);
             foreach (var header in headers)
             {
-                int colonIndex = header.IndexOf(':');
+                int colonIndex = header.LastIndexOf(':');
                 if (colonIndex == -1)
                 {
-                    dict.Add(header, new string[0]);
+                    try
+                    {
+                        string base64Headers = ConvertFromBase64(header);
+                        var splittedBase64Headers = base64Headers.Split(new[] {'\n','\r'},
+                                                                        StringSplitOptions.RemoveEmptyEntries);
+                        var base64HeaderDict = ParseHeaders(splittedBase64Headers);
+
+                        foreach (var base64Header in base64HeaderDict.Where(base64Header => !dict.ContainsKey(base64Header.Key)))
+                        {
+                            dict.Add(base64Header.Key, base64Header.Value);
+                        }
+                    }
+                    catch (Exception)
+                    {
+                        if (!dict.ContainsKey(header))
+                            dict.Add(header, new string[0]);
+                    }
                 }
                 else
                 {
@@ -129,7 +151,8 @@ namespace Microsoft.Http2.Protocol.Http11
                         values[i] = values[i].Trim();
                     }
 
-                    dict.Add(headerName, values);
+                    if (!dict.ContainsKey(headerName))
+                        dict.Add(headerName, values);
                 }
             }
 
