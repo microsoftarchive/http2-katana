@@ -95,9 +95,6 @@
     <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\EventArgs\RequestSentEventArgs.cs">
       <Link>Sources\RequestSentEventArgs.cs</Link>
     </Compile>
-    <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Exceptions\DuplexStreamAlreadyClosedException.cs">
-      <Link>Sources\DuplexStreamAlreadyClosedException.cs</Link>
-    </Compile>
     <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Exceptions\ProtocolError.cs">
       <Link>Sources\ProtocolError.cs</Link>
     </Compile>
