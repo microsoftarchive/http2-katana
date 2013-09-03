@@ -72,7 +72,6 @@
     <Compile Include="Framing\IEndStreamFrames.cs" />
     <Compile Include="Framing\PriorityFrame.cs" />
     <Compile Include="HeadersList.cs" />
-    <Compile Include="Http11\Http11Manager.cs" />
     <Compile Include="AbstractHttp2Adapter.cs" />
     <Compile Include="IO\DuplexStream.cs" />
     <Compile Include="IO\FileHelper.cs" />

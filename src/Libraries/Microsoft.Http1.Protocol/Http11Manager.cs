@@ -4,7 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 
-namespace Microsoft.Http2.Protocol.Http11
+namespace Microsoft.Http1.Protocol
 {
     /// <summary>
     /// This class is designed for http11 handling.

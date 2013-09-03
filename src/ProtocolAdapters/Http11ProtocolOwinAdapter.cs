@@ -4,11 +4,12 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Http1.Protocol;
 using Microsoft.Owin;
 using Org.Mentalis.Security.Ssl;
-using Microsoft.Http2.Protocol.Http11;
 using Microsoft.Http2.Protocol;
 using Microsoft.Http2.Protocol.Utils;
+using StatusCode = Microsoft.Http2.Protocol.StatusCode;
 
 namespace ProtocolAdapters
 {
