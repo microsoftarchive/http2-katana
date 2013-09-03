@@ -34,29 +34,20 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Firefly">
-      <HintPath>..\..\Shared\SharedProtocol\packages\Firefly.dll</HintPath>
+    <Reference Include="Microsoft.Owin">
+      <HintPath>..\..\packages\Microsoft.Owin.2.0.0-rc1\lib\net45\Microsoft.Owin.dll</HintPath>
     </Reference>
-    <Reference Include="Microsoft.AspNet.WebApi.Owin">
-      <HintPath>..\..\Shared\SharedProtocol\packages\Microsoft.AspNet.WebApi.Owin.dll</HintPath>
+    <Reference Include="Microsoft.Owin.FileSystems">
+      <HintPath>..\..\packages\Microsoft.Owin.FileSystems.0.20-alpha-20220-88\lib\net40\Microsoft.Owin.FileSystems.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.Owin.Hosting">
-      <HintPath>..\..\Shared\SharedProtocol\packages\Microsoft.Owin.Hosting.dll</HintPath>
+      <HintPath>..\..\packages\Microsoft.Owin.Hosting.2.0.0-rc1\lib\net45\Microsoft.Owin.Hosting.dll</HintPath>
     </Reference>
-    <Reference Include="Newtonsoft.Json">
-      <HintPath>..\..\Shared\SharedProtocol\packages\Newtonsoft.Json.dll</HintPath>
+    <Reference Include="Microsoft.Owin.StaticFiles">
+      <HintPath>..\..\packages\Microsoft.Owin.StaticFiles.0.20-alpha-20220-88\lib\net40\Microsoft.Owin.StaticFiles.dll</HintPath>
     </Reference>
     <Reference Include="Owin">
-      <HintPath>..\..\Shared\SharedProtocol\packages\Owin.dll</HintPath>
-    </Reference>
-    <Reference Include="Owin.Extensions">
-      <HintPath>..\..\Shared\SharedProtocol\packages\Owin.Extensions.dll</HintPath>
-    </Reference>
-    <Reference Include="Owin.Types">
-      <HintPath>..\..\Shared\SharedProtocol\packages\Owin.Types.dll</HintPath>
-    </Reference>
-    <Reference Include="SocketServer">
-      <HintPath>..\SocketServer\bin\Debug\SocketServer.dll</HintPath>
+      <HintPath>..\..\packages\Owin.1.0\lib\net40\Owin.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Configuration" />
@@ -75,7 +66,6 @@
     </Reference>
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
-    <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Data" />
     <Reference Include="System.ServiceProcess" />
     <Reference Include="System.Xml" />
@@ -99,19 +89,20 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
+    <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\MentalisSecurityLibrary\Security Library.csproj">
+    <ProjectReference Include="..\..\src\Libraries\MentalisSecurityLibrary\Security Library.csproj">
       <Project>{5bfa5a70-d384-4417-afcc-5c744485a85f}</Project>
       <Name>Security Library</Name>
     </ProjectReference>
-    <ProjectReference Include="..\..\Shared\SharedProtocol\SharedProtocol.csproj">
-      <Project>{e34ac310-324c-46bc-af9f-1a41df58e867}</Project>
-      <Name>SharedProtocol</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\ServerOwinMiddleware\ServerOwinMiddleware.csproj">
+    <ProjectReference Include="..\..\src\Microsoft.Http2.Owin.Middleware\Microsoft.Http2.Owin.Middleware.csproj">
       <Project>{ae3e0df3-1e7e-4d8d-9780-78d3d1ce436f}</Project>
-      <Name>ServerOwinMiddleware</Name>
+      <Name>Microsoft.Http2.Owin.Middleware</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\src\Microsoft.Http2.Owin.Server\Microsoft.Http2.Owin.Server.csproj">
+      <Project>{658c0a0d-a624-4532-aff0-180ec5ed7887}</Project>
+      <Name>Microsoft.Http2.Owin.Server</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

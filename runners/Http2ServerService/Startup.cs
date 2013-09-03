@@ -12,13 +12,8 @@ namespace Http2ServerService
         public void Configuration(IAppBuilder builder)
         {
             builder.UseHttp2();
-            ConfigureWebApi(builder);
+            builder.UseStaticFiles("root");
         }
 
-        private void ConfigureWebApi(IAppBuilder builder)
-        {
-            var config = new HttpConfiguration();
-            builder.UseHttpServer(config);
-        }
     }
 }

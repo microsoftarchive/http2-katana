@@ -107,4 +107,5 @@ copy /y "$(ProjectDir)\certificate.pfx" "$(SolutionDir)Drop\certificate.pfx"
 copy /y "$(ProjectDir)\certificate.pfx" "$(TargetDir)\certificate.pfx"
 copy /y "$(TargetDir)\Client.exe.config" "$(SolutionDir)Drop\Client.exe.config"</PostBuildEvent>
   </PropertyGroup>
+  <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
 </Project>

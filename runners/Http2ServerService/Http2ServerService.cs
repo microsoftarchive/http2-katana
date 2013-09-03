@@ -1,13 +1,16 @@
-﻿using System.Threading;
+﻿using System;
+using System.Threading;
 using Microsoft.Owin.Hosting;
 using System.ServiceProcess;
 using System.Configuration;
+using SocketServer;
 
 namespace Http2ServerService
 {
     public partial class Http2ServerService : ServiceBase
     {
         private Thread _http2ServerThread;
+        private IDisposable _owinServer;
 
         public Http2ServerService()
         {
@@ -16,14 +19,14 @@ namespace Http2ServerService
 
         private void StartServer(string connectString)
         {
-            using (WebApplication.Start<Startup>(options =>
-            {
-                options.Url = connectString;
-                options.Server = "SocketServer";
-            }))
-            {
 
-            }
+            var startOpt = new StartOptions(connectString)
+            {
+                ServerFactory = typeof(SocketServerFactory).AssemblyQualifiedName,
+            };
+
+            // Start OWIN host 
+            _owinServer = WebApp.Start<Startup>(startOpt);
         }
 
         protected override void OnStart(string[] args)
@@ -33,12 +36,18 @@ namespace Http2ServerService
                                        ? ConfigurationManager.AppSettings["secureAddress"]
                                        : ConfigurationManager.AppSettings["unsecureAddress"];
 
-            _http2ServerThread = new Thread((ThreadStart) (() => StartServer(connectString)));
+            _http2ServerThread = new Thread(() => StartServer(connectString));
             _http2ServerThread.Start();
         }
 
         protected override void OnStop()
         {
+            if (_owinServer != null)
+            {
+                _owinServer.Dispose();
+                _owinServer = null;
+            }
+
             if (_http2ServerThread.IsAlive)
             {
                 _http2ServerThread.Abort();
