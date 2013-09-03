@@ -115,45 +115,51 @@ namespace Microsoft.Http1.Protocol
             return Encoding.UTF8.GetString(bytes);
         }
 
+        private static KeyValuePair<string, string[]> GetHeaderNameValues(string header, int colonIndex)
+        {
+            string headerName = header.Substring(0, colonIndex);
+            string[] values = header.Substring(colonIndex + 2).Split(','); // colon and space are skipped
+
+            for (int i = 0; i < values.Length; ++i)
+            {
+                values[i] = values[i].Trim();
+            }
+
+            return new KeyValuePair<string, string[]>(headerName, values);
+        }
+
         // TODO find better way
         public static IDictionary<string, string[]> ParseHeaders(IEnumerable<string> headers)
         {
             var dict = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase);
+
             foreach (var header in headers)
             {
-                int colonIndex = header.LastIndexOf(':');
-                if (colonIndex == -1)
-                {
-                    try
-                    {
-                        string base64Headers = ConvertFromBase64(header);
-                        var splittedBase64Headers = base64Headers.Split(new[] {'\n','\r'},
-                                                                        StringSplitOptions.RemoveEmptyEntries);
-                        var base64HeaderDict = ParseHeaders(splittedBase64Headers);
+                string headerName = String.Empty;
+                var headerValues = new string[0];
+                int colonIndex = header.IndexOf(':');
+                KeyValuePair<string, string[]> headerNameValues;
 
-                        foreach (var base64Header in base64HeaderDict.Where(base64Header => !dict.ContainsKey(base64Header.Key)))
-                        {
-                            dict.Add(base64Header.Key, base64Header.Value);
-                        }
-                    }
-                    catch (Exception)
-                    {
-                        if (!dict.ContainsKey(header))
-                            dict.Add(header, new string[0]);
-                    }
-                }
-                else
+                switch (colonIndex)
                 {
-                    string headerName = header.Substring(0, colonIndex);
-                    string[] values = header.Substring(colonIndex + 2).Split(','); // colon and space are skipped
-                    for (int i = 0; i < values.Length; ++i)
-                    {
-                        values[i] = values[i].Trim();
-                    }
-
-                    if (!dict.ContainsKey(headerName))
-                        dict.Add(headerName, values);
+                    case -1:
+                        headerName = header;
+                        break;
+                    case 0:
+                        colonIndex = header.IndexOf(':', 1);
+                        headerNameValues = GetHeaderNameValues(header, colonIndex);
+                        headerName = headerNameValues.Key;
+                        headerValues = headerNameValues.Value;
+                        break;
+                    default:
+                            headerNameValues = GetHeaderNameValues(header, colonIndex);
+                            headerName = headerNameValues.Key;
+                            headerValues = headerNameValues.Value;
+                        break;
                 }
+
+                if (!dict.ContainsKey(headerName))
+                    dict.Add(headerName, headerValues);
             }
 
             return dict;

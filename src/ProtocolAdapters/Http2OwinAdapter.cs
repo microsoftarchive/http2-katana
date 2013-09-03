@@ -106,15 +106,16 @@ namespace ProtocolAdapters
             long contentLen = long.Parse(responseHeaders.GetValue("Content-Length"));
             int sent = 0;
 
-            Http2Logger.LogDebug("Transfer begin");
-            while (sent < contentLen)
+            if (responseBody.Position != 0)
             {
-                //If thread is empty then do not send anything
-                if (responseBody.Position != 0)
+                Http2Logger.LogDebug("Transfer begin");
+
+                while (sent < contentLen)
                 {
+                    //If stream is empty then do not send anything
                     var responseDataBuffer = new byte[responseBody.Position];
 
-                    responseBody.Seek( sent, SeekOrigin.Begin );
+                    responseBody.Seek(sent, SeekOrigin.Begin);
                     //Get data from stream, chunk it and send
                     int read = await responseBody.ReadAsync(responseDataBuffer, 0, responseDataBuffer.Length);
 

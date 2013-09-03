@@ -80,12 +80,28 @@ namespace ProtocolAdapters
                 }
 
                 var scheme = _protocol == SecureProtocol.None ? "http" : "https";
-                var host = headers[":host"][0]; // client MUST include Host header due to HTTP/1.1 spec
+                
+                string hostKey = String.Empty;
+
+                if (headers.ContainsKey(":host")) // client MUST include Host header due to HTTP/1.1 spec
+                {
+                    hostKey = ":host";
+                }
+                else if (headers.ContainsKey("Host"))
+                {
+                    hostKey = "Host";
+                }
+                else
+                {
+                    //TODO signal error
+                }
+                string host = headers[hostKey][0];
+
                 if (host.IndexOf(':') == -1)
                 {
                     host += (scheme == "http" ? ":80" : ":443"); // use default port
                 }
-                headers[":host"] = new[] {host};
+                headers[hostKey] = new[] { host };
 
                 var path = splittedRequestString[1];
 

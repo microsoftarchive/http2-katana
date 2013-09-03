@@ -100,7 +100,7 @@ namespace Microsoft.Http2.Protocol.IO
         public override void Flush()
         {
             if (_isClosed)
-                throw new DuplexStreamAlreadyClosedException("Duplex stream was already closed");
+                return;
 
             if (_writeBuffer.Available == 0)
                 return;
@@ -115,7 +115,7 @@ namespace Microsoft.Http2.Protocol.IO
         public async override Task FlushAsync(CancellationToken cancellationToken)
         {
             if (_isClosed)
-                throw new DuplexStreamAlreadyClosedException("Duplex stream was already closed");
+                return;
 
             if (cancellationToken.IsCancellationRequested)
                 cancellationToken.ThrowIfCancellationRequested();
@@ -144,7 +144,7 @@ namespace Microsoft.Http2.Protocol.IO
         public override int Read(byte[] buffer, int offset, int count)
         {
             if (_isClosed)
-                throw new DuplexStreamAlreadyClosedException("Duplex stream was already closed");
+                return 0;
 
             if (!WaitForDataAvailable(ReadTimeout))
             {
@@ -158,7 +158,7 @@ namespace Microsoft.Http2.Protocol.IO
         public override void Write(byte[] buffer, int offset, int count)
         {
             if (_isClosed)
-                throw new DuplexStreamAlreadyClosedException("Duplex stream was already closed");
+                return;
 
             _writeBuffer.Write(buffer, offset, count);
 
@@ -168,7 +168,7 @@ namespace Microsoft.Http2.Protocol.IO
         public int Write(byte[] buffer)
         {
             if (_isClosed)
-                throw new ObjectDisposedException("Duplex stream was already closed");
+                return 0;
 
             _writeBuffer.Write(buffer, 0, buffer.Length);
 
@@ -178,7 +178,7 @@ namespace Microsoft.Http2.Protocol.IO
         public override void WriteByte(byte value)
         {
             if (_isClosed)
-                throw new DuplexStreamAlreadyClosedException("Duplex stream was already closed");
+                return;
 
             Write(new [] {value}, 0, 1);
         }
@@ -186,7 +186,7 @@ namespace Microsoft.Http2.Protocol.IO
         public async override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
         {
             if (_isClosed)
-                throw new DuplexStreamAlreadyClosedException("Duplex stream was already closed");
+                return;
 
             if (cancellationToken.IsCancellationRequested)
                 cancellationToken.ThrowIfCancellationRequested();
@@ -198,7 +198,7 @@ namespace Microsoft.Http2.Protocol.IO
         public async override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
         {
             if (_isClosed)
-                throw new DuplexStreamAlreadyClosedException("Duplex stream was already closed");
+                return 0;
 
             if (cancellationToken.IsCancellationRequested)
                 cancellationToken.ThrowIfCancellationRequested();
@@ -241,8 +241,10 @@ namespace Microsoft.Http2.Protocol.IO
         {
             lock (_closeLock)
             {
+                //Return instead of throwing exception because external code calls Close and 
+                //it knows nothing about defined exception.
                 if (_isClosed)
-                    throw new DuplexStreamAlreadyClosedException("Duplex stream was already closed");
+                    return;
 
                 _isClosed = true;
 

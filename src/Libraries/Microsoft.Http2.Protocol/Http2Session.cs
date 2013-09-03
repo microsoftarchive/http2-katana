@@ -287,10 +287,6 @@ namespace Microsoft.Http2.Protocol
                      {
                          _writeQueue.PumpToStream(_cancelSessionToken);
                      }
-                     catch (DuplexStreamAlreadyClosedException)
-                     {
-
-                     }
                      catch (OperationCanceledException)
                      {
                          Http2Logger.LogError("Handling session was cancelled");
@@ -726,14 +722,7 @@ namespace Microsoft.Http2.Protocol
 
             _comprProc.Dispose();
 
-            try
-            {
-                _ioStream.Close();
-            }
-            catch (DuplexStreamAlreadyClosedException)
-            {
-                
-            }
+            _ioStream.Close();
             
             if (OnSessionDisposed != null)
             {
