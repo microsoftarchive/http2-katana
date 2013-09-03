@@ -1,14 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Owin;
-using ProtocolAdapters;
 using Microsoft.Http2.Protocol;
 using Microsoft.Http2.Protocol.IO;
+using ProtocolAdapters;
 
 namespace ServerOwinMiddleware
 {
