@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -41,11 +42,11 @@ namespace ProtocolAdapters
             owinRequest.Path = headers.GetValue(":path");
             owinRequest.CallCancelled = CancellationToken.None;
 
-            owinRequest.PathBase = "/";
+            owinRequest.PathBase = String.Empty;
             owinRequest.QueryString = String.Empty;
             owinRequest.Body = new MemoryStream();
             owinRequest.Protocol = Protocols.Http1;
-            owinRequest.Scheme = Uri.UriSchemeHttp;
+            owinRequest.Scheme = headers.GetValue(":scheme") == Uri.UriSchemeHttp ? Uri.UriSchemeHttp : Uri.UriSchemeHttps;
             owinRequest.RemoteIpAddress = _transportInfo.RemoteIpAddress;
             owinRequest.RemotePort = Convert.ToInt32(_transportInfo.RemotePort);
             owinRequest.LocalIpAddress = _transportInfo.LocalIpAddress;
@@ -66,11 +67,17 @@ namespace ProtocolAdapters
                 await _next(env);
             }
             catch (Exception ex)
-            {
-                exception = ex;
+            {   
+                EndResponse(stream, ex);
+                return;
             }
 
-            await EndResponse(stream, env, exception);
+            await EndResponse(stream, env);
+        }
+
+        private void EndResponse(Http2Stream stream, Exception ex)
+        {
+            WriteStatus(stream, StatusCode.Code500InternalServerError, false);
         }
 
         protected override async Task ProcessIncomingData(Http2Stream stream)
@@ -78,7 +85,7 @@ namespace ProtocolAdapters
             //Do nothing... handling data is not supported by the server yet
         }
 
-        private async Task EndResponse(Http2Stream stream, IDictionary<string, object> environment, Exception ex)
+        private async Task EndResponse(Http2Stream stream, IDictionary<string, object> environment)
         {
             Stream responseBody = null;
             IDictionary<string, string[]> owinResponseHeaders = null;
@@ -97,33 +104,26 @@ namespace ProtocolAdapters
             if (owinResponseHeaders != null)
                 responseHeaders = new HeadersList(owinResponseHeaders);
 
-            if (ex != null)
-            {
-                WriteStatus(stream, StatusCode.Code500InternalServerError, false, responseHeaders);
-                return;
-            }
-
             WriteStatus(stream, responseStatusCode, responseBody == null, responseHeaders);
 
-            long contentLen = long.Parse(responseHeaders.GetValue("Content-Length"));
-            int sent = 0;
-
-            if (responseBody.Position != 0)
+            //Memory stream contains all response data and can be read by one iteration.
+            if (responseBody != null && responseBody.Position != 0)
             {
                 Http2Logger.LogDebug("Transfer begin");
+                int contentLen = int.Parse(response.Headers["Content-Length"]);
 
-                while (sent < contentLen)
-                {
-                    //If stream is empty then do not send anything
-                    var responseDataBuffer = new byte[responseBody.Position];
+                Debug.Assert(contentLen == responseBody.Length);
+                //If stream is empty then do not send anything
+                var responseDataBuffer = new byte[responseBody.Position];
+                responseBody.Seek(0, SeekOrigin.Begin);
+                //Get data from stream, chunk it and send
+                int read = await responseBody.ReadAsync(responseDataBuffer, 0, responseDataBuffer.Length);
 
-                    responseBody.Seek(sent, SeekOrigin.Begin);
-                    //Get data from stream, chunk it and send
-                    int read = await responseBody.ReadAsync(responseDataBuffer, 0, responseDataBuffer.Length);
+                Debug.Assert(read > 0);
 
-                    SendDataTo(stream, responseDataBuffer, sent + read == contentLen);
-                    sent += read;
-                }
+                SendDataTo(stream, responseDataBuffer, true);
+
+                Http2Logger.LogDebug("Transfer end");
             }
         }
 

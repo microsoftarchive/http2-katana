@@ -101,6 +101,9 @@ namespace ServerOwinMiddleware
                             ? request.Method
                             : "get";
 
+            var scheme = !String.IsNullOrEmpty(request.Scheme)
+                            ? request.Scheme
+                            : "http";
 
             var splittedSettings = new string[0];
             try
@@ -136,6 +139,7 @@ namespace ServerOwinMiddleware
                     {":method", method},
                     {":initial_window_size", windowSize},
                     {":max_concurrent_streams", maxStreams},
+                    {":scheme", scheme}
                 };
         }
         
