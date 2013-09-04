@@ -108,7 +108,6 @@
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>copy /y "$(SolutionDir)Drop\certificate.pfx"  "$(TargetDir)\certificate.pfx"
-
 xcopy "$(ProjectDir)Root"  "$(TargetDir)Root" /S /F /R /Y /I
 copy /y "$(TargetPath)" "$(SolutionDir)Drop\$(TargetFileName)"
 copy /y "$(TargetDir)\$(TargetFileName).config" "$(SolutionDir)Drop\$(TargetFileName).config"</PostBuildEvent>

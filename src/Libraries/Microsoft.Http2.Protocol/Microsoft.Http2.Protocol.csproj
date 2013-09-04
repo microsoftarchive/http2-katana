@@ -125,20 +125,7 @@
   <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>copy /y "$(ProjectDir)packages\Microsoft.Owin.Hosting.dll" "$(SolutionDir)Drop\Microsoft.Owin.Hosting.dll"
-copy /y "$(ProjectDir)packages\Owin.Types.dll" "$(SolutionDir)Drop\Owin.Types.dll"
-copy /y "$(ProjectDir)packages\Firefly.dll" "$(SolutionDir)Drop\Firefly.dll"
-copy /y "$(ProjectDir)packages\Owin.dll" "$(SolutionDir)Drop\Owin.dll"
-copy /y "$(ProjectDir)packages\Owin.Extensions.dll" "$(SolutionDir)Drop\Owin.Extensions.dll"
-copy /y "$(ProjectDir)packages\Microsoft.AspNet.WebApi.Owin.dll" "$(SolutionDir)Drop\Microsoft.AspNet.WebApi.Owin.dll"
-copy /y "$(ProjectDir)packages\Microsoft.Owin.Host.HttpListener.dll" "$(SolutionDir)Drop\Microsoft.Owin.Host.HttpListener.dll"
-copy /y "$(ProjectDir)packages\System.Net.Http.dll" "$(SolutionDir)Drop\System.Net.Http.dll"
-copy /y "$(ProjectDir)packages\System.Net.Http.Formatting.dll" "$(SolutionDir)Drop\System.Net.Http.Formatting.dll"
-copy /y "$(ProjectDir)packages\System.Net.Http.WebRequest.dll" "$(SolutionDir)Drop\System.Net.Http.WebRequest.dll"
-copy /y "$(ProjectDir)packages\System.Web.Http.dll" "$(SolutionDir)Drop\System.Web.Http.dll"
-copy /y "$(ProjectDir)packages\zlib.net.dll" "$(SolutionDir)Drop\zlib.net.dll"
-copy /y "$(ProjectDir)packages\Newtonsoft.Json.dll" "$(SolutionDir)Drop\Newtonsoft.Json.dll"
-copy /y "$(TargetPath)" "$(SolutionDir)Drop\$(TargetFileName)"
+    <PostBuildEvent>copy /y "$(TargetPath)" "$(SolutionDir)Drop\$(TargetFileName)"
 </PostBuildEvent>
   </PropertyGroup>
   <PropertyGroup>
