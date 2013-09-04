@@ -27,8 +27,8 @@ namespace ProtocolAdapters
         private readonly SecureProtocol _protocol;
         private readonly AppFunc _next;
         private Environment _environment;
-        private OwinRequest _request;
-        private OwinResponse _response;
+        private IOwinRequest _request;
+        private IOwinResponse _response;
         private AppFunc _opaqueCallback;
 
         /// <summary>
@@ -70,6 +70,12 @@ namespace ProtocolAdapters
                 // headers[0] contains METHOD, URI and VERSION like "GET /api/values/1 HTTP/1.1"
                 var headers = Http11Manager.ParseHeaders(rawHeaders.Skip(1).ToArray());
 
+                // client MUST include Host header due to HTTP/1.1 spec 
+                if (!headers.ContainsKey("Host"))
+                {
+                    throw new ApplicationException("Host header is missing");
+                }
+
                 // parse request parameters: method, path, host, etc
                 var splittedRequestString = rawHeaders[0].Split(' ');
                 var method = splittedRequestString[0];
@@ -80,35 +86,12 @@ namespace ProtocolAdapters
                 }
 
                 var scheme = _protocol == SecureProtocol.None ? "http" : "https";
-                
-                string hostKey = String.Empty;
-
-                if (headers.ContainsKey(":host")) // client MUST include Host header due to HTTP/1.1 spec
-                {
-                    hostKey = ":host";
-                }
-                else if (headers.ContainsKey("Host"))
-                {
-                    hostKey = "Host";
-                }
-                else
-                {
-                    //TODO signal error
-                }
-                string host = headers[hostKey][0];
-
-                if (host.IndexOf(':') == -1)
-                {
-                    host += (scheme == "http" ? ":80" : ":443"); // use default port
-                }
-                headers[hostKey] = new[] { host };
 
                 var path = splittedRequestString[1];
 
-                // main owin environment components
+                // main OWIN environment components
+                // OWIN request and reponse below shares the same environment dictionary instance
                 _environment = CreateOwinEnvironment(method, scheme, "", path, headers);
-                
-               // OWIN request and reponse below shares the same environment dictionary 
                 _request = new OwinRequest(_environment);
                 _response = new OwinResponse(_environment);
 
@@ -130,7 +113,7 @@ namespace ProtocolAdapters
                     EndResponse(false);
 
                     var opaqueEnvironment = CreateOpaqueEnvironment();
-                    _opaqueCallback(opaqueEnvironment);
+                    await _opaqueCallback(opaqueEnvironment);
                 }
             }
             catch (Exception ex)
@@ -167,10 +150,9 @@ namespace ProtocolAdapters
         {
             // TODO 101 to constants
             _response.StatusCode = 101;
-            _response.ReasonPhrase = "Switching Protocols"; // TODO is ReasonPhrase necessary here
+            _response.ReasonPhrase = "Switching Protocols";
             _response.Protocol = "HTTP/1.1";
             _response.Headers.Add("Connection", new[] {"Upgrade"});
-            _response.Headers.Add("Upgrade", new[] {Protocols.Http2});
 
             _opaqueCallback = opaqueCallback;
         }
@@ -200,15 +182,6 @@ namespace ProtocolAdapters
             env["opaque.Stream"] = _client;
             env["opaque.Version"] = "1.0";
             env["opaque.CallCancelled"] = new CancellationToken();
-
-            env["owin.RequestHeaders"] = _request.Headers;
-            env["owin.RequestPath"] = _request.Path;
-            env["owin.RequestPathBase"] = _request.PathBase;
-            env["owin.RequestMethod"] = _request.Method;
-            env["owin.RequestProtocol"] = _request.Protocol;
-            env["owin.RequestScheme"] = _request.Scheme;
-            env["owin.RequestBody"] = _request.Body;
-            env["owin.RequestQueryString"] = _request.QueryString;
 
             return env;
         }
@@ -251,33 +224,48 @@ namespace ProtocolAdapters
 
         /// <summary>
         /// Creates request OWIN respresentation. 
-        /// TODO move to utils or base class since it could be shared across http11 and http2 protocol adapters.
         /// </summary>
         /// <param name="method">The request method.</param>
         /// <param name="scheme">The request scheme.</param>
         /// <param name="pathBase">The request base path.</param>
         /// <param name="path">The request path.</param>
         /// <param name="headers">The request headers.</param>
+        /// <param name="queryString">The request query string</param>
         /// <param name="requestBody">The body of request.</param>
         /// <returns>OWIN representation for provided request parameters.</returns>
         private static Dictionary<string, object> CreateOwinEnvironment(string method, string scheme, string pathBase, 
-                                                                        string path, IDictionary<string, string[]> headers, byte[] requestBody = null)
+                                                                        string path, IDictionary<string, string[]> headers, string queryString = "", byte[] requestBody = null)
         {
             var environment = new Dictionary<string, object>(StringComparer.Ordinal);
-            environment["owin.RequestMethod"] = method;
-            environment["owin.RequestScheme"] = scheme;
-            environment["owin.RequestHeaders"] = headers;
-            environment["owin.RequestPathBase"] = pathBase;
-            environment["owin.RequestPath"] = path;
-            environment["owin.RequestQueryString"] = "";
-            environment["owin.RequestBody"] = new MemoryStream(requestBody ?? new byte[0]);
-
             environment["owin.CallCancelled"] = new CancellationToken();
 
-            environment["owin.ResponseHeaders"] = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase);
-            environment["owin.ResponseBody"] = new MemoryStream();
-            environment["owin.ResponseStatusCode"] = StatusCode.Code200Ok;
-            environment["owin.ResponseProtocol"] = "HTTP/1.1";
+            #region OWIN request params
+
+            var request = new OwinRequest(environment)
+                {
+                    Method = method,
+                    Scheme = scheme,
+                    Path = path,
+                    PathBase = pathBase,
+                    QueryString = queryString,
+                    Body = new MemoryStream(requestBody ?? new byte[0]),
+                    Protocol = "HTTP/1.1"
+                };
+
+            // request.Headers is readonly
+            request.Set("owin.RequestHeaders", headers);
+
+            #endregion
+
+
+            #region set default OWIN response params
+
+            var response = new OwinResponse(environment) {Body = new MemoryStream(), StatusCode = StatusCode.Code200Ok};
+            //response.Headers is readonly
+            response.Set("owin.ResponseHeaders", new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase));
+
+            #endregion
+
 
             return environment;
         }

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -35,18 +36,18 @@ namespace ServerOwinMiddleware
         /// <returns></returns>
         public async Task Invoke(IDictionary<string, object> environment)
         {
-            var request = new OwinRequest(environment);
+            var context = new OwinContext(environment);
 
-            if (IsOpaqueUpgradePossible(request) && IsRequestForHttp2Upgrade(request))
+            if (IsOpaqueUpgradePossible(context.Request) && IsRequestForHttp2Upgrade(context.Request))
             {
                 var upgradeDelegate = environment["opaque.Upgrade"] as UpgradeDelegate;
                 Debug.Assert(upgradeDelegate != null, "upgradeDelegate is not null");
 
-                var trInfo = CreateTransportInfo(request);
+                var trInfo = CreateTransportInfo(context.Request);
 
                 // save original request parameters; used to complete request after upaque upgrade is done
-                var requestCopy = GetInitialRequestParams(request);
-                
+                var requestCopy = GetInitialRequestParams(context.Request);
+
                 upgradeDelegate.Invoke(new Dictionary<string, object>(), opaque =>
                     {
                         //use the same stream which was used during upgrade
@@ -58,6 +59,8 @@ namespace ServerOwinMiddleware
                         return http2Adapter.StartSession(requestCopy);
                     });
 
+                // specify Upgrade protocol
+                context.Response.Headers.Add("Upgrade", new[] { Protocols.Http2 });
                 return;
             }
 
@@ -65,7 +68,7 @@ namespace ServerOwinMiddleware
             await _next(environment);
         }
 
-        private static bool IsRequestForHttp2Upgrade(OwinRequest request)
+        private static bool IsRequestForHttp2Upgrade(IOwinRequest request)
         {
             var headers = request.Headers as IDictionary<string, string[]>;
             return  headers.ContainsKey("Connection")
@@ -76,7 +79,7 @@ namespace ServerOwinMiddleware
                                          it.IndexOf("2.0", StringComparison.Ordinal) != -1) != null;
         }
 
-        private static bool IsOpaqueUpgradePossible(OwinRequest request)
+        private static bool IsOpaqueUpgradePossible(IOwinRequest request)
         {
             var environment = request.Environment;
 
@@ -84,10 +87,10 @@ namespace ServerOwinMiddleware
                    && environment["opaque.Upgrade"] is UpgradeDelegate;
         }
 
-        private IDictionary<string, string> GetInitialRequestParams(OwinRequest request)
+        private IDictionary<string, string> GetInitialRequestParams(IOwinRequest request)
         {
-            var defaultWindowSize = 200000.ToString();
-            var defaultMaxStreams = 100.ToString();
+            var defaultWindowSize = 200000.ToString(CultureInfo.InvariantCulture);
+            var defaultMaxStreams = 100.ToString(CultureInfo.InvariantCulture);
 
             bool areSettingsOk = true;
 
@@ -137,7 +140,7 @@ namespace ServerOwinMiddleware
         }
         
 
-        private TransportInformation CreateTransportInfo(OwinRequest owinRequest)
+        private TransportInformation CreateTransportInfo(IOwinRequest owinRequest)
         {
             return new TransportInformation
             {
