@@ -1,22 +1,26 @@
-﻿using Microsoft.Http2.Protocol;
-using Microsoft.Http1.Protocol;
+﻿using Microsoft.Http1.Protocol;
+using Microsoft.Http2.Protocol;
 using Microsoft.Http2.Protocol.IO;
+using Microsoft.Http2.Protocol.Tests;
 using Microsoft.Owin;
 using Moq;
 using Org.Mentalis.Security.Ssl;
 using ProtocolAdapters;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net.Sockets;
 using System.Reflection;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
 
 namespace Http11Tests
 {
-    public class Http11TestSuite : IDisposable
+    using StatusCode = Microsoft.Http1.Protocol.StatusCode;
+    public class Http11Tests : IDisposable
     {
         public void Dispose()
         {
@@ -32,13 +36,6 @@ namespace Http11Tests
             }
         }
 
-        private Mock<DuplexStream> CreateStreamMock()
-        {
-            SecurityOptions options = new SecurityOptions(SecureProtocol.Tls1, null, new[] { Protocols.Http1 }, ConnectionEnd.Client);
-            SecureSocket socket = new SecureSocket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp, options);
-            return new Mock<DuplexStream>(socket, false);
-        }
-
         [Fact]
         public void EnvironmentCreatedCorrect()
         {
@@ -47,10 +44,11 @@ namespace Http11Tests
                    scheme = "https",
                    host = "localhost:80",
                    pathBase = "",
-                   path = "/test.txt";
+                   path = "/test.txt",
+                   queryString = "xunit";
 
             var requestHeaders = new Dictionary<string, string[]> { { "Host", new[] { host } } };
-            Dictionary<string, object> environment = (Dictionary<string, object>)creator.Invoke(null, new object[] { method, scheme, pathBase, path, requestHeaders, null });
+            Dictionary<string, object> environment = (Dictionary<string, object>)creator.Invoke(null, new object[] { method, scheme, pathBase, path, requestHeaders, queryString, null });
 
             var owinRequest = new OwinRequest(environment);
             Assert.Equal(owinRequest.Method, method);
@@ -60,13 +58,28 @@ namespace Http11Tests
             Assert.Equal(owinRequest.Body.Length, 0);
             Assert.Equal(owinRequest.Headers.ContainsKey("Host"), true);
             Assert.Equal(owinRequest.Headers["Host"], host);
+            Assert.Equal(owinRequest.QueryString, queryString);
             Assert.Equal(owinRequest.CallCancelled.IsCancellationRequested, false);
 
             var owinResponse = new OwinResponse(environment);
             Assert.Equal(owinResponse.Headers.Count, 0);
             Assert.Equal(owinResponse.Body.Length, 0);
-            Assert.Equal(owinResponse.StatusCode, Microsoft.Http1.Protocol.StatusCode.Code200Ok);
-            Assert.Equal(owinResponse.Protocol, "HTTP/1.1");
+            Assert.Equal(owinResponse.StatusCode, StatusCode.Code200Ok);
+        }
+
+        [Fact]
+        public void OpaqueEnvironmentCreatedCorrect()
+        {
+            var adapter = TestHelpers.CreateHttp11Adapter(null, null);
+            adapter.ProcessRequest();
+            var env = adapter.GetType().InvokeMember("CreateOpaqueEnvironment",
+                BindingFlags.InvokeMethod | BindingFlags.Instance | BindingFlags.NonPublic,
+                null, adapter, null) as IDictionary<string, object>;
+
+            Assert.Contains("opaque.Stream", env.Keys);
+            Assert.Contains("opaque.Version", env.Keys);
+            Assert.Contains("opaque.CallCancelled", env.Keys);
+            Assert.True(env["opaque.CallCancelled"] is CancellationToken);
         }
 
         [Fact]
@@ -83,16 +96,16 @@ namespace Http11Tests
             byte[] requestBytes = Encoding.UTF8.GetBytes(request);
             int position = 0;
 
-            Mock<DuplexStream> mockStream = CreateStreamMock();
+            Mock<DuplexStream> mockStream = Mock.Get(TestHelpers.CreateStream());
 
             var modifyBufferData = new Action<byte[], int, int>((buffer, offset, count) =>
-            {
-                for (int i = offset; count > 0; --count, ++i)
                 {
-                    buffer[i] = requestBytes[position];
-                    ++position;
-                }
-            });
+                    for (int i = offset; count > 0; --count, ++i)
+                    {
+                        buffer[i] = requestBytes[position];
+                        ++position;
+                    }
+                });
 
             mockStream.Setup(stream =>
                 stream.Read(It.IsAny<byte[]>(), It.IsAny<int>(), It.IsAny<int>())
@@ -135,7 +148,7 @@ namespace Http11Tests
             string dataString = "test";
             byte[] data = Encoding.UTF8.GetBytes(dataString);
 
-            var mock = CreateStreamMock();
+            var mock = Mock.Get(TestHelpers.CreateStream());
 
             written.Clear();
 
@@ -143,7 +156,7 @@ namespace Http11Tests
                 stream.Write(It.IsAny<byte[]>(), It.IsAny<int>(), It.IsAny<int>())
             ).Callback(WriteHandler);
 
-            Http11Manager.SendResponse(mock.Object, data, Microsoft.Http1.Protocol.StatusCode.Code200Ok, ContentTypes.TextPlain, headers);
+            Http11Manager.SendResponse(mock.Object, data, StatusCode.Code200Ok, ContentTypes.TextPlain, headers);
 
             string response = Encoding.UTF8.GetString(written.ToArray());
 
@@ -158,8 +171,8 @@ namespace Http11Tests
             // lines in response body
             Assert.Equal(5 + dataString.Split(new[] { "\r\n" }, StringSplitOptions.None).Length, splittedResponse.Length);
             Assert.Contains("HTTP/1.1", splittedResponse[0]);
-            Assert.Contains(Microsoft.Http1.Protocol.StatusCode.Code200Ok.ToString(), splittedResponse[0]);
-            Assert.Contains(Microsoft.Http1.Protocol.StatusCode.Reason200Ok, splittedResponse[0]);
+            Assert.Contains(StatusCode.Code200Ok.ToString(), splittedResponse[0]);
+            Assert.Contains(StatusCode.Reason200Ok, splittedResponse[0]);
 
             Assert.Contains("Connection: close", splittedResponse);
             Assert.Contains("Content-Type: " + ContentTypes.TextPlain, splittedResponse);
@@ -174,7 +187,7 @@ namespace Http11Tests
         [Fact]
         public void ResponseWithExceptionHasNoBody()
         {
-            var mock = CreateStreamMock();
+            var mock = Mock.Get(TestHelpers.CreateStream());
             mock.Setup(stream => stream.Write(It.IsAny<byte[]>(), It.IsAny<int>(), It.IsAny<int>()))
                 .Callback(WriteHandler);
 
@@ -188,8 +201,8 @@ namespace Http11Tests
             string[] response = Encoding.UTF8.GetString(written.ToArray()).Split(new[] { "\r\n" }, StringSplitOptions.None);
             Assert.InRange(response.Length, 3, int.MaxValue);
             Assert.Contains("HTTP/1.1", response[0]);
-            Assert.Contains(Microsoft.Http1.Protocol.StatusCode.Code500InternalServerError.ToString(), response[0]);
-            Assert.Contains(Microsoft.Http1.Protocol.StatusCode.Reason500InternalServerError, response[0]);
+            Assert.Contains(StatusCode.Code500InternalServerError.ToString(), response[0]);
+            Assert.Contains(StatusCode.Reason500InternalServerError, response[0]);
             Assert.Equal(string.Empty, response.Last());
 
             written.Clear();
@@ -199,49 +212,9 @@ namespace Http11Tests
             response = Encoding.UTF8.GetString(written.ToArray()).Split(new[] { "\r\n" }, StringSplitOptions.None);
             Assert.InRange(response.Length, 3, int.MaxValue);
             Assert.Contains("HTTP/1.1", response[0]);
-            Assert.Contains(Microsoft.Http1.Protocol.StatusCode.Code501NotImplemented.ToString(), response[0]);
-            Assert.Contains(Microsoft.Http1.Protocol.StatusCode.Reason501NotImplemented, response[0]);
+            Assert.Contains(StatusCode.Code501NotImplemented.ToString(), response[0]);
+            Assert.Contains(StatusCode.Reason501NotImplemented, response[0]);
             Assert.Equal(string.Empty, response.Last());
-        }
-
-        [Fact]
-        public void UpgradeDelegateAddedIfNeeded()
-        {
-            var headers = "GET / HTTP/1.1\r\n" +
-                          "Host: localhost\r\n" +
-                          "Connection: Upgrade\r\n" +
-                          "Upgrade: " + Protocols.Http2 + "\r\n" +
-                          "HTTP2-Settings: \r\n" + // TODO send any valid parameters
-                          "\r\n";
-
-            var requestBytes = Encoding.UTF8.GetBytes(headers);
-            var mock = CreateStreamMock();
-            int position = 0;
-
-            var modifyBufferData = new Action<byte[], int, int>((buffer, offset, count) =>
-            {
-                for (int i = offset; count > 0; --count, ++i)
-                {
-                    buffer[i] = requestBytes[position];
-                    ++position;
-                }
-            });
-
-            mock.Setup(stream => stream.Read(It.IsAny<byte[]>(), It.IsAny<int>(), It.IsAny<int>())).Callback(modifyBufferData)
-                .Returns<byte[], int, int>((buffer, offset, count) => { return count; }); // read our requestBytes
-            mock.Setup(stream => stream.Write(It.IsAny<byte[]>(), It.IsAny<int>(), It.IsAny<int>())).Callback<byte[], int, int>((buffer, offset, count) => { }); // write to nowhere
-            mock.Setup(stream => stream.CanRead).Returns(true);
-
-            var adapter = new Http11ProtocolOwinAdapter(mock.Object, mock.Object.Socket.SecureProtocol, (
-                async (env) =>
-                {
-                    // we have access to environment so check it here
-                    Assert.Contains("opaque.Upgrade", env.Keys);
-                    Assert.True(env["opaque.Upgrade"] is Action<IDictionary<string, object>, Func<IDictionary<string, object>, Task>>);
-                    
-                }
-            ));
-            adapter.ProcessRequest();
         }
     }
 }

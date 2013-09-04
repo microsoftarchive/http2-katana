@@ -6,16 +6,19 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Org.Mentalis;
+using Org.Mentalis.Security;
 using Org.Mentalis.Security.Ssl;
 using Org.Mentalis.Security.Ssl.Shared.Extensions;
 using Microsoft.Http2.Protocol;
 using Microsoft.Http2.Protocol.Framing;
-//using Microsoft.Http2.Protocol.Handshake;
 using SocketServer;
 using Xunit;
 using System.Configuration;
 using Xunit.Extensions;
 using HandshakeAction = System.Func<System.Collections.Generic.IDictionary<string, object>>;
+using Microsoft.Http2.Protocol.IO;
+using Moq;
+using System.Linq;
 
 namespace Http2Tests
 {
@@ -28,7 +31,7 @@ namespace Http2Tests
     //for client and server.
     public class Http2Setup : IDisposable
     {
-        public Thread ServerThread { get; private set; }
+        public HttpSocketServer Server { get; private set; }
         public bool UseSecurePort { get; private set; }
         public bool UseHandshake { get; private set; }
 
@@ -90,28 +93,16 @@ namespace Http2Tests
             properties.Add("use-priorities", usePriorities);
             properties.Add("use-flowControl", useFlowControl);
 
-            ServerThread = new Thread((ThreadStart)delegate
-            {
-                new HttpSocketServer(InvokeMiddleWare, properties);
-            }) { Name = "Http2ServerThread" };
-            ServerThread.Start();
-
-            using (var waitForServersStart = new ManualResetEvent(false))
-            {
-                waitForServersStart.WaitOne(3000);
-            }
+            Server = new HttpSocketServer(InvokeMiddleWare, properties);
         }
 
         public void Dispose()
         {
-            if (ServerThread.IsAlive)
-            {
-                ServerThread.Abort();
-            }
+            Server.Dispose();
         }
     }
-
-    public class Http2TestSuite : IUseFixture<Http2Setup>, IDisposable
+    
+    public class Http2Tests : IUseFixture<Http2Setup>, IDisposable
     {
         private const string ClientSessionHeader = "PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n";
         private static bool _useSecurePort;
@@ -140,234 +131,81 @@ namespace Http2Tests
             socket.Send(Encoding.UTF8.GetBytes(ClientSessionHeader));
         }
 
-        //protected static SecureSocket GetHandshakedSocket(Uri uri, bool doRequestInUpgrade = false, string alternativePath = "/")
-        //{
-        //    _environment = new Dictionary<string, object>();
-        //    string selectedProtocol = null;
+        protected static DuplexStream GetHandshakedDuplexStream(Uri uri, bool useMock = false, bool doRequestInUpgrade = false, string alternativePath = "/")
+        {
+            _environment = new Dictionary<string, object>();
+            string selectedProtocol = null;
 
-        //    var extensions = new[] { ExtensionType.Renegotiation, ExtensionType.ALPN };
+            var extensions = new[] { ExtensionType.Renegotiation, ExtensionType.ALPN };
 
-        //    var options = _useSecurePort
-        //                      ? new SecurityOptions(SecureProtocol.Tls1, extensions, new[] { Protocols.Http2, Protocols.Http1 },
-        //                                            ConnectionEnd.Client)
-        //                      : new SecurityOptions(SecureProtocol.None, extensions, new[] { Protocols.Http2, Protocols.Http1 },
-        //                                            ConnectionEnd.Client);
+            var options = _useSecurePort
+                              ? new SecurityOptions(SecureProtocol.Tls1, extensions, new[] { Protocols.Http2, Protocols.Http1 },
+                                                    ConnectionEnd.Client)
+                              : new SecurityOptions(SecureProtocol.None, extensions, new[] { Protocols.Http2, Protocols.Http1 },
+                                                    ConnectionEnd.Client);
 
-        //    options.VerificationType = CredentialVerification.None;
-        //    options.Certificate = Org.Mentalis.Security.Certificates.Certificate.CreateFromCerFile(@"certificate.pfx");
-        //    options.Flags = SecurityFlags.Default;
-        //    options.AllowedAlgorithms = SslAlgorithms.RSA_AES_256_SHA | SslAlgorithms.NULL_COMPRESSION;
+            options.VerificationType = CredentialVerification.None;
+            options.Certificate = Org.Mentalis.Security.Certificates.Certificate.CreateFromCerFile(@"certificate.pfx");
+            options.Flags = SecurityFlags.Default;
+            options.AllowedAlgorithms = SslAlgorithms.RSA_AES_256_SHA | SslAlgorithms.NULL_COMPRESSION;
 
-        //    var sessionSocket = new SecureSocket(AddressFamily.InterNetwork, SocketType.Stream,
-        //                                        ProtocolType.Tcp, options);
+            var sessionSocket = new SecureSocket(AddressFamily.InterNetwork, SocketType.Stream,
+                                                ProtocolType.Tcp, options);
 
-        //    using (var monitor = new ALPNExtensionMonitor())
-        //    {
-        //        monitor.OnProtocolSelected += (sender, args) => { selectedProtocol = args.SelectedProtocol; };
+            using (var monitor = new ALPNExtensionMonitor())
+            {
+                monitor.OnProtocolSelected += (sender, args) => { selectedProtocol = args.SelectedProtocol; };
 
-        //        sessionSocket.Connect(new DnsEndPoint(uri.Host, uri.Port), monitor);
-        //        string path = !doRequestInUpgrade ? uri.PathAndQuery : alternativePath;
-        //        if (_useHandshake)
-        //        {
-        //            var handshakeEnv = new Dictionary<string, object>
-        //            {
-        //                {":method", "get"},
-        //                {":version", Protocols.Http2},
-        //                {":path", path},
-        //                {":scheme", uri.Scheme},
-        //                {":host", uri.Host},
-        //                {"securityOptions", options},
-        //                {"secureSocket", sessionSocket},
-        //                {"end", ConnectionEnd.Client}
-        //            };
-        
-        //            var handshakeResult = HandshakeManager.GetHandshakeAction(handshakeEnv).Invoke();
-        //            _environment.Add("HandshakeResult", handshakeResult);
-        //        }
-        //    }
+                sessionSocket.Connect(new DnsEndPoint(uri.Host, uri.Port), monitor);
+                
 
-        //    SendSessionHeader(sessionSocket);
+                string path = !doRequestInUpgrade ? uri.PathAndQuery : alternativePath;
+                if (_useHandshake)
+                {
+                    var handshakeEnv = new Dictionary<string, object>
+                    {
+                        {":method", "get"},
+                        {":version", Protocols.Http2},
+                        {":path", path},
+                        {":scheme", uri.Scheme},
+                        {":host", uri.Host},
+                        {"securityOptions", options},
+                        {"secureSocket", sessionSocket},
+                        {"end", ConnectionEnd.Client}
+                    };
 
-        //    return sessionSocket;
-        //}
+                    sessionSocket.MakeSecureHandshake(options);
+                }
+            }
 
-        //protected static Http2Stream SubmitRequest(Http2Session session, Uri uri)
-        //{
-        //    const string method = "get";
-        //    string path = uri.PathAndQuery;
-        //    string version = Protocols.Http2;
-        //    string scheme = uri.Scheme;
-        //    string host = uri.Host;
+            //SendSessionHeader(sessionSocket);
 
-        //    var pairs = new HeadersList
-        //        {
-        //            new KeyValuePair<string, string>(":method", method),
-        //            new KeyValuePair<string, string>(":path", path),
-        //            new KeyValuePair<string, string>(":version", version),
-        //            new KeyValuePair<string, string>(":host", host),
-        //            new KeyValuePair<string, string>(":scheme", scheme),
-        //        };
+            return useMock ? new Mock<DuplexStream>(sessionSocket, true).Object : new DuplexStream(sessionSocket, true);
+        }
 
-        //    session.SendRequest(pairs, Priority.None, false);
+        protected static Http2Stream SubmitRequest(Http2Session session, Uri uri)
+        {
+            const string method = "get";
+            string path = uri.PathAndQuery;
+            string version = Protocols.Http2;
+            string scheme = uri.Scheme;
+            string host = uri.Host;
 
-        //    return session.ActiveStreams[1];
-        //}
+            var pairs = new HeadersList
+                {
+                    new KeyValuePair<string, string>(":method", method),
+                    new KeyValuePair<string, string>(":path", path),
+                    new KeyValuePair<string, string>(":version", version),
+                    new KeyValuePair<string, string>(":host", host),
+                    new KeyValuePair<string, string>(":scheme", scheme),
+                };
+
+            session.SendRequest(pairs, Priority.None, false);
+
+            return session.ActiveStreams[1];
+        }
 
         #region non-fixed tests
-        //[Fact]
-        //public void StartSessionAndSendRequestSuccessful()
-        //{
-        //    string requestStr = GetAddress() + ConfigurationManager.AppSettings["smallTestFile"];
-        //    Uri uri;
-        //    Uri.TryCreate(requestStr, UriKind.Absolute, out uri);
-
-        //    bool wasSettingsSent = false;
-        //    bool wasHeadersSent = false;
-        //    bool wasSocketClosed = false;
-
-        //    var settingsSentRaisedEventArgs = new ManualResetEvent(false);
-        //    var headersPlusPriSentRaisedEvent = new ManualResetEvent(false);
-        //    var socketClosedRaisedEvent = new ManualResetEvent(false);
-
-        //    var socket = GetHandshakedSocket(uri);
-
-        //    socket.OnClose += (sender, args) =>
-        //    {
-        //        socketClosedRaisedEvent.Set();
-        //        wasSocketClosed = true;
-        //    };
-
-        //    var session = new Http2Session(socket, ConnectionEnd.Client, true, true, _environment);
-
-        //    session.OnSettingsSent += (o, args) =>
-        //    {
-        //        wasSettingsSent = true;
-
-        //        Assert.Equal(args.SettingsFrame.StreamId, 0);
-
-        //        settingsSentRaisedEventArgs.Set();
-        //    };
-
-        //    session.OnFrameSent += (sender, args) =>
-        //    {
-        //        if (wasHeadersSent == false)
-        //        {
-        //            wasHeadersSent = args.Frame is HeadersFrame;
-
-        //            headersPlusPriSentRaisedEvent.Set();
-        //        }
-        //    };
-
-        //    session.Start();
-
-        //    settingsSentRaisedEventArgs.WaitOne(60000);
-
-        //    var stream = SubmitRequest(session, uri);
-
-        //    headersPlusPriSentRaisedEvent.WaitOne(60000);
-
-        //    //Settings frame does not contain flow control settings in this test. 
-        //    Assert.Equal(session.ActiveStreams.Count, 1);
-        //    Assert.Equal(session.ActiveStreams.FlowControlledStreams.Count, 1);
-        //    Assert.Equal(stream.IsFlowControlBlocked, false);
-        //    Assert.Equal(stream.Id, 1);
-        //    Assert.Equal(stream.IsFlowControlEnabled, true);
-        //    Assert.Equal(stream.EndStreamSent, false);
-        //    Assert.Equal(stream.Disposed, false);
-        //    Assert.Equal(wasHeadersSent, true);
-        //    Assert.Equal(wasSettingsSent, true);
-
-        //    headersPlusPriSentRaisedEvent.Dispose();
-        //    settingsSentRaisedEventArgs.Dispose();
-        //    session.Dispose();
-
-        //    socketClosedRaisedEvent.WaitOne(60000);
-
-        //    Assert.Equal(wasSocketClosed, true);
-        //}
-
-        //[Fact]
-        //public void StartAndSuddenlyCloseSessionSuccessful()
-        //{
-        //    string requestStr = GetAddress() + ConfigurationManager.AppSettings["smallTestFile"];
-        //    Uri uri;
-        //    Uri.TryCreate(requestStr, UriKind.Absolute, out uri);
-
-        //    bool gotException = false;
-
-        //    var socketClosedRaisedEvent = new ManualResetEvent(false);
-        //    var socket = GetHandshakedSocket(uri);
-
-        //    socket.OnClose += (sender, args) => socketClosedRaisedEvent.Set();
-
-        //    try
-        //    {
-        //        var session = new Http2Session(socket, ConnectionEnd.Client, true, true, _environment);
-        //        session.Start();
-        //        session.Dispose();
-        //    }
-        //    catch (Exception)
-        //    {
-        //        gotException = true;
-        //    }
-
-        //    Assert.Equal(gotException, false);
-        //}
-
-        //[Fact]
-        //public void StartMultipleSessionAndSendMultipleRequests()
-        //{
-        //    for (int i = 0; i < 4; i++)
-        //    {
-        //        StartSessionAndSendRequestSuccessful();
-        //    }
-        //}
-
-        //[Fact]
-        //public void StartSessionAndGet10MbDataSuccessful()
-        //{
-        //    string requestStr = GetAddress() + ConfigurationManager.AppSettings["10mbTestFile"];
-        //    Uri uri;
-        //    Uri.TryCreate(requestStr, UriKind.Absolute, out uri);
-
-        //    bool wasSocketClosed = false;
-        //    bool wasFinalFrameReceived = false;
-
-        //    var socketClosedRaisedEvent = new ManualResetEvent(false);
-        //    var finalFrameReceivedRaisedEvent = new ManualResetEvent(false);
-
-        //    var socket = GetHandshakedSocket(uri);
-
-        //    socket.OnClose += (sender, args) =>
-        //    {
-        //        socketClosedRaisedEvent.Set();
-        //        wasSocketClosed = true;
-        //    };
-
-        //    var session = new Http2Session(socket, ConnectionEnd.Client, true, true, _environment);
-
-        //    session.OnFrameReceived += (sender, args) =>
-        //    {
-        //        if (args.Frame is IEndStreamFrame && ((IEndStreamFrame)args.Frame).IsEndStream)
-        //        {
-        //            finalFrameReceivedRaisedEvent.Set();
-        //            wasFinalFrameReceived = true;
-        //        }
-        //    };
-
-        //    session.Start();
-
-        //    SubmitRequest(session, uri);
-
-        //    finalFrameReceivedRaisedEvent.WaitOne(60000);
-
-        //    session.Dispose();
-
-        //    socketClosedRaisedEvent.WaitOne(60000);
-
-        //    Assert.Equal(wasFinalFrameReceived, true);
-        //    Assert.Equal(wasSocketClosed, true);
-        //}
 
         //[Fact]
         //public void StartMultipleSessionsAndGet40MbDataSuccessful()
@@ -493,6 +331,162 @@ namespace Http2Tests
         //}
 
         #endregion
+
+        [Fact]
+        public void StartSessionAndSendRequestSuccessful()
+        {
+            string requestStr = GetAddress() + ConfigurationManager.AppSettings["smallTestFile"];
+            Uri uri;
+            Uri.TryCreate(requestStr, UriKind.Absolute, out uri);
+
+            bool wasSettingsSent = false;
+            bool wasHeadersSent = false;
+            bool wasSocketClosed = false;
+
+            var settingsSentRaisedEventArgs = new ManualResetEvent(false);
+            var headersPlusPriSentRaisedEvent = new ManualResetEvent(false);
+            var socketClosedRaisedEvent = new ManualResetEvent(false);
+
+            var duplexStream = GetHandshakedDuplexStream(uri);
+
+            duplexStream.Socket.OnClose += (sender, args) =>
+            {
+                socketClosedRaisedEvent.Set();
+                wasSocketClosed = true;
+            };
+
+            var session = new Http2Session(duplexStream, ConnectionEnd.Client, true, true, new CancellationToken());
+
+            session.OnSettingsSent += (o, args) =>
+            {
+                wasSettingsSent = true;
+
+                Assert.Equal(args.SettingsFrame.StreamId, 0);
+
+                settingsSentRaisedEventArgs.Set();
+            };
+
+            session.OnFrameSent += (sender, args) =>
+            {
+                if (wasHeadersSent == false)
+                {
+                    wasHeadersSent = args.Frame is HeadersFrame;
+
+                    headersPlusPriSentRaisedEvent.Set();
+                }
+            };
+
+            Task.Run(() => session.Start());
+
+            settingsSentRaisedEventArgs.WaitOne(60000);
+
+            var stream = SubmitRequest(session, uri);
+
+            headersPlusPriSentRaisedEvent.WaitOne(60000);
+
+            //Settings frame does not contain flow control settings in this test. 
+            Assert.Equal(session.ActiveStreams.Count, 1);
+            Assert.Equal(session.ActiveStreams.FlowControlledStreams.Count, 1);
+            Assert.Equal(stream.IsFlowControlBlocked, false);
+            Assert.Equal(stream.Id, 1);
+            Assert.Equal(stream.IsFlowControlEnabled, true);
+            Assert.Equal(stream.EndStreamSent, false);
+            Assert.Equal(stream.Disposed, false);
+            Assert.Equal(wasHeadersSent, true);
+            Assert.Equal(wasSettingsSent, true);
+
+            headersPlusPriSentRaisedEvent.Dispose();
+            settingsSentRaisedEventArgs.Dispose();
+            session.Dispose();
+
+            socketClosedRaisedEvent.WaitOne(60000);
+
+            Assert.Equal(wasSocketClosed, true);
+        }
+
+        [Fact]
+        public void StartAndSuddenlyCloseSessionSuccessful()
+        {
+            string requestStr = GetAddress() + ConfigurationManager.AppSettings["smallTestFile"];
+            Uri uri;
+            Uri.TryCreate(requestStr, UriKind.Absolute, out uri);
+
+            bool gotException = false;
+
+            var socketClosedRaisedEvent = new ManualResetEvent(false);
+            var stream = GetHandshakedDuplexStream(uri);
+
+            stream.Socket.OnClose += (sender, args) => socketClosedRaisedEvent.Set();
+
+            try
+            {
+                var session = new Http2Session(stream, ConnectionEnd.Client, true, true, new CancellationToken());
+                Task.Run(() => session.Start());
+                session.Dispose();
+            }
+            catch (Exception)
+            {
+                gotException = true;
+            }
+
+            Assert.Equal(gotException, false);
+        }
+
+        [Fact]
+        public void StartMultipleSessionAndSendMultipleRequests()
+        {
+            for (int i = 0; i < 4; i++)
+            {
+                StartSessionAndSendRequestSuccessful();
+            }
+        }
+
+        [Fact(Skip="not fixed")]
+        public void StartSessionAndGet10MbDataSuccessful()
+        {
+            string requestStr = GetAddress() + ConfigurationManager.AppSettings["10mbTestFile"];
+            Uri uri;
+            Uri.TryCreate(requestStr, UriKind.Absolute, out uri);
+
+            bool wasSocketClosed = false;
+            bool wasFinalFrameReceived = false;
+
+            var socketClosedRaisedEvent = new ManualResetEvent(false);
+            var finalFrameReceivedRaisedEvent = new ManualResetEvent(false);
+
+            var duplexStream = GetHandshakedDuplexStream(uri);
+
+            duplexStream.Socket.OnClose += (sender, args) =>
+            {
+                socketClosedRaisedEvent.Set();
+                wasSocketClosed = true;
+            };
+
+            var session = new Http2Session(duplexStream, ConnectionEnd.Client, true, true, new CancellationToken());
+
+            session.OnFrameReceived += (sender, args) =>
+            {
+                if (args.Frame is IEndStreamFrame && ((IEndStreamFrame)args.Frame).IsEndStream)
+                {
+                    finalFrameReceivedRaisedEvent.Set();
+                    wasFinalFrameReceived = true;
+                }
+            };
+
+            Task.Run(() => session.Start());
+
+            SubmitRequest(session, uri);
+
+            finalFrameReceivedRaisedEvent.WaitOne(60000);
+
+            session.Dispose();
+
+            socketClosedRaisedEvent.WaitOne(60000);
+
+            Assert.Equal(wasFinalFrameReceived, true);
+            Assert.Equal(wasSocketClosed, true);
+        }
+
         public void Dispose()
         {
 
