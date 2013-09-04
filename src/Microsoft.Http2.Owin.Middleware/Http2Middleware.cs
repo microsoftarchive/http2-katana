@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -39,18 +40,22 @@ namespace ServerOwinMiddleware
             if (IsOpaqueUpgradePossible(request) && IsRequestForHttp2Upgrade(request))
             {
                 var upgradeDelegate = environment["opaque.Upgrade"] as UpgradeDelegate;
+                Debug.Assert(upgradeDelegate != null, "upgradeDelegate is not null");
 
                 var trInfo = CreateTransportInfo(request);
 
+                // save original request parameters; used to complete request after upaque upgrade is done
+                var requestCopy = GetInitialRequestParams(request);
+                
                 upgradeDelegate.Invoke(new Dictionary<string, object>(), opaque =>
                     {
                         //use the same stream which was used during upgrade
                         var opaqueStream = opaque["opaque.Stream"] as DuplexStream;
 
                         //Provide cancellation token here
-                        var http2Adapter = new Http2OwinAdapter(opaqueStream, trInfo, Invoke, CancellationToken.None);
+                        var http2Adapter = new Http2OwinAdapter(opaqueStream, trInfo, _next, CancellationToken.None);
 
-                        return http2Adapter.StartSession(GetInitialRequestParams(opaque));
+                        return http2Adapter.StartSession(requestCopy);
                     });
 
                 return;
@@ -62,7 +67,7 @@ namespace ServerOwinMiddleware
 
         private static bool IsRequestForHttp2Upgrade(OwinRequest request)
         {
-            var headers = request.Environment["owin.RequestHeaders"] as IDictionary<string, string[]>;
+            var headers = request.Headers as IDictionary<string, string[]>;
             return  headers.ContainsKey("Connection")
                     && headers.ContainsKey("HTTP2-Settings")
                     && headers.ContainsKey("Upgrade") 
@@ -79,10 +84,8 @@ namespace ServerOwinMiddleware
                    && environment["opaque.Upgrade"] is UpgradeDelegate;
         }
 
-        private IDictionary<string, string> GetInitialRequestParams(IDictionary<string, object> properties)
+        private IDictionary<string, string> GetInitialRequestParams(OwinRequest request)
         {
-            var request = new OwinRequest(properties);
-
             var defaultWindowSize = 200000.ToString();
             var defaultMaxStreams = 100.ToString();
 

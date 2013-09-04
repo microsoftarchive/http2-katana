@@ -52,13 +52,13 @@ namespace Microsoft.Http2.Protocol
             int initialWindowSize = 200000;
             int maxStreams = 100;
 
-            if (initRequest.ContainsKey(":initial_window_size"))
+            if (initRequest != null && initRequest.ContainsKey(":initial_window_size"))
             {
                 initialWindowSize = int.Parse(initRequest[":initial_window_size"]);
             }
 
-            if (initRequest.ContainsKey(":max_concurrent_streams"))
-            {
+            if (initRequest != null && initRequest.ContainsKey(":max_concurrent_streams"))
+            { 
                 maxStreams = int.Parse(initRequest[":max_concurrent_streams"]);
             }
 
