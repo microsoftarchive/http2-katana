@@ -14,6 +14,8 @@ namespace Microsoft.Http2.Protocol.Tests
 {
     public static class TestHelpers
     {
+        public static readonly string FileContent10MbTest = "some text";
+
         public static DuplexStream CreateStream()
         {
             SecurityOptions options = new SecurityOptions(SecureProtocol.Tls1, null, new[] { Protocols.Http1 }, ConnectionEnd.Client);

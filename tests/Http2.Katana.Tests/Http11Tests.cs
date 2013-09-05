@@ -4,17 +4,13 @@ using Microsoft.Http2.Protocol.IO;
 using Microsoft.Http2.Protocol.Tests;
 using Microsoft.Owin;
 using Moq;
-using Org.Mentalis.Security.Ssl;
 using ProtocolAdapters;
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using System.Net.Sockets;
 using System.Reflection;
 using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 using Xunit;
 
 namespace Http11Tests
@@ -76,6 +72,7 @@ namespace Http11Tests
                 BindingFlags.InvokeMethod | BindingFlags.Instance | BindingFlags.NonPublic,
                 null, adapter, null) as IDictionary<string, object>;
 
+            Assert.NotNull(env);
             Assert.Contains("opaque.Stream", env.Keys);
             Assert.Contains("opaque.Version", env.Keys);
             Assert.Contains("opaque.CallCancelled", env.Keys);
