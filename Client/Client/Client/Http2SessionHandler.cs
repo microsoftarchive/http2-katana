@@ -183,7 +183,6 @@ namespace Client
 
                                 if (!_useHttp20)
                                 {
-                                    Http2Logger.LogDebug("Request was handled via http 11");
                                     Dispose(false);
                                     return true;
                                 }

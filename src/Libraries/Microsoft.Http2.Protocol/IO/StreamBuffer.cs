@@ -10,7 +10,6 @@ namespace Microsoft.Http2.Protocol.IO
 
         internal byte[] Buffer { get { return _buffer; } }
         internal int Available { get { return _position; } }
-        public int BufferedDataSize {get { return _position; } }
 
         internal StreamBuffer(int initialSize)
         {
@@ -35,7 +34,7 @@ namespace Microsoft.Http2.Protocol.IO
             _buffer = temp;
         }
 
-        private void CyclicShiftLeft(int length)
+        private void MakeLeftShiftBy(int length)
         {
             if (length > _buffer.Length)
                 length = _buffer.Length;
@@ -68,7 +67,7 @@ namespace Microsoft.Http2.Protocol.IO
 
                 System.Buffer.BlockCopy(_buffer, 0, buffer, offset, count);
 
-                CyclicShiftLeft(count);
+                MakeLeftShiftBy(count);
             }
             return count;
         }

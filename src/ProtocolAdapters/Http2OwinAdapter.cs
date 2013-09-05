@@ -60,7 +60,6 @@ namespace ProtocolAdapters
         protected override async Task ProcessRequest(Http2Stream stream)
         {
             var env = PopulateEnvironment(stream.Headers);
-            Exception exception = null;
 
             try
             {

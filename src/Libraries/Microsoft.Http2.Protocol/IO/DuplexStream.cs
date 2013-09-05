@@ -104,7 +104,7 @@ namespace Microsoft.Http2.Protocol.IO
             if (_writeBuffer.Available == 0)
                 return;
 
-            var bufferLen = _writeBuffer.BufferedDataSize;
+            var bufferLen = _writeBuffer.Available;
             var flushBuffer = new byte[bufferLen];
             _writeBuffer.Read(flushBuffer, 0, bufferLen);
 
@@ -122,7 +122,7 @@ namespace Microsoft.Http2.Protocol.IO
             if (_writeBuffer.Available == 0)
                 return;
 
-            var bufferLen = _writeBuffer.BufferedDataSize;
+            var bufferLen = _writeBuffer.Available;
             var flushBuffer = new byte[bufferLen];
             _writeBuffer.Read(flushBuffer, 0, bufferLen);
 
