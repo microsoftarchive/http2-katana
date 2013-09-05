@@ -48,7 +48,7 @@ namespace Microsoft.Http2.Protocol.IO
             }
             else
             {
-                System.Buffer.BlockCopy(_buffer, length, result, 0, (int)_position - (length - 1));
+                System.Buffer.BlockCopy(_buffer, length, result, 0, (int)_position - length);
             }
 
             _buffer = result;
