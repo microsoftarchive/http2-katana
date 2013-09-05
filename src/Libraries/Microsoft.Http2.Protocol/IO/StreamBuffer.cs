@@ -6,8 +6,7 @@ namespace Microsoft.Http2.Protocol.IO
     {
         private byte[] _buffer;
         private int _position;
-        private readonly object _writeLock;
-        private readonly object _readLock;
+        private readonly object _readWriteLock;
 
         internal byte[] Buffer { get { return _buffer; } }
         internal int Available { get { return _position; } }
@@ -17,8 +16,7 @@ namespace Microsoft.Http2.Protocol.IO
         {
             _buffer = new byte[initialSize];
             _position = 0;
-            _writeLock = new object();
-            _readLock = new object();
+            _readWriteLock = new object();
         }
 
         private void ReallocateMemory(long length)
@@ -63,7 +61,7 @@ namespace Microsoft.Http2.Protocol.IO
             if (Available == 0)
                 return 0;
 
-            lock (_readLock)
+            lock (_readWriteLock)
             {
                 if (count > _position)
                     count = _position;
@@ -79,7 +77,7 @@ namespace Microsoft.Http2.Protocol.IO
         {
             Contract.Assert(offset + count <= buffer.Length);
 
-            lock (_writeLock)
+            lock (_readWriteLock)
             {
                 if (_position + count > _buffer.Length)
                     ReallocateMemory(_position + count);

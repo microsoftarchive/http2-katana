@@ -47,7 +47,7 @@ namespace Microsoft.Http2.Protocol
 
         protected abstract Task ProcessIncomingData(Http2Stream stream);
 
-        public Task StartSession(IDictionary<string, string> initRequest = null)
+        public Task StartSession(ConnectionEnd end, IDictionary<string, string> initRequest = null)
         {
             int initialWindowSize = 200000;
             int maxStreams = 100;
@@ -63,7 +63,7 @@ namespace Microsoft.Http2.Protocol
             }
 
             //TODO provide cancellation token and transport info
-            _session = new Http2Session(_stream, ConnectionEnd.Server, true, true, _cancToken, initialWindowSize, maxStreams);
+            _session = new Http2Session(_stream, end, true, true, _cancToken, initialWindowSize, maxStreams);
             _session.OnFrameReceived += OnFrameReceivedHandler;
 
             return _session.Start(initRequest);

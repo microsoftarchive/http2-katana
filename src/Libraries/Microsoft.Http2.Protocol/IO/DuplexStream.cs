@@ -5,7 +5,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Org.Mentalis.Security.Ssl;
 using Microsoft.Http2.Protocol.EventArgs;
-using Microsoft.Http2.Protocol.Exceptions;
 
 namespace Microsoft.Http2.Protocol.IO
 {
@@ -161,7 +160,6 @@ namespace Microsoft.Http2.Protocol.IO
                 return;
 
             _writeBuffer.Write(buffer, offset, count);
-
         }
 
         // TODO to extension methods ?? + check for args

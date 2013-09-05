@@ -132,14 +132,18 @@ namespace Client
                                 break;
                             }
 
-                            Task.Run(() => sessionHandler.StartConnection());
-
-                            using (var waitForConnectionStart = new ManualResetEvent(false))
+                            if (!sessionHandler.WasHttp1Used)
                             {
-                                waitForConnectionStart.WaitOne(200);
+                                Task.Run(() => sessionHandler.StartConnection());
+
+                                using (var waitForConnectionStart = new ManualResetEvent(false))
+                                {
+                                    waitForConnectionStart.WaitOne(500);
+                                }
+
+                                if (sessionHandler.Options.Protocol != SecureProtocol.None)
+                                    sessionHandler.SendRequestAsync(uriCmd.Uri, method, localPath, serverPostAct);
                             }
-                            if (sessionHandler.Options.Protocol != SecureProtocol.None)
-                                sessionHandler.SendRequestAsync(uriCmd.Uri, method, localPath, serverPostAct);
                             break;
                         case CommandType.Help:
                             ((HelpCommand)cmd).ShowHelp.Invoke();

@@ -163,7 +163,7 @@ namespace SocketServer
             {
                 try
                 {
-                   await http2Adapter.StartSession();
+                    await http2Adapter.StartSession(ConnectionEnd.Server);
                 }
                 catch (Exception)
                 {

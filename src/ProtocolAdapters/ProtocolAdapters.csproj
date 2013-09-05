@@ -43,6 +43,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Http11ProtocolOwinAdapter.cs" />
+    <Compile Include="Http11ClientProtocolAdapter.cs" />
     <Compile Include="Http2ClientProtocolAdapter.cs" />
     <Compile Include="Http2OwinAdapter.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

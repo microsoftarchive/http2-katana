@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 
 namespace Microsoft.Http1.Protocol
 {
@@ -11,11 +12,15 @@ namespace Microsoft.Http1.Protocol
     /// </summary>
     public static class Http11Manager
     {
-
         public static int Write(this Stream stream, byte[] buffer)
         {
-            stream.Write(buffer, 0,buffer.Length);
+            stream.Write(buffer, 0, buffer.Length);
             return buffer.Length;
+        }
+
+        public static void SendRequest(Stream stream, string rawHeaders)
+        {
+            stream.Write(Encoding.UTF8.GetBytes(rawHeaders));
         }
 
         /// <summary>
@@ -55,16 +60,20 @@ namespace Microsoft.Http1.Protocol
             headersPack = headers.Aggregate(headersPack, (current, header) => current + (header.Key + ": " + String.Join(",", header.Value) + "\r\n")) + "\r\n";
 
             int sent = stream.Write(Encoding.UTF8.GetBytes(headersPack));
-            //SendHeaders(stream, headers, data.Length);
+            //Send headers and body separately
+            //TODO It's needed for our client. Think out a way to avoid separate sending.
+            stream.Flush();
 
             if (data.Length > 0)
                 sent += stream.Write(data);
+
+            Thread.Sleep(200);
 
             stream.Flush();
             return sent;
         }
 
-        public static string[] ReadHeaders(Stream socket)
+        public static string[] ReadHeaders(Stream stream)
         {
             var headers = new List<string>(5);
 
@@ -77,7 +86,7 @@ namespace Microsoft.Http1.Protocol
             {
                 bool gotException = false;
                 var bf = new byte[1];
-                int bytesCame = socket.Read(bf, 0, 1);
+                int bytesCame = stream.Read(bf, 0, 1);
                 if (bytesCame == 0)
                     break;
 
@@ -107,12 +116,6 @@ namespace Microsoft.Http1.Protocol
             headers.RemoveAll(String.IsNullOrEmpty);
 
             return headers.ToArray();
-        }
-
-        private static string ConvertFromBase64(string toConvert)
-        {
-            var bytes = Convert.FromBase64String(toConvert);
-            return Encoding.UTF8.GetString(bytes);
         }
 
         private static KeyValuePair<string, string[]> GetHeaderNameValues(string header, int colonIndex)

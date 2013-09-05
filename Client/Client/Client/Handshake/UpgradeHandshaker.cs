@@ -1,16 +1,20 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Diagnostics;
 using System.Diagnostics.Contracts;
 using System.IO;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.RegularExpressions;
 using Client.Handshake.Exceptions;
+using Microsoft.Http1.Protocol;
 using Microsoft.Http2.Protocol;
+using Microsoft.Http2.Protocol.Extensions;
 using Org.Mentalis.Security.Ssl;
 using Microsoft.Http2.Protocol.Framing;
 using Microsoft.Http2.Protocol.Utils;
+using ProtocolAdapters;
 
 namespace Client.Handshake
 {
@@ -28,11 +32,11 @@ namespace Client.Handshake
         private bool _wasResponseReceived;
         private IDictionary<string, object> _handshakeResult;
         private HandshakeResponse _response;
-        public SecureSocket InternalSocket { get; private set; }
+        public Stream IoStream { get; private set; }
 
         public UpgradeHandshaker(IDictionary<string, object> handshakeEnvironment)
         {
-            InternalSocket = (SecureSocket) handshakeEnvironment["secureSocket"];
+            IoStream = (Stream)handshakeEnvironment["stream"];
             _end = (ConnectionEnd) handshakeEnvironment["end"];
             _handshakeResult = new Dictionary<string, object>();
 
@@ -82,24 +86,17 @@ namespace Client.Handshake
                 builder.AppendFormat("Host: {0}\r\n", _headers[":host"]);
                 builder.Append("Connection: Upgrade, Http2-Settings\r\n");
                 builder.Append("Upgrade: HTTP-DRAFT-04/2.0\r\n");
-                builder.Append("Http2-Settings: ");
-                //TODO check out how to send window size and max_conc_streams
+                var settingsPayload = String.Format("{0}, {1}", 200000, 100);
+                var settingsBytes = Encoding.UTF8.GetBytes(settingsPayload);
+                var settingsBase64 = Convert.ToBase64String(settingsBytes);
 
-                if (_headers != null)
-                {
-                    var http2Settings = new StringBuilder();
-                    foreach (var key in _headers.Keys)
-                    {
-                        if (!string.Equals(":path", key, StringComparison.OrdinalIgnoreCase))
-                            http2Settings.AppendFormat("{0}: {1}\r\n", key, _headers[key]);
-                    }
-                    byte[] settingsBytes = Encoding.UTF8.GetBytes(http2Settings.ToString());
-                    builder.Append(Convert.ToBase64String(settingsBytes));
-                }
+                builder.Append("Http2-Settings: " + settingsBase64);
                 builder.Append("\r\n\r\n");
+
                 byte[] requestBytes = Encoding.UTF8.GetBytes(builder.ToString());
                 _handshakeResult = new Dictionary<string, object>(_headers) {{":method", "get"}};
-                InternalSocket.Send(requestBytes, 0, requestBytes.Length, SocketFlags.None);
+                IoStream.Write(requestBytes, 0, requestBytes.Length);
+                IoStream.Flush();
                 ReadHeadersAndInspectHandshake();
             }
             else
@@ -118,7 +115,8 @@ namespace Client.Handshake
                     builder.Append("\r\n");
 
                     byte[] requestBytes = Encoding.ASCII.GetBytes(builder.ToString());
-                    InternalSocket.Send(requestBytes, 0, requestBytes.Length, SocketFlags.None);
+                    IoStream.Write(requestBytes, 0, requestBytes.Length);
+                    IoStream.Flush();
                 }
             }
 
@@ -129,9 +127,15 @@ namespace Client.Handshake
 
             if (_response.Result != HandshakeResult.Upgrade)
             {
-                throw new Http2HandshakeFailed(HandshakeFailureReason.InternalError);
+                _handshakeResult.Add("handshakeSuccessful", "false");
+                var path = _headers[":path"] as string;
+                var http11Adapter = new Http11ClientProtocolAdapter(IoStream, path);
+                http11Adapter.HandleHttp11Response(_response.ResponseBytes.Array, 0, _response.ResponseBytes.Count);
+
+                return _handshakeResult;
             }
 
+            _handshakeResult.Add("handshakeSuccessful", "true");
             return _handshakeResult;
         }
 
@@ -144,7 +148,7 @@ namespace Client.Handshake
                 int read;
                 try
                 {
-                    read = InternalSocket.Receive(buffer, readOffset, buffer.Length - readOffset, SocketFlags.None);
+                    read = IoStream.Read(buffer, readOffset, buffer.Length - readOffset);
                 }
                 catch (IOException)
                 {

@@ -28,6 +28,7 @@ namespace Client
     {
         #region Fields
         private Http2ClientProtocolAdapter _sessionAdapter;
+        private DuplexStream _clientStream;
         private const string CertificatePath = @"certificate.pfx";
         private string _selectedProtocol;
         private bool _useHttp20 = true;
@@ -58,9 +59,9 @@ namespace Client
 
         public SecurityOptions Options { get; private set; }
 
-        public bool IsHttp2WillBeUsed 
+        public bool WasHttp1Used 
         {
-            get { return _useHttp20; }
+            get { return !_useHttp20; }
         }
 
         #endregion
@@ -107,7 +108,7 @@ namespace Client
                     {":scheme", _scheme},
                     {":host", _host},
                     {"securityOptions", Options},
-                    {"secureSocket", socket},
+                    {"stream", _clientStream},
                     {"end", ConnectionEnd.Client}
 			});
         }
@@ -158,7 +159,9 @@ namespace Client
                 {
                     monitor.OnProtocolSelected += (o, args) => { _selectedProtocol = args.SelectedProtocol; };
                     socket.Connect(new DnsEndPoint(connectUri.Host, connectUri.Port), monitor);
-                    
+
+                    _clientStream = new DuplexStream(socket, true);
+
                     if (_useHandshake)
                     {
                         MakeHandshakeEnvironment(socket);
@@ -167,38 +170,48 @@ namespace Client
                         if (socket.SecureProtocol != SecureProtocol.None)
                         {
                             socket.MakeSecureHandshake(Options);
+                            _selectedProtocol = socket.SelectedProtocol;
                         }
 
-                        Http2Logger.LogDebug("Handshake finished");
-
-                        if (_selectedProtocol == Protocols.Http1)
+                        if (socket.SecureProtocol == SecureProtocol.None || _selectedProtocol == Protocols.Http1)
                         {
-                            //TODO Handle double handshake
-                            var handshakeResult = new UpgradeHandshaker(_environment).Handshake();
-                            _environment.Add("HandshakeResult", handshakeResult);
-                            _useHttp20 = false;
-                            return true;
+                            try
+                            {
+                                var handshakeResult = new UpgradeHandshaker(_environment).Handshake();
+                                _environment.Add("HandshakeResult", handshakeResult);
+                                _useHttp20 = handshakeResult["handshakeSuccessful"] as string == "true";
+
+                                if (!_useHttp20)
+                                {
+                                    Http2Logger.LogDebug("Request was handled via http 11");
+                                    Dispose(false);
+                                    return true;
+                                }
+                            }
+                            catch (Http2HandshakeFailed ex)
+                            {
+                                if (ex.Reason == HandshakeFailureReason.InternalError)
+                                {
+                                    _useHttp20 = false;
+                                }
+                                else
+                                {
+                                    Http2Logger.LogError("Specified server did not respond");
+                                    Dispose(true);
+                                    return false;
+                                }
+                            }
                         }
                     }
                 }
 
-                _useHttp20 = true;
-                var stream = new DuplexStream(socket, true);
+                Http2Logger.LogDebug("Handshake finished");
 
-                //TODO provide transport info
-                _sessionAdapter = new Http2ClientProtocolAdapter(stream, default(TransportInformation), CancellationToken.None);
-            }
-            catch (Http2HandshakeFailed ex)
-            {
-                if (ex.Reason == HandshakeFailureReason.InternalError)
+                if (_useHttp20)
                 {
-                    _useHttp20 = false;
-                }
-                else
-                {
-                    Http2Logger.LogError("Specified server did not respond");
-                    Dispose(true);
-                    return false;
+                    //TODO provide transport info
+                    _sessionAdapter = new Http2ClientProtocolAdapter(_clientStream, default(TransportInformation),
+                                                                     CancellationToken.None);
                 }
             }
             catch (SocketException)
@@ -221,7 +234,7 @@ namespace Client
         {
             if (_useHttp20 && !_sessionAdapter.IsDisposed && !_isDisposed)
             {
-                await _sessionAdapter.StartSession();
+                await _sessionAdapter.StartSession(ConnectionEnd.Client);
             }
             else if (_sessionAdapter.IsDisposed)
             {
@@ -252,8 +265,7 @@ namespace Client
             {
                 headers.Add(new KeyValuePair<string, string>(":serverPostAct".ToLower(), serverPostAct));
             }
-
-            //Sending request with average priority
+                //Sending request with average priority
             _sessionAdapter.SendRequest(headers, Priority.None, false);
         }
 
@@ -266,13 +278,9 @@ namespace Client
                     throw new InvalidOperationException("Trying to send request to non connected address");
                 }
 
-                if (_useHttp20 == false)
+                if (!_useHttp20)
                 {
                     Http2Logger.LogConsole("Download with Http/1.1");
-
-                    //Download with http11 in another thread.
-                    //Http11Manager.Http11DownloadResource(_socket, request);
-                    return;
                 }
 
                 //Submit request if http2 was chosen
@@ -293,146 +301,11 @@ namespace Client
             return TimeSpan.Zero;
         }
 
-        /*private void SendDataTo(Http2Stream stream, byte[] binaryData)
-        {
-            int i = 0;
-
-            Http2Logger.LogConsole("Transfer begin");
-
-            do
-            {
-                bool isLastData = binaryData.Length - i < Constants.MaxDataFrameContentSize;
-
-                int chunkSize = stream.WindowSize > 0
-                                    ? MathEx.Min(binaryData.Length - i, Constants.MaxDataFrameContentSize,
-                                                 stream.WindowSize)
-                                    : MathEx.Min(binaryData.Length - i, Constants.MaxDataFrameContentSize);
-
-                var chunk = new byte[chunkSize];
-                Buffer.BlockCopy(binaryData, i, chunk, 0, chunk.Length);
-
-                stream.WriteDataFrame(chunk, isLastData);
-
-                i += chunkSize;
-            } while (binaryData.Length > i);
-
-            //It was not send exactly. Some of the data frames could be pushed to the unshipped frames collection
-            Http2Logger.LogConsole("File sent: " + stream.Headers.GetValue(":path"));
-        }
-
-        private void SaveDataFrame(Http2Stream stream, DataFrame dataFrame)
-        {
-            lock (_writeLock)
-            {
-                string originalPath = stream.Headers.GetValue(":path".ToLower()); 
-                //If user sets the empty file in get command we return notFound webpage
-                string fileName = string.IsNullOrEmpty(Path.GetFileName(originalPath)) ? Index : Path.GetFileName(originalPath);
-                string path = Path.Combine(AssemblyPath, fileName);
-
-                try
-                {
-                        _fileHelper.SaveToFile(dataFrame.Data.Array, dataFrame.Data.Offset, dataFrame.Data.Count,
-                                           path, stream.ReceivedDataAmount != 0);
-                }
-                catch (IOException)
-                {
-                    Http2Logger.LogError("File is still downloading. Repeat request later");
-                    stream.WriteDataFrame(new byte[0], true);
-                    stream.Dispose();
-                }
-
-                stream.ReceivedDataAmount += dataFrame.FrameLength;
-
-                if (dataFrame.IsEndStream)
-                {
-                    if (!stream.EndStreamSent)
-                    {
-                        //send terminator
-                        stream.WriteDataFrame(new byte[0], true);
-                        Http2Logger.LogConsole("Terminator was sent");
-                    }
-                    _fileHelper.RemoveStream(path);
-                    Http2Logger.LogConsole("Bytes received " + stream.ReceivedDataAmount);
-#if DEBUG
-                    const string wayToServerRoot1 = @"..\..\..\..\..\Drop\Root";
-                    const string wayToServerRoot2 = @".\Root";
-                    var areFilesEqual = _fileHelper.CompareFiles(path, wayToServerRoot1 + originalPath) ||
-                                        _fileHelper.CompareFiles(path, wayToServerRoot2 + originalPath);
-                    if (!areFilesEqual)
-                    {
-                        Console.ForegroundColor = ConsoleColor.Red;
-                        Http2Logger.LogError("Files are NOT EQUAL!");
-                    }
-                    else
-                    {
-                        Console.ForegroundColor = ConsoleColor.Green;
-                        Http2Logger.LogConsole("Files are EQUAL!");
-                    }
-                    Console.ForegroundColor = ConsoleColor.Gray;
-#endif
-                }
-            }
-        }*/
-
-        /*private void RequestSentHandler(object sender, RequestSentEventArgs args)
-        {
-            var stream = args.Stream;
-            var method = stream.Headers.GetValue(":method");
-            if (method == "put" || method == "post")
-            {
-                var localPath = stream.Headers.GetValue(":localPath".ToLower());
-                byte[] binary = null;
-                bool gotException = false;
-                try
-                {
-                    binary = _fileHelper.GetFile(localPath);
-                }
-                catch (FileNotFoundException)
-                {
-                    gotException = true;
-                    Http2Logger.LogError("Specified file not found: " + localPath);
-                }
-                if (!gotException)
-                {
-                    SendDataTo(args.Stream, binary);
-                }
-            }
-        }
-
-        private void FrameReceivedHandler(object sender, FrameReceivedEventArgs args)
-        {
-            var stream = args.Stream;
-            var method = stream.Headers.GetValue(":method").ToLower();
-
-            try
-            {
-                switch (method)
-                {
-                    case "dir":
-                    case "get":
-                        if (args.Frame is DataFrame)
-                        {
-                            SaveDataFrame(stream, (DataFrame) args.Frame);
-                        }
-                        else if (args.Frame is HeadersFrame)
-                        {
-                            Http2Logger.LogConsole("Headers received for stream: " + args.Frame.StreamId + " status:" + ((HeadersFrame)args.Frame).Headers.GetValue(":status"));
-                        }
-                        break;
-                }
-            }
-            catch (Exception)
-            {
-                stream.WriteRst(ResetStatusCode.InternalError);
-                stream.Dispose();
-            }
-        }*/
-
         public void Dispose(bool wasErrorOccurred)
         {
             Dispose();
 
-            if (wasErrorOccurred && OnClosed != null)
+            if (OnClosed != null)
             {
                 OnClosed(this, null);
             }
@@ -450,6 +323,11 @@ namespace Client
             if (_sessionAdapter != null)
             {
                 _sessionAdapter.Dispose();
+            }
+
+            if (_clientStream != null)
+            {
+                _clientStream.Dispose();
             }
 
             _isDisposed = true;

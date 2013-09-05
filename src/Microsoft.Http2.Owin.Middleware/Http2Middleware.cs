@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using Microsoft.Owin;
 using Microsoft.Http2.Protocol;
 using Microsoft.Http2.Protocol.IO;
+using Org.Mentalis.Security.Ssl;
 using ProtocolAdapters;
 
 namespace ServerOwinMiddleware
@@ -56,7 +57,7 @@ namespace ServerOwinMiddleware
                         //Provide cancellation token here
                         var http2Adapter = new Http2OwinAdapter(opaqueStream, trInfo, _next, CancellationToken.None);
 
-                        return http2Adapter.StartSession(requestCopy);
+                        return http2Adapter.StartSession(ConnectionEnd.Server, requestCopy);
                     });
 
                 // specify Upgrade protocol
