@@ -5,6 +5,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
+using Client.Adapters;
 using Client.Handshake;
 using Client.Handshake.Exceptions;
 using Microsoft.Http2.Protocol;
@@ -15,7 +16,6 @@ using Microsoft.Http2.Protocol.Extensions;
 using Microsoft.Http2.Protocol.Framing;
 using Microsoft.Http2.Protocol.IO;
 using Microsoft.Http2.Protocol.Utils;
-using ProtocolAdapters;
 using Org.Mentalis.Security;
 
 namespace Client
@@ -27,7 +27,7 @@ namespace Client
     public sealed class Http2SessionHandler : IDisposable
     {
         #region Fields
-        private Http2ClientProtocolAdapter _sessionAdapter;
+        private Http2ClientMessageHandler _sessionAdapter;
         private DuplexStream _clientStream;
         private const string CertificatePath = @"certificate.pfx";
         private string _selectedProtocol;
@@ -209,7 +209,7 @@ namespace Client
                 if (_useHttp20)
                 {
                     //TODO provide transport info
-                    _sessionAdapter = new Http2ClientProtocolAdapter(_clientStream, default(TransportInformation),
+                    _sessionAdapter = new Http2ClientMessageHandler(_clientStream, default(TransportInformation),
                                                                      CancellationToken.None);
                 }
             }

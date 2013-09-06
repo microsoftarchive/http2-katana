@@ -1,11 +1,9 @@
-﻿using Microsoft.Http2.Protocol;
+﻿using Microsoft.Http2.Owin.Server.Adapters;
 using Microsoft.Http2.Protocol.IO;
 using Moq;
 using Org.Mentalis.Security.Ssl;
-using ProtocolAdapters;
 using System;
 using System.Collections.Generic;
-using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;

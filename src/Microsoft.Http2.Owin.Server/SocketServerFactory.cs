@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Configuration;
 using System.Threading.Tasks;
 
-namespace SocketServer
+namespace Microsoft.Http2.Owin.Server
 {
     using AppFunc = Func<IDictionary<string, object>, Task>;
 

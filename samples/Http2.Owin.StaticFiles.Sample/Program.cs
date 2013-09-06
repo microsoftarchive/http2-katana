@@ -1,6 +1,6 @@
 ﻿using System.Configuration;
+using Microsoft.Http2.Owin.Server;
 using Microsoft.Owin.Hosting;
-using SocketServer;
 using System;
 
 namespace Http2.Owin.StaticFiles.Sample

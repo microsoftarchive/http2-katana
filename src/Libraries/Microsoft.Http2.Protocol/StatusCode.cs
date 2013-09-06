@@ -21,7 +21,7 @@
             public const string Reason101SwitchingProtocols = "Switching protocols";
             public const string Reason501NotImplemented = "Not implemented";
 
-            internal static string GetReasonPhrase(int statusCode)
+            public static string GetReasonPhrase(int statusCode)
             {
                 switch (statusCode)
                 {

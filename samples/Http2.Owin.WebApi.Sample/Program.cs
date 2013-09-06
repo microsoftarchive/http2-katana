@@ -1,6 +1,6 @@
 ﻿using System;
+using Microsoft.Http2.Owin.Server;
 using Microsoft.Owin.Hosting;
-using SocketServer;
 using System.Configuration;
 
 namespace Http2.Owin.WebApi.Sample

@@ -1,10 +1,10 @@
 ﻿using Microsoft.Http1.Protocol;
+using Microsoft.Http2.Owin.Server.Adapters;
 using Microsoft.Http2.Protocol;
 using Microsoft.Http2.Protocol.IO;
 using Microsoft.Http2.Protocol.Tests;
 using Microsoft.Owin;
 using Moq;
-using ProtocolAdapters;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,7 +15,6 @@ using Xunit;
 
 namespace Http11Tests
 {
-    using StatusCode = Microsoft.Http1.Protocol.StatusCode;
     public class Http11Tests : IDisposable
     {
         public void Dispose()
@@ -110,7 +109,7 @@ namespace Http11Tests
             .Callback(modifyBufferData)
             .Returns<byte[], int, int>((buf, offset, count) => { return count; });
 
-            var rawHeaders = Http11Manager.ReadHeaders(mockStream.Object);
+            var rawHeaders = Http11Helper.ReadHeaders(mockStream.Object);
             Assert.Equal(rawHeaders.Length, 5);
 
             string[] splittedRequestString = rawHeaders[0].Split(' ');
@@ -118,7 +117,7 @@ namespace Http11Tests
             Assert.Equal(splittedRequestString[1], "/");
             Assert.Equal(splittedRequestString[2], "HTTP/1.1");
 
-            var headers = Http11Manager.ParseHeaders(rawHeaders.Skip(1).ToArray());
+            var headers = Http11Helper.ParseHeaders(rawHeaders.Skip(1).ToArray());
             Assert.Equal(headers.Count, 4);
             Assert.Contains("Host", headers.Keys);
             Assert.Contains("User-Agent", headers.Keys);
@@ -153,7 +152,7 @@ namespace Http11Tests
                 stream.Write(It.IsAny<byte[]>(), It.IsAny<int>(), It.IsAny<int>())
             ).Callback(WriteHandler);
 
-            Http11Manager.SendResponse(mock.Object, data, StatusCode.Code200Ok, ContentTypes.TextPlain, headers);
+            Http11Helper.SendResponse(mock.Object, data, StatusCode.Code200Ok, ContentTypes.TextPlain, headers);
 
             string response = Encoding.UTF8.GetString(written.ToArray());
 

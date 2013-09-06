@@ -9,9 +9,9 @@ using Microsoft.Http2.Protocol.IO;
 using Microsoft.Http2.Protocol.Utils;
 using Org.Mentalis.Security.Ssl;
 
-namespace ProtocolAdapters
+namespace Client.Adapters
 {
-    public class Http2ClientProtocolAdapter : AbstractHttp2Adapter
+    public class Http2ClientMessageHandler : Http2MessageHandler
     {
         private readonly FileHelper _fileHelper;
         private const string Index = @"index.html";
@@ -19,7 +19,7 @@ namespace ProtocolAdapters
 
         public bool IsDisposed { get { return _isDisposed; } }
 
-        public Http2ClientProtocolAdapter(DuplexStream stream, TransportInformation transportInfo, CancellationToken cancel) 
+        public Http2ClientMessageHandler(DuplexStream stream, TransportInformation transportInfo, CancellationToken cancel) 
             : base(stream, transportInfo, cancel)
         {
             _fileHelper = new FileHelper(ConnectionEnd.Client);

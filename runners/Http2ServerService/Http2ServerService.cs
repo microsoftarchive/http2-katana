@@ -3,9 +3,8 @@ using System.Threading;
 using Microsoft.Owin.Hosting;
 using System.ServiceProcess;
 using System.Configuration;
-using SocketServer;
 
-namespace Http2ServerService
+namespace Microsoft.Http2.Owin.Server.Service
 {
     public partial class Http2ServerService : ServiceBase
     {

@@ -78,6 +78,8 @@
     <Compile Include="Handshake\HandshakeResult.cs" />
     <Compile Include="Handshake\Http2HandshakeFailed.cs" />
     <Compile Include="Handshake\UpgradeHandshaker.cs" />
+    <Compile Include="Adapters\Http11ClientMessageHandler.cs" />
+    <Compile Include="Adapters\Http2ClientMessageHandler.cs" />
     <Compile Include="Http2SessionHandler.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -87,17 +89,9 @@
       <Project>{5bfa5a70-d384-4417-afcc-5c744485a85f}</Project>
       <Name>Security Library</Name>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\src\Libraries\Microsoft.Http1.Protocol\Microsoft.Http1.Protocol.csproj">
-      <Project>{42bf4a29-7ca3-4898-83a0-98c7a935ee27}</Project>
-      <Name>Microsoft.Http1.Protocol</Name>
-    </ProjectReference>
     <ProjectReference Include="..\..\..\src\Libraries\Microsoft.Http2.Protocol\Microsoft.Http2.Protocol.csproj">
       <Project>{e34ac310-324c-46bc-af9f-1a41df58e867}</Project>
       <Name>Microsoft.Http2.Protocol</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\..\..\src\ProtocolAdapters\ProtocolAdapters.csproj">
-      <Project>{855ebb2f-b7c0-4525-9dd6-a3b66de268d1}</Project>
-      <Name>ProtocolAdapters</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

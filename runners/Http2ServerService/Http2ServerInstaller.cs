@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel;
 
-namespace Http2ServerService
+namespace Microsoft.Http2.Owin.Server.Service
 {
     [RunInstaller(true)]
     public partial class Http2ServerInstaller : System.Configuration.Install.Installer

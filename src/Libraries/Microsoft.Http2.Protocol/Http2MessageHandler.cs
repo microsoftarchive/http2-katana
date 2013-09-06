@@ -11,7 +11,7 @@ namespace Microsoft.Http2.Protocol
 {
     using AppFunc = Func<IDictionary<string, object>, Task>;
     //TODO Remove Owin.Types dependency
-    public abstract class AbstractHttp2Adapter : IDisposable
+    public abstract class Http2MessageHandler : IDisposable
     {
         protected Http2Session _session;
         protected bool _isDisposed;
@@ -19,7 +19,7 @@ namespace Microsoft.Http2.Protocol
         protected readonly CancellationToken _cancToken;
         protected readonly TransportInformation _transportInfo;
 
-        protected AbstractHttp2Adapter(DuplexStream stream, TransportInformation transportInfo, CancellationToken cancel)
+        protected Http2MessageHandler(DuplexStream stream, TransportInformation transportInfo, CancellationToken cancel)
         {
             _transportInfo = transportInfo;
             _isDisposed = false;

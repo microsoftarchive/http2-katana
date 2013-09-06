@@ -11,7 +11,7 @@ using Microsoft.Http2.Protocol;
 using Microsoft.Http2.Protocol.Utils;
 using StatusCode = Microsoft.Http2.Protocol.StatusCode;
 
-namespace ProtocolAdapters
+namespace Microsoft.Http2.Owin.Server.Adapters
 {
     using AppFunc = Func<IDictionary<string, object>, Task>;
     using Environment = IDictionary<string, object>;
@@ -60,7 +60,7 @@ namespace ProtocolAdapters
                 // invalid connection, skip
                 if (!_client.CanRead) return;
 
-                var rawHeaders = Http11Manager.ReadHeaders(_client);
+                var rawHeaders = Http11Helper.ReadHeaders(_client);
                 
                 Http2Logger.LogDebug("Http1.1 Protocol Handler. Process request " + string.Join(" ", rawHeaders));
                 
@@ -68,7 +68,7 @@ namespace ProtocolAdapters
                 if (rawHeaders == null || rawHeaders.Length == 0) return;
 
                 // headers[0] contains METHOD, URI and VERSION like "GET /api/values/1 HTTP/1.1"
-                var headers = Http11Manager.ParseHeaders(rawHeaders.Skip(1).ToArray());
+                var headers = Http11Helper.ParseHeaders(rawHeaders.Skip(1).ToArray());
 
                 // client MUST include Host header due to HTTP/1.1 spec 
                 if (!headers.ContainsKey("Host"))
@@ -148,10 +148,9 @@ namespace ProtocolAdapters
         /// <param name="opaqueCallback">The OpaqueFunc callback</param>
         private void OpaqueUpgradeDelegate(Environment settings, AppFunc opaqueCallback)
         {
-            // TODO 101 to constants
-            _response.StatusCode = 101;
-            _response.ReasonPhrase = "Switching Protocols";
-            _response.Protocol = "HTTP/1.1";
+            _response.StatusCode = StatusCode.Code101SwitchingProtocols;
+            _response.ReasonPhrase = StatusCode.Reason101SwitchingProtocols;
+            _response.Protocol = Protocols.Http1;
             _response.Headers.Add("Connection", new[] {"Upgrade"});
 
             _opaqueCallback = opaqueCallback;
@@ -196,7 +195,7 @@ namespace ProtocolAdapters
         {
             int statusCode = (ex is NotSupportedException) ? StatusCode.Code501NotImplemented : StatusCode.Code500InternalServerError;
 
-            Http11Manager.SendResponse(_client, new byte[0], statusCode, ContentTypes.TextPlain);
+            Http11Helper.SendResponse(_client, new byte[0], statusCode, ContentTypes.TextPlain);
         }
 
         private void EndResponse(bool closeConnection = true)
@@ -213,7 +212,7 @@ namespace ProtocolAdapters
                 bytes = new byte[0];
             }
 
-            Http11Manager.SendResponse(_client, bytes, _response.StatusCode, _response.ContentType, _response.Headers, closeConnection);
+            Http11Helper.SendResponse(_client, bytes, _response.StatusCode, _response.ContentType, _response.Headers, closeConnection);
 
             if (closeConnection)
             {

@@ -4,13 +4,14 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
+using Microsoft.Http2.Protocol;
 
 namespace Microsoft.Http1.Protocol
 {
     /// <summary>
     /// This class is designed for http11 handling.
     /// </summary>
-    public static class Http11Manager
+    public static class Http11Helper
     {
         public static int Write(this Stream stream, byte[] buffer)
         {

@@ -9,16 +9,16 @@ using System.Collections.Generic;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Http2.Owin.Server.Adapters;
 using Org.Mentalis;
 using Org.Mentalis.Security;
 using Org.Mentalis.Security.Ssl;
-using ProtocolAdapters;
 using Security.Ssl;
 using Microsoft.Http2.Protocol;
 using Microsoft.Http2.Protocol.IO;
 using Microsoft.Http2.Protocol.Utils;
 
-namespace SocketServer
+namespace Microsoft.Http2.Owin.Server
 {
     using AppFunc = Func<IDictionary<string, object>, Task>;
     /// <summary>

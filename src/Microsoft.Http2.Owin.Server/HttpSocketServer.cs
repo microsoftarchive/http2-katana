@@ -12,7 +12,7 @@ using System.Configuration;
 using Microsoft.Http2.Protocol;
 using Microsoft.Http2.Protocol.Utils;
 
-namespace SocketServer
+namespace Microsoft.Http2.Owin.Server
 {
     using AppFunc = Func<IDictionary<string, object>, Task>;
 

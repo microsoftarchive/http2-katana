@@ -1,20 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data;
-using System.Diagnostics;
 using System.Diagnostics.Contracts;
 using System.IO;
-using System.Net.Sockets;
 using System.Text;
 using System.Text.RegularExpressions;
+using Client.Adapters;
 using Client.Handshake.Exceptions;
-using Microsoft.Http1.Protocol;
 using Microsoft.Http2.Protocol;
-using Microsoft.Http2.Protocol.Extensions;
-using Org.Mentalis.Security.Ssl;
-using Microsoft.Http2.Protocol.Framing;
 using Microsoft.Http2.Protocol.Utils;
-using ProtocolAdapters;
+using Org.Mentalis.Security.Ssl;
 
 namespace Client.Handshake
 {
@@ -131,7 +126,7 @@ namespace Client.Handshake
                 var path = _headers[":path"] as string;
                 
                 Http2Logger.LogDebug("Handling with http11");
-                var http11Adapter = new Http11ClientProtocolAdapter(IoStream, path);
+                var http11Adapter = new Http11ClientMessageHandler(IoStream, path);
                 http11Adapter.HandleHttp11Response(_response.ResponseBytes.Array, 0, _response.ResponseBytes.Count);
 
                 return _handshakeResult;

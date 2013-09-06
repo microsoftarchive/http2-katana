@@ -32,6 +32,10 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Microsoft.Owin, Version=2.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\packages\Microsoft.Owin.2.0.0-rc1\lib\net45\Microsoft.Owin.dll</HintPath>
+    </Reference>
     <Reference Include="Owin, Version=1.0.0.0, Culture=neutral, PublicKeyToken=f0ebd12fd5e55cc5, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\packages\Owin.1.0\lib\net40\Owin.dll</HintPath>
@@ -47,9 +51,10 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="DictionaryExtensions.cs" />
-    <Compile Include="EventArgs\ServerStartEventArgs.cs" />
-    <Compile Include="EventArgs\ServerStopEventArgs.cs" />
     <Compile Include="GlobalSuppressions.cs" />
+    <Compile Include="Adapters\Http11Helper.cs" />
+    <Compile Include="Adapters\Http11OwinMessageHandler.cs" />
+    <Compile Include="Adapters\Http2OwinMessageHandler.cs" />
     <Compile Include="HttpConnectingClient.cs" />
     <Compile Include="HttpSocketServer.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -63,10 +68,6 @@
     <ProjectReference Include="..\Libraries\Microsoft.Http2.Protocol\Microsoft.Http2.Protocol.csproj">
       <Project>{e34ac310-324c-46bc-af9f-1a41df58e867}</Project>
       <Name>Microsoft.Http2.Protocol</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\ProtocolAdapters\ProtocolAdapters.csproj">
-      <Project>{855ebb2f-b7c0-4525-9dd6-a3b66de268d1}</Project>
-      <Name>ProtocolAdapters</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

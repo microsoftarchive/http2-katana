@@ -6,13 +6,13 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Http2.Owin.Server.Adapters;
 using Microsoft.Owin;
 using Microsoft.Http2.Protocol;
 using Microsoft.Http2.Protocol.IO;
 using Org.Mentalis.Security.Ssl;
-using ProtocolAdapters;
 
-namespace ServerOwinMiddleware
+namespace Microsoft.Http2.Owin.Middleware
 {
     using AppFunc = Func<IDictionary<string, object>, Task>;
     using UpgradeDelegate = Action<IDictionary<string, object>, Func<IDictionary<string, object>, Task>>;

@@ -1,4 +1,5 @@
 ﻿using Microsoft.Http1.Protocol;
+using Microsoft.Http2.Owin.Server;
 using Microsoft.Http2.Protocol;
 using Microsoft.Http2.Protocol.Tests;
 using Moq;
@@ -6,7 +7,6 @@ using Org.Mentalis;
 using Org.Mentalis.Security;
 using Org.Mentalis.Security.Ssl;
 using Org.Mentalis.Security.Ssl.Shared.Extensions;
-using SocketServer;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
@@ -15,11 +15,9 @@ using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
 using Xunit.Sdk;
-using StatusCode = Microsoft.Http1.Protocol.StatusCode;
 
 namespace HandshakeTests
 {
@@ -183,7 +181,7 @@ namespace HandshakeTests
                                 string headersString = Encoding.UTF8.GetString(written.ToArray());
                                 written.Clear();
                                 string[] rawHeaders = headersString.Split(new[] { "\r\n" }, StringSplitOptions.None);
-                                var headers = Http11Manager.ParseHeaders(rawHeaders.Skip(1));
+                                var headers = Http11Helper.ParseHeaders(rawHeaders.Skip(1));
                                 try
                                 {
                                     Assert.Equal(

@@ -1,4 +1,4 @@
-﻿namespace Http2ServerService
+﻿namespace Microsoft.Http2.Owin.Server.Service
 {
     partial class Http2ServerInstaller
     {

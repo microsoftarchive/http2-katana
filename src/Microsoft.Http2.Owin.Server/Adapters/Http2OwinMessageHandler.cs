@@ -11,11 +11,11 @@ using Microsoft.Http2.Protocol.IO;
 using Microsoft.Http2.Protocol.Utils;
 using Microsoft.Owin;
 
-namespace ProtocolAdapters
+namespace Microsoft.Http2.Owin.Server.Adapters
 {
     using AppFunc = Func<IDictionary<string, object>, Task>;
 
-    public class Http2OwinAdapter : AbstractHttp2Adapter
+    public class Http2OwinAdapter : Http2MessageHandler
     {
         private readonly AppFunc _next;
 

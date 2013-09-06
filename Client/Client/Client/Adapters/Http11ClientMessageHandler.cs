@@ -6,15 +6,15 @@ using System.Reflection;
 using System.Text;
 using Microsoft.Http2.Protocol.Utils;
 
-namespace ProtocolAdapters
+namespace Client.Adapters
 {
-    public class Http11ClientProtocolAdapter : IDisposable
+    public class Http11ClientMessageHandler : IDisposable
     {
         private readonly Stream _client;
         private readonly string _path;
         private static readonly string AssemblyName = Path.GetDirectoryName(Assembly.GetExecutingAssembly().CodeBase.Substring(8));
 
-        public Http11ClientProtocolAdapter(Stream clientStream, string path)
+        public Http11ClientMessageHandler(Stream clientStream, string path)
         {
             _path = path;
             _client = clientStream;

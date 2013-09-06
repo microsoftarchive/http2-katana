@@ -1,7 +1,6 @@
-﻿using System.Web.Http;
-using Owin;
+﻿using Owin;
 
-namespace Http2ServerService
+namespace Microsoft.Http2.Owin.Server.Service
 {
     public class Startup
     {

@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using ServerOwinMiddleware;
+using Microsoft.Http2.Owin.Middleware;
 
 namespace Owin
 {

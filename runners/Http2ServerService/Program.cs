@@ -1,7 +1,6 @@
 ﻿using System.ServiceProcess;
 
-
-namespace Http2ServerService
+namespace Microsoft.Http2.Owin.Server.Service
 {
     static class Program
     {
