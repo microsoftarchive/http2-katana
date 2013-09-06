@@ -6,6 +6,9 @@ using System.Configuration;
 
 namespace Microsoft.Http2.Owin.Server.Service
 {
+    /// <summary>
+    /// This class represents service start and stop logic
+    /// </summary>
     public partial class Http2ServerService : ServiceBase
     {
         private Thread _http2ServerThread;

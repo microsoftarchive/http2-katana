@@ -8,6 +8,9 @@ using Microsoft.Http2.Protocol.EventArgs;
 
 namespace Microsoft.Http2.Protocol.IO
 {
+    /// <summary>
+    /// This class is based on SecureSocket and represents input/output stream.
+    /// </summary>
     public class DuplexStream : Stream
     {
         private StreamBuffer _writeBuffer;
@@ -16,11 +19,10 @@ namespace Microsoft.Http2.Protocol.IO
         private bool _isClosed;
         private readonly bool _ownsSocket;
         private readonly object _closeLock;
+
         public override int ReadTimeout {
             get { return 60000; }
         }
-
-        public SecureSocket Socket { get { return _socket; } }
 
         public DuplexStream(SecureSocket socket, bool ownsSocket = false)
         {
@@ -34,6 +36,10 @@ namespace Microsoft.Http2.Protocol.IO
             Task.Run(() => PumpIncomingData());
         }
 
+        /// <summary>
+        /// Pumps the incoming data into read buffer and signal that data for reading is available then.
+        /// </summary>
+        /// <returns></returns>
         private async Task PumpIncomingData()
         {
             while (!_isClosed)
@@ -60,8 +66,13 @@ namespace Microsoft.Http2.Protocol.IO
             }
         }
 
-        //Method receives bytes from socket until match predicate returns false.
-        //Usable for receiving headers. Header block finishes with \r\n\r\n
+        /// <summary>
+        /// Method receives bytes from socket until match predicate returns false.
+        /// Usable for receiving headers. Header block finishes with \r\n\r\n
+        /// </summary>
+        /// <param name="timeout">The timeout.</param>
+        /// <param name="match">The match.</param>
+        /// <returns></returns>
         public bool WaitForDataAvailable(int timeout, Predicate<byte[]> match = null)
         {
             if (Available != 0)

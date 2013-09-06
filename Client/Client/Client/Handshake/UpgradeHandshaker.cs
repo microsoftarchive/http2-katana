@@ -80,7 +80,7 @@ namespace Client.Handshake
                 //TODO pass here requested filename
                 builder.AppendFormat("Host: {0}\r\n", _headers[":host"]);
                 builder.Append("Connection: Upgrade, Http2-Settings\r\n");
-                //builder.Append("Upgrade: HTTP-DRAFT-04/2.0\r\n");
+                builder.Append("Upgrade: HTTP-DRAFT-04/2.0\r\n");
                 var settingsPayload = String.Format("{0}, {1}", 200000, 100);
                 var settingsBytes = Encoding.UTF8.GetBytes(settingsPayload);
                 var settingsBase64 = Convert.ToBase64String(settingsBytes);

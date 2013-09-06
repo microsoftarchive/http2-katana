@@ -146,7 +146,7 @@ namespace Microsoft.Http2.Owin.Server
             {
                 Http2Logger.LogDebug("Ssl chose http11");
 
-                new Http11ProtocolOwinAdapter(incomingClient, incomingClient.Socket.SecureProtocol, _next).ProcessRequest();
+                new Http11ProtocolOwinAdapter(incomingClient, _options.Protocol, _next).ProcessRequest();
                 return;
             }
 

@@ -30,8 +30,9 @@ namespace Microsoft.Http2.Owin.Middleware
         }
 
         /// <summary>
-        /// Invokes the specified environment.
-        /// This method is used for handshake.
+        /// Inspect if request if http2 upgrade
+        /// If so starts http2 session via provider.
+        /// Calls next layer if not.
         /// </summary>
         /// <param name="environment">The environment.</param>
         /// <returns></returns>
@@ -54,10 +55,17 @@ namespace Microsoft.Http2.Owin.Middleware
                         //use the same stream which was used during upgrade
                         var opaqueStream = opaque["opaque.Stream"] as DuplexStream;
 
-                        //Provide cancellation token here
-                        var http2Adapter = new Http2OwinAdapter(opaqueStream, trInfo, _next, CancellationToken.None);
+                        //TODO Provide cancellation token here
 
-                        return http2Adapter.StartSession(ConnectionEnd.Server, requestCopy);
+                        return Task.Factory.StartNew(async () =>
+                            {
+                                using (
+                                    var http2Adapter = new Http2OwinAdapter(opaqueStream, trInfo, _next,
+                                                                            CancellationToken.None))
+                                {
+                                    await http2Adapter.StartSession(ConnectionEnd.Server, requestCopy);
+                                }
+                            });
                     });
 
                 // specify Upgrade protocol

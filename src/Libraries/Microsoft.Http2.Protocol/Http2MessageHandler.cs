@@ -10,7 +10,10 @@ using Microsoft.Http2.Protocol.IO;
 namespace Microsoft.Http2.Protocol
 {
     using AppFunc = Func<IDictionary<string, object>, Task>;
-    //TODO Remove Owin.Types dependency
+
+    /// <summary>
+    /// This class defines basic http2 request/response processing logic.
+    /// </summary>
     public abstract class Http2MessageHandler : IDisposable
     {
         protected Http2Session _session;
@@ -19,6 +22,12 @@ namespace Microsoft.Http2.Protocol
         protected readonly CancellationToken _cancToken;
         protected readonly TransportInformation _transportInfo;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Http2MessageHandler"/> class.
+        /// </summary>
+        /// <param name="stream">The stream.</param>
+        /// <param name="transportInfo">The transport information.</param>
+        /// <param name="cancel">The cancel.</param>
         protected Http2MessageHandler(DuplexStream stream, TransportInformation transportInfo, CancellationToken cancel)
         {
             _transportInfo = transportInfo;
@@ -27,6 +36,11 @@ namespace Microsoft.Http2.Protocol
             _stream = stream;
         }
 
+        /// <summary>
+        /// Called when frame receives by the listener.
+        /// </summary>
+        /// <param name="sender">The sender.</param>
+        /// <param name="args">The <see cref="FrameReceivedEventArgs"/> instance containing the event data.</param>
         protected void OnFrameReceivedHandler(object sender, FrameReceivedEventArgs args)
         {
             var stream = args.Stream;
@@ -43,10 +57,26 @@ namespace Microsoft.Http2.Protocol
             }
         }
 
+        /// <summary>
+        /// Processes the request.
+        /// </summary>
+        /// <param name="stream">The stream.</param>
+        /// <returns></returns>
         protected abstract Task ProcessRequest(Http2Stream stream);
 
+        /// <summary>
+        /// Processes the incoming data.
+        /// </summary>
+        /// <param name="stream">The stream.</param>
+        /// <returns></returns>
         protected abstract Task ProcessIncomingData(Http2Stream stream);
 
+        /// <summary>
+        /// Starts the session.
+        /// </summary>
+        /// <param name="end">The connection end.</param>
+        /// <param name="initRequest">The initialize request params.</param>
+        /// <returns></returns>
         public Task StartSession(ConnectionEnd end, IDictionary<string, string> initRequest = null)
         {
             int initialWindowSize = 200000;

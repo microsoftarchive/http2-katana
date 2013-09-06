@@ -15,10 +15,20 @@ namespace Microsoft.Http2.Owin.Server.Adapters
 {
     using AppFunc = Func<IDictionary<string, object>, Task>;
 
+    /// <summary>
+    /// This class overrides http2 request/response processing logic as owin requires
+    /// </summary>
     public class Http2OwinAdapter : Http2MessageHandler
     {
         private readonly AppFunc _next;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Http2OwinAdapter"/> class.
+        /// </summary>
+        /// <param name="stream">The stream.</param>
+        /// <param name="transportInfo">The transport information.</param>
+        /// <param name="next">The next layer delegate.</param>
+        /// <param name="cancel">The cancellation token.</param>
         public Http2OwinAdapter(DuplexStream stream, TransportInformation transportInfo,
                                 AppFunc next, CancellationToken cancel)
             : base(stream, transportInfo, cancel)
@@ -26,6 +36,11 @@ namespace Microsoft.Http2.Owin.Server.Adapters
             _next = next;
         }
 
+        /// <summary>
+        /// Adopts protocol terms into owin environment.
+        /// </summary>
+        /// <param name="headers">The headers.</param>
+        /// <returns></returns>
         private IDictionary<string, object> PopulateEnvironment(HeadersList headers)
         {
             var environment = new Dictionary<string, object>();
@@ -57,6 +72,11 @@ namespace Microsoft.Http2.Owin.Server.Adapters
             return environment;
         }
 
+        /// <summary>
+        /// Overrides request processing logic.
+        /// </summary>
+        /// <param name="stream">The stream.</param>
+        /// <returns></returns>
         protected override async Task ProcessRequest(Http2Stream stream)
         {
             var env = PopulateEnvironment(stream.Headers);
@@ -74,16 +94,32 @@ namespace Microsoft.Http2.Owin.Server.Adapters
             await EndResponse(stream, env);
         }
 
-        private void EndResponse(Http2Stream stream, Exception ex)
-        {
-            WriteStatus(stream, StatusCode.Code500InternalServerError, false);
-        }
-
+        /// <summary>
+        /// Overrides data processing logic.
+        /// </summary>
+        /// <param name="stream">The stream.</param>
+        /// <returns></returns>
         protected override async Task ProcessIncomingData(Http2Stream stream)
         {
             //Do nothing... handling data is not supported by the server yet
         }
 
+        /// <summary>
+        /// Ends the response in case of error.
+        /// </summary>
+        /// <param name="stream">The stream.</param>
+        /// <param name="ex">The catched exception.</param>
+        private void EndResponse(Http2Stream stream, Exception ex)
+        {
+            WriteStatus(stream, StatusCode.Code500InternalServerError, false);
+        }
+
+        /// <summary>
+        /// Ends the owin response.
+        /// </summary>
+        /// <param name="stream">The stream.</param>
+        /// <param name="environment">The environment.</param>
+        /// <returns></returns>
         private async Task EndResponse(Http2Stream stream, IDictionary<string, object> environment)
         {
             Stream responseBody = null;
@@ -126,6 +162,13 @@ namespace Microsoft.Http2.Owin.Server.Adapters
             }
         }
 
+        /// <summary>
+        /// Writes the status header to the stream.
+        /// </summary>
+        /// <param name="stream">The stream.</param>
+        /// <param name="statusCode">The status code.</param>
+        /// <param name="final">if set to <c>true</c> then marks headers frame as final.</param>
+        /// <param name="additionalHeaders">The additional headers.</param>
         private void WriteStatus(Http2Stream stream, int statusCode, bool final, HeadersList additionalHeaders = null)
         {
             var headers = new HeadersList
@@ -141,6 +184,12 @@ namespace Microsoft.Http2.Owin.Server.Adapters
             stream.WriteHeadersFrame(headers, final, true);
         }
 
+        /// <summary>
+        /// Wraps data into data frames and sends it 
+        /// </summary>
+        /// <param name="stream">The stream.</param>
+        /// <param name="binaryData">The binary data.</param>
+        /// <param name="isLastChunk">if set to <c>true</c> then marks last data frame as final.</param>
         private void SendDataTo(Http2Stream stream, byte[] binaryData, bool isLastChunk)
         {
             int i = 0;

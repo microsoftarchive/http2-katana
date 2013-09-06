@@ -160,11 +160,13 @@ namespace Client
                             }
                             break;
                         case CommandType.Exit:
-                            foreach (var sessionUri in _sessions.Keys)
+
+                            var sessionsDictCopy = new Dictionary<string, Http2SessionHandler>(_sessions);
+                            foreach (var sessionUri in sessionsDictCopy.Keys)
                             {
-                                _sessions[sessionUri].Dispose(false);
+                                sessionsDictCopy[sessionUri].Dispose(false);
                             }
-                            _sessions.Clear();
+                            sessionsDictCopy.Clear();
                             return;
                     }
                 }

@@ -9,7 +9,7 @@ using Microsoft.Http2.Protocol;
 namespace Microsoft.Http1.Protocol
 {
     /// <summary>
-    /// This class is designed for http11 handling.
+    /// This class provides basic http11 operations.
     /// </summary>
     public static class Http11Helper
     {

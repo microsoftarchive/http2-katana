@@ -2,6 +2,9 @@
 
 namespace Microsoft.Http2.Protocol.IO
 {
+    /// <summary>
+    /// This struct represents buffer on which Stream can be built
+    /// </summary>
     internal struct StreamBuffer
     {
         private byte[] _buffer;
@@ -47,7 +50,7 @@ namespace Microsoft.Http2.Protocol.IO
             }
             else
             {
-                System.Buffer.BlockCopy(_buffer, length, result, 0, (int)_position - length);
+                System.Buffer.BlockCopy(_buffer, length, result, 0, _position - length);
             }
 
             _buffer = result;

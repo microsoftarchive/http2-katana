@@ -18,7 +18,7 @@ namespace Microsoft.Http2.Owin.Server.Adapters
     using UpgradeDelegate = Action<IDictionary<string, object>, Func<IDictionary<string, object>, Task>>;
 
     /// <summary>
-    /// Implements Http11 protocol handler.
+    /// This class overrides http11 request/response processing logic as owin requires
     /// Converts request to OWIN environment, triggers OWIN pipilene and then sends response back to the client.
     /// </summary>
     public class Http11ProtocolOwinAdapter
