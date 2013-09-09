@@ -5,6 +5,7 @@ using Org.Mentalis.Security.Ssl;
 using System;
 using System.Collections.Generic;
 using System.Net.Sockets;
+using System.IO;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -12,7 +13,12 @@ namespace Microsoft.Http2.Protocol.Tests
 {
     public static class TestHelpers
     {
-        public static readonly string FileContent10MbTest = "some text";
+        public static readonly string FileContent10MbTest = 
+                                            new StreamReader(new FileStream(@"root\10mbTest.txt", FileMode.Open)).ReadToEnd(),
+                                      FileContentSimpleTest = 
+                                            new StreamReader(new FileStream(@"root\simpleTest.txt", FileMode.Open)).ReadToEnd(),
+                                      FileContentEmptyFile = string.Empty,
+                                      FileContentAnyFile = "some text";
 
         public static DuplexStream CreateStream()
         {
@@ -45,10 +51,10 @@ namespace Microsoft.Http2.Protocol.Tests
             });
 
             mock.Setup(stream => stream.Read(It.IsAny<byte[]>(), It.IsAny<int>(), It.IsAny<int>())).Callback(modifyBufferData)
-                .Returns<byte[], int, int>((buffer, offset, count) => { return count; }); // read our requestBytes
+                .Returns<byte[], int, int>((buffer, offset, count) => count); // read our requestBytes
             mock.Setup(stream => stream.CanRead).Returns(true);
 
-            return new Http11ProtocolOwinAdapter(mock.Object, mock.Object.Socket.SecureProtocol, appFunc);
+            return new Http11ProtocolOwinAdapter(mock.Object, SecureProtocol.Tls1, appFunc);
         }
     }
 }

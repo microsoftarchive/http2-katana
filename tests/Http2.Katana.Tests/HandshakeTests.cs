@@ -17,7 +17,6 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
 using Xunit;
-using Xunit.Sdk;
 
 namespace HandshakeTests
 {
@@ -30,25 +29,6 @@ namespace HandshakeTests
 
         private async static Task InvokeMiddleWare(IDictionary<string, object> environment)
         {
-            //bool wasHandshakeFinished = true;
-            //var handshakeTask = new Task<IDictionary<string, object>>(() => new Dictionary<string, object>());
-
-            //if (environment["HandshakeAction"] is HandshakeAction)
-            //{
-            // var handshakeAction = (HandshakeAction)environment["HandshakeAction"];
-            // handshakeTask = Task.Factory.StartNew(handshakeAction);
-
-            // if (!handshakeTask.Wait(6000))
-            // {
-            // wasHandshakeFinished = false;
-            // }
-
-            // environment.Add("HandshakeResult", handshakeTask.Result);
-            //}
-
-            //environment.Add("WasHandshakeFinished", wasHandshakeFinished);
-
-            //return handshakeTask;
         }
 
         private IDictionary<string, object> GetProperties(bool useSecurePort)
@@ -133,25 +113,14 @@ namespace HandshakeTests
                 {
                     monitor.OnProtocolSelected += (sender, args) => { selectedProtocol = args.SelectedProtocol; };
                     sessionSocket.Connect(new DnsEndPoint(uri.Host, uri.Port), monitor);
-
-                    var handshakeEnv = new Dictionary<string, object>
-                    {
-                        {":method", "get"},
-                        {":version", Protocols.Http1},
-                        {":path", uri.PathAndQuery},
-                        {":scheme", uri.Scheme},
-                        {":host", uri.Host},
-                        {"securityOptions", options},
-                        {"secureSocket", sessionSocket},
-                        {"end", ConnectionEnd.Client}
-                    };
-
                     sessionSocket.MakeSecureHandshake(options);
                 }
             }
-            finally{
-            sessionSocket.Close();
-            Assert.Equal(Protocols.Http2, selectedProtocol);}
+            finally
+            {
+                sessionSocket.Close();
+                Assert.Equal(Protocols.Http2, selectedProtocol);
+            }
         }
 
         [Fact]
@@ -160,55 +129,41 @@ namespace HandshakeTests
             using (var stream = TestHelpers.CreateStream())
             {
                 List<byte> written = new List<byte>();
-                AssertException assertException = null;
+                IDictionary<string, object> environment = null,
+                                            opaqueEnvironment = null;
+                string[] headers = null;
                 var writeHandler = new Action<byte[], int, int>((buffer, offset, count) => written.AddRange(buffer.Skip(offset).Take(count)));
                 Mock.Get(stream).Setup(s => s.Write(It.IsAny<byte[]>(), It.IsAny<int>(), It.IsAny<int>())).Callback(writeHandler);
 
-                var adapter = TestHelpers.CreateHttp11Adapter(stream, new Func<IDictionary<string, object>, Task>(
-                    async (env) =>
+                var adapter = TestHelpers.CreateHttp11Adapter(stream, async env =>
+                {
+                    environment = env;
+
+                    ((UpgradeDelegate)env["opaque.Upgrade"]).Invoke(new Dictionary<string, object>(), async opaque =>
                     {
-                        // we have access to environment so check it here
-                        Assert.Contains("opaque.Upgrade", env.Keys);
-                        Assert.True(env["opaque.Upgrade"] is UpgradeDelegate);
+                        opaqueEnvironment = opaque;
 
-                        ((UpgradeDelegate)env["opaque.Upgrade"]).Invoke(new Dictionary<string, object>(), async opaque =>
-                            {
-                                Assert.Contains("opaque.Stream", opaque.Keys);
-                                Assert.True(opaque["opaque.Stream"] is Stream);
-                                Assert.Contains("opaque.Version", opaque.Keys);
-
-                                // check headers were set correct
-                                string headersString = Encoding.UTF8.GetString(written.ToArray());
-                                written.Clear();
-                                string[] rawHeaders = headersString.Split(new[] { "\r\n" }, StringSplitOptions.None);
-                                var headers = Http11Helper.ParseHeaders(rawHeaders.Skip(1));
-                                try
-                                {
-                                    Assert.Equal(
-                                        "HTTP/1.1 " + StatusCode.Code101SwitchingProtocols + " " +
-                                        StatusCode.Reason101SwitchingProtocols, rawHeaders[0]);
-                                    Assert.Contains("Connection", headers.Keys);
-                                    Assert.Contains("Upgrade", headers["Connection"]);
-                                    //Assert.Contains("Upgrade", headers.Keys);
-                                    //var protocolForUpgrade = headers["Upgrade"][0];
-                                    //Assert.Contains("HTTP", protocolForUpgrade);
-                                    //Assert.Contains("2.0", protocolForUpgrade);
-                                }
-                                catch (AssertException e)
-                                {
-                                    assertException = e;
-                                    throw;
-                                }
-                            });
-                    }
-                ));
+                        // check headers were set correct
+                        string headersString = Encoding.UTF8.GetString(written.ToArray());
+                        written.Clear();
+                        headers = headersString.Split(new[] { "\r\n" }, StringSplitOptions.None);
+                    });
+                });
                 adapter.ProcessRequest();
 
-                // pass exception to xunit runtime
-                if (assertException != null)
-                {
-                    throw assertException;
-                }
+                Assert.Contains("opaque.Upgrade", environment.Keys);
+                Assert.True(environment["opaque.Upgrade"] is UpgradeDelegate);
+
+                Assert.Contains("opaque.Stream", opaqueEnvironment.Keys);
+                Assert.True(opaqueEnvironment["opaque.Stream"] is Stream);
+                Assert.Contains("opaque.Version", opaqueEnvironment.Keys);
+
+                var parsedHeaders = Http11Helper.ParseHeaders(headers.Skip(1));
+                Assert.Equal(
+                    "HTTP/1.1 " + StatusCode.Code101SwitchingProtocols + " " +
+                    StatusCode.Reason101SwitchingProtocols, headers[0]);
+                Assert.Contains("Connection", parsedHeaders.Keys);
+                Assert.Contains("Upgrade", parsedHeaders["Connection"]);
             }
         }
 

@@ -11,6 +11,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading;
+using Org.Mentalis.Security.Ssl;
 using Xunit;
 
 namespace Http11Tests
@@ -20,14 +21,14 @@ namespace Http11Tests
         public void Dispose()
         {
         }
-        private static List<byte> written = new List<byte>();
+        private static readonly List<byte> Written = new List<byte>();
 
         private Action<byte[], int, int> WriteHandler
         {
             get
             {
-                return new Action<byte[], int, int>((buffer, offset, count) =>
-                    written.AddRange(buffer.Skip(offset).Take(count)));
+                return (buffer, offset, count) =>
+                    Written.AddRange(buffer.Skip(offset).Take(count));
             }
         }
 
@@ -146,7 +147,7 @@ namespace Http11Tests
 
             var mock = Mock.Get(TestHelpers.CreateStream());
 
-            written.Clear();
+            Written.Clear();
 
             mock.Setup(stream =>
                 stream.Write(It.IsAny<byte[]>(), It.IsAny<int>(), It.IsAny<int>())
@@ -154,7 +155,7 @@ namespace Http11Tests
 
             Http11Helper.SendResponse(mock.Object, data, StatusCode.Code200Ok, ContentTypes.TextPlain, headers);
 
-            string response = Encoding.UTF8.GetString(written.ToArray());
+            string response = Encoding.UTF8.GetString(Written.ToArray());
 
             string[] splittedResponse = response.Split(new[] { "\r\n" }, StringSplitOptions.None);
 
@@ -187,25 +188,25 @@ namespace Http11Tests
             mock.Setup(stream => stream.Write(It.IsAny<byte[]>(), It.IsAny<int>(), It.IsAny<int>()))
                 .Callback(WriteHandler);
 
-            written.Clear();
+            Written.Clear();
 
-            Http11ProtocolOwinAdapter adapter = new Http11ProtocolOwinAdapter(mock.Object, mock.Object.Socket.SecureProtocol, null);
+            Http11ProtocolOwinAdapter adapter = new Http11ProtocolOwinAdapter(mock.Object, SecureProtocol.Tls1, null);
             var endResponseMethod = adapter.GetType().GetMethod("EndResponse", BindingFlags.NonPublic | BindingFlags.Instance, null, new[] { typeof(Exception) }, null);
 
             endResponseMethod.Invoke(adapter, new object[] { new Exception() });
 
-            string[] response = Encoding.UTF8.GetString(written.ToArray()).Split(new[] { "\r\n" }, StringSplitOptions.None);
+            string[] response = Encoding.UTF8.GetString(Written.ToArray()).Split(new[] { "\r\n" }, StringSplitOptions.None);
             Assert.InRange(response.Length, 3, int.MaxValue);
             Assert.Contains("HTTP/1.1", response[0]);
             Assert.Contains(StatusCode.Code500InternalServerError.ToString(), response[0]);
             Assert.Contains(StatusCode.Reason500InternalServerError, response[0]);
             Assert.Equal(string.Empty, response.Last());
 
-            written.Clear();
+            Written.Clear();
 
             endResponseMethod.Invoke(adapter, new object[] { new NotSupportedException() });
 
-            response = Encoding.UTF8.GetString(written.ToArray()).Split(new[] { "\r\n" }, StringSplitOptions.None);
+            response = Encoding.UTF8.GetString(Written.ToArray()).Split(new[] { "\r\n" }, StringSplitOptions.None);
             Assert.InRange(response.Length, 3, int.MaxValue);
             Assert.Contains("HTTP/1.1", response[0]);
             Assert.Contains(StatusCode.Code501NotImplemented.ToString(), response[0]);
