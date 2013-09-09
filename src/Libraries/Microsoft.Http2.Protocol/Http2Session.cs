@@ -380,6 +380,7 @@ namespace Microsoft.Http2.Protocol
                         break;
                     case FrameType.Data:
                         var dataFrame = (DataFrame)frame;
+                        
                         Http2Logger.LogDebug("Data frame. StreamId:{0} Length:{1}", dataFrame.StreamId, dataFrame.FrameLength);
                         stream = GetStream(dataFrame.StreamId);
 

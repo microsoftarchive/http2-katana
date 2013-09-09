@@ -32,17 +32,17 @@ namespace Client.Adapters
             string fileName = string.IsNullOrEmpty(Path.GetFileName(originalPath)) ? Index : Path.GetFileName(originalPath);
             string path = Path.Combine(AssemblyPath, fileName);
 
-            //try
-            //{
-            await _fileHelper.SaveToFile(dataFrame.Data.Array, dataFrame.Data.Offset, dataFrame.Data.Count,
+            try
+            {
+                await _fileHelper.SaveToFile(dataFrame.Data.Array, dataFrame.Data.Offset, dataFrame.Data.Count,
                                     path, stream.ReceivedDataAmount != 0);
-            /*}
+            }
             catch (IOException)
             {
                 Http2Logger.LogError("File is still downloading. Repeat request later");
                 stream.WriteDataFrame(new byte[0], true);
                 stream.Dispose();
-            }*/
+            }
 
             stream.ReceivedDataAmount += dataFrame.FrameLength;
 
