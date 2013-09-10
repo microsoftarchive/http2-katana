@@ -1,4 +1,6 @@
-﻿using Microsoft.Http1.Protocol;
+﻿using System.Globalization;
+using Microsoft.Http1.Protocol;
+using Microsoft.Http2.Owin.Middleware;
 using Microsoft.Http2.Owin.Server;
 using Microsoft.Http2.Protocol;
 using Microsoft.Http2.Protocol.Tests;
@@ -27,10 +29,6 @@ namespace HandshakeTests
         public HttpSocketServer Http2SecureServer { get; private set; }
         public HttpSocketServer Http2UnsecureServer { get; private set; }
 
-        private async static Task InvokeMiddleWare(IDictionary<string, object> environment)
-        {
-        }
-
         private IDictionary<string, object> GetProperties(bool useSecurePort)
         {
             var appSettings = ConfigurationManager.AppSettings;
@@ -47,7 +45,7 @@ namespace HandshakeTests
                         {
                             {"host", uri.Host},
                             {"scheme", uri.Scheme},
-                            {"port", uri.Port.ToString()},
+                            {"port", uri.Port.ToString(CultureInfo.InvariantCulture)},
                             {"path", uri.AbsolutePath}
                         }
                 };
@@ -70,8 +68,8 @@ namespace HandshakeTests
             var secureProperties = GetProperties(true);
             var unsecureProperties = GetProperties(false);
 
-            Http2SecureServer = new HttpSocketServer(InvokeMiddleWare, secureProperties);
-            Http2UnsecureServer = new HttpSocketServer(InvokeMiddleWare, unsecureProperties);
+            Http2SecureServer = new HttpSocketServer(new Http2Middleware(TestHelpers.AppFunction).Invoke, secureProperties);
+            Http2UnsecureServer = new HttpSocketServer(new Http2Middleware(TestHelpers.AppFunction).Invoke, unsecureProperties);
         }
 
         public void Dispose()
@@ -126,45 +124,25 @@ namespace HandshakeTests
         [Fact]
         public void UpgradeHandshakeSuccessful()
         {
-            using (var stream = TestHelpers.CreateStream())
-            {
-                List<byte> written = new List<byte>();
-                IDictionary<string, object> environment = null,
-                                            opaqueEnvironment = null;
-                string[] headers = null;
-                var writeHandler = new Action<byte[], int, int>((buffer, offset, count) => written.AddRange(buffer.Skip(offset).Take(count)));
-                Mock.Get(stream).Setup(s => s.Write(It.IsAny<byte[]>(), It.IsAny<int>(), It.IsAny<int>())).Callback(writeHandler);
+            const string address = "/";
+            var duplexStream = TestHelpers.GetHandshakedDuplexStream(address, false);
+            var requestString = "GET " + address + " HTTP/1.1\r\n" +
+                                "Host: localhost\r\n" +
+                                "Connection: Upgrade,HTTP2-Settings\r\n" +
+                                "Upgrade: " + Protocols.Http2 + "\r\n" +
+                                "HTTP2-Settings: \r\n" + // TODO send any valid parameters
+                                "\r\n";
 
-                var adapter = TestHelpers.CreateHttp11Adapter(stream, async env =>
-                {
-                    environment = env;
+            duplexStream.Write(Encoding.UTF8.GetBytes(requestString));
+            duplexStream.Flush();
 
-                    ((UpgradeDelegate)env["opaque.Upgrade"]).Invoke(new Dictionary<string, object>(), async opaque =>
-                    {
-                        opaqueEnvironment = opaque;
-
-                        // check headers were set correct
-                        string headersString = Encoding.UTF8.GetString(written.ToArray());
-                        written.Clear();
-                        headers = headersString.Split(new[] { "\r\n" }, StringSplitOptions.None);
-                    });
-                });
-                adapter.ProcessRequest();
-
-                Assert.Contains("opaque.Upgrade", environment.Keys);
-                Assert.True(environment["opaque.Upgrade"] is UpgradeDelegate);
-
-                Assert.Contains("opaque.Stream", opaqueEnvironment.Keys);
-                Assert.True(opaqueEnvironment["opaque.Stream"] is Stream);
-                Assert.Contains("opaque.Version", opaqueEnvironment.Keys);
-
-                var parsedHeaders = Http11Helper.ParseHeaders(headers.Skip(1));
-                Assert.Equal(
-                    "HTTP/1.1 " + StatusCode.Code101SwitchingProtocols + " " +
-                    StatusCode.Reason101SwitchingProtocols, headers[0]);
-                Assert.Contains("Connection", parsedHeaders.Keys);
-                Assert.Contains("Upgrade", parsedHeaders["Connection"]);
-            }
+            var rawHeaders = Http11Helper.ReadHeaders(duplexStream);
+            Assert.Equal("HTTP/1.1 " + StatusCode.Code101SwitchingProtocols + " " + StatusCode.Reason101SwitchingProtocols, rawHeaders[0]);
+            var headers = Http11Helper.ParseHeaders(rawHeaders.Skip(1));
+            Assert.Contains("Connection", headers.Keys);
+            Assert.Contains("Upgrade", headers["Connection"]);
+            Assert.Contains("Upgrade", headers.Keys);
+            Assert.Contains(Protocols.Http2, headers["Upgrade"]);
         }
 
         public void Dispose()

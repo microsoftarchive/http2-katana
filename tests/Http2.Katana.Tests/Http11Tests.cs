@@ -1,50 +1,98 @@
-﻿using Microsoft.Http1.Protocol;
+﻿using System.Globalization;
+using Microsoft.Http1.Protocol;
+using Microsoft.Http2.Owin.Middleware;
+using Microsoft.Http2.Owin.Server;
 using Microsoft.Http2.Owin.Server.Adapters;
 using Microsoft.Http2.Protocol;
 using Microsoft.Http2.Protocol.IO;
 using Microsoft.Http2.Protocol.Tests;
 using Microsoft.Owin;
 using Moq;
+using Org.Mentalis.Security.Ssl;
 using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading;
-using Org.Mentalis.Security.Ssl;
 using Xunit;
 
 namespace Http11Tests
 {
-    public class Http11Tests : IDisposable
+    public class Http11Setup : IDisposable
     {
+        public HttpSocketServer Server { get; private set; }
+        public bool UseSecurePort { get; private set; }
+        public bool UseHandshake { get; private set; }
+
+        public Http11Setup()
+        {
+            var appSettings = ConfigurationManager.AppSettings;
+
+            UseSecurePort = appSettings["useSecurePort"] == "true";
+            UseHandshake = appSettings["handshakeOptions"] != "no-handshake";
+
+            string address = UseSecurePort ? appSettings["secureAddress"] : appSettings["unsecureAddress"];
+
+            Uri uri;
+            Uri.TryCreate(address, UriKind.Absolute, out uri);
+
+            var properties = new Dictionary<string, object>();
+            var addresses = new List<IDictionary<string, object>>
+                {
+                    new Dictionary<string, object>
+                        {
+                            {"host", uri.Host},
+                            {"scheme", uri.Scheme},
+                            {"port", uri.Port.ToString(CultureInfo.InvariantCulture)},
+                            {"path", uri.AbsolutePath}
+                        }
+                };
+
+            properties.Add("host.Addresses", addresses);
+
+            bool useHandshake = ConfigurationManager.AppSettings["handshakeOptions"] != "no-handshake";
+            bool usePriorities = ConfigurationManager.AppSettings["prioritiesOptions"] != "no-priorities";
+            bool useFlowControl = ConfigurationManager.AppSettings["flowcontrolOptions"] != "no-flowcontrol";
+
+            properties.Add("use-handshake", useHandshake);
+            properties.Add("use-priorities", usePriorities);
+            properties.Add("use-flowControl", useFlowControl);
+
+            Server = new HttpSocketServer(new Http2Middleware(TestHelpers.AppFunction).Invoke, properties);
+        }
+
         public void Dispose()
         {
+            Server.Dispose();
         }
-        private static readonly List<byte> Written = new List<byte>();
+    }
 
-        private Action<byte[], int, int> WriteHandler
+    public class Http11Tests : IUseFixture<Http11Setup>, IDisposable
+    {
+        public void SetFixture(Http11Setup setupInstance)
         {
-            get
-            {
-                return (buffer, offset, count) =>
-                    Written.AddRange(buffer.Skip(offset).Take(count));
-            }
+            
+        }
+
+        public void Dispose()
+        {
         }
 
         [Fact]
         public void EnvironmentCreatedCorrect()
         {
             var creator = typeof(Http11ProtocolOwinAdapter).GetMethod("CreateOwinEnvironment", BindingFlags.NonPublic | BindingFlags.Static);
-            string method = "GET",
-                   scheme = "https",
-                   host = "localhost:80",
-                   pathBase = "",
-                   path = "/test.txt",
-                   queryString = "xunit";
+            const string method = "GET",
+                         scheme = "https",
+                         host = "localhost:80",
+                         pathBase = "",
+                         path = "/test.txt",
+                         queryString = "xunit";
 
             var requestHeaders = new Dictionary<string, string[]> { { "Host", new[] { host } } };
-            Dictionary<string, object> environment = (Dictionary<string, object>)creator.Invoke(null, new object[] { method, scheme, pathBase, path, requestHeaders, queryString, null });
+            var environment = (Dictionary<string, object>)creator.Invoke(null, new object[] { method, scheme, pathBase, path, requestHeaders, queryString, null });
 
             var owinRequest = new OwinRequest(environment);
             Assert.Equal(owinRequest.Method, method);
@@ -83,32 +131,30 @@ namespace Http11Tests
         public void HeadersParsedCorrect()
         {
 
-            string request = "GET / HTTP/1.1\r\n" +
-                             "Host: localhost:80\r\n" +
-                             "User-Agent: xunit\r\n" +
-                             "Connection: close\r\n" +
-                             "X-Multiple-Header: value1, value2\r\n" +
-                             "\r\n"; // five lines total
+            const string request = "GET / HTTP/1.1\r\n" +
+                                   "Host: localhost:80\r\n" +
+                                   "User-Agent: xunit\r\n" +
+                                   "Connection: close\r\n" +
+                                   "X-Multiple-Header: value1, value2\r\n" +
+                                   "\r\n"; // five lines total
 
             byte[] requestBytes = Encoding.UTF8.GetBytes(request);
             int position = 0;
 
             Mock<DuplexStream> mockStream = Mock.Get(TestHelpers.CreateStream());
 
-            var modifyBufferData = new Action<byte[], int, int>((buffer, offset, count) =>
+            mockStream.Setup(stream =>
+                stream.Read(It.IsAny<byte[]>(), It.IsAny<int>(), It.IsAny<int>())
+            )
+            .Callback<byte[], int, int>((buffer, offset, count) =>
                 {
                     for (int i = offset; count > 0; --count, ++i)
                     {
                         buffer[i] = requestBytes[position];
                         ++position;
                     }
-                });
-
-            mockStream.Setup(stream =>
-                stream.Read(It.IsAny<byte[]>(), It.IsAny<int>(), It.IsAny<int>())
-            )
-            .Callback(modifyBufferData)
-            .Returns<byte[], int, int>((buf, offset, count) => { return count; });
+                })
+            .Returns<byte[], int, int>((buf, offset, count) => count);
 
             var rawHeaders = Http11Helper.ReadHeaders(mockStream.Object);
             Assert.Equal(rawHeaders.Length, 5);
@@ -140,22 +186,23 @@ namespace Http11Tests
         [Fact]
         public void ResponseSentCorrect()
         {
-            Dictionary<string, string[]> headers = new Dictionary<string, string[]>();
-            headers.Add("Connection", new[] { "close" });
-            string dataString = "test";
+            var headers = new Dictionary<string, string[]>
+            {
+                {"Connection", new[] {"close"}}
+            };
+            const string dataString = "test";
             byte[] data = Encoding.UTF8.GetBytes(dataString);
 
             var mock = Mock.Get(TestHelpers.CreateStream());
-
-            Written.Clear();
+            var written = new List<byte>();
 
             mock.Setup(stream =>
                 stream.Write(It.IsAny<byte[]>(), It.IsAny<int>(), It.IsAny<int>())
-            ).Callback(WriteHandler);
+            ).Callback<byte[], int, int>((buffer, offset, count) => written.AddRange((buffer.Skip(offset).Take(count))));
 
             Http11Helper.SendResponse(mock.Object, data, StatusCode.Code200Ok, ContentTypes.TextPlain, headers);
 
-            string response = Encoding.UTF8.GetString(Written.ToArray());
+            string response = Encoding.UTF8.GetString(written.ToArray());
 
             string[] splittedResponse = response.Split(new[] { "\r\n" }, StringSplitOptions.None);
 
@@ -168,7 +215,7 @@ namespace Http11Tests
             // lines in response body
             Assert.Equal(5 + dataString.Split(new[] { "\r\n" }, StringSplitOptions.None).Length, splittedResponse.Length);
             Assert.Contains("HTTP/1.1", splittedResponse[0]);
-            Assert.Contains(StatusCode.Code200Ok.ToString(), splittedResponse[0]);
+            Assert.Contains(StatusCode.Code200Ok.ToString(CultureInfo.InvariantCulture), splittedResponse[0]);
             Assert.Contains(StatusCode.Reason200Ok, splittedResponse[0]);
 
             Assert.Contains("Connection: close", splittedResponse);
@@ -176,7 +223,7 @@ namespace Http11Tests
             Assert.Contains("Content-Length: " + data.Length, splittedResponse);
             Assert.Contains(string.Empty, splittedResponse);
 
-            int dataStart = Array.FindIndex(splittedResponse, s => { return s == string.Empty; });
+            int dataStart = Array.FindIndex(splittedResponse, s => s == string.Empty);
             string responseData = string.Join("\r\n", splittedResponse.Skip(dataStart + 1));
             Assert.Equal(dataString, responseData);
         }
@@ -185,33 +232,68 @@ namespace Http11Tests
         public void ResponseWithExceptionHasNoBody()
         {
             var mock = Mock.Get(TestHelpers.CreateStream());
+
+            var written = new List<byte>();
             mock.Setup(stream => stream.Write(It.IsAny<byte[]>(), It.IsAny<int>(), It.IsAny<int>()))
-                .Callback(WriteHandler);
+                .Callback<byte[], int, int>((buffer, offset, count) => written.AddRange((buffer.Skip(offset).Take(count))));
 
-            Written.Clear();
-
-            Http11ProtocolOwinAdapter adapter = new Http11ProtocolOwinAdapter(mock.Object, SecureProtocol.Tls1, null);
+            var adapter = new Http11ProtocolOwinAdapter(mock.Object, SecureProtocol.Tls1, null);
             var endResponseMethod = adapter.GetType().GetMethod("EndResponse", BindingFlags.NonPublic | BindingFlags.Instance, null, new[] { typeof(Exception) }, null);
 
             endResponseMethod.Invoke(adapter, new object[] { new Exception() });
 
-            string[] response = Encoding.UTF8.GetString(Written.ToArray()).Split(new[] { "\r\n" }, StringSplitOptions.None);
+            string[] response = Encoding.UTF8.GetString(written.ToArray()).Split(new[] { "\r\n" }, StringSplitOptions.None);
             Assert.InRange(response.Length, 3, int.MaxValue);
             Assert.Contains("HTTP/1.1", response[0]);
-            Assert.Contains(StatusCode.Code500InternalServerError.ToString(), response[0]);
+            Assert.Contains(StatusCode.Code500InternalServerError.ToString(CultureInfo.InvariantCulture), response[0]);
             Assert.Contains(StatusCode.Reason500InternalServerError, response[0]);
             Assert.Equal(string.Empty, response.Last());
 
-            Written.Clear();
+            written.Clear();
 
             endResponseMethod.Invoke(adapter, new object[] { new NotSupportedException() });
 
-            response = Encoding.UTF8.GetString(Written.ToArray()).Split(new[] { "\r\n" }, StringSplitOptions.None);
+            response = Encoding.UTF8.GetString(written.ToArray()).Split(new[] { "\r\n" }, StringSplitOptions.None);
             Assert.InRange(response.Length, 3, int.MaxValue);
             Assert.Contains("HTTP/1.1", response[0]);
-            Assert.Contains(StatusCode.Code501NotImplemented.ToString(), response[0]);
+            Assert.Contains(StatusCode.Code501NotImplemented.ToString(CultureInfo.InvariantCulture), response[0]);
             Assert.Contains(StatusCode.Reason501NotImplemented, response[0]);
             Assert.Equal(string.Empty, response.Last());
+        }
+
+        [Fact]
+        public void Http11CommunicationSuccessful()
+        {
+            var address = ConfigurationManager.AppSettings["smallTestFile"];
+            var duplexStream = TestHelpers.GetHandshakedDuplexStream(address, false);
+            var requestString = "GET /" + address + " HTTP/1.1\r\n" +
+                                "Host: localhost\r\n" +
+                                "\r\n";
+
+            duplexStream.Write(Encoding.UTF8.GetBytes(requestString));
+            duplexStream.Flush();
+
+            var rawHeaders = Http11Helper.ReadHeaders(duplexStream);
+            Assert.True(rawHeaders.Length > 2); // response string, content-type and content-length headers at least
+            Assert.Equal("HTTP/1.1 " + StatusCode.Code200Ok + " " + StatusCode.Reason200Ok, rawHeaders[0]);
+            var headers = Http11Helper.ParseHeaders(rawHeaders.Skip(1));
+            Assert.Contains("Content-Type", headers.Keys);
+            Assert.Contains("Content-Length", headers.Keys);
+            Assert.Equal(headers["Content-Length"][0], TestHelpers.FileContentSimpleTest.Length.ToString(CultureInfo.InvariantCulture));
+
+            var size = int.Parse(headers["Content-Length"][0]);
+            var responseBody = new byte[size];
+            int read = int.MaxValue, total = 0;
+            while (read > 0)
+            {
+                read = duplexStream.Read(responseBody, total, size - total);
+                total += read;
+            }
+
+            Assert.Equal(responseBody.Length, total);
+            Assert.Equal(TestHelpers.FileContentSimpleTest, Encoding.UTF8.GetString(responseBody));
+
+            duplexStream.Close();
         }
     }
 }

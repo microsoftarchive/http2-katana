@@ -1,4 +1,5 @@
-﻿using Microsoft.Http2.Protocol;
+﻿using System.Globalization;
+using Microsoft.Http2.Protocol;
 using Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression;
 using Microsoft.Http2.Protocol.Extensions;
 using Microsoft.Http2.Protocol.FlowControl;
@@ -97,7 +98,7 @@ namespace BasicTests
 
             var serverHeaders = new HeadersList
                 {
-                    new KeyValuePair<string, string>(":status", StatusCode.Code200Ok.ToString()),
+                    new KeyValuePair<string, string>(":status", StatusCode.Code200Ok.ToString(CultureInfo.InvariantCulture)),
                 };
             var serverCompressor = new CompressionProcessor(ConnectionEnd.Server);
             var clientDecompressor = new CompressionProcessor(ConnectionEnd.Client);
