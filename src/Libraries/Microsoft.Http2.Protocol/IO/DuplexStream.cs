@@ -24,6 +24,15 @@ namespace Microsoft.Http2.Protocol.IO
             get { return 60000; }
         }
 
+        public bool IsSecure 
+        { 
+            get
+            {
+                return _socket.SecureProtocol == SecureProtocol.Ssl3
+                       || _socket.SecureProtocol == SecureProtocol.Tls1;
+            }
+        }
+
         public DuplexStream(SecureSocket socket, bool ownsSocket = false)
         {
             _writeBuffer = new StreamBuffer(1024);

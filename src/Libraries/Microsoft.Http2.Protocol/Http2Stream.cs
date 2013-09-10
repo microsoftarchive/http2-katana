@@ -97,7 +97,7 @@ namespace Microsoft.Http2.Protocol
 
                 if (EndStreamReceived)
                 {
-                    Dispose();
+                    Dispose(ResetStatusCode.None);
                 }
             }
         }
@@ -111,7 +111,7 @@ namespace Microsoft.Http2.Protocol
 
                 if (EndStreamSent)
                 {
-                    Dispose();
+                    Dispose(ResetStatusCode.None);
                 }
             }
         }
@@ -162,6 +162,9 @@ namespace Microsoft.Http2.Protocol
         /// </summary>
         public void PumpUnshippedFrames()
         {
+            if (Disposed)
+                return;
+
             //Handle window update one at a time
             lock (_unshippedDeliveryLock)
             {
@@ -174,7 +177,7 @@ namespace Microsoft.Http2.Protocol
                 //Do not dispose if unshipped frames are still here
                 if (EndStreamSent && EndStreamReceived && !Disposed)
                 {
-                    Dispose();
+                    Dispose(ResetStatusCode.None);
                 }
             }
         }
@@ -194,6 +197,9 @@ namespace Microsoft.Http2.Protocol
 
         public void WriteHeadersFrame(HeadersList headers, bool isEndStream, bool isEndHeaders)
         {
+            if (Disposed)
+                return;
+
             Headers.AddRange(headers);
 
             byte[] headerBytes = _compressionProc.Compress(headers);
@@ -226,13 +232,16 @@ namespace Microsoft.Http2.Protocol
         /// <param name="isEndStream">if set to <c>true</c> [is fin].</param>
         public void WriteDataFrame(byte[] data, bool isEndStream)
         {
+            if (Disposed)
+                return;
+
             var dataFrame = new DataFrame(_id, new ArraySegment<byte>(data), isEndStream);
 
-            if (isEndStream && _unshippedFrames.Count != 0)
+            /*if (isEndStream && _unshippedFrames.Count != 0)
             {
                 _unshippedFrames.Enqueue(dataFrame);
                 return;
-            }
+            }*/
 
             if (!IsFlowControlBlocked)
             {
@@ -266,6 +275,9 @@ namespace Microsoft.Http2.Protocol
         /// <param name="dataFrame">The data frame.</param>
         public void WriteDataFrame(DataFrame dataFrame)
         {
+            if (Disposed)
+                return;
+
             if (IsFlowControlBlocked == false)
             {
                 _writeQueue.WriteFrame(dataFrame);
@@ -292,6 +304,9 @@ namespace Microsoft.Http2.Protocol
 
         public void WriteWindowUpdate(Int32 windowSize)
         {
+            if (Disposed)
+                return;
+
             var frame = new WindowUpdateFrame(_id, windowSize);
             _writeQueue.WriteFrame(frame);
 
@@ -303,7 +318,11 @@ namespace Microsoft.Http2.Protocol
 
         public void WriteRst(ResetStatusCode code)
         {
+            if (Disposed)
+                return;
+
             var frame = new RstStreamFrame(_id, code);
+            
             _writeQueue.WriteFrame(frame);
             ResetSent = true;
 
@@ -327,6 +346,11 @@ namespace Microsoft.Http2.Protocol
 
         public void Dispose()
         {
+            Dispose(ResetStatusCode.None);
+        }
+
+        public void Dispose(ResetStatusCode code)
+        {
             if (Disposed)
             {
                 return;
@@ -336,6 +360,9 @@ namespace Microsoft.Http2.Protocol
 
             if (OnClose != null)
                 OnClose(this, new StreamClosedEventArgs(_id));
+
+            if (code != ResetStatusCode.None)
+                WriteRst(code);
 
             Http2Logger.LogDebug("Stream closed " + _id);
 

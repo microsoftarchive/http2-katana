@@ -127,6 +127,12 @@ namespace Microsoft.Http2.Protocol
             _comprProc = new CompressionProcessor(_ourEnd);
             _ioStream = stream;
 
+            //this means that upgrade handshake was performed and server is going to handle initial request
+            if (!_ioStream.IsSecure)
+            {
+                _lastId = 1;
+            }
+
             _frameReader = new FrameReader(_ioStream);
 
             ActiveStreams = new ActiveStreams();
@@ -292,7 +298,7 @@ namespace Microsoft.Http2.Protocol
                          Http2Logger.LogError("Handling session was cancelled");
                          Dispose();
                      }
-                     catch (Exception)
+                     catch (Exception ex)
                      {
                          Http2Logger.LogError("Sending frame was cancelled because connection was lost");
                          Dispose();
@@ -375,13 +381,13 @@ namespace Microsoft.Http2.Protocol
                         if (stream != null)
                         {
                             Http2Logger.LogDebug("RST frame with code " + resetFrame.StatusCode);
-                            stream.Dispose();
+                            stream.Dispose(resetFrame.StatusCode);
                         }
                         break;
                     case FrameType.Data:
                         var dataFrame = (DataFrame)frame;
                         
-                        Http2Logger.LogDebug("Data frame. StreamId:{0} Length:{1}", dataFrame.StreamId, dataFrame.FrameLength);
+                        Http2Logger.LogDebug("Data frame. StreamId: {0} Length: {1}", dataFrame.StreamId, dataFrame.FrameLength);
                         stream = GetStream(dataFrame.StreamId);
 
                         //Aggressive window update
@@ -389,9 +395,13 @@ namespace Microsoft.Http2.Protocol
                         {
                             if (stream.IsFlowControlEnabled)
                             {
-                                stream.WriteWindowUpdate(InitialWindowSize);
+                                stream.WriteWindowUpdate(50000);
                             }
                             stream.EnqueueDataFrame(dataFrame);
+                        }
+                        else
+                        {
+                            //TODO signal stream closed error
                         }
                         break;
                     case FrameType.Ping:
@@ -702,8 +712,8 @@ namespace Microsoft.Http2.Protocol
             foreach (var stream in ActiveStreams.Values)
             {
                 //Cancel all opened streams
-                stream.WriteRst(ResetStatusCode.Cancel);
-                stream.Dispose();
+                //stream.WriteRst(ResetStatusCode.Cancel);
+                stream.Dispose(ResetStatusCode.Cancel);
             }
 
             OnSettingsSent = null;

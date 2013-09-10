@@ -19,6 +19,7 @@
         public RstStreamFrame(int id, ResetStatusCode statusCode)
             : base(new byte[InitialFrameSize])
         {
+            Flags |= FrameFlags.EndStream;
             StreamId = id;//32 bit
             FrameType = FrameType.RstStream;//8bit
             FrameLength = InitialFrameSize - Constants.FramePreambleSize; // 16bit

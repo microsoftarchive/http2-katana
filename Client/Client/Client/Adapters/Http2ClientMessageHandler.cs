@@ -37,11 +37,15 @@ namespace Client.Adapters
                 await _fileHelper.SaveToFile(dataFrame.Data.Array, dataFrame.Data.Offset, dataFrame.Data.Count,
                                     path, stream.ReceivedDataAmount != 0);
             }
-            catch (IOException)
+            catch (IOException ex)
             {
                 Http2Logger.LogError("File is still downloading. Repeat request later");
-                stream.WriteDataFrame(new byte[0], true);
-                stream.Dispose();
+                //stream.WriteDataFrame(new byte[0], true);
+
+                //RST always has endstream flag
+                _fileHelper.RemoveStream(path);
+                stream.Dispose(ResetStatusCode.InternalError);
+                return;
             }
 
             stream.ReceivedDataAmount += dataFrame.FrameLength;
@@ -76,18 +80,19 @@ namespace Client.Adapters
             }
         }
 
-        protected override async Task ProcessIncomingData(Http2Stream stream)
+        protected override async void ProcessIncomingData(Http2Stream stream)
         {
-            bool isFin;
-            do
+            if (stream.ReceivedDataFrames.Count > 0)
             {
                 var frame = stream.DequeueDataFrame();
                 await SaveDataFrame(stream, frame);
-                isFin = frame.IsEndStream;
-            } while (!isFin);
+
+                if (frame.IsEndStream)
+                    stream.EndStreamReceived = true;
+            }
         }
 
-        protected override async Task ProcessRequest(Http2Stream stream)
+        protected override void ProcessRequest(Http2Stream stream)
         {
             //Do nothing. Client may not process requests for now
         }

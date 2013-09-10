@@ -85,13 +85,16 @@ namespace Microsoft.Http2.Protocol.IO
         public async Task SaveToFile(byte[] data, int offset, int count, string path, bool append)
         {
             //Sync write streams and do not let multiple streams to write the same file. Avoid data mixing and access exceptions.
-            if (!append && File.Exists(path))
-            {
-                File.Delete(path);
-            }
-
             if (!append)
             {
+                if (_pathStreamDict.ContainsKey(path))
+                {
+                    throw new IOException("File is still downloading");
+                }
+
+                if (File.Exists(path))
+                    File.Delete(path);
+
                 _pathStreamDict.Add(path, new FileStream(path, FileMode.Append));
             }
             

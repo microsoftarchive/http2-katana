@@ -62,14 +62,14 @@ namespace Microsoft.Http2.Protocol
         /// </summary>
         /// <param name="stream">The stream.</param>
         /// <returns></returns>
-        protected abstract Task ProcessRequest(Http2Stream stream);
+        protected abstract void ProcessRequest(Http2Stream stream);
 
         /// <summary>
         /// Processes the incoming data.
         /// </summary>
         /// <param name="stream">The stream.</param>
         /// <returns></returns>
-        protected abstract Task ProcessIncomingData(Http2Stream stream);
+        protected abstract void ProcessIncomingData(Http2Stream stream);
 
         /// <summary>
         /// Starts the session.

@@ -77,21 +77,25 @@ namespace Microsoft.Http2.Owin.Server.Adapters
         /// </summary>
         /// <param name="stream">The stream.</param>
         /// <returns></returns>
-        protected override async Task ProcessRequest(Http2Stream stream)
+        protected override void ProcessRequest(Http2Stream stream)
         {
-            var env = PopulateEnvironment(stream.Headers);
+                Task.Factory.StartNew(async () =>
+                {
+                    var env = PopulateEnvironment(stream.Headers);
 
-            try
-            {
-                await _next(env);
-            }
-            catch (Exception ex)
-            {   
-                EndResponse(stream, ex);
-                return;
-            }
+                    try
+                    {
+                        await _next(env);
+                    }
+                    catch (Exception ex)
+                    {   
+                        EndResponse(stream, ex);
+                        return;
+                    }
 
-            await EndResponse(stream, env);
+                    await EndResponse(stream, env);
+                });
+            
         }
 
         /// <summary>
@@ -99,7 +103,7 @@ namespace Microsoft.Http2.Owin.Server.Adapters
         /// </summary>
         /// <param name="stream">The stream.</param>
         /// <returns></returns>
-        protected override async Task ProcessIncomingData(Http2Stream stream)
+        protected override void ProcessIncomingData(Http2Stream stream)
         {
             //Do nothing... handling data is not supported by the server yet
         }
