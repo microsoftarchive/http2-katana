@@ -5,6 +5,7 @@ using Microsoft.Http2.Protocol.Extensions;
 using Microsoft.Http2.Protocol.FlowControl;
 using Microsoft.Http2.Protocol.Framing;
 using Microsoft.Http2.Protocol.IO;
+using Microsoft.Http2.Protocol.Tests;
 using Org.Mentalis.Security.Ssl;
 using System;
 using System.Collections;
@@ -234,7 +235,7 @@ namespace BasicTests
         [Fact]
         public void ActiveStreamsSuccessful()
         {
-            var session = new Http2Session(null, ConnectionEnd.Client, true, true, new CancellationToken());
+            var session = new Http2Session(TestHelpers.CreateStream(), ConnectionEnd.Client, true, true, new CancellationToken());
             var testCollection = session.ActiveStreams;
             var fm = new FlowControlManager(session);
 

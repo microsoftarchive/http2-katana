@@ -125,7 +125,7 @@ namespace Http2Tests
 
             var adapter = mockedAdapter.Object;
 
-            mockedAdapter.Protected().Setup<Task>("ProcessRequest", ItExpr.IsAny<Http2Stream>())
+            mockedAdapter.Protected().Setup("ProcessRequest", ItExpr.IsAny<Http2Stream>())
                 .Callback<Http2Stream>(stream =>
                 {
                     headersReceivedEvent.Set();
@@ -210,7 +210,7 @@ namespace Http2Tests
 
             var adapter = mockedAdapter.Object;
 
-            mockedAdapter.Protected().Setup<Task>("ProcessIncomingData", ItExpr.IsAny<Http2Stream>())
+            mockedAdapter.Protected().Setup("ProcessIncomingData", ItExpr.IsAny<Http2Stream>())
                 .Callback<Http2Stream>(stream =>
                 {
                     bool isFin;
@@ -279,7 +279,7 @@ namespace Http2Tests
 
             var adapter = mockedAdapter.Object;
 
-            mockedAdapter.Protected().Setup<Task>("ProcessIncomingData", ItExpr.IsAny<Http2Stream>())
+            mockedAdapter.Protected().Setup("ProcessIncomingData", ItExpr.IsAny<Http2Stream>())
                 .Callback<Http2Stream>(stream =>
                 {
                     bool isFin;
@@ -360,7 +360,7 @@ namespace Http2Tests
 
             var adapter = mockedAdapter.Object;
 
-            mockedAdapter.Protected().Setup<Task>("ProcessIncomingData", ItExpr.IsAny<Http2Stream>())
+            mockedAdapter.Protected().Setup("ProcessIncomingData", ItExpr.IsAny<Http2Stream>())
                 .Callback<Http2Stream>(stream =>
                 {
                     bool isFin;
@@ -423,7 +423,7 @@ namespace Http2Tests
 
             var adapter = mockedAdapter.Object;
 
-            mockedAdapter.Protected().Setup<Task>("ProcessIncomingData", ItExpr.IsAny<Http2Stream>())
+            mockedAdapter.Protected().Setup("ProcessIncomingData", ItExpr.IsAny<Http2Stream>())
                 .Callback<Http2Stream>(stream =>
                 {
                     bool isFin;
