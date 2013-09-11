@@ -72,8 +72,7 @@ namespace Microsoft.Http2.Protocol.Tests
             // process response
             var owinResponse = new OwinResponse(environment);
             var owinRequest = new OwinRequest(environment);
-            var body = new MemoryStream();
-            var writer = new StreamWriter(body);
+            var writer = new StreamWriter(owinResponse.Body);
             switch (owinRequest.Path)
             {
                 case "/10mbTest.txt":
@@ -91,7 +90,7 @@ namespace Microsoft.Http2.Protocol.Tests
             }
 
             writer.Flush();
-            owinResponse.Body = body;
+
             owinResponse.ContentLength = owinResponse.Body.Length;
         }
 

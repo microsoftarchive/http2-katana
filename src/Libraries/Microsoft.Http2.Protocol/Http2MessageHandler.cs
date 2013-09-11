@@ -49,7 +49,7 @@ namespace Microsoft.Http2.Protocol
             switch (frame.FrameType)
             {
                 case FrameType.Headers:
-                    ProcessRequest(stream);
+                    ProcessRequest(stream, frame);
                     break;
                 case FrameType.Data:
                     ProcessIncomingData(stream);
@@ -61,8 +61,9 @@ namespace Microsoft.Http2.Protocol
         /// Processes the request.
         /// </summary>
         /// <param name="stream">The stream.</param>
+        /// <param name="frame">The request header frame.</param>
         /// <returns></returns>
-        protected abstract void ProcessRequest(Http2Stream stream);
+        protected abstract void ProcessRequest(Http2Stream stream, Frame frame);
 
         /// <summary>
         /// Processes the incoming data.

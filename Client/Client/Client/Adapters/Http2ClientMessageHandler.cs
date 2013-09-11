@@ -94,7 +94,7 @@ namespace Client.Adapters
             }
         }
 
-        protected override void ProcessRequest(Http2Stream stream)
+        protected override void ProcessRequest(Http2Stream stream, Frame frame)
         {
             //Do nothing. Client may not process requests for now
         }

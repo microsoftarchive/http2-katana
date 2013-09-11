@@ -7,6 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Http2.Protocol;
 using Microsoft.Http2.Protocol.Extensions;
+using Microsoft.Http2.Protocol.Framing;
 using Microsoft.Http2.Protocol.IO;
 using Microsoft.Http2.Protocol.Utils;
 using Microsoft.Owin;
@@ -81,8 +82,9 @@ namespace Microsoft.Http2.Owin.Server.Adapters
         /// Overrides request processing logic.
         /// </summary>
         /// <param name="stream">The stream.</param>
+        /// <param name="frame">The request header frame.</param>
         /// <returns></returns>
-        protected override void ProcessRequest(Http2Stream stream)
+        protected override void ProcessRequest(Http2Stream stream, Frame frame)
         {
                 Task.Factory.StartNew(async () =>
                 {
@@ -148,10 +150,12 @@ namespace Microsoft.Http2.Owin.Server.Adapters
             if (owinResponseHeaders != null)
                 responseHeaders = new HeadersList(owinResponseHeaders);
 
-            WriteStatus(stream, responseStatusCode, responseBody == null, responseHeaders);
+            var hasDataContent = responseBody != null && responseBody.Position != 0;
+
+            WriteStatus(stream, responseStatusCode, !hasDataContent, responseHeaders);
 
             //Memory stream contains all response data and can be read by one iteration.
-            if (responseBody != null && responseBody.Position != 0)
+            if (hasDataContent)
             {
                 Http2Logger.LogDebug("Transfer begin");
                 int contentLen = int.Parse(response.Headers["Content-Length"]);
