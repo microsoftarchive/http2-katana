@@ -38,7 +38,7 @@ namespace Client.Adapters
                _fileHelper.SaveToFile(dataFrame.Data.Array, dataFrame.Data.Offset, dataFrame.Data.Count,
                                     path, stream.ReceivedDataAmount != 0);
             }
-            catch (IOException ex)
+            catch (IOException)
             {
                 Http2Logger.LogError("File is still downloading. Repeat request later");
                 //stream.WriteDataFrame(new byte[0], true);

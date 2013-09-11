@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Org.Mentalis.Security.Ssl;
 using Microsoft.Http2.Protocol.EventArgs;
+using Microsoft.Http2.Protocol.Utils;
 
 namespace Microsoft.Http2.Protocol.IO
 {
@@ -54,9 +55,26 @@ namespace Microsoft.Http2.Protocol.IO
             while (!_isClosed)
             {
                 var tmpBuffer = new byte[1024];
-                int received = await Task.Factory.FromAsync<int>(_socket.BeginReceive(tmpBuffer, 0, tmpBuffer.Length, SocketFlags.None, null, null),
-                        _socket.EndReceive, TaskCreationOptions.None, TaskScheduler.Default);
+                int received = 0;
+                try
+                {
+                    received = await Task.Factory.FromAsync<int>(_socket.BeginReceive(tmpBuffer, 0, tmpBuffer.Length, SocketFlags.None, null, null),
+                            _socket.EndReceive, TaskCreationOptions.None, TaskScheduler.Default);
+                }
+                catch (Org.Mentalis.Security.SecurityException)
+                {
+                    Http2Logger.LogInfo("Connection was closed by the remote endpoint");
+                }
+                catch (Exception)
+                {
+                    Http2Logger.LogInfo("Connection was lost. Closing io stream");
+                    if (!_isClosed)
+                    {
+                        Close();
+                    }
 
+                    return;
+                }
                 //TODO Connection was lost
                 if (received == 0)
                 {
