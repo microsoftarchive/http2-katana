@@ -82,7 +82,7 @@ namespace Microsoft.Http2.Protocol.IO
         /// <param name="count">The count.</param>
         /// <param name="path">The path to file.</param>
         /// <param name="append">if set to <c>true</c> content will be append to the existing file.</param>
-        public async Task SaveToFile(byte[] data, int offset, int count, string path, bool append)
+        public void SaveToFile(byte[] data, int offset, int count, string path, bool append)
         {
             //Sync write streams and do not let multiple streams to write the same file. Avoid data mixing and access exceptions.
             if (!append)
@@ -98,7 +98,7 @@ namespace Microsoft.Http2.Protocol.IO
                 _pathStreamDict.Add(path, new FileStream(path, FileMode.Append));
             }
             
-            await _pathStreamDict[path].WriteAsync(data, offset, count);
+             _pathStreamDict[path].WriteAsync(data, offset, count);
         }
 
         public void RemoveStream(string path)

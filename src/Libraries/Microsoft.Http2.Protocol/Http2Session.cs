@@ -380,19 +380,19 @@ namespace Microsoft.Http2.Protocol
 
                         if (stream != null)
                         {
-                            Http2Logger.LogDebug("RST frame with code " + resetFrame.StatusCode);
+                            Http2Logger.LogDebug("RST frame with code {0} for id ", resetFrame.StatusCode, resetFrame.StreamId);
                             stream.Dispose(resetFrame.StatusCode);
                         }
                         break;
                     case FrameType.Data:
                         var dataFrame = (DataFrame)frame;
                         
-                        Http2Logger.LogDebug("Data frame. StreamId: {0} Length: {1}", dataFrame.StreamId, dataFrame.FrameLength);
                         stream = GetStream(dataFrame.StreamId);
 
                         //Aggressive window update
                         if (stream != null)
                         {
+                            Http2Logger.LogDebug("Data frame. StreamId: {0} Length: {1}", dataFrame.StreamId, dataFrame.FrameLength);
                             if (stream.IsFlowControlEnabled)
                             {
                                 stream.WriteWindowUpdate(50000);
@@ -401,7 +401,7 @@ namespace Microsoft.Http2.Protocol
                         }
                         else
                         {
-                            //TODO signal stream closed error
+                            Http2Logger.LogDebug("Data frame ignored Id ={0}, Length = {1}", dataFrame.StreamId, dataFrame.FrameLength);
                         }
                         break;
                     case FrameType.Ping:

@@ -8,6 +8,7 @@ using Microsoft.Http2.Protocol.Framing;
 using Microsoft.Http2.Protocol.IO;
 using Microsoft.Http2.Protocol.Utils;
 using Org.Mentalis.Security.Ssl;
+using System.Collections.Generic;
 
 namespace Client.Adapters
 {
@@ -25,7 +26,7 @@ namespace Client.Adapters
             _fileHelper = new FileHelper(ConnectionEnd.Client);
         }
 
-        private async Task SaveDataFrame(Http2Stream stream, DataFrame dataFrame)
+        private void SaveDataFrame(Http2Stream stream, DataFrame dataFrame)
         {
             string originalPath = stream.Headers.GetValue(":path".ToLower());
             //If user sets the empty file in get command we return notFound webpage
@@ -34,7 +35,7 @@ namespace Client.Adapters
 
             try
             {
-                await _fileHelper.SaveToFile(dataFrame.Data.Array, dataFrame.Data.Offset, dataFrame.Data.Count,
+               _fileHelper.SaveToFile(dataFrame.Data.Array, dataFrame.Data.Offset, dataFrame.Data.Count,
                                     path, stream.ReceivedDataAmount != 0);
             }
             catch (IOException ex)
@@ -43,7 +44,7 @@ namespace Client.Adapters
                 //stream.WriteDataFrame(new byte[0], true);
 
                 //RST always has endstream flag
-                _fileHelper.RemoveStream(path);
+                //_fileHelper.RemoveStream(path);
                 stream.Dispose(ResetStatusCode.InternalError);
                 return;
             }
@@ -80,12 +81,13 @@ namespace Client.Adapters
             }
         }
 
-        protected override async void ProcessIncomingData(Http2Stream stream)
+        protected override void ProcessIncomingData(Http2Stream stream)
         {
             if (stream.ReceivedDataFrames.Count > 0)
             {
                 var frame = stream.DequeueDataFrame();
-                await SaveDataFrame(stream, frame);
+
+                SaveDataFrame(stream, frame);
 
                 if (frame.IsEndStream)
                     stream.EndStreamReceived = true;
