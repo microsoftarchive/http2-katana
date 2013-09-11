@@ -1,23 +1,18 @@
+using Client.Adapters;
 using Microsoft.Http1.Protocol;
 using Microsoft.Http2.Owin.Middleware;
 using Microsoft.Http2.Owin.Server;
 using Microsoft.Http2.Protocol;
 using Microsoft.Http2.Protocol.Framing;
-using Microsoft.Http2.Protocol.IO;
 using Microsoft.Http2.Protocol.Tests;
-using Microsoft.Owin;
 using Moq;
-using Org.Mentalis;
-using Org.Mentalis.Security;
+using Moq.Protected;
 using Org.Mentalis.Security.Ssl;
-using Org.Mentalis.Security.Ssl.Shared.Extensions;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
-using System.IO;
+using System.Globalization;
 using System.Linq;
-using System.Net;
-using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -40,35 +35,6 @@ namespace Http2Tests
         public bool UseSecurePort { get; private set; }
         public bool UseHandshake { get; private set; }
 
-
-        private async static Task InvokeMiddleWare(IDictionary<string, object> environment)
-        {
-            // process response
-            var owinResponse = new OwinResponse(environment);
-            var owinRequest = new OwinRequest(environment);
-            var body = new MemoryStream();
-            var writer = new StreamWriter(body);
-            switch (owinRequest.Path)
-            {
-                case "/10mbTest.txt": 
-                    writer.Write(TestHelpers.FileContent10MbTest);
-                    break;
-                case "/simpleTest.txt":
-                    writer.Write(TestHelpers.FileContentSimpleTest);
-                    break;
-                case "/emptyFile.txt":
-                    writer.Write(TestHelpers.FileContentEmptyFile);
-                    break;
-                default:
-                    writer.Write(TestHelpers.FileContentAnyFile);
-                    break;
-            }
-
-            writer.Flush();
-            owinResponse.Body = body;
-            owinResponse.ContentLength = owinResponse.Body.Length;
-        }
-
         public Http2Setup()
         {
             var appSettings = ConfigurationManager.AppSettings;
@@ -88,7 +54,7 @@ namespace Http2Tests
                         {
                             {"host", uri.Host},
                             {"scheme", uri.Scheme},
-                            {"port", uri.Port.ToString()},
+                            {"port", uri.Port.ToString(CultureInfo.InvariantCulture)},
                             {"path", uri.AbsolutePath}
                         }
                 };
@@ -103,7 +69,7 @@ namespace Http2Tests
             properties.Add("use-priorities", usePriorities);
             properties.Add("use-flowControl", useFlowControl);
 
-            Server = new HttpSocketServer(new Http2Middleware(InvokeMiddleWare).Invoke, properties);
+            Server = new HttpSocketServer(new Http2Middleware(TestHelpers.AppFunction).Invoke, properties);
         }
 
         public void Dispose()
@@ -114,174 +80,98 @@ namespace Http2Tests
     
     public class Http2Tests : IUseFixture<Http2Setup>, IDisposable
     {
-        private const string ClientSessionHeader = "PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n";
         private static bool _useSecurePort;
-        private static bool _useHandshake;
 
         void IUseFixture<Http2Setup>.SetFixture(Http2Setup setupInstance)
         {
             _useSecurePort = setupInstance.UseSecurePort;
-            _useHandshake = setupInstance.UseHandshake;
         }
 
-        protected static string GetAddress()
-        {
-
-            if (_useSecurePort)
-            {
-                return ConfigurationManager.AppSettings["secureAddress"];
-            }
-
-            return ConfigurationManager.AppSettings["unsecureAddress"];
-        }
-
-        protected static void SendSessionHeader(SecureSocket socket)
-        {
-            socket.Send(Encoding.UTF8.GetBytes(ClientSessionHeader));
-        }
-
-        protected static DuplexStream GetHandshakedDuplexStream(Uri uri, bool useMock = false, bool doRequestInUpgrade = false)
-        {
-            string selectedProtocol = null;
-
-            var extensions = new[] { ExtensionType.Renegotiation, ExtensionType.ALPN };
-
-            var protocols = new List<string> {Protocols.Http1};
-            if (!doRequestInUpgrade)
-            {
-                protocols.Add(Protocols.Http2);
-            }
-
-            var options = _useSecurePort
-                              ? new SecurityOptions(SecureProtocol.Tls1, extensions, protocols,
-                                                    ConnectionEnd.Client)
-                              : new SecurityOptions(SecureProtocol.None, extensions, protocols,
-                                                    ConnectionEnd.Client);
-
-            options.VerificationType = CredentialVerification.None;
-            options.Certificate = Org.Mentalis.Security.Certificates.Certificate.CreateFromCerFile(@"certificate.pfx");
-            options.Flags = SecurityFlags.Default;
-            options.AllowedAlgorithms = SslAlgorithms.RSA_AES_256_SHA | SslAlgorithms.NULL_COMPRESSION;
-
-            var sessionSocket = new SecureSocket(AddressFamily.InterNetwork, SocketType.Stream,
-                                                ProtocolType.Tcp, options);
-
-            using (var monitor = new ALPNExtensionMonitor())
-            {
-                monitor.OnProtocolSelected += (sender, args) => { selectedProtocol = args.SelectedProtocol; };
-
-                sessionSocket.Connect(new DnsEndPoint(uri.Host, uri.Port), monitor);
-
-
-                string path = uri.PathAndQuery;
-                if (_useHandshake)
-                {
-                    sessionSocket.MakeSecureHandshake(options);
-                }
-            }
-
-            //SendSessionHeader(sessionSocket);
-
-            return useMock ? new Mock<DuplexStream>(sessionSocket, true).Object : new DuplexStream(sessionSocket, true);
-        }
-
-        protected static Http2Stream SubmitRequest(Http2Session session, Uri uri)
+        protected void SendRequest(Http2ClientMessageHandler adapter, Uri uri)
         {
             const string method = "get";
-            string path = uri.PathAndQuery;
-            string version = Protocols.Http2;
-            string scheme = uri.Scheme;
-            string host = uri.Host;
+            var path = uri.PathAndQuery;
+            var version = Protocols.Http2;
+            var scheme = uri.Scheme;
+            var host = uri.Host;
 
             var pairs = new HeadersList
                 {
                     new KeyValuePair<string, string>(":method", method),
                     new KeyValuePair<string, string>(":path", path),
                     new KeyValuePair<string, string>(":version", version),
-                    new KeyValuePair<string, string>(":host", host),
+                    new KeyValuePair<string, string>(":host", host + ":" + uri.Port),
                     new KeyValuePair<string, string>(":scheme", scheme),
                 };
 
-            session.SendRequest(pairs, Priority.None, false);
-
-            return session.ActiveStreams[1];
+            adapter.SendRequest(pairs, Priority.None, true);
         }
 
         [Fact]
         public void StartSessionAndSendRequestSuccessful()
         {
-            string requestStr = GetAddress() + ConfigurationManager.AppSettings["smallTestFile"];
+            var requestStr = ConfigurationManager.AppSettings["smallTestFile"];
             Uri uri;
-            Uri.TryCreate(requestStr, UriKind.Absolute, out uri);
+            Uri.TryCreate(TestHelpers.GetAddress() + requestStr, UriKind.Absolute, out uri);
 
-            bool wasSettingsSent = false;
-            bool wasHeadersSent = false;
+            var wasHeadersReceived = false;
 
-            var settingsSentRaisedEventArgs = new ManualResetEvent(false);
-            var headersPlusPriSentRaisedEvent = new ManualResetEvent(false);
+            var headersReceivedEvent = new ManualResetEvent(false);
 
-            var duplexStream = GetHandshakedDuplexStream(uri);
+            var duplexStream = TestHelpers.GetHandshakedDuplexStream(requestStr);
 
-            using (var session = new Http2Session(duplexStream, ConnectionEnd.Client, true, true, new CancellationToken()))
+            var mockedAdapter = new Mock<Http2ClientMessageHandler>(duplexStream, TestHelpers.GetTransportInformation(),
+                new CancellationToken());
+
+            var adapter = mockedAdapter.Object;
+
+            mockedAdapter.Protected().Setup<Task>("ProcessRequest", ItExpr.IsAny<Http2Stream>())
+                .Callback<Http2Stream>(stream =>
+                {
+                    headersReceivedEvent.Set();
+                    wasHeadersReceived = true;
+                });
+
+            try
             {
-                session.OnSettingsSent += (o, args) =>
+                Task.Run(() => adapter.StartSession(ConnectionEnd.Client));
+
+                //wait until session will be created
+                // TODO refactor Http2Session.Start method
+                using (var delay = new ManualResetEvent(false))
                 {
-                    wasSettingsSent = true;
+                    delay.WaitOne(1000);
+                }
 
-                    Assert.Equal(args.SettingsFrame.StreamId, 0);
+                SendRequest(adapter, uri);
 
-                    settingsSentRaisedEventArgs.Set();
-                };
+                headersReceivedEvent.WaitOne(10000);
 
-                session.OnFrameSent += (sender, args) =>
-                {
-                    if (wasHeadersSent == false)
-                    {
-                        wasHeadersSent = args.Frame is HeadersFrame;
-
-                        headersPlusPriSentRaisedEvent.Set();
-                    }
-                };
-
-                Task.Run(() => session.Start());
-
-                settingsSentRaisedEventArgs.WaitOne(60000);
-
-                var stream = SubmitRequest(session, uri);
-
-                headersPlusPriSentRaisedEvent.WaitOne(60000);
-
-                //Settings frame does not contain flow control settings in this test. 
-                Assert.Equal(session.ActiveStreams.Count, 1);
-                Assert.Equal(session.ActiveStreams.FlowControlledStreams.Count, 1);
-                Assert.Equal(stream.IsFlowControlBlocked, false);
-                Assert.Equal(stream.Id, 1);
-                Assert.Equal(stream.IsFlowControlEnabled, true);
-                Assert.Equal(stream.EndStreamSent, false);
-                Assert.Equal(stream.Disposed, false);
-                Assert.Equal(wasHeadersSent, true);
-                Assert.Equal(wasSettingsSent, true);
-
-                headersPlusPriSentRaisedEvent.Dispose();
-                settingsSentRaisedEventArgs.Dispose();
+                headersReceivedEvent.Dispose();
             }
-        }
+            finally
+            {
+                adapter.Dispose();
+            }
 
+            Assert.Equal(wasHeadersReceived, true);
+        }
+        
         [Fact]
         public void StartAndSuddenlyCloseSessionSuccessful()
         {
-            string requestStr = GetAddress() + ConfigurationManager.AppSettings["smallTestFile"];
+            var requestStr = ConfigurationManager.AppSettings["smallTestFile"];
             Uri uri;
-            Uri.TryCreate(requestStr, UriKind.Absolute, out uri);
+            Uri.TryCreate(TestHelpers.GetAddress() + requestStr, UriKind.Absolute, out uri);
 
             bool gotException = false;
-            var stream = GetHandshakedDuplexStream(uri);
+            var stream = TestHelpers.GetHandshakedDuplexStream(requestStr);
             
             try
             {
-                using (var session = new Http2Session(stream, ConnectionEnd.Client, true, true, new CancellationToken()))
+                using (var adapter = new Http2ClientMessageHandler(stream, TestHelpers.GetTransportInformation(), new CancellationToken()))
                 {
-                    Task.Run(() => session.Start());
+                    Task.Run(() => adapter.StartSession(ConnectionEnd.Client));
                 }
             }
             catch (Exception)
@@ -304,42 +194,57 @@ namespace Http2Tests
         [Fact]
         public void StartSessionAndGet10MbDataSuccessful()
         {
-            string requestStr = GetAddress() + ConfigurationManager.AppSettings["10mbTestFile"];
+            var requestStr = ConfigurationManager.AppSettings["10mbTestFile"];
             Uri uri;
-            Uri.TryCreate(requestStr, UriKind.Absolute, out uri);
+            Uri.TryCreate(TestHelpers.GetAddress() + requestStr, UriKind.Absolute, out uri);
 
-            bool wasFinalFrameReceived = false;
-            StringBuilder response = new StringBuilder();
+            var wasFinalFrameReceived = false;
+            var response = new StringBuilder();
 
             var finalFrameReceivedRaisedEvent = new ManualResetEvent(false);
 
-            var duplexStream = GetHandshakedDuplexStream(uri);
+            var duplexStream = TestHelpers.GetHandshakedDuplexStream(requestStr);
 
-            using (var session = new Http2Session(duplexStream, ConnectionEnd.Client, true, true, new CancellationToken()))
-            {
+            var mockedAdapter = new Mock<Http2ClientMessageHandler>(duplexStream, TestHelpers.GetTransportInformation(),
+                new CancellationToken());
 
-                session.OnFrameReceived += (sender, args) =>
+            var adapter = mockedAdapter.Object;
+
+            mockedAdapter.Protected().Setup<Task>("ProcessIncomingData", ItExpr.IsAny<Http2Stream>())
+                .Callback<Http2Stream>(stream =>
                 {
-                    if ((args.Frame.Flags & FrameFlags.EndStream) != FrameFlags.None)
+                    bool isFin;
+                    do
                     {
-                        finalFrameReceivedRaisedEvent.Set();
+                        var frame = stream.DequeueDataFrame();
+                        response.Append(Encoding.UTF8.GetString(
+                            frame.Payload.Array.Skip(frame.Payload.Offset).Take(frame.Payload.Count).ToArray()));
+                        isFin = frame.IsEndStream;
+                    } while (!isFin && stream.ReceivedDataAmount > 0);
+                    if (isFin)
+                    {
                         wasFinalFrameReceived = true;
+                        finalFrameReceivedRaisedEvent.Set();
                     }
-                    if (args.Frame is DataFrame)
-                    {
-                        var payload = args.Frame.Payload;
-                        response.Append(Encoding.UTF8.GetString(payload.Array.Skip(payload.Offset).Take(payload.Count).ToArray()));
-                    }
-                };
+                });
 
-                Task.Run(() => session.Start());
+            try
+            {
+                Task.Run(() => adapter.StartSession(ConnectionEnd.Client));
 
-                SubmitRequest(session, uri);
+                // wait until session will be created
+                using (var delay = new ManualResetEvent(false))
+                {
+                    delay.WaitOne(1000);
+                }
 
+                SendRequest(adapter, uri);
                 finalFrameReceivedRaisedEvent.WaitOne(60000);
-
             }
-
+            finally
+            {
+                adapter.Dispose();
+            }
 
             Assert.Equal(true, wasFinalFrameReceived);
             Assert.Equal(TestHelpers.FileContent10MbTest, response.ToString());
@@ -357,16 +262,42 @@ namespace Http2Tests
         [Fact]
         public void StartSessionAndDoRequestInUpgrade()
         {
-            string requestStr = GetAddress() + ConfigurationManager.AppSettings["smallTestFile"];
+            var requestStr = ConfigurationManager.AppSettings["smallTestFile"];
             Uri uri;
-            Uri.TryCreate(requestStr, UriKind.Absolute, out uri);
+            Uri.TryCreate(TestHelpers.GetAddress() + requestStr, UriKind.Absolute, out uri);
 
             bool finalFrameReceived = false;
 
             var finalFrameReceivedRaisedEvent = new ManualResetEvent(false);
 
-            var duplexStream = GetHandshakedDuplexStream(uri, false, true);
+            var duplexStream = TestHelpers.GetHandshakedDuplexStream(requestStr, false);
 
+            var responseBody = new StringBuilder();
+
+            var mockedAdapter = new Mock<Http2ClientMessageHandler>(duplexStream, TestHelpers.GetTransportInformation(),
+               new CancellationToken());
+
+            var adapter = mockedAdapter.Object;
+
+            mockedAdapter.Protected().Setup<Task>("ProcessIncomingData", ItExpr.IsAny<Http2Stream>())
+                .Callback<Http2Stream>(stream =>
+                {
+                    bool isFin;
+                    do
+                    {
+                        var frame = stream.DequeueDataFrame();
+                        responseBody.Append(Encoding.UTF8.GetString(
+                            frame.Payload.Array.Skip(frame.Payload.Offset).Take(frame.Payload.Count).ToArray()));
+                        isFin = frame.IsEndStream;
+                    } while (!isFin && stream.ReceivedDataAmount > 0);
+                    if (isFin)
+                    {
+                        finalFrameReceived = true;
+                        finalFrameReceivedRaisedEvent.Set();
+                    }
+                });
+
+            // process http/1.1 headers manually
             var http11Headers = "GET " + uri.AbsolutePath + " HTTP/1.1\r\n" +
                                 "Host: " + uri.Host + "\r\n" +
                                 "Connection: Upgrade, HTTP2-Settings\r\n" +
@@ -383,27 +314,22 @@ namespace Http2Tests
             Assert.Contains("Upgrade", headers.Keys);
             Assert.Equal(Protocols.Http2, headers["Upgrade"][0]);
 
-            StringBuilder responseBody = new StringBuilder();
-
-            using (var session = new Http2Session(duplexStream, ConnectionEnd.Client, true, true, new CancellationToken()))
+            try
             {
-                session.OnFrameReceived += (sender, args) =>
+                Task.Run(() => adapter.StartSession(ConnectionEnd.Client));
+
+                //wait until session will be created
+                using (var delay = new ManualResetEvent(false))
                 {
-                    if ((args.Frame.Flags & FrameFlags.EndStream) != FrameFlags.None)
-                    {
-                        finalFrameReceived = true;
-                        finalFrameReceivedRaisedEvent.Set();
-                    }
-                    if (args.Frame is DataFrame)
-                    {
-                        var payload = args.Frame.Payload;
-                        responseBody.Append(Encoding.UTF8.GetString(payload.Array.Skip(payload.Offset).Take(payload.Count).ToArray()));
-                    }
-                };
+                    delay.WaitOne(1000);
+                }
 
-                Task.Run(() => session.Start());
-
-                finalFrameReceivedRaisedEvent.WaitOne(60000);
+                // there are http2 frames after upgrade headers - we don't need to send request explicitly
+                finalFrameReceivedRaisedEvent.WaitOne(10000);
+            }
+            finally
+            {
+                adapter.Dispose();
             }
             
             Assert.True(finalFrameReceived);
@@ -417,9 +343,9 @@ namespace Http2Tests
         [InlineData(false, false)]
         public void StartMultipleStreamsInOneSessionSuccessful(bool usePriorities, bool useFlowControl)
         {
-            string requestStr = GetAddress(); // do not request file, test only request sending, do not test if response correct
+            string requestStr = string.Empty; // do not request file, test only request sending, do not test if response correct
             Uri uri;
-            Uri.TryCreate(requestStr, UriKind.Absolute, out uri);
+            Uri.TryCreate(TestHelpers.GetAddress() + requestStr, UriKind.Absolute, out uri);
             int finalFramesCounter = 0;
             int streamsQuantity = _useSecurePort ? 50 : 49;
 
@@ -427,84 +353,119 @@ namespace Http2Tests
 
             var allResourcesDowloadedRaisedEvent = new ManualResetEvent(false);
 
-            var duplexStream = GetHandshakedDuplexStream(uri);
+            var duplexStream = TestHelpers.GetHandshakedDuplexStream(requestStr);
 
-            using (var session = new Http2Session(duplexStream, ConnectionEnd.Client, usePriorities, useFlowControl, new CancellationToken()))
-            {
-                session.OnFrameReceived += (sender, args) =>
+            var mockedAdapter = new Mock<Http2ClientMessageHandler>(duplexStream, TestHelpers.GetTransportInformation(),
+                new CancellationToken());
+
+            var adapter = mockedAdapter.Object;
+
+            mockedAdapter.Protected().Setup<Task>("ProcessIncomingData", ItExpr.IsAny<Http2Stream>())
+                .Callback<Http2Stream>(stream =>
                 {
-                    if ((args.Frame.Flags & FrameFlags.EndStream) != FrameFlags.None)
+                    bool isFin;
+                    do
                     {
-                        finalFramesCounter++;
-                        if (finalFramesCounter == streamsQuantity)
+                        var frame = stream.DequeueDataFrame();
+                        isFin = frame.IsEndStream;
+                    } while (!isFin && stream.ReceivedDataAmount > 0);
+                    if (isFin)
+                    {
+                        if (++finalFramesCounter == streamsQuantity)
                         {
-                            allResourcesDowloadedRaisedEvent.Set();
                             wasAllResourcesDownloaded = true;
+                            allResourcesDowloadedRaisedEvent.Set();
                         }
                     }
-                };
+                });
 
-                Task.Run(() => session.Start());
+            try
+            {
+                Task.Run(() => adapter.StartSession(ConnectionEnd.Client));
+
+                // wait until session will be created
+                using (var delay = new ManualResetEvent(false))
+                {
+                    delay.WaitOne(1000);
+                }
 
                 for (int i = 0; i < streamsQuantity; i++)
                 {
-                    SubmitRequest(session, uri);
+                    SendRequest(adapter, uri);
                 }
 
-                allResourcesDowloadedRaisedEvent.WaitOne(120000);
-                //One stream is superfluous for request in upgrade
-                Assert.Equal(session.ActiveStreams.Count, _useSecurePort ? streamsQuantity : streamsQuantity + 1);
+                allResourcesDowloadedRaisedEvent.WaitOne(60000);
+            }
+            finally
+            {
+                adapter.Dispose();
             }
 
-            Assert.Equal(true, wasAllResourcesDownloaded);
+            Assert.True(wasAllResourcesDownloaded);
         }
 
         [Fact]
         public void EmptyFileReceivedSuccessful()
         {
-            string requestStr = GetAddress() + "emptyFile.txt";
+            const string requestStr = "emptyFile.txt";
             Uri uri;
-            Uri.TryCreate(requestStr, UriKind.Absolute, out uri);
+            Uri.TryCreate(TestHelpers.GetAddress() + requestStr, UriKind.Absolute, out uri);
 
-            bool wasFinalFrameReceived = false;
+            var wasFinalFrameReceived = false;
+            var response = new StringBuilder();
 
             var finalFrameReceivedRaisedEvent = new ManualResetEvent(false);
 
-            var duplexStream = GetHandshakedDuplexStream(uri);
+            var duplexStream = TestHelpers.GetHandshakedDuplexStream(requestStr);
 
-            StringBuilder response = new StringBuilder();
+            var mockedAdapter = new Mock<Http2ClientMessageHandler>(duplexStream, TestHelpers.GetTransportInformation(),
+                new CancellationToken());
 
-            using (var session = new Http2Session(duplexStream, ConnectionEnd.Client, true, true, new CancellationToken()))
-            {
-                session.OnFrameReceived += (sender, args) =>
+            var adapter = mockedAdapter.Object;
+
+            mockedAdapter.Protected().Setup<Task>("ProcessIncomingData", ItExpr.IsAny<Http2Stream>())
+                .Callback<Http2Stream>(stream =>
                 {
-                    if ((args.Frame.Flags & FrameFlags.EndStream) != FrameFlags.None)
+                    bool isFin;
+                    do
+                    {
+                        var frame = stream.DequeueDataFrame();
+                        response.Append(Encoding.UTF8.GetString(
+                            frame.Payload.Array.Skip(frame.Payload.Offset).Take(frame.Payload.Count).ToArray()));
+                        isFin = frame.IsEndStream;
+                    } while (!isFin && stream.ReceivedDataAmount > 0);
+                    if (isFin)
                     {
                         wasFinalFrameReceived = true;
                         finalFrameReceivedRaisedEvent.Set();
                     }
+                });
 
-                    if (args.Frame is DataFrame)
-                    {
-                        var payload = args.Frame.Payload;
-                        response.Append(Encoding.UTF8.GetString(payload.Array.Skip(payload.Offset).Take(payload.Count).ToArray()));
-                    }
-                };
+            try
+            {
+                Task.Run(() => adapter.StartSession(ConnectionEnd.Client));
 
-                Task.Run(() => session.Start());
+                // wait until session will be created
+                using (var delay = new ManualResetEvent(false))
+                {
+                    delay.WaitOne(1000);
+                }
 
-                SubmitRequest(session, uri);
-
-                finalFrameReceivedRaisedEvent.WaitOne(60000);
+                SendRequest(adapter, uri);
+                finalFrameReceivedRaisedEvent.WaitOne(10000);
+            }
+            finally
+            {
+                adapter.Dispose();
             }
 
             Assert.Equal(true, wasFinalFrameReceived);
-            Assert.Equal(TestHelpers.FileContent10MbTest, response.ToString());
+            Assert.Equal(TestHelpers.FileContentEmptyFile, response.ToString());
         }
 
         public void Dispose()
         {
-
+            
         }
     }
 }

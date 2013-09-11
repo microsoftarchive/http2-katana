@@ -74,6 +74,12 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="..\..\Client\Client\Client\Adapters\Http11ClientMessageHandler.cs">
+      <Link>Sources\Client\Adapters\Http11ClientMessageHandler.cs</Link>
+    </Compile>
+    <Compile Include="..\..\Client\Client\Client\Adapters\Http2ClientMessageHandler.cs">
+      <Link>Sources\Client\Adapters\Http2ClientMessageHandler.cs</Link>
+    </Compile>
     <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Http2MessageHandler.cs">
       <Link>Sources\Libraries\Microsoft.Http2.Protocol\Http2MessageHandler.cs</Link>
     </Compile>
