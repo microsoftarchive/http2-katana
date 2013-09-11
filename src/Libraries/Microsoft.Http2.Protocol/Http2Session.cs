@@ -127,6 +127,8 @@ namespace Microsoft.Http2.Protocol
             _comprProc = new CompressionProcessor(_ourEnd);
             _ioStream = stream;
 
+            _ioStream.OnClose += IoStreamClosedHandler;
+
             //this means that upgrade handshake was performed and server is going to handle initial request
             if (!_ioStream.IsSecure)
             {
@@ -685,6 +687,12 @@ namespace Microsoft.Http2.Protocol
             Http2Logger.LogDebug("Ping: " + (newNow - now).Milliseconds);
             _wasPingReceived = false;
             return newNow - now;
+        }
+
+        private void IoStreamClosedHandler(object sender, System.EventArgs args)
+        {
+            //If ioStream was closed, then session should be closed too
+            Dispose();
         }
 
         public void Dispose()

@@ -43,7 +43,11 @@ namespace Microsoft.Http2.Protocol.IO
             _isClosed = false;
             _closeLock = new object();
 
-            Task.Run(() => PumpIncomingData());
+            Task.Run(async () => 
+                {
+                    Thread.CurrentThread.Name = "Listening thread";
+                    await PumpIncomingData();
+                });
         }
 
         /// <summary>
@@ -271,7 +275,9 @@ namespace Microsoft.Http2.Protocol.IO
             set { throw new NotImplementedException(); }
         }
 
-        private event EventHandler<DataAvailableEventArgs> OnDataAvailable; 
+        private event EventHandler<DataAvailableEventArgs> OnDataAvailable;
+
+        public event EventHandler<System.EventArgs> OnClose;
 
         public override void Close()
         {
@@ -291,6 +297,11 @@ namespace Microsoft.Http2.Protocol.IO
                 }
 
                 base.Close();
+
+                if (OnClose != null)
+                    OnClose(this, null);
+
+                OnClose = null;
             }
         }
     }
