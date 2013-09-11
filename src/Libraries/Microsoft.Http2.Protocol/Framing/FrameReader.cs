@@ -66,8 +66,11 @@ namespace Microsoft.Http2.Protocol.Framing
             int totalRead = 0;
             while (totalRead < count)
             {
-                //Infinite wait
-                _stream.WaitForDataAvailable(-1);
+                // Infinite wait
+                if (!_stream.WaitForDataAvailable(-1)) {
+                    // stream closed
+                    return false;
+                }
                 // TODO: Over-read into a buffer to reduce the number of native read operations.
                 int read = _stream.Read(buffer, offset + totalRead, count - totalRead);
 

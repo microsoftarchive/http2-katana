@@ -72,25 +72,24 @@ namespace Microsoft.Http2.Protocol.IO
                 catch (Exception)
                 {
                     Http2Logger.LogInfo("Connection was lost. Closing io stream");
-                    if (!_isClosed)
-                    {
-                        Close();
-                    }
+                    
+                    Close();
+                    
 
                     return;
                 }
                 //TODO Connection was lost
                 if (received == 0)
                 {
-                    if (!_isClosed)
-                    {
-                        Close();
-                    }
+
+                    Close();
+
                     break;
                 }
 
                 _readBuffer.Write(tmpBuffer, 0, received);
 
+                // TODO SG - we should pass num received or new buffer since tmpBuffer could be filled  partially
                 //Signal data available and it can be read
                 if (OnDataAvailable != null)
                     OnDataAvailable(this, new DataAvailableEventArgs(tmpBuffer));
@@ -118,23 +117,25 @@ namespace Microsoft.Http2.Protocol.IO
                 EventHandler<DataAvailableEventArgs> dataReceivedHandler = delegate (object sender, DataAvailableEventArgs args)
                 {
                     var receivedBuffer = args.ReceivedBytes;
-                    if (match != null && match.Invoke(receivedBuffer))
-                    {
-                        wait.Set();
-                    }
-                    else if (match == null)
+                    if (match == null || match.Invoke(receivedBuffer))
                     {
                         wait.Set();
                     }
                 };
 
+                EventHandler<System.EventArgs> closeHandler = (s, arg) => wait.Set();
+
                 //TODO think about if wait was already disposed
                 OnDataAvailable += dataReceivedHandler;
+                OnClose += closeHandler;
 
-                result = wait.WaitOne(timeout);
+
+                result = wait.WaitOne(timeout) && (Available != 0);
 
                 OnDataAvailable -= dataReceivedHandler;
+                OnClose -= closeHandler;
             }
+
             return result;
         }
 
