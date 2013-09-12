@@ -7,6 +7,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Http2.Owin.Server.Adapters;
+using Microsoft.Http2.Protocol.Utils;
 using Microsoft.Owin;
 using Microsoft.Http2.Protocol;
 using Microsoft.Http2.Protocol.IO;
@@ -56,14 +57,23 @@ namespace Microsoft.Http2.Owin.Middleware
                         var opaqueStream = opaque["opaque.Stream"] as DuplexStream;
 
                         //TODO Provide cancellation token here
-
-                        return Task.Factory.StartNew(async () =>
+                        // Move to method
+                        return Task.Run(async () =>
                             {
-                                using (
-                                    var http2Adapter = new Http2OwinAdapter(opaqueStream, trInfo, _next,
-                                                                            CancellationToken.None))
+                                try
                                 {
-                                    await http2Adapter.StartSession(ConnectionEnd.Server, requestCopy);
+                                    using (var http2MessageHandler = new Http2OwinMessageHandler(opaqueStream,
+                                                                                                 ConnectionEnd.Server,
+                                                                                                 trInfo, _next,
+                                                                                                 CancellationToken.None)
+                                        )
+                                    {
+                                        await http2MessageHandler.ProcessRequestAsync(requestCopy);
+                                    }
+                                }
+                                catch (Exception ex)
+                                {
+                                   Http2Logger.LogError(ex.Message);
                                 }
                             });
                     });

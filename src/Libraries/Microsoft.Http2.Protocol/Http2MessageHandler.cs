@@ -21,19 +21,22 @@ namespace Microsoft.Http2.Protocol
         protected readonly DuplexStream _stream;
         protected readonly CancellationToken _cancToken;
         protected readonly TransportInformation _transportInfo;
+        protected readonly ConnectionEnd _end;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Http2MessageHandler"/> class.
         /// </summary>
         /// <param name="stream">The stream.</param>
+        /// <param name="end">TODO</param>
         /// <param name="transportInfo">The transport information.</param>
         /// <param name="cancel">The cancel.</param>
-        protected Http2MessageHandler(DuplexStream stream, TransportInformation transportInfo, CancellationToken cancel)
+        protected Http2MessageHandler(DuplexStream stream, ConnectionEnd end, TransportInformation transportInfo, CancellationToken cancel)
         {
             _transportInfo = transportInfo;
             _isDisposed = false;
             _cancToken = cancel;
             _stream = stream;
+            _end = end;
         }
 
         /// <summary>
@@ -78,7 +81,7 @@ namespace Microsoft.Http2.Protocol
         /// <param name="end">The connection end.</param>
         /// <param name="initRequest">The initialize request params.</param>
         /// <returns></returns>
-        public Task StartSession(ConnectionEnd end, IDictionary<string, string> initRequest = null)
+        public Task ProcessRequestAsync(IDictionary<string, string> initRequest = null)
         {
             int initialWindowSize = 200000;
             int maxStreams = 100;
@@ -94,10 +97,10 @@ namespace Microsoft.Http2.Protocol
             }
 
             //TODO provide cancellation token and transport info
-            _session = new Http2Session(_stream, end, true, true, _cancToken, initialWindowSize, maxStreams);
+            _session = new Http2Session(_stream, _end, true, true, _cancToken, initialWindowSize, maxStreams);
             _session.OnFrameReceived += OnFrameReceivedHandler;
 
-            return _session.Start(initRequest);
+            return Task.Run(async () => await _session.Start(initRequest));
         }
 
         public virtual void Dispose()

@@ -159,11 +159,11 @@ namespace Microsoft.Http2.Owin.Server
                                             IDictionary<string, object> environment)
         {
             Http2Logger.LogDebug("Handshake successful");
-            using (var http2Adapter = new Http2OwinAdapter(incomingClientStream, transportInformation, _next, _cancelClientHandling.Token))
+            using (var messageHandler = new Http2OwinMessageHandler(incomingClientStream, ConnectionEnd.Server, transportInformation, _next, _cancelClientHandling.Token))
             {
                 try
                 {
-                    await http2Adapter.StartSession(ConnectionEnd.Server);
+                    await messageHandler.ProcessRequestAsync();
                 }
                 catch (Exception)
                 {

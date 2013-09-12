@@ -2,13 +2,11 @@
 using System.IO;
 using System.Reflection;
 using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.Http2.Protocol;
 using Microsoft.Http2.Protocol.Framing;
 using Microsoft.Http2.Protocol.IO;
 using Microsoft.Http2.Protocol.Utils;
 using Org.Mentalis.Security.Ssl;
-using System.Collections.Generic;
 
 namespace Client.Adapters
 {
@@ -20,8 +18,8 @@ namespace Client.Adapters
 
         public bool IsDisposed { get { return _isDisposed; } }
 
-        public Http2ClientMessageHandler(DuplexStream stream, TransportInformation transportInfo, CancellationToken cancel) 
-            : base(stream, transportInfo, cancel)
+        public Http2ClientMessageHandler(DuplexStream stream, ConnectionEnd end,  TransportInformation transportInfo, CancellationToken cancel) 
+            : base(stream, end, transportInfo, cancel)
         {
             _fileHelper = new FileHelper(ConnectionEnd.Client);
         }

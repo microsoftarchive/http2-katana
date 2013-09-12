@@ -209,7 +209,7 @@ namespace Client
                 if (_useHttp20)
                 {
                     //TODO provide transport info
-                    _sessionAdapter = new Http2ClientMessageHandler(_clientStream, default(TransportInformation),
+                    _sessionAdapter = new Http2ClientMessageHandler(_clientStream, ConnectionEnd.Client, default(TransportInformation),
                                                                      CancellationToken.None);
                 }
             }
@@ -229,11 +229,11 @@ namespace Client
             return true;
         }
 
-        public async void StartConnection()
+        public async Task StartConnection()
         {
             if (_useHttp20 && !_sessionAdapter.IsDisposed && !_isDisposed)
             {
-                await _sessionAdapter.StartSession(ConnectionEnd.Client);
+                await _sessionAdapter.ProcessRequestAsync();
             }
             else if (_sessionAdapter.IsDisposed)
             {

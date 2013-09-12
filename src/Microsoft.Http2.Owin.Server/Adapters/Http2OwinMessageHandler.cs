@@ -11,6 +11,7 @@ using Microsoft.Http2.Protocol.Framing;
 using Microsoft.Http2.Protocol.IO;
 using Microsoft.Http2.Protocol.Utils;
 using Microsoft.Owin;
+using Org.Mentalis.Security.Ssl;
 
 namespace Microsoft.Http2.Owin.Server.Adapters
 {
@@ -19,20 +20,21 @@ namespace Microsoft.Http2.Owin.Server.Adapters
     /// <summary>
     /// This class overrides http2 request/response processing logic as owin requires
     /// </summary>
-    public class Http2OwinAdapter : Http2MessageHandler
+    public class Http2OwinMessageHandler : Http2MessageHandler
     {
         private readonly AppFunc _next;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Http2OwinAdapter"/> class.
+        /// Initializes a new instance of the <see cref="Http2OwinMessageHandler"/> class.
         /// </summary>
         /// <param name="stream">The stream.</param>
+        /// <param name="end"></param>
         /// <param name="transportInfo">The transport information.</param>
         /// <param name="next">The next layer delegate.</param>
         /// <param name="cancel">The cancellation token.</param>
-        public Http2OwinAdapter(DuplexStream stream, TransportInformation transportInfo,
+        public Http2OwinMessageHandler(DuplexStream stream, ConnectionEnd end, TransportInformation transportInfo,
                                 AppFunc next, CancellationToken cancel)
-            : base(stream, transportInfo, cancel)
+            : base(stream, end, transportInfo, cancel)
         {
             _next = next;
         }
