@@ -68,7 +68,7 @@ namespace Microsoft.Http2.Owin.Middleware
                                                                                                  CancellationToken.None)
                                         )
                                     {
-                                        await http2MessageHandler.ProcessRequestAsync(requestCopy);
+                                        await http2MessageHandler.StartSessionAsync(requestCopy);
                                     }
                                 }
                                 catch (Exception ex)

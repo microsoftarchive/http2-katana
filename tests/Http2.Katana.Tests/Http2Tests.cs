@@ -135,7 +135,7 @@ namespace Http2.Katana.Tests
 
             try
             {
-                adapter.ProcessRequestAsync();
+                adapter.StartSessionAsync();
 
                 SendRequest(adapter, uri);
 
@@ -164,7 +164,7 @@ namespace Http2.Katana.Tests
             {
                 using (var adapter = new Http2ClientMessageHandler(stream, ConnectionEnd.Client, TestHelpers.GetTransportInformation(), new CancellationToken()))
                 {
-                    adapter.ProcessRequestAsync();
+                    adapter.StartSessionAsync();
                 }
             }
             catch (Exception)
@@ -223,13 +223,7 @@ namespace Http2.Katana.Tests
 
             try
             {
-                adapter.ProcessRequestAsync();
-
-                // wait until session will be created
-                using (var delay = new ManualResetEvent(false))
-                {
-                    delay.WaitOne(2000);
-                }
+                adapter.StartSessionAsync();
 
                 SendRequest(adapter, uri);
                 finalFrameReceivedRaisedEvent.WaitOne(40000);
@@ -309,7 +303,7 @@ namespace Http2.Katana.Tests
 
             try
             {
-                adapter.ProcessRequestAsync();
+                adapter.StartSessionAsync();
 
                 // there are http2 frames after upgrade headers - we don't need to send request explicitly
                 finalFrameReceivedRaisedEvent.WaitOne(10000);
@@ -368,7 +362,7 @@ namespace Http2.Katana.Tests
 
             try
             {
-                adapter.ProcessRequestAsync();
+                adapter.StartSessionAsync();
 
                 // wait until session will be created
                 using (var delay = new ManualResetEvent(false))
@@ -420,7 +414,7 @@ namespace Http2.Katana.Tests
 
             try
             {
-                adapter.ProcessRequestAsync();
+                adapter.StartSessionAsync();
 
                 SendRequest(adapter, uri);
                 finalFrameReceivedRaisedEvent.WaitOne(10000);

@@ -243,7 +243,7 @@ namespace Client
                         };
                 }
  
-                await _sessionAdapter.StartSession(ConnectionEnd.Client, initialRequest);
+                await _sessionAdapter.StartSessionAsync(initialRequest);
             }
             else if (_sessionAdapter.IsDisposed)
             {

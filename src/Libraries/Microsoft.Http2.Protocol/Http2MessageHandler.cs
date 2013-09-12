@@ -81,7 +81,7 @@ namespace Microsoft.Http2.Protocol
         /// <param name="end">The connection end.</param>
         /// <param name="initRequest">The initialize request params.</param>
         /// <returns></returns>
-        public Task StartSession(ConnectionEnd end, IDictionary<string, string> initRequest = null)
+        public Task StartSessionAsync(IDictionary<string, string> initRequest = null)
         {
             int initialWindowSize = 200000;
             int maxStreams = 100;
@@ -97,14 +97,14 @@ namespace Microsoft.Http2.Protocol
                 maxStreams = int.Parse(initRequest[":max_concurrent_streams"]);
             }
 
-            if (initRequest != null && initRequest.ContainsKey(":path") && end == ConnectionEnd.Client)
+            if (initRequest != null && initRequest.ContainsKey(":path") && _end == ConnectionEnd.Client)
                 initialPath = initRequest[":path"];
 
             //TODO provide cancellation token and transport info
-            _session = new Http2Session(_stream, end, true, true, _cancToken, initialWindowSize, maxStreams, initialPath);
+            _session = new Http2Session(_stream, _end, true, true, _cancToken, initialWindowSize, maxStreams, initialPath);
             _session.OnFrameReceived += OnFrameReceivedHandler;
 
-            return _session.Start(initRequest);
+            return Task.Run(async () => await _session.Start(initRequest));
         }
 
         public virtual void Dispose()

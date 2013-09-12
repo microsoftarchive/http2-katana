@@ -135,7 +135,7 @@ namespace Microsoft.Http2.Protocol.IO
                 OnClose += closeHandler;
 
 
-                result = wait.WaitOne(timeout);
+                result = wait.WaitOne(timeout) && Available != 0;
 
                 OnDataAvailable -= dataReceivedHandler;
                 OnClose -= closeHandler;

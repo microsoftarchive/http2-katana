@@ -163,7 +163,7 @@ namespace Microsoft.Http2.Owin.Server
             {
                 try
                 {
-                    await messageHandler.ProcessRequestAsync();
+                    await messageHandler.StartSessionAsync();
                 }
                 catch (Exception)
                 {
