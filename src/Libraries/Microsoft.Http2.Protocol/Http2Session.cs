@@ -332,6 +332,16 @@ namespace Microsoft.Http2.Protocol
 
             try
             {
+                //Settings MUST be first frame in the session from server and 
+                //client MUST send settings immediately after connection header.
+                //This means that settings ALWAYS first frame in the session.
+                //This block checks if it doesnt.
+                if (frame.FrameType != FrameType.Settings && !_wasSettingsReceived)
+                {
+                    throw new ProtocolError(ResetStatusCode.ProtocolError,
+                                            "Settings was not the first frame in the session");
+                }
+
                 switch (frame.FrameType)
                 {
                     case FrameType.Headers:
@@ -372,7 +382,17 @@ namespace Microsoft.Http2.Protocol
                         stream = GetStream(priorityFrame.StreamId);
                         if (_usePriorities)
                         {
-                            stream.Priority = priorityFrame.Priority;
+                            //06
+                            //A receiver can ignore WINDOW_UPDATE [WINDOW_UPDATE] or PRIORITY
+                            //[PRIORITY] frames in this state.
+                            if (stream != null && !stream.EndStreamReceived)
+                            {
+                                stream.Priority = priorityFrame.Priority;
+                            }
+                            //Do not signal an error because (06)
+                            //WINDOW_UPDATE [WINDOW_UPDATE], PRIORITY [PRIORITY], or RST_STREAM
+                            //[RST_STREAM] frames can be received in this state for a short
+                            //period after a frame containing an END_STREAM flag is sent.
                         }
                         break;
 
@@ -385,10 +405,14 @@ namespace Microsoft.Http2.Protocol
                             Http2Logger.LogDebug("RST frame with code {0} for id ", resetFrame.StatusCode, resetFrame.StreamId);
                             stream.Dispose(resetFrame.StatusCode);
                         }
+                        //Do not signal an error because (06)
+                        //WINDOW_UPDATE [WINDOW_UPDATE], PRIORITY [PRIORITY], or RST_STREAM
+                        //[RST_STREAM] frames can be received in this state for a short
+                        //period after a frame containing an END_STREAM flag is sent.
                         break;
                     case FrameType.Data:
                         var dataFrame = (DataFrame)frame;
-                        
+
                         stream = GetStream(dataFrame.StreamId);
 
                         //Aggressive window update
@@ -403,7 +427,7 @@ namespace Microsoft.Http2.Protocol
                         }
                         else
                         {
-                            Http2Logger.LogDebug("Data frame ignored Id ={0}, Length = {1}", dataFrame.StreamId, dataFrame.FrameLength);
+                            throw new Http2StreamNotFoundException(dataFrame.StreamId);
                         }
                         break;
                     case FrameType.Ping:
@@ -427,20 +451,9 @@ namespace Microsoft.Http2.Protocol
                         }
                         break;
                     case FrameType.Settings:
-                        //Not first frame in the session.
-                        //Client initiates connection and sends settings before request. 
-                        //It means that if server sent settings before it will not be a first frame,
-                        //because client initiates connection.
-                        /*if (_ourEnd == ConnectionEnd.Server && !_wasSettingsReceived
-                            && (ActiveStreams.Count > 0))
-                        {
-                            Dispose();
-                            return;
-                        }*/
-
+                        _wasSettingsReceived = true;
                         var settingFrame = (SettingsFrame)frame;
                         Http2Logger.LogDebug("Settings frame. Entry count: {0} StreamId: {1}", settingFrame.EntryCount, settingFrame.StreamId);
-                        _wasSettingsReceived = true;
                         _settingsManager.ProcessSettings(settingFrame, this, _flowControlManager);
                         break;
                     case FrameType.WindowUpdate:
@@ -450,11 +463,18 @@ namespace Microsoft.Http2.Protocol
                             Http2Logger.LogDebug("WindowUpdate frame. Delta: {0} StreamId: {1}", windowFrame.Delta, windowFrame.StreamId);
                             stream = GetStream(windowFrame.StreamId);
 
-                            if (stream != null)
+                            //06
+                            //A receiver can ignore WINDOW_UPDATE [WINDOW_UPDATE] or PRIORITY
+                            //[PRIORITY] frames in this state.
+                            if (stream != null && !stream.EndStreamReceived)
                             {
                                 stream.UpdateWindowSize(windowFrame.Delta);
                                 stream.PumpUnshippedFrames();
                             }
+                            //Do not signal an error because (06)
+                            //WINDOW_UPDATE [WINDOW_UPDATE], PRIORITY [PRIORITY], or RST_STREAM
+                            //[RST_STREAM] frames can be received in this state for a short
+                            //period after a frame containing an END_STREAM flag is sent.
                         }
                         break;
 
@@ -464,7 +484,9 @@ namespace Microsoft.Http2.Protocol
                         Dispose();
                         break;
                     default:
-                        throw new NotImplementedException(frame.FrameType.ToString());
+                        //Item 4.1 in 06 spec: Implementations MUST ignore frames of unsupported or unrecognized types
+                        Http2Logger.LogDebug("Unknown frame received. Ignoring it");
+                        break;
                 }
 
                 if (stream != null && frame is IEndStreamFrame && ((IEndStreamFrame)frame).IsEndStream)
@@ -480,25 +502,15 @@ namespace Microsoft.Http2.Protocol
                 }
             }
 
-            //Frame came for already closed stream. Ignore it.
-            //Spec:
-            //An endpoint that sends RST_STREAM MUST ignore
-            //frames that it receives on closed streams if it sends RST_STREAM.
-            //
             //An endpoint MUST NOT send frames on a closed stream.  An endpoint
-            //that receives a frame after receiving a RST_STREAM or a frame
-            //containing a END_STREAM flag on that stream MUST treat that as a
-            //stream error (Section 5.4.2) of type PROTOCOL_ERROR.
-            catch (Http2StreamNotFoundException)
+            //that receives a frame after receiving a RST_STREAM [RST_STREAM] or
+            //a frame containing a END_STREAM flag on that stream MUST treat
+            //that as a stream error (Section 5.4.2) of type STREAM_CLOSED
+            //[STREAM_CLOSED].
+            catch (Http2StreamNotFoundException ex)
             {
-                if (stream != null)
-                {
-                    stream.WriteRst(ResetStatusCode.ProtocolError);
-                }
-                else
-                {
-                    //GoAway?
-                }
+                Http2Logger.LogDebug("Frame for already closed stream with Id = {0}", ex.Id);
+                _writeQueue.WriteFrame(new RstStreamFrame(ex.Id, ResetStatusCode.StreamClosed));
             }
             catch (CompressionError ex)
             {
@@ -510,6 +522,11 @@ namespace Microsoft.Http2.Protocol
             {
                 Http2Logger.LogError("Protocol error occurred: " + pEx.Message);
                 Close(pEx.Code);
+            }
+            catch (Exception ex)
+            {
+                Http2Logger.LogError("Unknown error occurred: " + ex.Message);
+                Close(ResetStatusCode.InternalError);
             }
         }
 

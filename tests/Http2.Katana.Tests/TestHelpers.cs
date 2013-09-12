@@ -89,7 +89,7 @@ namespace Microsoft.Http2.Protocol.Tests
                     break;
             }
 
-            writer.Flush();
+            await writer.FlushAsync();
 
             owinResponse.ContentLength = owinResponse.Body.Length;
         }
