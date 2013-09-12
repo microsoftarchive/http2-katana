@@ -104,7 +104,8 @@ namespace Microsoft.Http2.Protocol
                             bool usePriorities, bool useFlowControl,
                             CancellationToken cancel,
                             int initialWindowSize = 200000,
-                            int maxConcurrentStream = 100)
+                            int maxConcurrentStream = 100,
+                            string initialRequestPath = "index.html")
         {
             _ourEnd = end;
             _usePriorities = usePriorities;
@@ -128,12 +129,6 @@ namespace Microsoft.Http2.Protocol
             _ioStream = stream;
 
             _ioStream.OnClose += IoStreamClosedHandler;
-
-            //this means that upgrade handshake was performed and server is going to handle initial request
-            if (!_ioStream.IsSecure)
-            {
-                _lastId = 1;
-            }
 
             _frameReader = new FrameReader(_ioStream);
 
@@ -186,7 +181,21 @@ namespace Microsoft.Http2.Protocol
                 initialRequest.Add(":path", "/index.html");
             }
 
+
             var initialStream = CreateStream(new HeadersList(initialRequest), 1);
+
+            //spec 06:
+            //A stream identifier of one (0x1) is used to respond to the HTTP/1.1
+            //request which was specified during Upgrade (see Section 3.2).  After
+            //the upgrade completes, stream 0x1 is "half closed (local)" to the
+            //client.  Therefore, stream 0x1 cannot be selected as a new stream
+            //identifier by a client that upgrades from HTTP/1.1.
+
+            if (_ourEnd == ConnectionEnd.Client && !_ioStream.IsSecure)
+            {
+                //initialStream.WriteDataFrame(new DataFrame(1, new ArraySegment<byte>(new byte[0]), true));
+                //initialStream.EndStreamSent = true;
+            }
 
             if (OnFrameReceived != null)
             {
@@ -234,9 +243,19 @@ namespace Microsoft.Http2.Protocol
                     });
             }
             // Listen for incoming Http/2.0 frames
-            var incomingTask = new Task(PumpIncommingData);
+            var incomingTask = new Task(() =>
+                {
+                    Thread.CurrentThread.Name = "Frame listening thread";
+                    PumpIncommingData();
+                });
+
             // Send outgoing Http/2.0 frames
-            var outgoingTask = new Task(() => PumpOutgoingData());
+            var outgoingTask = new Task(() =>
+                {
+                    Thread.CurrentThread.Name = "Frame writing thread";
+                    PumpOutgoingData();
+                });
+
             incomingTask.Start();
             outgoingTask.Start();
             var endPumpsTask = Task.WhenAll(incomingTask, outgoingTask);
@@ -266,7 +285,7 @@ namespace Microsoft.Http2.Protocol
                         _wasResponseReceived = true;
                     }
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
                     // Read failure, abort the connection/session.
                     Dispose();
@@ -421,7 +440,7 @@ namespace Microsoft.Http2.Protocol
                             Http2Logger.LogDebug("Data frame. StreamId: {0} Length: {1}", dataFrame.StreamId, dataFrame.FrameLength);
                             if (stream.IsFlowControlEnabled)
                             {
-                                stream.WriteWindowUpdate(50000);
+                                stream.WriteWindowUpdate(200000);
                             }
                             stream.EnqueueDataFrame(dataFrame);
                         }

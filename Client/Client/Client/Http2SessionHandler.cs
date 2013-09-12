@@ -229,11 +229,21 @@ namespace Client
             return true;
         }
 
-        public async Task StartConnection()
+        public async void StartConnection()
         {
             if (_useHttp20 && !_sessionAdapter.IsDisposed && !_isDisposed)
             {
-                await _sessionAdapter.ProcessRequestAsync();
+                string initialPath = String.Empty;
+                Dictionary<string, string> initialRequest = null;
+                if (!_clientStream.IsSecure)
+                {
+                    initialRequest = new Dictionary<string,string>
+                        {
+                            {":path", _path},
+                        };
+                }
+ 
+                await _sessionAdapter.StartSession(ConnectionEnd.Client, initialRequest);
             }
             else if (_sessionAdapter.IsDisposed)
             {

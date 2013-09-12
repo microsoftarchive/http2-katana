@@ -1,4 +1,5 @@
-﻿using Microsoft.Http2.Protocol.FlowControl;
+﻿using System;
+using Microsoft.Http2.Protocol.FlowControl;
 using Microsoft.Http2.Protocol.Framing;
 
 namespace Microsoft.Http2.Protocol.Settings
@@ -20,8 +21,16 @@ namespace Microsoft.Http2.Protocol.Settings
                         session.RemoteMaxConcurrentStreams = settingsFrame[i].Value;
                         break;
                     case SettingsIds.InitialWindowSize:
-                        flCtrlManager.StreamsInitialWindowSize = settingsFrame[i].Value;
-                        session.InitialWindowSize = settingsFrame[i].Value;
+                        int newInitWindowSize = settingsFrame[i].Value;
+                        int windowSizeDiff = newInitWindowSize - flCtrlManager.StreamsInitialWindowSize;
+
+                        foreach (var stream in session.ActiveStreams.FlowControlledStreams.Values)
+                        {
+                            stream.WindowSize += windowSizeDiff;
+                        }
+
+                        flCtrlManager.StreamsInitialWindowSize = newInitWindowSize;
+                        session.InitialWindowSize = newInitWindowSize;
                         break;
                     case SettingsIds.FlowControlOptions:
                         flCtrlManager.Options = settingsFrame[i].Value;

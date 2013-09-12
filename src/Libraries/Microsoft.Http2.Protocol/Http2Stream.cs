@@ -182,7 +182,7 @@ namespace Microsoft.Http2.Protocol
             }
         }
 
-        public Int32 WindowSize { get; private set; }
+        public Int32 WindowSize { get; set; }
 
         public Int64 SentDataAmount { get; private set; }
 
@@ -278,7 +278,7 @@ namespace Microsoft.Http2.Protocol
             if (Disposed)
                 return;
 
-            if (IsFlowControlBlocked == false)
+            if (!IsFlowControlBlocked)
             {
                 _writeQueue.WriteFrame(dataFrame);
                 SentDataAmount += dataFrame.FrameLength;

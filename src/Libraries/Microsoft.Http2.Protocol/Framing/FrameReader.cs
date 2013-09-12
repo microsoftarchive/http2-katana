@@ -76,7 +76,7 @@ namespace Microsoft.Http2.Protocol.Framing
 
                 if (read <= 0)
                 {
-                    // The stream ended before we could get as much as we needed.
+                    //The stream ended before we could get as much as we needed.
                     return false;
                 }
                 totalRead += read;

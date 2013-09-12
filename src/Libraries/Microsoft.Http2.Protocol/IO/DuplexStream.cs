@@ -45,7 +45,7 @@ namespace Microsoft.Http2.Protocol.IO
 
             Task.Run(async () => 
                 {
-                    Thread.CurrentThread.Name = "Listening thread";
+                    Thread.CurrentThread.Name = "Duplex listening thread";
                     await PumpIncomingData();
                 });
         }
@@ -72,19 +72,15 @@ namespace Microsoft.Http2.Protocol.IO
                 catch (Exception)
                 {
                     Http2Logger.LogInfo("Connection was lost. Closing io stream");
-                    
-                    Close();
-                    
 
+                    Close();
                     return;
                 }
                 //TODO Connection was lost
                 if (received == 0)
                 {
-
                     Close();
-
-                    break;
+                    return;
                 }
 
                 _readBuffer.Write(tmpBuffer, 0, received);
@@ -92,7 +88,16 @@ namespace Microsoft.Http2.Protocol.IO
                 // TODO SG - we should pass num received or new buffer since tmpBuffer could be filled  partially
                 //Signal data available and it can be read
                 if (OnDataAvailable != null)
-                    OnDataAvailable(this, new DataAvailableEventArgs(tmpBuffer));
+                {
+                    try
+                    {
+                        OnDataAvailable(this, new DataAvailableEventArgs(tmpBuffer));
+                    }
+                    catch (NullReferenceException ex)
+                    {
+                            
+                    }
+                }
             }
         }
 
@@ -105,16 +110,16 @@ namespace Microsoft.Http2.Protocol.IO
         /// <returns></returns>
         public bool WaitForDataAvailable(int timeout, Predicate<byte[]> match = null)
         {
+            bool result = false;
+
             if (Available != 0)
             {
                 return true;
             }
-            
-            bool result;
 
             using (var wait = new ManualResetEvent(false))
             {
-                EventHandler<DataAvailableEventArgs> dataReceivedHandler = delegate (object sender, DataAvailableEventArgs args)
+                EventHandler<DataAvailableEventArgs> dataReceivedHandler = delegate(object sender, DataAvailableEventArgs args)
                 {
                     var receivedBuffer = args.ReceivedBytes;
                     if (match == null || match.Invoke(receivedBuffer))
@@ -130,12 +135,11 @@ namespace Microsoft.Http2.Protocol.IO
                 OnClose += closeHandler;
 
 
-                result = wait.WaitOne(timeout) && (Available != 0);
+                result = wait.WaitOne(timeout);
 
                 OnDataAvailable -= dataReceivedHandler;
                 OnClose -= closeHandler;
             }
-
             return result;
         }
 

@@ -19,6 +19,7 @@ namespace Microsoft.Http2.Protocol.IO
         {
             IsPriorityTurnedOn = isPriorityTurnedOn;
             _streams = streams;
+
             if (isPriorityTurnedOn)
             {
                 _messageQueue = new PriorityQueue();

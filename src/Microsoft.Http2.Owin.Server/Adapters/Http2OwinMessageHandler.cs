@@ -51,12 +51,7 @@ namespace Microsoft.Http2.Owin.Server.Adapters
             var headersAsDict = headers.ToDictionary(header => header.Key, header => new[] {header.Value});
 
             environment["owin.RequestHeaders"] = headersAsDict;
-
-            //Include :path header for correct handling by client
-            environment["owin.ResponseHeaders"] = new Dictionary<string, string[]>
-                {
-                    {":path", new []{headers.GetValue(":path")}},
-                };
+            environment["owin.ResponseHeaders"] = new Dictionary<string, string[]>();
 
             var owinRequest = new OwinRequest(environment);
             var owinResponse = new OwinResponse(environment);
