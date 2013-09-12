@@ -18,7 +18,7 @@ using System.Text;
 using System.Threading;
 using Xunit;
 
-namespace Http11Tests
+namespace Http2.Katana.Tests
 {
     public class Http11Setup : IDisposable
     {
@@ -80,7 +80,7 @@ namespace Http11Tests
         {
         }
 
-        [Fact]
+        [StandardFact]
         public void EnvironmentCreatedCorrect()
         {
             var creator = typeof(Http11ProtocolOwinAdapter).GetMethod("CreateOwinEnvironment", BindingFlags.NonPublic | BindingFlags.Static);
@@ -111,7 +111,7 @@ namespace Http11Tests
             Assert.Equal(owinResponse.StatusCode, StatusCode.Code200Ok);
         }
 
-        [Fact]
+        [StandardFact]
         public void OpaqueEnvironmentCreatedCorrect()
         {
             var adapter = TestHelpers.CreateHttp11Adapter(null, null);
@@ -127,7 +127,7 @@ namespace Http11Tests
             Assert.True(env["opaque.CallCancelled"] is CancellationToken);
         }
 
-        [Fact]
+        [StandardFact]
         public void HeadersParsedCorrect()
         {
 
@@ -183,7 +183,7 @@ namespace Http11Tests
             Assert.Equal(headers["X-Multiple-Header"][1], "value2");
         }
 
-        [Fact]
+        [StandardFact]
         public void ResponseSentCorrect()
         {
             var headers = new Dictionary<string, string[]>
@@ -228,7 +228,7 @@ namespace Http11Tests
             Assert.Equal(dataString, responseData);
         }
 
-        [Fact]
+        [StandardFact]
         public void ResponseWithExceptionHasNoBody()
         {
             var mock = Mock.Get(TestHelpers.CreateStream());
@@ -261,7 +261,7 @@ namespace Http11Tests
             Assert.Equal(string.Empty, response.Last());
         }
 
-        [Fact]
+        [StandardFact]
         public void Http11CommunicationSuccessful()
         {
             var address = ConfigurationManager.AppSettings["smallTestFile"];
@@ -290,10 +290,11 @@ namespace Http11Tests
                 total += read;
             }
 
+            duplexStream.Close();
+
             Assert.Equal(responseBody.Length, total);
             Assert.Equal(TestHelpers.FileContentSimpleTest, Encoding.UTF8.GetString(responseBody));
 
-            duplexStream.Close();
         }
     }
 }

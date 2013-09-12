@@ -14,7 +14,7 @@ using System.Linq;
 using System.Threading;
 using Xunit;
 
-namespace BasicTests
+namespace Http2.Katana.Tests
 {
     public class BasicTests
     {
@@ -25,8 +25,8 @@ namespace BasicTests
                 return ((new CaseInsensitiveComparer()).Compare(y, x));
             }
         }
-        
-        [Fact]
+
+        [StandardFact]
         public void MinExtendedMathWithComparerSuccessful()
         {
             var tests = new List<string[]>
@@ -44,7 +44,7 @@ namespace BasicTests
             }
         }
 
-        [Fact]
+        [StandardFact]
         public void HeadersCollectionSuccessful()
         {
             var collection = new HeadersList(new[]
@@ -75,7 +75,7 @@ namespace BasicTests
             Assert.Equal(collection.StoredHeadersSize, headersSize);
         }
 
-        [Fact]
+        [StandardFact]
         public void CompressionSuccessful()
         {
             var clientHeaders = new HeadersList
@@ -113,7 +113,7 @@ namespace BasicTests
             }
         }
 
-        [Fact]
+        [StandardFact]
         public void UVarIntConversionSuccessful()
         {
             var test1337 = 1337.ToUVarInt(5);
@@ -128,15 +128,15 @@ namespace BasicTests
             test0 = 0.ToUVarInt(0);
             Assert.Equal(Int32Extensions.FromUVarInt(test0), 0);
 
-            var test0xfffff = 0xfffff.ToUVarInt(7);
-            Assert.Equal(Int32Extensions.FromUVarInt(test0xfffff), 0xfffff);
-            test0xfffff = 0xfffff.ToUVarInt(4);
-            Assert.Equal(Int32Extensions.FromUVarInt(test0xfffff), 0xfffff);
-            test0xfffff = 0xfffff.ToUVarInt(0);
-            Assert.Equal(Int32Extensions.FromUVarInt(test0xfffff), 0xfffff);
+            var test0Xfffff = 0xfffff.ToUVarInt(7);
+            Assert.Equal(Int32Extensions.FromUVarInt(test0Xfffff), 0xfffff);
+            test0Xfffff = 0xfffff.ToUVarInt(4);
+            Assert.Equal(Int32Extensions.FromUVarInt(test0Xfffff), 0xfffff);
+            test0Xfffff = 0xfffff.ToUVarInt(0);
+            Assert.Equal(Int32Extensions.FromUVarInt(test0Xfffff), 0xfffff);
         }
 
-        [Fact]
+        [StandardFact]
         public void FrameHelperSuccessful()
         {
             const byte input = 1;
@@ -162,7 +162,7 @@ namespace BasicTests
             Assert.Equal(result, input);
         }
 
-        [Fact]
+        [StandardFact]
         public void MinExtendedMathWithoutComparerSuccessful()
         {
             var tests = new List<double[]>
@@ -180,7 +180,7 @@ namespace BasicTests
             }
         }
 
-        [Fact]
+        [StandardFact]
         public void PriorityTestSuccessful()
         {
             var itemsCollection = new List<IPriorityItem>
@@ -232,7 +232,7 @@ namespace BasicTests
             Assert.Equal(((PriorityQueueEntry)item11).Priority, Priority.Pri0);
         }
 
-        [Fact]
+        [StandardFact]
         public void ActiveStreamsSuccessful()
         {
             var session = new Http2Session(TestHelpers.CreateStream(), ConnectionEnd.Client, true, true, new CancellationToken());

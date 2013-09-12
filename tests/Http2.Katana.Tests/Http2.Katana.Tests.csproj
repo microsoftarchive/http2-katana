@@ -96,6 +96,7 @@
     <Compile Include="HandshakeTests.cs" />
     <Compile Include="Http11Tests.cs" />
     <Compile Include="Http2Tests.cs" />
+    <Compile Include="Facts.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="TestHelpers.cs" />
     <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\BinaryHelper\BinaryHelper.cs">

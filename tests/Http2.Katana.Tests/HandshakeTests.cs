@@ -4,7 +4,6 @@ using Microsoft.Http2.Owin.Middleware;
 using Microsoft.Http2.Owin.Server;
 using Microsoft.Http2.Protocol;
 using Microsoft.Http2.Protocol.Tests;
-using Moq;
 using Org.Mentalis;
 using Org.Mentalis.Security;
 using Org.Mentalis.Security.Ssl;
@@ -12,18 +11,14 @@ using Org.Mentalis.Security.Ssl.Shared.Extensions;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
-using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
-using System.Threading.Tasks;
 using Xunit;
 
-namespace HandshakeTests
+namespace Http2.Katana.Tests
 {
-    using UpgradeDelegate = Action<IDictionary<string, object>, Func<IDictionary<string, object>, Task>>;
-
     public class HandshakeSetup : IDisposable
     {
         public HttpSocketServer Http2SecureServer { get; private set; }
@@ -85,7 +80,7 @@ namespace HandshakeTests
             
         }
 
-        [Fact]
+        [StandardFact]
         public void AlpnSelectionHttp2Successful()
         {
             const string requestStr = @"https://localhost:8443/";
@@ -121,7 +116,7 @@ namespace HandshakeTests
             }
         }
 
-        [Fact]
+        [StandardFact]
         public void UpgradeHandshakeSuccessful()
         {
             const string address = "/";
