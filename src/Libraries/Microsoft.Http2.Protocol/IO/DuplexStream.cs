@@ -19,7 +19,7 @@ namespace Microsoft.Http2.Protocol.IO
         private SecureSocket _socket;
         private bool _isClosed;
         private readonly bool _ownsSocket;
-        private readonly object _closeLock;
+        private readonly object _locker;
 
         public override int ReadTimeout {
             get { return 60000; }
@@ -41,7 +41,7 @@ namespace Microsoft.Http2.Protocol.IO
             _ownsSocket = ownsSocket;
             _socket = socket;
             _isClosed = false;
-            _closeLock = new object();
+            _locker = new object();
 
             Task.Run(async () => 
                 {
@@ -87,15 +87,19 @@ namespace Microsoft.Http2.Protocol.IO
 
                 // TODO SG - we should pass num received or new buffer since tmpBuffer could be filled  partially
                 //Signal data available and it can be read
-                if (OnDataAvailable != null)
+                lock (_locker)
                 {
-                    try
+                    // lock is required since another thread can be updating OnDataAvailable
+                    if (OnDataAvailable != null)
                     {
-                        OnDataAvailable(this, new DataAvailableEventArgs(tmpBuffer));
-                    }
-                    catch (NullReferenceException ex)
-                    {
-                            
+                        try
+                        {
+                            OnDataAvailable(this, new DataAvailableEventArgs(tmpBuffer));
+                        }
+                        catch (NullReferenceException ex)
+                        {
+
+                        }
                     }
                 }
             }
@@ -131,14 +135,28 @@ namespace Microsoft.Http2.Protocol.IO
                 EventHandler<System.EventArgs> closeHandler = (s, arg) => wait.Set();
 
                 //TODO think about if wait was already disposed
-                OnDataAvailable += dataReceivedHandler;
-                OnClose += closeHandler;
+
+                lock (_locker) // lock is required since several threads access/change OnDataAvailable/OnClose events
+                {
+                    // check if the data has become available while we were creating handlers and sync event
+                    // this could happen since data is pumped by separate thread
+                    if (Available != 0)
+                    {
+                        return true;
+                    }
+
+                    OnDataAvailable += dataReceivedHandler;
+                    OnClose += closeHandler;
+                }
 
 
                 result = wait.WaitOne(timeout) && Available != 0;
 
-                OnDataAvailable -= dataReceivedHandler;
-                OnClose -= closeHandler;
+                lock (_locker)
+                {
+                    OnDataAvailable -= dataReceivedHandler;
+                    OnClose -= closeHandler;
+                }
             }
             return result;
         }
@@ -286,7 +304,7 @@ namespace Microsoft.Http2.Protocol.IO
 
         public override void Close()
         {
-            lock (_closeLock)
+            lock (_locker)
             {
                 //Return instead of throwing exception because external code calls Close and 
                 //it knows nothing about defined exception.
