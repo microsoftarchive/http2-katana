@@ -65,44 +65,62 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
         private void ModifyTable(string headerName, string headerValue, IndexationType headerType,
                                         HeadersList useHeadersTable, int index)
         {
-            int headerLen = headerName.Length + headerValue.Length;
-                switch (headerType)
-                {
-                    case IndexationType.Incremental:
+            int headerLen = headerName.Length + headerValue.Length + sizeof(Int32);
+
+            //spec 06:
+            //The addition of a new entry with a size greater than the
+            //SETTINGS_MAX_BUFFER_SIZE limit causes all the entries from the header
+            //table to be dropped and the new entry not to be added to the header
+            //table.  The replacement of an existing entry with a new entry with a
+            //size greater than the SETTINGS_MAX_BUFFER_SIZE has the same
+            //consequences.
+            switch (headerType)
+            {
+                case IndexationType.Incremental:
+                    if (useHeadersTable.Count > HeadersLimit - 1)
+                    {
+                        useHeadersTable.RemoveAt(0);
+                    }
+
+                    if (useHeadersTable.StoredHeadersSize + headerLen > MaxHeaderByteSize)
+                    {
+                        useHeadersTable.Clear();
+                        return;
+                    }
+                    useHeadersTable.Add(new KeyValuePair<string, string>(headerName, headerValue));
+                    break;
+                case IndexationType.Substitution:
+                    if (index != -1)
+                    {
+                        var header = useHeadersTable[index];
+                        int substHeaderLen = header.Key.Length + header.Value.Length + sizeof (Int32);
+
+                        if (useHeadersTable.StoredHeadersSize + headerLen - substHeaderLen > MaxHeaderByteSize)
+                        {
+                            useHeadersTable.Clear();
+                            return;
+                        }
+                        useHeadersTable[index] = new KeyValuePair<string, string>(headerName, headerValue);
+                    }
+                    else
+                    {
                         if (useHeadersTable.Count > HeadersLimit - 1)
                         {
                             useHeadersTable.RemoveAt(0);
                         }
 
-                        while (useHeadersTable.StoredHeadersSize + headerLen > MaxHeaderByteSize)
+                        if (useHeadersTable.StoredHeadersSize + headerLen > MaxHeaderByteSize)
                         {
-                            useHeadersTable.RemoveAt(0);
+                            useHeadersTable.Clear();
+                            return;
                         }
+                        //If header wasn't found then add it to the table
                         useHeadersTable.Add(new KeyValuePair<string, string>(headerName, headerValue));
-                        break;
-                    case IndexationType.Substitution:
-                        if (index != -1)
-                        {
-                            useHeadersTable[index] = new KeyValuePair<string, string>(headerName, headerValue);
-                        }
-                        else
-                        {
-                            if (useHeadersTable.Count > HeadersLimit - 1)
-                            {
-                                useHeadersTable.RemoveAt(0);
-                            }
-
-                            while (useHeadersTable.StoredHeadersSize + headerLen > MaxHeaderByteSize)
-                            {
-                                useHeadersTable.RemoveAt(0);
-                            }
-                            //If header wasn't found then add it to the table
-                            useHeadersTable.Add(new KeyValuePair<string, string>(headerName, headerValue));
-                        }
-                        break;
-                    default:
-                        return;
-                }
+                    }
+                    break;
+                default:
+                    return;
+            }
         }
 
         #region Compression
