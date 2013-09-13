@@ -97,11 +97,8 @@ namespace Microsoft.Http2.Protocol
                 maxStreams = int.Parse(initRequest[":max_concurrent_streams"]);
             }
 
-            if (initRequest != null && initRequest.ContainsKey(":path") && _end == ConnectionEnd.Client)
-                initialPath = initRequest[":path"];
-
             //TODO provide cancellation token and transport info
-            _session = new Http2Session(_stream, _end, true, true, _cancToken, initialWindowSize, maxStreams, initialPath);
+            _session = new Http2Session(_stream, _end, true, true, _cancToken, initialWindowSize, maxStreams);
             _session.OnFrameReceived += OnFrameReceivedHandler;
 
             return Task.Run(async () => await _session.Start(initRequest));

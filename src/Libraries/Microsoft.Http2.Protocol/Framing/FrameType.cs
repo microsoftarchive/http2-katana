@@ -15,6 +15,7 @@ namespace Microsoft.Http2.Protocol.Framing
         Ping = 6,
         GoAway = 7,
         //8?
-        WindowUpdate = 9
+        WindowUpdate = 9,
+        Continuation = 10,
     }
 }

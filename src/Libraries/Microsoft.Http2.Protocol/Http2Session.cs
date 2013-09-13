@@ -41,10 +41,9 @@ namespace Microsoft.Http2.Protocol
         private bool _wasSettingsReceived;
         private bool _wasPingReceived;
         private bool _wasResponseReceived;
-        private readonly HeadersList _toBeContinuedHeaders;
-        private Frame _toBeContinuedFrame;
+        private Frame _lastFrame;
         private readonly CancellationToken _cancelSessionToken;
-
+        private readonly List<HeadersSequence> _headersSequences; 
         private const string ClientSessionHeader = "PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n";
  
         /// <summary>
@@ -104,8 +103,7 @@ namespace Microsoft.Http2.Protocol
                             bool usePriorities, bool useFlowControl,
                             CancellationToken cancel,
                             int initialWindowSize = 200000,
-                            int maxConcurrentStream = 100,
-                            string initialRequestPath = "index.html")
+                            int maxConcurrentStream = 100)
         {
             _ourEnd = end;
             _usePriorities = usePriorities;
@@ -147,7 +145,7 @@ namespace Microsoft.Http2.Protocol
             }
 
             SessionWindowSize = 0;
-            _toBeContinuedHeaders = new HeadersList();
+            _headersSequences = new List<HeadersSequence>();
         }
 
         private void SendSessionHeader()
@@ -174,6 +172,7 @@ namespace Microsoft.Http2.Protocol
             return string.Equals(receivedHeader, ClientSessionHeader, StringComparison.OrdinalIgnoreCase);
         }
 
+        //Calls only in unsecure connection case
         private void DispatchInitialRequest(IDictionary<string, string> initialRequest)
         {
             if (!initialRequest.ContainsKey(":path"))
@@ -190,16 +189,18 @@ namespace Microsoft.Http2.Protocol
             //the upgrade completes, stream 0x1 is "half closed (local)" to the
             //client.  Therefore, stream 0x1 cannot be selected as a new stream
             //identifier by a client that upgrades from HTTP/1.1.
-
-            if (_ourEnd == ConnectionEnd.Client && !_ioStream.IsSecure)
+            if (_ourEnd == ConnectionEnd.Client)
             {
-                //initialStream.WriteDataFrame(new DataFrame(1, new ArraySegment<byte>(new byte[0]), true));
-                //initialStream.EndStreamSent = true;
+                GetNextId();
+                initialStream.EndStreamSent = true;
             }
-
-            if (OnFrameReceived != null)
+            else
             {
-                OnFrameReceived(this, new FrameReceivedEventArgs(initialStream, new HeadersFrame(1, new byte[0])));
+                initialStream.EndStreamReceived = true;
+                if (OnFrameReceived != null)
+                {
+                    OnFrameReceived(this, new FrameReceivedEventArgs(initialStream, new HeadersFrame(1, new byte[0])));
+                }
             }
         }
 
@@ -261,7 +262,7 @@ namespace Microsoft.Http2.Protocol
             var endPumpsTask = Task.WhenAll(incomingTask, outgoingTask);
 
             //Handle upgrade handshake headers.
-            if (initialRequest != null)
+            if (initialRequest != null && !_ioStream.IsSecure)
                 DispatchInitialRequest(initialRequest);
 
             //Cancellation token
@@ -336,19 +337,6 @@ namespace Microsoft.Http2.Protocol
         {
             Http2Stream stream = null;
 
-            //Spec 03 tells that frame with continues flag MUST be followed by a frame with the same type
-            //and the same stread id.
-            if (_toBeContinuedHeaders.Count != 0)
-            {
-                if (_toBeContinuedFrame.FrameType != frame.FrameType
-                    || _toBeContinuedFrame.StreamId != frame.StreamId)
-                {
-                    //If not, we must close the session.
-                    Dispose();
-                    return;
-                }
-            }
-
             try
             {
                 //Settings MUST be first frame in the session from server and 
@@ -361,6 +349,7 @@ namespace Microsoft.Http2.Protocol
                                             "Settings was not the first frame in the session");
                 }
 
+                HeadersSequence sequence;
                 switch (frame.FrameType)
                 {
                     case FrameType.Headers:
@@ -374,27 +363,74 @@ namespace Microsoft.Http2.Protocol
 
                         var decompressedHeaders = _comprProc.Decompress(serializedHeaders);
                         var headers = new HeadersList(decompressedHeaders);
-
-                        if (!headersFrame.IsEndHeaders)
-                        {
-                            _toBeContinuedHeaders.AddRange(decompressedHeaders);
-                            _toBeContinuedFrame = headersFrame;
-                            break;
-                        }
-
-                        headers.AddRange(_toBeContinuedHeaders);
-                        _toBeContinuedHeaders.Clear();
-                        _toBeContinuedFrame = null;
-                        headersFrame.Headers.AddRange(headers);
                         foreach (var header in headers)
                         {
                             Http2Logger.LogDebug("Stream {0} header: {1}={2}", frame.StreamId, header.Key, header.Value);
                         }
+                        headersFrame.Headers.AddRange(headers);
 
-                        stream = GetStream(headersFrame.StreamId) ?? CreateStream(headers, frame.StreamId);
+                        sequence = _headersSequences.Find(seq => seq.StreamId == headersFrame.StreamId);
+                        if (sequence == null)
+                        {
+                            sequence = new HeadersSequence(headersFrame.StreamId, headersFrame);
+                            _headersSequences.Add(sequence);
+                        }
+                        else
+                        {
+                            sequence.AddHeaders(headersFrame);
+                        }
+
+                        if (!sequence.IsComplete)
+                        {
+                            return;
+                        }
+
+                        //headers.AddRange(_toBeContinuedHeaders);
+                        //_toBeContinuedHeaders.Clear();
+                        //_toBeContinuedFrame = null;
+                        //headersFrame.Headers.AddRange(headers);
+
+                        stream = GetStream(headersFrame.StreamId) ?? CreateStream(sequence.Headers, frame.StreamId);
 
                         break;
+                    case FrameType.Continuation:
 
+                        if (!(_lastFrame is ContinuationFrame || _lastFrame is HeadersFrame))
+                            throw new ProtocolError(ResetStatusCode.ProtocolError, "Last frame was not headers or continuation");
+
+                        Http2Logger.LogDebug("New continuation with id = " + frame.StreamId);
+                        var contFrame = (HeadersFrame)frame;
+                        var serHeaders = new byte[contFrame.CompressedHeaders.Count];
+
+                        Buffer.BlockCopy(contFrame.CompressedHeaders.Array,
+                                         contFrame.CompressedHeaders.Offset,
+                                         serHeaders, 0, serHeaders.Length);
+
+                        var decomprHeaders = _comprProc.Decompress(serHeaders);
+                        var contHeaders = new HeadersList(decomprHeaders);
+                        foreach (var header in contHeaders)
+                        {
+                            Http2Logger.LogDebug("Stream {0} header: {1}={2}", frame.StreamId, header.Key, header.Value);
+                        }
+                        contFrame.Headers.AddRange(contHeaders);
+                        sequence = _headersSequences.Find(seq => seq.StreamId == contFrame.StreamId);
+                        if (sequence == null)
+                        {
+                            sequence = new HeadersSequence(contFrame.StreamId, contFrame);
+                            _headersSequences.Add(sequence);
+                        }
+                        else
+                        {
+                            sequence.AddHeaders(contFrame);
+                        }
+
+                        if (!sequence.IsComplete)
+                        {
+                            return;
+                        }
+
+                        stream = GetStream(contFrame.StreamId) ?? CreateStream(sequence.Headers, frame.StreamId);
+                        break;
                     case FrameType.Priority:
                         var priorityFrame = (PriorityFrame)frame;
                         Http2Logger.LogDebug("Priority frame. StreamId: {0} Priority: {1}", priorityFrame.StreamId, priorityFrame.Priority);
@@ -485,7 +521,9 @@ namespace Microsoft.Http2.Protocol
                             //06
                             //A receiver can ignore WINDOW_UPDATE [WINDOW_UPDATE] or PRIORITY
                             //[PRIORITY] frames in this state.
-                            if (stream != null && !stream.EndStreamReceived)
+                            //Tsyshnatiy: it can ignore, but it can not ignore also. I'm using it for
+                            //initial request handling
+                            if (stream != null)
                             {
                                 stream.UpdateWindowSize(windowFrame.Delta);
                                 stream.PumpUnshippedFrames();
@@ -507,6 +545,8 @@ namespace Microsoft.Http2.Protocol
                         Http2Logger.LogDebug("Unknown frame received. Ignoring it");
                         break;
                 }
+
+                _lastFrame = frame;
 
                 if (stream != null && frame is IEndStreamFrame && ((IEndStreamFrame)frame).IsEndStream)
                 {
@@ -621,6 +661,11 @@ namespace Microsoft.Http2.Protocol
                     {
                         throw new ArgumentException("Can't remove stream from ActiveStreams.");
                     }
+
+                    var streamSequence = _headersSequences.Find(seq => seq.StreamId == args.Id);
+
+                    if (streamSequence != null)
+                        _headersSequences.Remove(streamSequence);
                 };
 
             ActiveStreams[id].OnFrameSent += (o, args) =>
