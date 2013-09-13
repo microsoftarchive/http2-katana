@@ -1,6 +1,6 @@
 ﻿namespace Microsoft.Http2.Protocol.Framing
 {
-    public class ContinuationFrame : Frame, IEndStreamFrame
+    internal class ContinuationFrame : Frame, IEndStreamFrame
     {
 
         private const int PreambleSizeWithoutPriority = 8;
