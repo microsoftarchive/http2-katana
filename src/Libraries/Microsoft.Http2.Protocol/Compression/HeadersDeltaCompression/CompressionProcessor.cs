@@ -213,41 +213,11 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
             WriteToOutput(bytes, 0, bytes.Length);
         }
 
-        //Method retypes as many headers as it can to be Indexed
-        //and checks if headers marked as indexed are present in the headers table
-        /*private void OptimizeInputAndSendOptimized(List<KeyValuePair<string, string>> headers)
-        {
-            for (int i = 0; i < headers.Count; i++ )
-            {
-                var headerKv = new KeyValuePair<string, string>(headers[i].Item1, headers[i].Item2);
-                IndexationType headerType = (headers[i].Item3 as Indexation).Type;
-
-                int index = _remoteHeaderTable.IndexOf(headerKv);
-
-                //case headerType == IndexationType.Incremental
-                //must not be considered because headers table can contain duplicates
-                if (index != -1 && headerType == IndexationType.Substitution)
-                {
-                    CompressIndexed(headerKv);
-                    headers.Remove(headers[i--]);
-                }
-
-                //If header marked as indexed, but not found in the table, compress it as incremental.
-                if (index == -1 && headerType == IndexationType.Indexed)
-                {
-                    CompressNonIndexed(headerKv.Key, headerKv.Value, IndexationType.Incremental, 5);
-                    headers.Remove(headers[i--]);
-                }
-            }
-        }*/
-
         public byte[] Compress(HeadersList headers)
         {
             var toSend = new HeadersList();
             var toDelete = new HeadersList(_remoteRefSet);
             ClearStream(_serializerStream, (int) _serializerStream.Position);
-
-            //OptimizeInputAndSendOptimized(headersCopy); - dont need this?
 
             foreach (var header in headers)
             {

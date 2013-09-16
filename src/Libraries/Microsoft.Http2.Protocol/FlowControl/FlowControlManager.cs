@@ -1,5 +1,7 @@
 ﻿using System;
 using Microsoft.Http2.Protocol.EventArgs;
+using Microsoft.Http2.Protocol.Exceptions;
+using Microsoft.Http2.Protocol.Framing;
 
 namespace Microsoft.Http2.Protocol.FlowControl
 {
@@ -12,7 +14,7 @@ namespace Microsoft.Http2.Protocol.FlowControl
         private readonly Http2Session _flowControlledSession;
         private readonly ActiveStreams _streamCollection;
         private Int32 _options;
-
+        private bool _wasFlowControlSet;
         /// <summary>
         /// Gets or sets the flow control options property.
         /// </summary>
@@ -29,9 +31,13 @@ namespace Microsoft.Http2.Protocol.FlowControl
             }
            set
            {
+               if (_wasFlowControlSet)
+                   throw new ProtocolError(ResetStatusCode.FlowControlError, "Trying to reenable flow control");
+
+               _wasFlowControlSet = true;
                _options = value;
 
-               if (IsStreamsFlowControlledEnabled == false)
+               if (!IsFlowControlEnabled)
                {
                    foreach (var stream in _streamCollection.Values)
                    {
@@ -39,26 +45,18 @@ namespace Microsoft.Http2.Protocol.FlowControl
                    }
                }
 
-               if (IsSessionFlowControlEnabled)
+               if (IsFlowControlEnabled)
                {
                    //TODO Disable session flow control
                }
            }
         }
 
-        public bool IsSessionFlowControlEnabled
+        public bool IsFlowControlEnabled
         {
             get
             {
-                return _options % 2 == 0;
-            }
-        }
-
-        public bool IsStreamsFlowControlledEnabled
-        {
-            get
-            {
-                return _options >> 1 % 2 == 0;
+                return _options % 2 != 0;
             }
         }
 
@@ -76,7 +74,7 @@ namespace Microsoft.Http2.Protocol.FlowControl
             _streamCollection = _flowControlledSession.ActiveStreams;
 
             Options = Constants.InitialFlowControlOptionsValue;
-
+            _wasFlowControlSet = false;
             IsSessionBlocked = false;
         }
 
@@ -123,13 +121,13 @@ namespace Microsoft.Http2.Protocol.FlowControl
             int id = args.Id;
 
             //Stream was closed after a data final frame.
-            if (_streamCollection.ContainsKey(id) == false)
+            if (!_streamCollection.ContainsKey(id))
             {
                 return;
             }
 
             var stream = _streamCollection[id];
-            if (stream.IsFlowControlEnabled == false)
+            if (!stream.IsFlowControlEnabled)
             {
                 return;
             }
@@ -139,7 +137,7 @@ namespace Microsoft.Http2.Protocol.FlowControl
             stream.UpdateWindowSize(-dataAmount);
             _flowControlledSession.SessionWindowSize += -dataAmount;
 
-            if (_flowControlledSession.SessionWindowSize < 0)
+            if (_flowControlledSession.SessionWindowSize <= 0)
             {
                 IsSessionBlocked = true;
                 //TODO What to do next?

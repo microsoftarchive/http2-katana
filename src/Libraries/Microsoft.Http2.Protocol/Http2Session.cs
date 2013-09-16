@@ -336,9 +336,15 @@ namespace Microsoft.Http2.Protocol
         private void DispatchIncomingFrame(Frame frame)
         {
             Http2Stream stream = null;
-
+            
             try
             {
+                if (frame.FrameLength > Constants.MaxFrameContentSize)
+                {
+                    throw new ProtocolError(ResetStatusCode.FrameTooLarge, 
+                                String.Format("Frame too large: Type: {0} {1}", frame.FrameType, frame.FrameLength));
+                }
+
                 //Settings MUST be first frame in the session from server and 
                 //client MUST send settings immediately after connection header.
                 //This means that settings ALWAYS first frame in the session.
@@ -355,6 +361,17 @@ namespace Microsoft.Http2.Protocol
                     case FrameType.Headers:
                         Http2Logger.LogDebug("New headers with id = " + frame.StreamId);
                         var headersFrame = (HeadersFrame)frame;
+
+                        //spec 06:
+                        //If a HEADERS frame
+                        //is received whose stream identifier field is 0x0, the recipient MUST
+                        //respond with a connection error (Section 5.4.1) of type
+                        //PROTOCOL_ERROR [PROTOCOL_ERROR].
+                        if (headersFrame.StreamId == 0)
+                        {
+                            throw new ProtocolError(ResetStatusCode.ProtocolError, "Incoming headers frame with id = 0");
+                        }
+
                         var serializedHeaders = new byte[headersFrame.CompressedHeaders.Count];
 
                         Buffer.BlockCopy(headersFrame.CompressedHeaders.Array,
@@ -385,11 +402,6 @@ namespace Microsoft.Http2.Protocol
                             return;
                         }
 
-                        //headers.AddRange(_toBeContinuedHeaders);
-                        //_toBeContinuedHeaders.Clear();
-                        //_toBeContinuedFrame = null;
-                        //headersFrame.Headers.AddRange(headers);
-
                         stream = GetStream(headersFrame.StreamId) ?? CreateStream(sequence.Headers, frame.StreamId);
 
                         break;
@@ -400,6 +412,12 @@ namespace Microsoft.Http2.Protocol
 
                         Http2Logger.LogDebug("New continuation with id = " + frame.StreamId);
                         var contFrame = (HeadersFrame)frame;
+
+                        if (contFrame.StreamId == 0)
+                        {
+                            throw new ProtocolError(ResetStatusCode.ProtocolError, "Incoming continuation frame with id = 0");
+                        }
+
                         var serHeaders = new byte[contFrame.CompressedHeaders.Count];
 
                         Buffer.BlockCopy(contFrame.CompressedHeaders.Array,
@@ -433,6 +451,17 @@ namespace Microsoft.Http2.Protocol
                         break;
                     case FrameType.Priority:
                         var priorityFrame = (PriorityFrame)frame;
+
+                        //spec 06:
+                        //The PRIORITY frame is associated with an existing stream.  If a
+                        //PRIORITY frame is received with a stream identifier of 0x0, the
+                        //recipient MUST respond with a connection error (Section 5.4.1) of
+                        //type PROTOCOL_ERROR [PROTOCOL_ERROR].
+                        if (priorityFrame.StreamId == 0)
+                        {
+                            throw new ProtocolError(ResetStatusCode.ProtocolError, "Incoming headers frame with id = 0");
+                        }
+
                         Http2Logger.LogDebug("Priority frame. StreamId: {0} Priority: {1}", priorityFrame.StreamId, priorityFrame.Priority);
                         stream = GetStream(priorityFrame.StreamId);
                         if (_usePriorities)
@@ -594,8 +623,9 @@ namespace Microsoft.Http2.Protocol
         /// </summary>
         /// <param name="headers"></param>
         /// <param name="streamId"></param>
+        /// <param name="priority"></param>
         /// <returns></returns>
-        private Http2Stream CreateStream(HeadersList headers, int streamId)
+        private Http2Stream CreateStream(HeadersList headers, int streamId, Priority priority = Priority.None)
         {
             if (ActiveStreams.GetOpenedStreamsBy(_remoteEnd) + 1 > OurMaxConcurrentStreams)
             {
@@ -604,9 +634,12 @@ namespace Microsoft.Http2.Protocol
                 throw new InvalidOperationException("Trying to create more streams than allowed!");
             }
 
+            if (priority == Priority.None)
+                priority = Constants.DefaultStreamPriority;
+
             var stream = new Http2Stream(headers, streamId,
                                          _writeQueue, _flowControlManager,
-                                         _comprProc);
+                                         _comprProc, priority);
 
             ActiveStreams[stream.Id] = stream;
 

@@ -70,7 +70,7 @@ namespace Microsoft.Http2.Protocol
             SentDataAmount = 0;
             ReceivedDataAmount = 0;
             IsFlowControlBlocked = false;
-            IsFlowControlEnabled = _flowCrtlManager.IsStreamsFlowControlledEnabled;
+            IsFlowControlEnabled = _flowCrtlManager.IsFlowControlEnabled;
             WindowSize = _flowCrtlManager.StreamsInitialWindowSize;
 
             _flowCrtlManager.NewStreamOpenedHandler(this);
@@ -304,7 +304,11 @@ namespace Microsoft.Http2.Protocol
 
         public void WriteWindowUpdate(Int32 windowSize)
         {
-            if (Disposed)
+            //Spec 06
+            //After a receiver reads in a frame that marks the end of a stream (for
+            //example, a data stream with a END_STREAM flag set), it MUST cease
+	        //transmission of WINDOW_UPDATE frames for that stream.
+            if (Disposed || EndStreamReceived)
                 return;
 
             var frame = new WindowUpdateFrame(_id, windowSize);

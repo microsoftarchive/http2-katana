@@ -274,8 +274,8 @@ namespace Client
             {
                 headers.Add(new KeyValuePair<string, string>(":serverPostAct".ToLower(), serverPostAct));
             }
-                //Sending request with average priority
-            _sessionAdapter.SendRequest(headers, Priority.None, false);
+                //Sending request with default  priority
+            _sessionAdapter.SendRequest(headers, Constants.DefaultStreamPriority, false);
         }
 
         public void SendRequestAsync(Uri request, string method, string localPath = null, string serverPostAct = null)

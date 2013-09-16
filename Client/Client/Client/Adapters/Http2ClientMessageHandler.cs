@@ -94,6 +94,16 @@ namespace Client.Adapters
 
         protected override void ProcessRequest(Http2Stream stream, Frame frame)
         {
+            //spec 06
+            //A client
+            //MUST treat the absence of the ":status" header field, the presence of
+            //multiple values, or an invalid value as a stream error
+            //(Section 5.4.2) of type PROTOCOL_ERROR [PROTOCOL_ERROR].
+
+            if (stream.Headers.GetValue(":status") == null)
+            {
+                stream.WriteRst(ResetStatusCode.ProtocolError); 
+            }
             //Do nothing. Client may not process requests for now
         }
 

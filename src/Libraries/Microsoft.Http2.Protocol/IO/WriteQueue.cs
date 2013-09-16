@@ -17,10 +17,11 @@ namespace Microsoft.Http2.Protocol.IO
 
         public WriteQueue(DuplexStream stream, ActiveStreams streams, bool isPriorityTurnedOn)
         {
+            //Priorities are turned on for debugging
             IsPriorityTurnedOn = isPriorityTurnedOn;
             _streams = streams;
 
-            if (isPriorityTurnedOn)
+            if (IsPriorityTurnedOn)
             {
                 _messageQueue = new PriorityQueue();
             }

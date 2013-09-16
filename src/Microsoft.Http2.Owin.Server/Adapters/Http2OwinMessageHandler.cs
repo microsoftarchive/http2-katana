@@ -206,12 +206,12 @@ namespace Microsoft.Http2.Owin.Server.Adapters
 
             do
             {
-                bool isLastData = binaryData.Length - i < Constants.MaxDataFrameContentSize;
+                bool isLastData = binaryData.Length - i < Constants.MaxFrameContentSize;
 
                 int chunkSize = stream.WindowSize > 0
-                                    ? MathEx.Min(binaryData.Length - i, Constants.MaxDataFrameContentSize,
+                                    ? MathEx.Min(binaryData.Length - i, Constants.MaxFrameContentSize,
                                                     stream.WindowSize)
-                                    : MathEx.Min(binaryData.Length - i, Constants.MaxDataFrameContentSize);
+                                    : MathEx.Min(binaryData.Length - i, Constants.MaxFrameContentSize);
 
                 var chunk = new byte[chunkSize];
                 Buffer.BlockCopy(binaryData, i, chunk, 0, chunk.Length);

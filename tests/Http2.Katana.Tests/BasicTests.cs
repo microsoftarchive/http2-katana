@@ -201,15 +201,13 @@ namespace Http2.Katana.Tests
             var queue = new PriorityQueue(itemsCollection);
             Assert.Equal(queue.Count, 11);
             var firstItem1 = queue.First();
-            Assert.Equal(((PriorityQueueEntry)firstItem1).Priority, Priority.Pri0);
+            Assert.Equal(((PriorityQueueEntry)firstItem1).Priority, Priority.Pri7);
             var lastItem1 = queue.Last();
-            Assert.Equal(((PriorityQueueEntry)lastItem1).Priority, Priority.Pri7);
+            Assert.Equal(((PriorityQueueEntry)lastItem1).Priority, Priority.Pri0);
             var peekedItem1 = queue.Peek();
             Assert.Equal(((PriorityQueueEntry)peekedItem1).Priority, Priority.Pri7);
             var item1 = queue.Dequeue();
             Assert.Equal(((PriorityQueueEntry)item1).Priority, Priority.Pri7);
-            var peekedItem2 = queue.Peek();
-            Assert.Equal(((PriorityQueueEntry)peekedItem2).Priority, Priority.Pri6);
             var item2 = queue.Dequeue();
             Assert.Equal(((PriorityQueueEntry)item2).Priority, Priority.Pri6);
             var item3 = queue.Dequeue();

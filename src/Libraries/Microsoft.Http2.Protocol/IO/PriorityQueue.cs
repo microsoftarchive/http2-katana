@@ -7,13 +7,19 @@ namespace Microsoft.Http2.Protocol.IO
 {
     internal class PriorityQueue : IQueue
     {
-        private readonly Dictionary<Priority, Queue<IPriorityItem>> _storage;
-        private const byte PossiblePriValues = 8; //0..7
-        private int _highestPri;
-        private int _lowestPri;
+        private List<IPriorityItem> _storage;
         private readonly object _lock = new object();
+        private readonly ListSorter _sorter;
 
-        public int Count { get; private set; }
+        private class ListSorter : IComparer<Priority>
+        {
+            public int Compare(Priority x, Priority y)
+            {
+                return x < y ? 1 : x == y ? 0 : -1;
+            }
+        }
+
+        public int Count { get { return _storage.Count; } }
 
         public bool IsDataAvailable 
         { 
@@ -22,36 +28,14 @@ namespace Microsoft.Http2.Protocol.IO
 
         public PriorityQueue()
         {
-            _storage = new Dictionary<Priority, Queue<IPriorityItem>>(PossiblePriValues);
-            for (int i = 0; i < PossiblePriValues; i++)
-            {
-                _storage[(Priority) i] = new Queue<IPriorityItem>(16);
-            }
-
-            _highestPri = -1;
-            _lowestPri = 1000000;
+            _storage = new List<IPriorityItem>();
+            _sorter = new ListSorter();
         }
 
         public PriorityQueue(IEnumerable<IPriorityItem> initialCollection)
             : this()
         {
             EnqueueRange(initialCollection);
-        }
-
-        private void RecalcPriorities()
-        {
-            _lowestPri = 100000;
-            foreach (var pri in _storage.Keys)
-            {
-                if (_storage[pri].Count != 0)
-                {
-                    if (_lowestPri == 100000)
-                    {
-                        _lowestPri = (int) pri;
-                    }
-                    _highestPri = (int)pri;   
-                }
-            }
         }
 
         public void Enqueue(IQueueItem item)
@@ -62,22 +46,9 @@ namespace Microsoft.Http2.Protocol.IO
                 {
                     throw new ArgumentException("Cant enqueue item into priority queue. Argument should be IPriorityItem");
                 }
-                var pri = (item as IPriorityItem).Priority;
-                if (pri == Priority.None)
-                    pri = Priority.Pri7;
-
-                if ((int) pri > _highestPri)
-                {
-                    _highestPri = (int) pri;
-                }
-                if ((int) pri < _lowestPri)
-                {
-                    _lowestPri = (int) pri;
-                }
-
-                Count++;
-
-                _storage[pri].Enqueue((IPriorityItem)item);
+                var priItem = item as IPriorityItem;
+                _storage.Add(priItem);
+                _storage = _storage.OrderByDescending(priorityItem => priorityItem.Priority).ToList();
             }
         }
 
@@ -97,18 +68,9 @@ namespace Microsoft.Http2.Protocol.IO
                 {
                     return null;
                 }
-
-                var result = _storage[(Priority)_highestPri].Dequeue();
-
-                if (--Count == 0)
-                {
-                    _highestPri = -1;
-                    _lowestPri = 100000;
-                }
-                else
-                {
-                    RecalcPriorities();
-                }
+                var result = _storage[0];
+                _storage.RemoveAt(0);
+                _storage = _storage.OrderByDescending(priorityItem => priorityItem.Priority).ToList();
 
                 return result;
             }
@@ -116,22 +78,17 @@ namespace Microsoft.Http2.Protocol.IO
 
         public IQueueItem Peek()
         {
-            if (_storage.Count == 0)
-            {
-                return null;
-            }
-
-            return _storage[(Priority) _highestPri].Peek();
+            return _storage.FirstOrDefault();
         }
 
         public IQueueItem First()
         {
-            return _storage[(Priority) _lowestPri].First();
+            return _storage.FirstOrDefault();
         }
 
         public IQueueItem Last()
         {
-            return _storage[(Priority)_highestPri].Last();
+            return _storage.LastOrDefault();
         }
     }
 }
