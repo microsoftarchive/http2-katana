@@ -15,6 +15,7 @@ using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using Xunit;
 using Xunit.Extensions;
 
@@ -102,7 +103,7 @@ namespace Http2.Katana.Tests
                     new KeyValuePair<string, string>(":scheme", scheme),
                 };
 
-            adapter.SendRequest(pairs, Priority.None, true);
+            adapter.SendRequest(pairs, Priority.Pri0, true);
         }
 
         [StandardFact]
@@ -425,6 +426,22 @@ namespace Http2.Katana.Tests
             {
                 adapter.Dispose();
             }
+        }
+
+        [LongTaskFact]
+        public void ParallelDownloadSuccefful()
+        {
+            Assert.DoesNotThrow(delegate
+            {
+                const int tasksCount = 4;
+                var tasks = new Task[tasksCount];
+                for (int i = 0; i < tasksCount; ++i)
+                {
+                    tasks[i] = Task.Run(() => StartSessionAndGet10MbDataSuccessful());
+                }
+
+                Task.WhenAll(tasks).Wait();
+            });
         }
 
         public void Dispose()
