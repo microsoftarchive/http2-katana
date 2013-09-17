@@ -114,7 +114,14 @@ namespace Client.Adapters
 
         public void SendRequest(HeadersList pairs, Priority priority, bool isEndStream)
         {
-            _session.SendRequest(pairs, priority, isEndStream);
+            if (_wereFirstSettingsSent)
+            {
+                _session.SendRequest(pairs, priority, isEndStream);
+            }
+            else
+            {
+                OnFirstSettingsSent += (o, args) => _session.SendRequest(pairs, priority, isEndStream);
+            }
         }
 
         public override void Dispose()

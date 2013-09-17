@@ -23,6 +23,9 @@ namespace Microsoft.Http2.Protocol
         protected readonly TransportInformation _transportInfo;
         protected readonly ConnectionEnd _end;
 
+        protected event EventHandler<SettingsSentEventArgs> OnFirstSettingsSent;
+        protected bool _wereFirstSettingsSent;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="Http2MessageHandler"/> class.
         /// </summary>
@@ -37,6 +40,7 @@ namespace Microsoft.Http2.Protocol
             _cancToken = cancel;
             _stream = stream;
             _end = end;
+            _wereFirstSettingsSent = false;
         }
 
         /// <summary>
@@ -100,8 +104,28 @@ namespace Microsoft.Http2.Protocol
             //TODO provide cancellation token and transport info
             _session = new Http2Session(_stream, _end, true, true, _cancToken, initialWindowSize, maxStreams);
             _session.OnFrameReceived += OnFrameReceivedHandler;
+            _session.OnSettingsSent += OnSettingsSentHandler;
+            _session.OnSessionDisposed += OnSessionDisposedHandler;
 
             return Task.Run(async () => await _session.Start(initRequest));
+        }
+
+        private void OnSessionDisposedHandler(object sender, System.EventArgs e)
+        {
+            _session.OnSettingsSent -= OnSettingsSentHandler;
+            _session.OnSessionDisposed -= OnSessionDisposedHandler;
+        }
+
+        private void OnSettingsSentHandler(object sender, SettingsSentEventArgs e)
+        {
+            _wereFirstSettingsSent = true;
+            if (OnFirstSettingsSent != null)
+            {
+                OnFirstSettingsSent(sender, e);
+            }
+
+            _session.OnSettingsSent -= OnSettingsSentHandler;
+            _session.OnSessionDisposed -= OnSessionDisposedHandler;
         }
 
         public virtual void Dispose()
