@@ -1,12 +1,17 @@
+using System.Net;
+using System.Net.Sockets;
 using Client.Adapters;
 using Microsoft.Http1.Protocol;
 using Microsoft.Http2.Owin.Middleware;
 using Microsoft.Http2.Owin.Server;
 using Microsoft.Http2.Protocol;
 using Microsoft.Http2.Protocol.Framing;
+using Microsoft.Http2.Protocol.IO;
 using Microsoft.Http2.Protocol.Tests;
 using Moq;
 using Moq.Protected;
+using Org.Mentalis;
+using Org.Mentalis.Security;
 using Org.Mentalis.Security.Ssl;
 using System;
 using System.Collections.Generic;
@@ -16,6 +21,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Org.Mentalis.Security.Ssl.Shared.Extensions;
 using Xunit;
 using Xunit.Extensions;
 
@@ -30,18 +36,23 @@ namespace Http2.Katana.Tests
     //for client and server.
     public class Http2Setup : IDisposable
     {
-        public HttpSocketServer Server { get; private set; }
+        public HttpSocketServer SecureServer { get; private set; }
+        public HttpSocketServer UnsecureServer { get; private set; }
         public bool UseSecurePort { get; private set; }
         public bool UseHandshake { get; private set; }
 
         public Http2Setup()
         {
-            var appSettings = ConfigurationManager.AppSettings;
+            SecureServer = new HttpSocketServer(new Http2Middleware(TestHelpers.AppFunction).Invoke, GetProperties(true));
+            UnsecureServer = new HttpSocketServer(new Http2Middleware(TestHelpers.AppFunction).Invoke, GetProperties(false));
+        }
 
-            UseSecurePort = appSettings["useSecurePort"] == "true";
+        private Dictionary<string, object> GetProperties(bool useSecurePort)
+        {
+            var appSettings = ConfigurationManager.AppSettings;
             UseHandshake = appSettings["handshakeOptions"] != "no-handshake";
 
-            string address = UseSecurePort ? appSettings["secureAddress"] : appSettings["unsecureAddress"];
+            string address = useSecurePort ? appSettings["secureAddress"] : appSettings["unsecureAddress"];
 
             Uri uri;
             Uri.TryCreate(address, UriKind.Absolute, out uri);
@@ -68,12 +79,13 @@ namespace Http2.Katana.Tests
             properties.Add("use-priorities", usePriorities);
             properties.Add("use-flowControl", useFlowControl);
 
-            Server = new HttpSocketServer(new Http2Middleware(TestHelpers.AppFunction).Invoke, properties);
+            return properties;
         }
 
         public void Dispose()
         {
-            Server.Dispose();
+            SecureServer.Dispose();
+            UnsecureServer.Dispose();
         }
     }
     
@@ -252,18 +264,45 @@ namespace Http2.Katana.Tests
         {
             var requestStr = ConfigurationManager.AppSettings["smallTestFile"];
             Uri uri;
-            Uri.TryCreate(TestHelpers.GetAddress() + requestStr, UriKind.Absolute, out uri);
+            Uri.TryCreate(ConfigurationManager.AppSettings["unsecureAddress"] + requestStr, UriKind.Absolute, out uri);
 
             bool finalFrameReceived = false;
 
             var finalFrameReceivedRaisedEvent = new ManualResetEvent(false);
 
-            var duplexStream = TestHelpers.GetHandshakedDuplexStream(requestStr, false);
+            var extensions = new[] { ExtensionType.Renegotiation, ExtensionType.ALPN };
+            var useHandshake = ConfigurationManager.AppSettings["handshakeOptions"] != "no-handshake";
+
+            var protocols = new List<string> { Protocols.Http1 };
+
+            var options =  new SecurityOptions(SecureProtocol.None, extensions, protocols,
+                                                    ConnectionEnd.Client)
+            {
+                VerificationType = CredentialVerification.None,
+                Certificate = Org.Mentalis.Security.Certificates.Certificate.CreateFromCerFile(@"certificate.pfx"),
+                Flags = SecurityFlags.Default,
+                AllowedAlgorithms = SslAlgorithms.RSA_AES_256_SHA | SslAlgorithms.NULL_COMPRESSION
+            };
+
+            var sessionSocket = new SecureSocket(AddressFamily.InterNetwork, SocketType.Stream,
+                                                ProtocolType.Tcp, options);
+
+            using (var monitor = new ALPNExtensionMonitor())
+            {
+                sessionSocket.Connect(new DnsEndPoint(uri.Host, uri.Port), monitor);
+
+                if (useHandshake)
+                {
+                    sessionSocket.MakeSecureHandshake(options);
+                }
+            }
 
             var responseBody = new StringBuilder();
 
+            var duplexStream = new DuplexStream(sessionSocket, true);
+
             var mockedAdapter = new Mock<Http2ClientMessageHandler>(duplexStream, ConnectionEnd.Client, TestHelpers.GetTransportInformation(),
-               new CancellationToken()) { CallBase = true };
+                new CancellationToken()) {CallBase = true};
 
             var adapter = mockedAdapter.Object;
 
