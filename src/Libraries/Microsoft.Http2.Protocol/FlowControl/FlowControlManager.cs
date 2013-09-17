@@ -56,7 +56,7 @@ namespace Microsoft.Http2.Protocol.FlowControl
         {
             get
             {
-                return _options % 2 != 0;
+                return _options % 2 == 0;
             }
         }
 
