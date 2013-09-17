@@ -402,8 +402,15 @@ namespace Microsoft.Http2.Protocol
                             return;
                         }
 
-                        stream = GetStream(headersFrame.StreamId) ?? CreateStream(sequence.Headers, frame.StreamId);
-
+                        stream = GetStream(headersFrame.StreamId);
+                        if (stream == null)
+                        {
+                            stream = CreateStream(sequence.Headers, frame.StreamId);
+                        }
+                        else
+                        {
+                            stream.Headers.AddRange(sequence.Headers);
+                        }
                         break;
                     case FrameType.Continuation:
 
@@ -447,7 +454,15 @@ namespace Microsoft.Http2.Protocol
                             return;
                         }
 
-                        stream = GetStream(contFrame.StreamId) ?? CreateStream(sequence.Headers, frame.StreamId);
+                        stream = GetStream(contFrame.StreamId);
+                        if (stream == null)
+                        {
+                            stream = CreateStream(sequence.Headers, frame.StreamId);
+                        }
+                        else
+                        {
+                            stream.Headers.AddRange(sequence.Headers);
+                        }
                         break;
                     case FrameType.Priority:
                         var priorityFrame = (PriorityFrame)frame;
@@ -486,7 +501,7 @@ namespace Microsoft.Http2.Protocol
 
                         if (stream != null)
                         {
-                            Http2Logger.LogDebug("RST frame with code {0} for id ", resetFrame.StatusCode, resetFrame.StreamId);
+                            Http2Logger.LogDebug("RST frame with code {0} for id {1}", resetFrame.StatusCode, resetFrame.StreamId);
                             stream.Dispose(resetFrame.StatusCode);
                         }
                         //Do not signal an error because (06)

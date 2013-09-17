@@ -350,7 +350,7 @@ namespace Microsoft.Http2.Protocol
 
         public void Dispose()
         {
-            Dispose(ResetStatusCode.None);
+            Dispose(ResetStatusCode.Cancel);
         }
 
         public void Dispose(ResetStatusCode code)
@@ -365,7 +365,7 @@ namespace Microsoft.Http2.Protocol
             if (OnClose != null)
                 OnClose(this, new StreamClosedEventArgs(_id));
 
-            if (code != ResetStatusCode.None)
+            if (code == ResetStatusCode.Cancel)
                 WriteRst(code);
 
             Http2Logger.LogDebug("Stream closed " + _id);
