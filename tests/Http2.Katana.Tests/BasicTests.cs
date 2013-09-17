@@ -80,8 +80,8 @@ namespace Http2.Katana.Tests
         {
             var clientHeaders = new HeadersList
                 {
+                    new KeyValuePair<string, string>(":path", "http"),
                     new KeyValuePair<string, string>(":method", "get"),
-                    new KeyValuePair<string, string>(":path", "/test.txt"),
                     new KeyValuePair<string, string>(":version", Protocols.Http2),
                     new KeyValuePair<string, string>(":host", "localhost"),
                     new KeyValuePair<string, string>(":scheme", "http"),

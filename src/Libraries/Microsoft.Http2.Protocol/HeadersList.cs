@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using System.Linq;
 
 namespace Microsoft.Http2.Protocol
 {
@@ -11,7 +12,7 @@ namespace Microsoft.Http2.Protocol
     public class HeadersList : IList<KeyValuePair<string, string>>
     {
         private readonly List<KeyValuePair<string, string>> _collection;
-
+        private readonly object _modificationLock = new object();
         /// <summary>
         /// Gets the size of the stored headers in bytes.
         /// </summary>
@@ -60,9 +61,12 @@ namespace Microsoft.Http2.Protocol
 
         public void AddRange(IEnumerable<KeyValuePair<string, string>> headers)
         {
-            foreach (var header in headers)
+            lock (_modificationLock)
             {
-                Add(header);
+                foreach (var header in headers)
+                {
+                    Add(header);
+                }
             }
         }
 
@@ -78,14 +82,20 @@ namespace Microsoft.Http2.Protocol
 
         public void Add(KeyValuePair<string, string> header)
         {
-            _collection.Add(header);
-            StoredHeadersSize += header.Key.Length + header.Value.Length + sizeof(Int32);
+            lock (_modificationLock)
+            {
+                _collection.Add(header);
+                StoredHeadersSize += header.Key.Length + header.Value.Length + sizeof (Int32);
+            }
         }
 
         public void Clear()
         {
-            _collection.Clear();
-            StoredHeadersSize = 0;
+            lock (_modificationLock)
+            {
+                _collection.Clear();
+                StoredHeadersSize = 0;
+            }
         }
 
         public bool Contains(KeyValuePair<string, string> header)
@@ -101,8 +111,11 @@ namespace Microsoft.Http2.Protocol
 
         public bool Remove(KeyValuePair<string, string> header)
         {
-            StoredHeadersSize -= header.Key.Length + header.Value.Length + sizeof(Int32);
-            return _collection.Remove(header);
+            lock (_modificationLock)
+            {
+                StoredHeadersSize -= header.Key.Length + header.Value.Length + sizeof (Int32);
+                return _collection.Remove(header);
+            }
         }
 
         public int Count
@@ -127,19 +140,36 @@ namespace Microsoft.Http2.Protocol
 
         public void Insert(int index, KeyValuePair<string, string> header)
         {
-            Contract.Assert(index >= 0 && index < Count);
-            _collection.Insert(index, header);
+            lock (_modificationLock)
+            {
+                Contract.Assert(index >= 0 && index < Count);
+                StoredHeadersSize += header.Key.Length + header.Value.Length + sizeof (Int32);
+                _collection.Insert(index, header);
+            }
         }
 
         public void RemoveAt(int index)
         {
-            Contract.Assert(index >= 0 && index < Count);
-            _collection.RemoveAt(index);
+            lock (_modificationLock)
+            {
+                Contract.Assert(index >= 0 && index < Count);
+                var header = _collection[index];
+                _collection.RemoveAt(index);
+                StoredHeadersSize -= header.Key.Length + header.Value.Length + sizeof (Int32);
+            }
         }
 
         public int RemoveAll(Predicate<KeyValuePair<string,string>> predicate)
         {
-            return _collection.RemoveAll(predicate);
+            lock (_modificationLock)
+            {
+
+                var predMatch = _collection.FindAll(predicate);
+                int toDeleteSize = predMatch.Sum(header => header.Key.Length + header.Value.Length + sizeof (Int32));
+                StoredHeadersSize -= toDeleteSize;
+
+                return _collection.RemoveAll(predicate);
+            }
         }
 
         public KeyValuePair<string, string> this[int index]
@@ -151,8 +181,11 @@ namespace Microsoft.Http2.Protocol
             }
             set
             {
-                Contract.Assert(index >= 0 && index < Count);
-                _collection[index] = value;
+                lock (_modificationLock)
+                {
+                    Contract.Assert(index >= 0 && index < Count);
+                    _collection[index] = value;
+                }
             }
         }
     }

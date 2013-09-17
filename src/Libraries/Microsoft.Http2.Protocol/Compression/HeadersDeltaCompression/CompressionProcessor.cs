@@ -15,7 +15,6 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
     /// </summary>
     internal class CompressionProcessor : ICompressionProcessor
     {
-        private const int HeadersLimit = 200;
         private const int MaxHeaderByteSize = 4096;
 
         private readonly HeadersList _localHeaderTable;
@@ -67,25 +66,40 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
         {
             int headerLen = headerName.Length + headerValue.Length + sizeof(Int32);
 
-            //spec 06:
+            //spec 04: 3.2.3.  Header Table Management
+            //   The header table can be modified by either adding a new entry to it
+            //or by replacing an existing one.  Before doing such a modification,
+            //it has to be ensured that the header table size will stay lower than
+            //or equal to the SETTINGS_MAX_BUFFER_SIZE limit (see Section 5).  To
+            //achieve this, repeatedly, the first entry of the header table is
+            //removed, until enough space is available for the modification.
+               
+            //A consequence of removing one or more entries at the beginning of the
+            //header table is that the remaining entries are renumbered.  The first
+            //entry of the header table is always associated to the index 0.
+
+            //When the modification of the header table is the replacement of an
+            //existing entry, the replaced entry is the one indicated in the
+            //literal representation before any entry is removed from the header
+            //table.  If the entry to be replaced is removed from the header table
+            //when performing the size adjustment, the replacement entry is
+            //inserted at the beginning of the header table.
+
             //The addition of a new entry with a size greater than the
             //SETTINGS_MAX_BUFFER_SIZE limit causes all the entries from the header
             //table to be dropped and the new entry not to be added to the header
             //table.  The replacement of an existing entry with a new entry with a
             //size greater than the SETTINGS_MAX_BUFFER_SIZE has the same
             //consequences.
+
+
+
             switch (headerType)
             {
                 case IndexationType.Incremental:
-                    if (useHeadersTable.Count > HeadersLimit - 1)
+                    while (useHeadersTable.StoredHeadersSize + headerLen > MaxHeaderByteSize && useHeadersTable.Count > 0)
                     {
-                        useHeadersTable.RemoveAt(0);
-                    }
-
-                    if (useHeadersTable.StoredHeadersSize + headerLen > MaxHeaderByteSize)
-                    {
-                        useHeadersTable.Clear();
-                        return;
+                            useHeadersTable.RemoveAt(0);
                     }
                     useHeadersTable.Add(new KeyValuePair<string, string>(headerName, headerValue));
                     break;
@@ -93,28 +107,35 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
                     if (index != -1)
                     {
                         var header = useHeadersTable[index];
-                        int substHeaderLen = header.Key.Length + header.Value.Length + sizeof (Int32);
+                        int substHeaderLen = header.Key.Length + header.Value.Length + sizeof(Int32);
+                        int deletedHeadersCounter = 0;
 
-                        if (useHeadersTable.StoredHeadersSize + headerLen - substHeaderLen > MaxHeaderByteSize)
+                        while (useHeadersTable.StoredHeadersSize + headerLen - substHeaderLen > MaxHeaderByteSize)
                         {
-                            useHeadersTable.Clear();
-                            return;
+                            if (useHeadersTable.Count > 0)
+                            {
+                                useHeadersTable.RemoveAt(0);
+                                deletedHeadersCounter++;
+                            }
                         }
-                        useHeadersTable[index] = new KeyValuePair<string, string>(headerName, headerValue);
+
+                        if (index >= deletedHeadersCounter)
+                        {
+                            useHeadersTable[index - deletedHeadersCounter] = 
+                                            new KeyValuePair<string, string>(headerName, headerValue);
+                        }
+                        else
+                        {
+                            useHeadersTable.Insert(0, new KeyValuePair<string, string>(headerName, headerValue));
+                        }
                     }
+                    //If header wasn't found then add it to the table
                     else
                     {
-                        if (useHeadersTable.Count > HeadersLimit - 1)
+                        while (useHeadersTable.StoredHeadersSize + headerLen > MaxHeaderByteSize && useHeadersTable.Count > 0)
                         {
                             useHeadersTable.RemoveAt(0);
                         }
-
-                        if (useHeadersTable.StoredHeadersSize + headerLen > MaxHeaderByteSize)
-                        {
-                            useHeadersTable.Clear();
-                            return;
-                        }
-                        //If header wasn't found then add it to the table
                         useHeadersTable.Add(new KeyValuePair<string, string>(headerName, headerValue));
                     }
                     break;
@@ -149,7 +170,14 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
 
         private void CompressNonIndexed(string headerName, string headerValue, IndexationType headerType, byte prefix)
         {
-            int index = _remoteHeaderTable.FindIndex(kv => kv.Key == headerName);
+            //spec 04 
+            //A header name and an entry name match if they are equal
+            //using a character-based, _case insensitive_ comparison (the case
+            //insensitive comparison is used because HTTP header names are defined
+            //in a case insensitive way).  A header value and an entry value match
+            //if they are equal using a character-based, _case sensitive_
+            //comparison.
+            int index = _remoteHeaderTable.FindIndex(kv => kv.Key.Equals(headerName, StringComparison.OrdinalIgnoreCase));
 
             byte nameLenBinary = 0; // headers cant be more then 255 characters length
             byte[] nameBinary = new byte[0];
@@ -203,7 +231,15 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
 
         private void CompressIndexed(KeyValuePair<string, string> header)
         {
-            int index = _remoteHeaderTable.IndexOf(header);
+            //spec 04 
+            //A header name and an entry name match if they are equal
+            //using a character-based, _case insensitive_ comparison (the case
+            //insensitive comparison is used because HTTP header names are defined
+            //in a case insensitive way).  A header value and an entry value match
+            //if they are equal using a character-based, _case sensitive_
+            //comparison.
+            int index = _remoteHeaderTable.FindIndex(kv => kv.Key.Equals(header.Key, StringComparison.OrdinalIgnoreCase)
+                                                           && kv.Value.Equals(header.Value, StringComparison.Ordinal));
             const byte prefix = 7;
             var bytes = index.ToUVarInt(prefix);
 
