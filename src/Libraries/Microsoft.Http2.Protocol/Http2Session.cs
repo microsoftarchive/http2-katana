@@ -522,7 +522,6 @@ namespace Microsoft.Http2.Protocol
                             {
                                 stream.WriteWindowUpdate(200000);
                             }
-                            stream.EnqueueDataFrame(dataFrame);
                         }
                         else
                         {

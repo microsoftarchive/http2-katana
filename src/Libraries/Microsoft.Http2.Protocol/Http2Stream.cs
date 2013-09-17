@@ -65,7 +65,6 @@ namespace Microsoft.Http2.Protocol
 
             _unshippedFrames = new Queue<DataFrame>(16);
             Headers = new HeadersList();
-            ReceivedDataFrames = new Queue<DataFrame>(16);
 
             SentDataAmount = 0;
             ReceivedDataAmount = 0;
@@ -79,9 +78,6 @@ namespace Microsoft.Http2.Protocol
         #endregion
 
         #region Properties
-
-        public Queue<DataFrame> ReceivedDataFrames; 
-
         public int Id
         {
             get { return _id; }
@@ -334,16 +330,6 @@ namespace Microsoft.Http2.Protocol
             {
                 OnFrameSent(this, new FrameSentArgs(frame));
             }
-        }
-
-        public void EnqueueDataFrame(DataFrame frame)
-        {
-            ReceivedDataFrames.Enqueue(frame);
-        }
-
-        public DataFrame DequeueDataFrame()
-        {
-            return ReceivedDataFrames.Dequeue();
         }
 
         #endregion

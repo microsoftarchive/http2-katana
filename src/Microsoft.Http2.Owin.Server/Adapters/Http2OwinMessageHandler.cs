@@ -106,8 +106,9 @@ namespace Microsoft.Http2.Owin.Server.Adapters
         /// Overrides data processing logic.
         /// </summary>
         /// <param name="stream">The stream.</param>
+        /// <param name="frame"></param>
         /// <returns></returns>
-        protected override void ProcessIncomingData(Http2Stream stream)
+        protected override void ProcessIncomingData(Http2Stream stream, Frame frame)
         {
             //Do nothing... handling data is not supported by the server yet
         }

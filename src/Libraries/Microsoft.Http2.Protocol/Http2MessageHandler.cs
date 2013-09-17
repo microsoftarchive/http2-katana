@@ -59,7 +59,7 @@ namespace Microsoft.Http2.Protocol
                     ProcessRequest(stream, frame);
                     break;
                 case FrameType.Data:
-                    ProcessIncomingData(stream);
+                    ProcessIncomingData(stream, frame);
                     break;
             }
         }
@@ -77,7 +77,7 @@ namespace Microsoft.Http2.Protocol
         /// </summary>
         /// <param name="stream">The stream.</param>
         /// <returns></returns>
-        protected abstract void ProcessIncomingData(Http2Stream stream);
+        protected abstract void ProcessIncomingData(Http2Stream stream, Frame frame);
 
         /// <summary>
         /// Starts the session.

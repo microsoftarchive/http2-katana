@@ -79,17 +79,18 @@ namespace Client.Adapters
             }
         }
 
-        protected override void ProcessIncomingData(Http2Stream stream)
+        protected override void ProcessIncomingData(Http2Stream stream, Frame frame)
         {
-            if (stream.ReceivedDataFrames.Count > 0)
-            {
-                var frame = stream.DequeueDataFrame();
+            //wont process incoming data for now.
+            if (!(frame is DataFrame))
+                return;
 
-                SaveDataFrame(stream, frame);
+            var dataFrame = frame as DataFrame;
 
-                if (frame.IsEndStream)
-                    stream.EndStreamReceived = true;
-            }
+            SaveDataFrame(stream, dataFrame);
+
+            if (dataFrame.IsEndStream)
+                stream.EndStreamReceived = true;
         }
 
         protected override void ProcessRequest(Http2Stream stream, Frame frame)
