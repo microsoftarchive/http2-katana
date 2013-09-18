@@ -216,16 +216,16 @@ namespace Http2.Katana.Tests
 
             var adapter = mockedAdapter.Object;
 
-            mockedAdapter.Protected().Setup("ProcessIncomingData", ItExpr.IsAny<Http2Stream>())
-                .Callback<Http2Stream>(stream =>
+            mockedAdapter.Protected().Setup("ProcessIncomingData", ItExpr.IsAny<Http2Stream>(), ItExpr.IsAny<Frame>())
+                .Callback<Http2Stream, Frame>((stream, frame) =>
                 {
                     bool isFin;
                     do
                     {
-                        var frame = stream.DequeueDataFrame();
+                        var dataFrame = frame as DataFrame;
                         response.Append(Encoding.UTF8.GetString(
-                            frame.Payload.Array.Skip(frame.Payload.Offset).Take(frame.Payload.Count).ToArray()));
-                        isFin = frame.IsEndStream;
+                            dataFrame.Payload.Array.Skip(dataFrame.Payload.Offset).Take(dataFrame.Payload.Count).ToArray()));
+                        isFin = dataFrame.IsEndStream;
                     } while (!isFin && stream.ReceivedDataAmount > 0);
                     if (isFin)
                     {
@@ -306,16 +306,16 @@ namespace Http2.Katana.Tests
 
             var adapter = mockedAdapter.Object;
 
-            mockedAdapter.Protected().Setup("ProcessIncomingData", ItExpr.IsAny<Http2Stream>())
-                .Callback<Http2Stream>(stream =>
+            mockedAdapter.Protected().Setup("ProcessIncomingData", ItExpr.IsAny<Http2Stream>(), ItExpr.IsAny<Frame>())
+                .Callback<Http2Stream, Frame>((stream, frame) =>
                 {
                     bool isFin;
                     do
                     {
-                        var frame = stream.DequeueDataFrame();
+                        var dataFrame = frame as DataFrame;
                         responseBody.Append(Encoding.UTF8.GetString(
-                            frame.Payload.Array.Skip(frame.Payload.Offset).Take(frame.Payload.Count).ToArray()));
-                        isFin = frame.IsEndStream;
+                            dataFrame.Payload.Array.Skip(dataFrame.Payload.Offset).Take(dataFrame.Payload.Count).ToArray()));
+                        isFin = dataFrame.IsEndStream;
                     } while (!isFin && stream.ReceivedDataAmount > 0);
                     if (isFin)
                     {
@@ -381,14 +381,14 @@ namespace Http2.Katana.Tests
 
             var adapter = mockedAdapter.Object;
 
-            mockedAdapter.Protected().Setup("ProcessIncomingData", ItExpr.IsAny<Http2Stream>())
-                .Callback<Http2Stream>(stream =>
+            mockedAdapter.Protected().Setup("ProcessIncomingData", ItExpr.IsAny<Http2Stream>(), ItExpr.IsAny<Frame>())
+                .Callback<Http2Stream, Frame>((stream, frame) =>
                 {
                     bool isFin;
                     do
                     {
-                        var frame = stream.DequeueDataFrame();
-                        isFin = frame.IsEndStream;
+                        var dataFrame = frame as DataFrame;
+                        isFin = dataFrame.IsEndStream;
                     } while (!isFin && stream.ReceivedDataAmount > 0);
                     if (isFin)
                     {
