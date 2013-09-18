@@ -81,7 +81,7 @@ namespace Http2.TestClient.Adapters
 
         protected override void ProcessIncomingData(Http2Stream stream, Frame frame)
         {
-            //wont process incoming data for now.
+            //wont process incoming non data frames for now.
             if (!(frame is DataFrame))
                 return;
 

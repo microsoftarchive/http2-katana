@@ -73,6 +73,7 @@ namespace Microsoft.Http2.Protocol
             WindowSize = _flowCrtlManager.StreamsInitialWindowSize;
 
             _flowCrtlManager.NewStreamOpenedHandler(this);
+            OnFrameSent += (sender, args) => FramesSent++;
         }
 
         #endregion
@@ -82,6 +83,9 @@ namespace Microsoft.Http2.Protocol
         {
             get { return _id; }
         }
+
+        public int FramesSent { get; set; }
+        public int FramesReceived { get; set; }
 
         public bool EndStreamSent
         {
@@ -233,11 +237,13 @@ namespace Microsoft.Http2.Protocol
 
             var dataFrame = new DataFrame(_id, new ArraySegment<byte>(data), isEndStream);
 
-            /*if (isEndStream && _unshippedFrames.Count != 0)
+            //We cant let lesser frame that were passed through flow control window
+            //be sent before greater frames that were not passed through flow control window
+            if (_unshippedFrames.Count != 0)
             {
                 _unshippedFrames.Enqueue(dataFrame);
                 return;
-            }*/
+            }
 
             if (!IsFlowControlBlocked)
             {
@@ -346,7 +352,11 @@ namespace Microsoft.Http2.Protocol
                 return;
             }
 
+            OnFrameSent = null;
+
             Http2Logger.LogDebug("Total outgoing data frames volume " + SentDataAmount);
+            Http2Logger.LogDebug("Total frames sent: {0}", FramesSent);
+            Http2Logger.LogDebug("Total frames received: {0}", FramesReceived);
 
             if (OnClose != null)
                 OnClose(this, new StreamClosedEventArgs(_id));
@@ -355,7 +365,6 @@ namespace Microsoft.Http2.Protocol
                 WriteRst(code);
 
             Http2Logger.LogDebug("Stream closed " + _id);
-
             OnClose = null;
             _flowCrtlManager.StreamClosedHandler(this);
             Disposed = true;

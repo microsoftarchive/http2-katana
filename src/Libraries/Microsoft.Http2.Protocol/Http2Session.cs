@@ -601,6 +601,7 @@ namespace Microsoft.Http2.Protocol
                 if (stream != null && OnFrameReceived != null)
                 {
                     OnFrameReceived(this, new FrameReceivedEventArgs(stream, frame));
+                    stream.FramesReceived++;
                 }
             }
 
