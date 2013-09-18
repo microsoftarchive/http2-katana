@@ -1,4 +1,4 @@
-﻿namespace Client.Commands
+﻿namespace Http2.TestClient.Commands
 {
     internal abstract class Command
     {

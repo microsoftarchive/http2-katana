@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Client.Commands
+namespace Http2.TestClient.Commands
 {
     internal interface IUriCommand
     {

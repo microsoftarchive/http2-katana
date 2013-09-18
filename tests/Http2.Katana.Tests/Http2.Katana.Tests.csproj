@@ -74,12 +74,6 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="..\..\Client\Client\Client\Adapters\Http11ClientMessageHandler.cs">
-      <Link>Sources\Client\Adapters\Http11ClientMessageHandler.cs</Link>
-    </Compile>
-    <Compile Include="..\..\Client\Client\Client\Adapters\Http2ClientMessageHandler.cs">
-      <Link>Sources\Client\Adapters\Http2ClientMessageHandler.cs</Link>
-    </Compile>
     <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Framing\ContinuationFrame.cs">
       <Link>Sources\Libraries\Microsoft.Http2.Protocol\Framing\ContinuationFrame.cs</Link>
     </Compile>
@@ -100,6 +94,9 @@
     </Compile>
     <Compile Include="..\..\src\Microsoft.Http2.Owin.Server\Adapters\Http2OwinMessageHandler.cs">
       <Link>Sources\Microsoft.Http2.Owin.Server\Adapters\Http2OwinMessageHandler.cs</Link>
+    </Compile>
+    <Compile Include="..\Http2.TestClient\Adapters\Http2ClientMessageHandler.cs">
+      <Link>Sources\Client\Adapters\Http2ClientMessageHandler.cs</Link>
     </Compile>
     <Compile Include="BasicTests.cs" />
     <Compile Include="HandshakeTests.cs" />

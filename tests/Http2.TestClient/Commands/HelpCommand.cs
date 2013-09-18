@@ -1,7 +1,7 @@
-﻿using System;
-using Client.CommandParser;
+﻿using Http2.TestClient.CommandParser;
+using System;
 
-namespace Client.Commands
+namespace Http2.TestClient.Commands
 {
     internal sealed class HelpCommand : Command
     {

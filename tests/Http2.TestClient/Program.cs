@@ -32,16 +32,17 @@
 //
 // </copyright>
 //-----------------------------------------------------------------------
+
 using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using Client.CommandParser;
-using Client.Commands;
+using Http2.TestClient.CommandParser;
+using Http2.TestClient.Commands;
+using Microsoft.Http2.Protocol.Utils;
 using Org.Mentalis.Security.Ssl;
-using SharedProtocol.Utils;
 
-namespace Client
+namespace Http2.TestClient
 {
     /// <summary>
     /// Main client class
@@ -132,14 +133,18 @@ namespace Client
                                 break;
                             }
 
-                            Task.Run(() => sessionHandler.StartConnection());
-
-                            using (var waitForConnectionStart = new ManualResetEvent(false))
+                            if (!sessionHandler.WasHttp1Used)
                             {
-                                waitForConnectionStart.WaitOne(200);
+                                Task.Run(() => sessionHandler.StartConnection());
+
+                                using (var waitForConnectionStart = new ManualResetEvent(false))
+                                {
+                                    waitForConnectionStart.WaitOne(500);
+                                }
+
+                                if (sessionHandler.Options.Protocol != SecureProtocol.None)
+                                    sessionHandler.SendRequestAsync(uriCmd.Uri, method, localPath, serverPostAct);
                             }
-                            if (sessionHandler.Options.Protocol != SecureProtocol.None)
-                                sessionHandler.SendRequestAsync(uriCmd.Uri, method, localPath, serverPostAct);
                             break;
                         case CommandType.Help:
                             ((HelpCommand)cmd).ShowHelp.Invoke();
@@ -156,11 +161,13 @@ namespace Client
                             }
                             break;
                         case CommandType.Exit:
-                            foreach (var sessionUri in _sessions.Keys)
+
+                            var sessionsDictCopy = new Dictionary<string, Http2SessionHandler>(_sessions);
+                            foreach (var sessionUri in sessionsDictCopy.Keys)
                             {
-                                _sessions[sessionUri].Dispose(false);
+                                sessionsDictCopy[sessionUri].Dispose(false);
                             }
-                            _sessions.Clear();
+                            sessionsDictCopy.Clear();
                             return;
                     }
                 }

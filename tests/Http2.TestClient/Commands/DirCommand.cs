@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Configuration;
 
-namespace Client.Commands
+namespace Http2.TestClient.Commands
 {
     internal sealed class DirCommand : Command, IUriCommand
     {

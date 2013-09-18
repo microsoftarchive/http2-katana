@@ -1,4 +1,4 @@
-﻿namespace Client
+﻿namespace Http2.TestClient
 {
     internal enum CommandType : byte
     {

@@ -8,8 +8,8 @@
     <ProjectGuid>{139D5EE0-BFFF-4830-8517-1EEF4E05755F}</ProjectGuid>
     <OutputType>Exe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>Client</RootNamespace>
-    <AssemblyName>Client</AssemblyName>
+    <RootNamespace>Http2.TestClient</RootNamespace>
+    <AssemblyName>Http2.TestClient</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <TargetFrameworkProfile>
     </TargetFrameworkProfile>
@@ -45,16 +45,6 @@
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Microsoft.Owin">
-      <HintPath>..\..\packages\Microsoft.Owin.2.0.0-rc1\lib\net45\Microsoft.Owin.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.Owin.Host.HttpListener">
-      <HintPath>..\..\packages\Microsoft.Owin.Host.HttpListener.2.0.0-rc1\lib\net45\Microsoft.Owin.Host.HttpListener.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Microsoft.Owin.Hosting">
-      <HintPath>..\..\packages\Microsoft.Owin.Hosting.2.0.0-rc1\lib\net45\Microsoft.Owin.Hosting.dll</HintPath>
-    </Reference>
     <Reference Include="System" />
     <Reference Include="System.configuration" />
     <Reference Include="System.Core" />
@@ -82,6 +72,14 @@
     <Compile Include="Commands\PutCommand.cs" />
     <Compile Include="Commands\UnknownCommand.cs" />
     <Compile Include="GlobalSuppressions.cs" />
+    <Compile Include="Handshake\HandshakeFailureReason.cs" />
+    <Compile Include="Handshake\HandshakeManager.cs" />
+    <Compile Include="Handshake\HandshakeResponse.cs" />
+    <Compile Include="Handshake\HandshakeResult.cs" />
+    <Compile Include="Handshake\Http2HandshakeFailed.cs" />
+    <Compile Include="Handshake\UpgradeHandshaker.cs" />
+    <Compile Include="Adapters\Http11ClientMessageHandler.cs" />
+    <Compile Include="Adapters\Http2ClientMessageHandler.cs" />
     <Compile Include="Http2SessionHandler.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -103,8 +101,8 @@
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>copy /y "$(TargetPath)" "$(SolutionDir)Drop\$(TargetFileName)"
-copy /y "$(ProjectDir)\certificate.pfx" "$(SolutionDir)Drop\certificate.pfx"
-copy /y "$(ProjectDir)\certificate.pfx" "$(TargetDir)\certificate.pfx"
-copy /y "$(TargetDir)\Client.exe.config" "$(SolutionDir)Drop\Client.exe.config"</PostBuildEvent>
+copy /y "$(SolutionDir)res\certificate.pfx" "$(TargetDir)certificate.pfx"
+copy /y "$(TargetDir)Http2.TestClient.exe.config" "$(SolutionDir)Drop\Http2.TestClient.exe.config"</PostBuildEvent>
   </PropertyGroup>
+  <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
 </Project>

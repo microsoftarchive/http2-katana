@@ -2,7 +2,7 @@
 using System.Configuration;
 using System.IO;
 
-namespace Client.Commands
+namespace Http2.TestClient.Commands
 {
     internal sealed class PutCommand : Command, IUriCommand
     {

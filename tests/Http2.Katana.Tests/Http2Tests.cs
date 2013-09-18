@@ -1,6 +1,6 @@
 using System.Net;
 using System.Net.Sockets;
-using Client.Adapters;
+using Http2.TestClient.Adapters;
 using Microsoft.Http1.Protocol;
 using Microsoft.Http2.Owin.Middleware;
 using Microsoft.Http2.Owin.Server;

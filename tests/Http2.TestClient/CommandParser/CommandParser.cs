@@ -1,7 +1,7 @@
 ﻿using System;
-using Client.Commands;
+using Http2.TestClient.Commands;
 
-namespace Client.CommandParser
+namespace Http2.TestClient.CommandParser
 {
     internal static class CommandParser
     {

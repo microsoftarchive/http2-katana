@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Client.CommandParser
+namespace Http2.TestClient.CommandParser
 {
     internal static class HelpDisplayer
     {
