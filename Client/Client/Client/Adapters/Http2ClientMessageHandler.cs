@@ -93,6 +93,11 @@ namespace Client.Adapters
                 stream.EndStreamReceived = true;
         }
 
+        protected override void OnSessionDisposedHandler(object sender, EventArgs e)
+        {
+            Dispose();
+        }
+
         protected override void ProcessRequest(Http2Stream stream, Frame frame)
         {
             //spec 06

@@ -113,6 +113,11 @@ namespace Microsoft.Http2.Owin.Server.Adapters
             //Do nothing... handling data is not supported by the server yet
         }
 
+        protected override void OnSessionDisposedHandler(object sender, EventArgs e)
+        {
+            Dispose();
+        }
+
         /// <summary>
         /// Ends the response in case of error.
         /// </summary>

@@ -89,7 +89,6 @@ namespace Microsoft.Http2.Protocol
         {
             int initialWindowSize = 200000;
             int maxStreams = 100;
-            string initialPath = String.Empty;
 
             if (initRequest != null && initRequest.ContainsKey(":initial_window_size"))
             {
@@ -110,22 +109,18 @@ namespace Microsoft.Http2.Protocol
             return Task.Run(async () => await _session.Start(initRequest));
         }
 
-        private void OnSessionDisposedHandler(object sender, System.EventArgs e)
-        {
-            _session.OnSettingsSent -= OnSettingsSentHandler;
-            _session.OnSessionDisposed -= OnSessionDisposedHandler;
-        }
+        protected abstract void OnSessionDisposedHandler(object sender, System.EventArgs e);
 
         private void OnSettingsSentHandler(object sender, SettingsSentEventArgs e)
         {
             _wereFirstSettingsSent = true;
+
             if (OnFirstSettingsSent != null)
             {
                 OnFirstSettingsSent(sender, e);
             }
 
             _session.OnSettingsSent -= OnSettingsSentHandler;
-            _session.OnSessionDisposed -= OnSessionDisposedHandler;
         }
 
         public virtual void Dispose()
@@ -137,6 +132,8 @@ namespace Microsoft.Http2.Protocol
             {
                 _session.Dispose();
             }
+
+            OnFirstSettingsSent = null;
 
             _isDisposed = true;
         }

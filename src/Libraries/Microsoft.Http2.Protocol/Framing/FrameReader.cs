@@ -23,7 +23,17 @@ namespace Microsoft.Http2.Protocol.Framing
                 return null;
             }
 
-            var wholeFrame = GetFrameType(preamble);
+            Frame wholeFrame;
+            try
+            {
+                wholeFrame = GetFrameType(preamble);
+            }
+            //Item 4.1 in 06 spec: Implementations MUST ignore frames of unsupported or unrecognized types
+            catch (NotImplementedException)
+            {
+                return preamble;
+            }
+            
             if (!TryFill(wholeFrame.Buffer, Constants.FramePreambleSize, wholeFrame.Buffer.Length - Constants.FramePreambleSize))
             {
                 return null;
