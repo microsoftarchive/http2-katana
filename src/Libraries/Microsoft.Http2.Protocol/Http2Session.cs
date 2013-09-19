@@ -157,15 +157,13 @@ namespace Microsoft.Http2.Protocol
         {
             var sessionHeaderBuffer = new byte[ClientSessionHeader.Length];
 
-            if(!incomingClient.WaitForDataAvailable(60000))
+            int read = await incomingClient.ReadAsync(sessionHeaderBuffer, 0, 
+                                            sessionHeaderBuffer.Length,
+                                            _cancelSessionToken);
+            if (read == 0)
             {
-                throw new TimeoutException(String.Format("Session header was not received in timeout {0}", 60000));
+                throw new TimeoutException(String.Format("Session header was not received in timeout {0}", incomingClient.ReadTimeout));
             }
-            
-            await incomingClient.ReadAsync(sessionHeaderBuffer, 0, 
-                                           sessionHeaderBuffer.Length,
-                                           _cancelSessionToken);
-
 
             var receivedHeader = Encoding.UTF8.GetString(sessionHeaderBuffer);
 
@@ -320,7 +318,7 @@ namespace Microsoft.Http2.Protocol
                          Http2Logger.LogError("Handling session was cancelled");
                          Dispose();
                      }
-                     catch (Exception)
+                     catch (Exception ex)
                      {
                          Http2Logger.LogError("Sending frame was cancelled because connection was lost");
                          Dispose();

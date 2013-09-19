@@ -69,7 +69,7 @@ namespace Microsoft.Http2.Protocol.IO
                 {
                     Http2Logger.LogInfo("Connection was closed by the remote endpoint");
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
                     Http2Logger.LogInfo("Connection was lost. Closing io stream");
 
@@ -112,7 +112,7 @@ namespace Microsoft.Http2.Protocol.IO
         /// <param name="timeout">The timeout.</param>
         /// <param name="match">The match.</param>
         /// <returns></returns>
-        public bool WaitForDataAvailable(int timeout, Predicate<byte[]> match = null)
+        private bool WaitForDataAvailable(int timeout, Predicate<byte[]> match = null)
         {
             bool result = false;
 
@@ -125,10 +125,13 @@ namespace Microsoft.Http2.Protocol.IO
             {
                 EventHandler<DataAvailableEventArgs> dataReceivedHandler = delegate(object sender, DataAvailableEventArgs args)
                 {
-                    var receivedBuffer = args.ReceivedBytes;
-                    if (match == null || match.Invoke(receivedBuffer))
+                    lock (_locker)
                     {
-                        wait.Set();
+                        var receivedBuffer = args.ReceivedBytes;
+                        if (match == null || match.Invoke(receivedBuffer))
+                        {
+                            wait.Set();
+                        }
                     }
                 };
 
@@ -265,6 +268,11 @@ namespace Microsoft.Http2.Protocol.IO
 
             if (cancellationToken.IsCancellationRequested)
                 cancellationToken.ThrowIfCancellationRequested();
+
+            if (!WaitForDataAvailable(ReadTimeout))
+            {
+                return 0;
+            }
 
             //Refactor. Do not use lambda
             return await Task.Factory.StartNew(() => _readBuffer.Read(buffer, offset, count));

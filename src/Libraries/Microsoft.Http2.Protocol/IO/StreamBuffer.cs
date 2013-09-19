@@ -44,11 +44,7 @@ namespace Microsoft.Http2.Protocol.IO
 
             var result = new byte[_buffer.Length];
 
-            if (length >= _position)
-            {
-                _buffer = new byte[_buffer.Length];
-            }
-            else
+            if (length < _position)
             {
                 System.Buffer.BlockCopy(_buffer, length, result, 0, _position - length);
             }
