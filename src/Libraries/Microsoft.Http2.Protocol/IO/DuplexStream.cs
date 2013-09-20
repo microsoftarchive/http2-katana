@@ -173,18 +173,12 @@ namespace Microsoft.Http2.Protocol.IO
             if (_writeBuffer.Available == 0)
                 return;
 
-            var bufferLen = _writeBuffer.Available;
-            var flushBuffer = new byte[bufferLen];
+            var flushBuffer = new byte[_writeBuffer.Available];
 
-            int read = _writeBuffer.Read(flushBuffer, 0, bufferLen);
+            int read = _writeBuffer.Read(flushBuffer, 0, flushBuffer.Length);
             
             if (read == 0)
                 return;
-
-            if (read != bufferLen)
-            {
-                int a = 1;
-            }
 
             _socket.Send(flushBuffer, 0, flushBuffer.Length, SocketFlags.None);
         }
@@ -200,18 +194,12 @@ namespace Microsoft.Http2.Protocol.IO
             if (_writeBuffer.Available == 0)
                 return;
 
-            var bufferLen = _writeBuffer.Available;
-            var flushBuffer = new byte[bufferLen];
+            var flushBuffer = new byte[_writeBuffer.Available];
 
-            int read = _writeBuffer.Read(flushBuffer, 0, bufferLen);
+            int read = _writeBuffer.Read(flushBuffer, 0, flushBuffer.Length);
 
             if (read == 0)
                 return;
-
-            if (read != bufferLen)
-            {
-                int a = 1;
-            }
 
             await Task.Factory.FromAsync<int>(_socket.BeginSend(flushBuffer, 0, flushBuffer.Length, SocketFlags.None, null, null),
                                                 _socket.EndSend, TaskCreationOptions.None, TaskScheduler.Default);

@@ -92,7 +92,7 @@ namespace Microsoft.Http2.Protocol.Tests
             await writer.FlushAsync();
 
             owinResponse.ContentLength = owinResponse.Body.Length;
-            owinResponse.ContentType = ContentTypes.TextPlain;
+            owinResponse.ContentType = "text/plain";
         }
 
         public static DuplexStream GetHandshakedDuplexStream(string address, bool allowHttp2Communication = true, bool useMock = false)

@@ -74,9 +74,6 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\ContentTypes.cs">
-      <Link>Sources\Libraries\Microsoft.Http2.Protocol\ContentTypes.cs</Link>
-    </Compile>
     <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Framing\ContinuationFrame.cs">
       <Link>Sources\Libraries\Microsoft.Http2.Protocol\Framing\ContinuationFrame.cs</Link>
     </Compile>

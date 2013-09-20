@@ -221,7 +221,7 @@ namespace Http2.Katana.Tests
             Assert.Contains(StatusCode.Reason200Ok, splittedResponse[0]);
 
             Assert.Contains("Connection: close", splittedResponse);
-            Assert.Contains("Content-Type: " + ContentTypes.TextPlain, splittedResponse);
+            Assert.Contains("Content-Type: " + "text/plain", splittedResponse);
             Assert.Contains("Content-Length: " + data.Length, splittedResponse);
             Assert.Contains(string.Empty, splittedResponse);
 
