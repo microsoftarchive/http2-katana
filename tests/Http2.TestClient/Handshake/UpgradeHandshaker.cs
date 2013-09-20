@@ -78,13 +78,13 @@ namespace Http2.TestClient.Handshake
                 builder.AppendFormat("{0} {1} {2}\r\n", "GET", _headers[":path"], "HTTP/1.1");
                 //TODO pass here requested filename
                 builder.AppendFormat("Host: {0}\r\n", _headers[":host"]);
-                builder.Append("Connection: Upgrade, Http2-Settings\r\n");
-                builder.Append("Upgrade: HTTP-DRAFT-04/2.0\r\n");
+                builder.Append("Connection: Upgrade, HTTP2-Settings\r\n");
+                builder.Append("Upgrade: HTTP-draft-06/2.0\r\n");
                 var settingsPayload = String.Format("{0}, {1}", 200000, 100);
                 var settingsBytes = Encoding.UTF8.GetBytes(settingsPayload);
                 var settingsBase64 = Convert.ToBase64String(settingsBytes);
 
-                builder.Append("Http2-Settings: " + settingsBase64);
+                builder.Append("HTTP2-Settings: " + settingsBase64);
                 builder.Append("\r\n\r\n");
 
                 byte[] requestBytes = Encoding.UTF8.GetBytes(builder.ToString());
@@ -105,7 +105,7 @@ namespace Http2.TestClient.Handshake
                     var builder = new StringBuilder();
                     builder.AppendFormat("{0} {1} {2}\r\n", protocol, status, postfix);
                     builder.Append("Connection: Upgrade\r\n");
-                    builder.Append("Upgrade: HTTP-draft-04/2.0\r\n");
+                    builder.Append("Upgrade: HTTP-draft-06/2.0\r\n");
                     builder.Append("\r\n");
 
                     byte[] requestBytes = Encoding.ASCII.GetBytes(builder.ToString());
