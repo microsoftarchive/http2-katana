@@ -18,8 +18,8 @@ namespace Http2.TestClient.Adapters
 
         public bool IsDisposed { get { return _isDisposed; } }
 
-        public Http2ClientMessageHandler(DuplexStream stream, ConnectionEnd end,  TransportInformation transportInfo, CancellationToken cancel) 
-            : base(stream, end, transportInfo, cancel)
+        public Http2ClientMessageHandler(DuplexStream stream, ConnectionEnd end, TransportInformation transportInfo, CancellationToken cancel) 
+            : base(stream, end, stream.IsSecure, transportInfo, cancel)
         {
             _fileHelper = new FileHelper(ConnectionEnd.Client);
         }

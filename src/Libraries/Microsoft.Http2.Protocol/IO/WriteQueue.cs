@@ -1,4 +1,5 @@
-﻿using Microsoft.Http2.Protocol.Framing;
+﻿using System.IO;
+using Microsoft.Http2.Protocol.Framing;
 using System;
 using System.Threading;
 
@@ -8,14 +9,14 @@ namespace Microsoft.Http2.Protocol.IO
     internal sealed class WriteQueue : IDisposable
     {
         private readonly IQueue _messageQueue;
-        private readonly DuplexStream _stream;
+        private readonly Stream _stream;
         private bool _disposed;
         private readonly object _writeLock = new object();
         private readonly ActiveStreams _streams;
 
         public bool IsPriorityTurnedOn { get; private set; }
 
-        public WriteQueue(DuplexStream stream, ActiveStreams streams, bool isPriorityTurnedOn)
+        public WriteQueue(Stream stream, ActiveStreams streams, bool isPriorityTurnedOn)
         {
             //Priorities are turned on for debugging
             IsPriorityTurnedOn = isPriorityTurnedOn;

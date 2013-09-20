@@ -12,13 +12,5 @@ namespace Owin
         {
             return builder.Use(typeof(Http2Middleware));
         }
-
-        // Upgrades incoming requests to HTTP/2.0 and passes them on to a separate pipeline.
-        public static IAppBuilder UseHttp2(this IAppBuilder builder, Action<IAppBuilder> configBranch)
-        {
-            IAppBuilder builder1 = builder.New();
-            configBranch(builder1);
-            return builder.Use(typeof(Http2Middleware), builder1.Build(typeof(Func<IDictionary<string, object>, Task>)));
-        }
     }
 }

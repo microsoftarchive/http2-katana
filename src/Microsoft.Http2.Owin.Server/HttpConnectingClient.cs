@@ -29,20 +29,17 @@ namespace Microsoft.Http2.Owin.Server
     {
         private readonly SecureTcpListener _server;
         private readonly SecurityOptions _options;
-        private readonly AppFunc _next;
-        private readonly IDictionary<string, object> _environment;        
+        private readonly AppFunc _next;     
         private readonly bool _useHandshake;
         private readonly bool _usePriorities;
         private readonly bool _useFlowControl;
         private readonly CancellationTokenSource _cancelClientHandling;
         private bool _isDisposed;
 
-        internal HttpConnectingClient(SecureTcpListener server, SecurityOptions options,
-                                     AppFunc next, bool useHandshake, bool usePriorities, 
-                                     bool useFlowControl, IDictionary<string, object> environment)
+        internal HttpConnectingClient(SecureTcpListener server, SecurityOptions options, AppFunc next, 
+                                     bool useHandshake, bool usePriorities, bool useFlowControl)
         {
             _isDisposed = false;
-            _environment = environment;
             _usePriorities = usePriorities;
             _useHandshake = useHandshake;
             _useFlowControl = useFlowControl;
@@ -77,7 +74,6 @@ namespace Microsoft.Http2.Owin.Server
         {
             bool backToHttp11 = false;
             string selectedProtocol = Protocols.Http1;
-            var environmentCopy = new Dictionary<string, object>(_environment);
             
             if (_useHandshake)
             {
@@ -88,13 +84,6 @@ namespace Microsoft.Http2.Owin.Server
                         incomingClient.MakeSecureHandshake(_options);
                         selectedProtocol = incomingClient.SelectedProtocol;
                     }
-
-                    // TODO investigate why selectedProtocol is null after Handshake;
-                    /*if (selectedProtocol == null)
-                    {
-                        selectedProtocol = Protocols.Http1;
-                        backToHttp11 = true;
-                    }*/
                 }
                 catch (SecureHandshakeException ex)
                 {
@@ -128,7 +117,7 @@ namespace Microsoft.Http2.Owin.Server
 
             try
             {
-                HandleRequest(clientStream, selectedProtocol, transportInfo, backToHttp11, environmentCopy);
+                HandleRequest(clientStream, selectedProtocol, transportInfo, backToHttp11);
             }
             catch (Exception e)
             {
@@ -138,8 +127,7 @@ namespace Microsoft.Http2.Owin.Server
         }
 
         private void HandleRequest(DuplexStream incomingClient, string alpnSelectedProtocol, 
-                                   TransportInformation transportInformation,
-                                   bool backToHttp11, IDictionary<string, object> environment)
+                                   TransportInformation transportInformation, bool backToHttp11)
         {
             //Server checks selected protocol and calls http2 or http11 layer
             if (backToHttp11 || alpnSelectedProtocol == Protocols.Http1)
@@ -151,12 +139,11 @@ namespace Microsoft.Http2.Owin.Server
             }
 
             //ALPN selected http2. No need to perform upgrade handshake.
-            OpenHttp2Session(incomingClient, transportInformation, environment);
+            OpenHttp2Session(incomingClient, transportInformation);
         }
 
         private async void OpenHttp2Session(DuplexStream incomingClientStream, 
-                                            TransportInformation transportInformation,
-                                            IDictionary<string, object> environment)
+                                            TransportInformation transportInformation)
         {
             Http2Logger.LogDebug("Handshake successful");
             using (var messageHandler = new Http2OwinMessageHandler(incomingClientStream, ConnectionEnd.Server, transportInformation, _next, _cancelClientHandling.Token))

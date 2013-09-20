@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using Microsoft.Http2.Protocol.IO;
 
 namespace Microsoft.Http2.Protocol.Framing
@@ -8,9 +9,9 @@ namespace Microsoft.Http2.Protocol.Framing
     /// </summary>
     internal class FrameReader
     {
-        private readonly DuplexStream _stream;
+        private readonly Stream _stream;
 
-        public FrameReader(DuplexStream stream)
+        public FrameReader(Stream stream)
         {
             _stream = stream;
         }

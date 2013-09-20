@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using Org.Mentalis.Security.Ssl;
@@ -18,11 +19,11 @@ namespace Microsoft.Http2.Protocol
     {
         protected Http2Session _session;
         protected bool _isDisposed;
-        protected readonly DuplexStream _stream;
+        protected readonly Stream _stream;
         protected readonly CancellationToken _cancToken;
         protected readonly TransportInformation _transportInfo;
         protected readonly ConnectionEnd _end;
-
+        protected readonly bool _isSecure;
         protected event EventHandler<SettingsSentEventArgs> OnFirstSettingsSent;
         protected bool _wereFirstSettingsSent;
 
@@ -31,10 +32,13 @@ namespace Microsoft.Http2.Protocol
         /// </summary>
         /// <param name="stream">The stream.</param>
         /// <param name="end">TODO</param>
+        /// <param name="isSecure"></param>
         /// <param name="transportInfo">The transport information.</param>
         /// <param name="cancel">The cancel.</param>
-        protected Http2MessageHandler(DuplexStream stream, ConnectionEnd end, TransportInformation transportInfo, CancellationToken cancel)
+        protected Http2MessageHandler(Stream stream, ConnectionEnd end, bool isSecure, 
+                                        TransportInformation transportInfo, CancellationToken cancel)
         {
+            _isSecure = isSecure;
             _transportInfo = transportInfo;
             _isDisposed = false;
             _cancToken = cancel;
@@ -101,7 +105,7 @@ namespace Microsoft.Http2.Protocol
             }
 
             //TODO provide cancellation token and transport info
-            _session = new Http2Session(_stream, _end, true, true, _cancToken, initialWindowSize, maxStreams);
+            _session = new Http2Session(_stream, _end, true, true, _isSecure, _cancToken, initialWindowSize, maxStreams);
             _session.OnFrameReceived += OnFrameReceivedHandler;
             _session.OnSettingsSent += OnSettingsSentHandler;
             _session.OnSessionDisposed += OnSessionDisposedHandler;

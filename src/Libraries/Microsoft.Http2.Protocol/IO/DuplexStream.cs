@@ -21,8 +21,9 @@ namespace Microsoft.Http2.Protocol.IO
         private readonly bool _ownsSocket;
         private readonly object _locker;
 
-        public override int ReadTimeout {
-            get { return 60000; }
+        public override int ReadTimeout
+        {
+            get { return 600000; } // if local ep will get nothing from the remote ep in 10 minutes it will close connection
         }
 
         public bool IsSecure 
@@ -174,7 +175,16 @@ namespace Microsoft.Http2.Protocol.IO
 
             var bufferLen = _writeBuffer.Available;
             var flushBuffer = new byte[bufferLen];
-            _writeBuffer.Read(flushBuffer, 0, bufferLen);
+
+            int read = _writeBuffer.Read(flushBuffer, 0, bufferLen);
+            
+            if (read == 0)
+                return;
+
+            if (read != bufferLen)
+            {
+                int a = 1;
+            }
 
             _socket.Send(flushBuffer, 0, flushBuffer.Length, SocketFlags.None);
         }
@@ -192,7 +202,16 @@ namespace Microsoft.Http2.Protocol.IO
 
             var bufferLen = _writeBuffer.Available;
             var flushBuffer = new byte[bufferLen];
-            _writeBuffer.Read(flushBuffer, 0, bufferLen);
+
+            int read = _writeBuffer.Read(flushBuffer, 0, bufferLen);
+
+            if (read == 0)
+                return;
+
+            if (read != bufferLen)
+            {
+                int a = 1;
+            }
 
             await Task.Factory.FromAsync<int>(_socket.BeginSend(flushBuffer, 0, flushBuffer.Length, SocketFlags.None, null, null),
                                                 _socket.EndSend, TaskCreationOptions.None, TaskScheduler.Default);

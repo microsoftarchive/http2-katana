@@ -34,7 +34,7 @@ namespace Microsoft.Http2.Owin.Server.Adapters
         /// <param name="cancel">The cancellation token.</param>
         public Http2OwinMessageHandler(DuplexStream stream, ConnectionEnd end, TransportInformation transportInfo,
                                 AppFunc next, CancellationToken cancel)
-            : base(stream, end, transportInfo, cancel)
+            : base(stream, end, stream.IsSecure, transportInfo, cancel)
         {
             _next = next;
         }
@@ -46,15 +46,15 @@ namespace Microsoft.Http2.Owin.Server.Adapters
         /// <returns></returns>
         private IDictionary<string, object> PopulateEnvironment(HeadersList headers)
         {
-            var environment = new Dictionary<string, object>();
+            var owinContext = new OwinContext();
 
-            var headersAsDict = headers.ToDictionary(header => header.Key, header => new[] {header.Value});
+            var headersAsDict = headers.ToDictionary(header => header.Key, header => new[] {header.Value}, StringComparer.OrdinalIgnoreCase);
 
-            environment["owin.RequestHeaders"] = headersAsDict;
-            environment["owin.ResponseHeaders"] = new Dictionary<string, string[]>();
+            owinContext.Environment["owin.RequestHeaders"] = headersAsDict;
+            owinContext.Environment["owin.ResponseHeaders"] = new Dictionary<string, string[]>();
 
-            var owinRequest = new OwinRequest(environment);
-            var owinResponse = new OwinResponse(environment);
+            var owinRequest = owinContext.Request;
+            var owinResponse = owinContext.Response;
 
             owinRequest.Method = headers.GetValue(":method");
             owinRequest.Path = headers.GetValue(":path");
@@ -63,7 +63,7 @@ namespace Microsoft.Http2.Owin.Server.Adapters
             owinRequest.PathBase = String.Empty;
             owinRequest.QueryString = String.Empty;
             owinRequest.Body = new MemoryStream();
-            owinRequest.Protocol = Protocols.Http1;
+            owinRequest.Protocol = Protocols.Http2;
             owinRequest.Scheme = headers.GetValue(":scheme") == Uri.UriSchemeHttp ? Uri.UriSchemeHttp : Uri.UriSchemeHttps;
             owinRequest.RemoteIpAddress = _transportInfo.RemoteIpAddress;
             owinRequest.RemotePort = Convert.ToInt32(_transportInfo.RemotePort);
@@ -72,7 +72,7 @@ namespace Microsoft.Http2.Owin.Server.Adapters
 
             owinResponse.Body = new MemoryStream();
 
-            return environment;
+            return owinContext.Environment;
         }
 
         /// <summary>
@@ -162,17 +162,32 @@ namespace Microsoft.Http2.Owin.Server.Adapters
             {
                 Http2Logger.LogDebug("Transfer begin");
                 int contentLen = int.Parse(response.Headers["Content-Length"]);
+                int read = 0;
+                //Debug.Assert(contentLen == responseBody.Length);
 
-                Debug.Assert(contentLen == responseBody.Length);
-                //If stream is empty then do not send anything
-                var responseDataBuffer = new byte[responseBody.Position];
                 responseBody.Seek(0, SeekOrigin.Begin);
+                while (read < contentLen)
+                {
+                    var temp = new byte[Constants.MaxFrameContentSize];
+                    int tmpRead = await responseBody.ReadAsync(temp, 0, temp.Length);
+                    
+                    Debug.Assert(tmpRead > 0);
+                    
+                    var readBytes = new byte[tmpRead];
+                    Buffer.BlockCopy(temp, 0, readBytes, 0, tmpRead);
+
+                    read += tmpRead;
+                    SendDataTo(stream, readBytes, read == contentLen);
+                }
+                //If stream is empty then do not send anything
+                //var responseDataBuffer = new byte[responseBody.Position];
+               // responseBody.Seek(0, SeekOrigin.Begin);
                 //Get data from stream, chunk it and send
-                int read = await responseBody.ReadAsync(responseDataBuffer, 0, responseDataBuffer.Length);
+               // read = await responseBody.ReadAsync(responseDataBuffer, 0, responseDataBuffer.Length);
 
-                Debug.Assert(read > 0);
+                //Debug.Assert(read > 0);
 
-                SendDataTo(stream, responseDataBuffer, true);
+                //SendDataTo(stream, responseDataBuffer, true);
 
                 Http2Logger.LogDebug("Transfer end");
             }
@@ -209,10 +224,10 @@ namespace Microsoft.Http2.Owin.Server.Adapters
         private void SendDataTo(Http2Stream stream, byte[] binaryData, bool isLastChunk)
         {
             int i = 0;
-
+            Debug.Assert(binaryData.Length <= Constants.MaxFrameContentSize);
             do
             {
-                bool isLastData = binaryData.Length - i < Constants.MaxFrameContentSize;
+                //bool isLastData = binaryData.Length - i < Constants.MaxFrameContentSize;
 
                 int chunkSize = stream.WindowSize > 0
                                     ? MathEx.Min(binaryData.Length - i, Constants.MaxFrameContentSize,
@@ -222,7 +237,7 @@ namespace Microsoft.Http2.Owin.Server.Adapters
                 var chunk = new byte[chunkSize];
                 Buffer.BlockCopy(binaryData, i, chunk, 0, chunk.Length);
 
-                stream.WriteDataFrame(chunk, isLastData && isLastChunk);
+                stream.WriteDataFrame(chunk, isLastChunk);
 
                 i += chunkSize;
             } while (binaryData.Length > i);

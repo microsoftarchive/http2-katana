@@ -35,12 +35,10 @@ namespace Microsoft.Http2.Owin.Server
         private bool _disposed;
         private readonly SecurityOptions _options;
         private readonly SecureTcpListener _server;
-        private readonly IDictionary<string, object> _properties;
 
         public HttpSocketServer(Func<IDictionary<string, object>, Task> next, IDictionary<string, object> properties)
         {
             _next = next;
-            _properties = properties;
             var addresses = (IList<IDictionary<string, object>>)properties["host.Addresses"];
 
             var address = addresses.First();
@@ -53,29 +51,10 @@ namespace Microsoft.Http2.Owin.Server
             _usePriorities = (bool)properties["use-priorities"];
             _useFlowControl = (bool)properties["use-flowControl"];
 
-            int securePort;
-
-            try
-            {
-                securePort = int.Parse(ConfigurationManager.AppSettings["securePort"]);
-            }
-            catch (Exception)
-            {
-                Http2Logger.LogError("Incorrect port in the config file!" + ConfigurationManager.AppSettings["securePort"]);
-                return;
-            }
-
-            if (_port == securePort && _scheme == Uri.UriSchemeHttp
-                || _port != securePort && _scheme == Uri.UriSchemeHttps)
-            {
-                Http2Logger.LogError("Invalid scheme or port! Use https for secure port.");
-                return;
-            }
-
             var extensions = new[] { ExtensionType.Renegotiation, ExtensionType.ALPN };
 
             // protocols should be in order of their priority
-            _options = _port == securePort ? new SecurityOptions(SecureProtocol.Tls1, extensions, new[] { Protocols.Http2, Protocols.Http1 }, ConnectionEnd.Server)
+            _options = _scheme == Uri.UriSchemeHttps ? new SecurityOptions(SecureProtocol.Tls1, extensions, new[] { Protocols.Http2, Protocols.Http1 }, ConnectionEnd.Server)
                                 : new SecurityOptions(SecureProtocol.None, extensions, new[] { Protocols.Http2, Protocols.Http1 }, ConnectionEnd.Server);
 
             _options.VerificationType = CredentialVerification.None;
@@ -91,8 +70,6 @@ namespace Microsoft.Http2.Owin.Server
             _listenThread.Start();
         }
 
-        
-
         private void Listen()
         {
             Http2Logger.LogInfo("Started on port " + _port);
@@ -101,7 +78,7 @@ namespace Microsoft.Http2.Owin.Server
             {
                 try
                 {
-                    var client = new HttpConnectingClient(_server, _options, _next, _useHandshake, _usePriorities, _useFlowControl, _properties);
+                    var client = new HttpConnectingClient(_server, _options, _next, _useHandshake, _usePriorities, _useFlowControl);
                     client.Accept(_cancelAccept.Token);
                 }
                 catch (Exception ex)

@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System.IO;
+using System.Linq;
 using System.Text;
 using System.Threading;
 using Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression;
@@ -27,7 +28,7 @@ namespace Microsoft.Http2.Protocol
         private bool _goAwayReceived;
         private readonly FrameReader _frameReader;
         private readonly WriteQueue _writeQueue;
-        private readonly DuplexStream _ioStream;
+        private readonly Stream _ioStream;
         private readonly ManualResetEvent _pingReceived = new ManualResetEvent(false);
         private bool _disposed;
         private readonly SettingsManager _settingsManager;
@@ -37,6 +38,7 @@ namespace Microsoft.Http2.Protocol
         private readonly ConnectionEnd _remoteEnd;
         private readonly bool _usePriorities;
         private readonly bool _useFlowControl;
+        private readonly bool _isSecure;
         private int _lastId;
         private bool _wasSettingsReceived;
         private bool _wasPingReceived;
@@ -99,8 +101,8 @@ namespace Microsoft.Http2.Protocol
         internal Int32 InitialWindowSize { get; set; }
         internal Int32 SessionWindowSize { get; set; }
  
-        public Http2Session(DuplexStream stream, ConnectionEnd end, 
-                            bool usePriorities, bool useFlowControl,
+        public Http2Session(Stream stream, ConnectionEnd end, 
+                            bool usePriorities, bool useFlowControl, bool isSecure,
                             CancellationToken cancel,
                             int initialWindowSize = 200000,
                             int maxConcurrentStream = 100)
@@ -108,6 +110,8 @@ namespace Microsoft.Http2.Protocol
             _ourEnd = end;
             _usePriorities = usePriorities;
             _useFlowControl = useFlowControl;
+            _isSecure = isSecure;
+
             _cancelSessionToken = cancel;
 
             if (_ourEnd == ConnectionEnd.Client)
@@ -126,7 +130,7 @@ namespace Microsoft.Http2.Protocol
             _comprProc = new CompressionProcessor(_ourEnd);
             _ioStream = stream;
 
-            _ioStream.OnClose += IoStreamClosedHandler;
+            //_ioStream.OnClose += IoStreamClosedHandler;
 
             _frameReader = new FrameReader(_ioStream);
 
@@ -150,10 +154,11 @@ namespace Microsoft.Http2.Protocol
 
         private void SendSessionHeader()
         {
-            _ioStream.Write(Encoding.UTF8.GetBytes(ClientSessionHeader));
+            var bytes = Encoding.UTF8.GetBytes(ClientSessionHeader);
+            _ioStream.Write(bytes, 0 , bytes.Length);
         }
 
-        private async Task<bool> GetSessionHeaderAndVerifyIt(DuplexStream incomingClient)
+        private async Task<bool> GetSessionHeaderAndVerifyIt(Stream incomingClient)
         {
             var sessionHeaderBuffer = new byte[ClientSessionHeader.Length];
 
@@ -260,7 +265,7 @@ namespace Microsoft.Http2.Protocol
             var endPumpsTask = Task.WhenAll(incomingTask, outgoingTask);
 
             //Handle upgrade handshake headers.
-            if (initialRequest != null && !_ioStream.IsSecure)
+            if (initialRequest != null && !_isSecure)
                 DispatchInitialRequest(initialRequest);
 
             //Cancellation token

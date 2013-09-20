@@ -11,7 +11,6 @@ namespace Microsoft.Http2.Owin.Server.Service
     /// </summary>
     public partial class Http2ServerService : ServiceBase
     {
-        private Thread _http2ServerThread;
         private IDisposable _owinServer;
 
         public Http2ServerService()
@@ -38,8 +37,7 @@ namespace Microsoft.Http2.Owin.Server.Service
                                        ? ConfigurationManager.AppSettings["secureAddress"]
                                        : ConfigurationManager.AppSettings["unsecureAddress"];
 
-            _http2ServerThread = new Thread(() => StartServer(connectString));
-            _http2ServerThread.Start();
+            StartServer(connectString);
         }
 
         protected override void OnStop()
@@ -48,11 +46,6 @@ namespace Microsoft.Http2.Owin.Server.Service
             {
                 _owinServer.Dispose();
                 _owinServer = null;
-            }
-
-            if (_http2ServerThread.IsAlive)
-            {
-                _http2ServerThread.Abort();
             }
         }
     }

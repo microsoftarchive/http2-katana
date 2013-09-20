@@ -1,4 +1,5 @@
 ﻿using System.Globalization;
+using System.IO;
 using Microsoft.Http2.Protocol;
 using Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression;
 using Microsoft.Http2.Protocol.Extensions;
@@ -233,7 +234,7 @@ namespace Http2.Katana.Tests
         [StandardFact]
         public void ActiveStreamsSuccessful()
         {
-            var session = new Http2Session(TestHelpers.CreateStream(), ConnectionEnd.Client, true, true, new CancellationToken());
+            var session = new Http2Session(TestHelpers.CreateStream(), ConnectionEnd.Client, true, true, true, new CancellationToken());
             var testCollection = session.ActiveStreams;
             var fm = new FlowControlManager(session);
 

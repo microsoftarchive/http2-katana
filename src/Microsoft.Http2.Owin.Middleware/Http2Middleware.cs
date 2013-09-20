@@ -58,7 +58,7 @@ namespace Microsoft.Http2.Owin.Middleware
 
                         //TODO Provide cancellation token here
                         // Move to method
-                        return Task.Run(async () =>
+                        return new Task(async () =>
                             {
                                 try
                                 {
@@ -73,7 +73,7 @@ namespace Microsoft.Http2.Owin.Middleware
                                 }
                                 catch (Exception ex)
                                 {
-                                   Http2Logger.LogError(ex.Message);
+                                    Http2Logger.LogError(ex.Message);
                                 }
                             });
                     });
