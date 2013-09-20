@@ -1,5 +1,4 @@
-﻿using System.Globalization;
-using Microsoft.Http1.Protocol;
+﻿using Microsoft.Http1.Protocol;
 using Microsoft.Http2.Owin.Middleware;
 using Microsoft.Http2.Owin.Server;
 using Microsoft.Http2.Owin.Server.Adapters;
@@ -12,10 +11,12 @@ using Org.Mentalis.Security.Ssl;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
+using System.Globalization;
 using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace Http2.Katana.Tests
@@ -114,7 +115,8 @@ namespace Http2.Katana.Tests
         [StandardFact]
         public void OpaqueEnvironmentCreatedCorrect()
         {
-            var adapter = TestHelpers.CreateHttp11Adapter(null, null);
+            var adapter = TestHelpers.CreateHttp11Adapter(TestHelpers.GetHandshakedDuplexStream("/", false, true),
+                e => new Task(() => { }));
             adapter.ProcessRequest();
             var env = adapter.GetType().InvokeMember("CreateOpaqueEnvironment",
                 BindingFlags.InvokeMethod | BindingFlags.Instance | BindingFlags.NonPublic,
@@ -130,7 +132,6 @@ namespace Http2.Katana.Tests
         [StandardFact]
         public void HeadersParsedCorrect()
         {
-
             const string request = "GET / HTTP/1.1\r\n" +
                                    "Host: localhost:80\r\n" +
                                    "User-Agent: xunit\r\n" +
@@ -188,7 +189,8 @@ namespace Http2.Katana.Tests
         {
             var headers = new Dictionary<string, string[]>
             {
-                {"Connection", new[] {"close"}}
+                {"Connection", new[] {"close"}},
+                {"Content-Type", new [] {"text/plain"}}
             };
             const string dataString = "test";
             byte[] data = Encoding.UTF8.GetBytes(dataString);
@@ -200,7 +202,7 @@ namespace Http2.Katana.Tests
                 stream.Write(It.IsAny<byte[]>(), It.IsAny<int>(), It.IsAny<int>())
             ).Callback<byte[], int, int>((buffer, offset, count) => written.AddRange((buffer.Skip(offset).Take(count))));
 
-            Http11Helper.SendResponse(mock.Object, data, StatusCode.Code200Ok, ContentTypes.TextPlain, headers);
+            Http11Helper.SendResponse(mock.Object, data, StatusCode.Code200Ok, headers);
 
             string response = Encoding.UTF8.GetString(written.ToArray());
 

@@ -30,23 +30,16 @@ namespace Microsoft.Http1.Protocol
         /// <param name="stream"></param>
         /// <param name="data"></param>
         /// <param name="statusCode"></param>
-        /// <param name="contentType"></param>
         /// <param name="headers"></param>
         /// <param name="closeConnection">we don’t currently support persistent connection via Http1.1 so closeConnection:true</param>
         /// <returns></returns>
-        public static int SendResponse(Stream stream, byte[] data, int statusCode, string contentType, IDictionary<string,string[]> headers = null, bool closeConnection = true)
+        public static int SendResponse(Stream stream, byte[] data, int statusCode, IDictionary<string,string[]> headers = null, bool closeConnection = true)
         {
             string initialLine = "HTTP/1.1 " + statusCode + " " + StatusCode.GetReasonPhrase(statusCode) + "\r\n";
             string headersPack = initialLine;
 
             if (headers == null)
                 headers = new Dictionary<string,string[]>(StringComparer.OrdinalIgnoreCase);
-
-            // TODO replace  hardcoded strigns with constants
-            if (!headers.ContainsKey("Content-Type") && data.Length > 0)
-            {
-                headers.Add("Content-Type", new []{contentType});
-            }
 
             if (!headers.ContainsKey("Connection") && closeConnection)
             {

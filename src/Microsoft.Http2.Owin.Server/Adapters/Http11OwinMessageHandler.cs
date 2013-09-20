@@ -97,11 +97,8 @@ namespace Microsoft.Http2.Owin.Server.Adapters
 
                 // we may need to populate additional fields if request supports UPGRADE
                 AddOpaqueUpgradeIfNeeded();
-                
-                if (_next != null)
-                {
-                    await _next(_environment);
-                }
+
+                await _next(_environment);
 
                 if (_opaqueCallback == null)
                 {
@@ -195,7 +192,7 @@ namespace Microsoft.Http2.Owin.Server.Adapters
         {
             int statusCode = (ex is NotSupportedException) ? StatusCode.Code501NotImplemented : StatusCode.Code500InternalServerError;
 
-            Http11Helper.SendResponse(_client, new byte[0], statusCode, ContentTypes.TextPlain);
+            Http11Helper.SendResponse(_client, new byte[0], statusCode);
         }
 
         private void EndResponse(bool closeConnection = true)
@@ -212,7 +209,7 @@ namespace Microsoft.Http2.Owin.Server.Adapters
                 bytes = new byte[0];
             }
 
-            Http11Helper.SendResponse(_client, bytes, _response.StatusCode, _response.ContentType, _response.Headers, closeConnection);
+            Http11Helper.SendResponse(_client, bytes, _response.StatusCode, _response.Headers, closeConnection);
 
             if (closeConnection)
             {
