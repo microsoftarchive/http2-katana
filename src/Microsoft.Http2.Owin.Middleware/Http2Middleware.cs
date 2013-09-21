@@ -58,7 +58,7 @@ namespace Microsoft.Http2.Owin.Middleware
 
                         //TODO Provide cancellation token here
                         // Move to method
-                        return new Task(async () =>
+                        return Task.Run(async () =>
                             {
                                 try
                                 {

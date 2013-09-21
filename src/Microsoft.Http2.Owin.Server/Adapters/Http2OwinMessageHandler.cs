@@ -37,6 +37,7 @@ namespace Microsoft.Http2.Owin.Server.Adapters
             : base(stream, end, stream.IsSecure, transportInfo, cancel)
         {
             _next = next;
+            stream.OnClose += delegate { Dispose(); };
         }
 
         /// <summary>

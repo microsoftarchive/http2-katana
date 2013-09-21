@@ -22,6 +22,7 @@ namespace Http2.TestClient.Adapters
             : base(stream, end, stream.IsSecure, transportInfo, cancel)
         {
             _fileHelper = new FileHelper(ConnectionEnd.Client);
+            stream.OnClose += delegate { Dispose(); };
         }
 
         private void SaveDataFrame(Http2Stream stream, DataFrame dataFrame)
