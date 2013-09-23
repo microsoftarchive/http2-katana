@@ -1,0 +1,88 @@
+﻿using System;
+using System.Diagnostics.Contracts;
+
+namespace Microsoft.Http2.Protocol.IO
+{
+    /// <summary>
+    /// This struct represents buffer on which Stream can be built
+    /// </summary>
+    internal class StreamBuffer
+    {
+        private byte[] _buffer;
+        private int _position;
+        private readonly object _readWriteLock;
+
+        internal byte[] Buffer { get { return _buffer; } }
+        internal int Available { get { return _position; } }
+
+        internal StreamBuffer(int initialSize)
+        {
+            _buffer = new byte[initialSize];
+            _position = 0;
+            _readWriteLock = new object();
+        }
+
+        private void ReallocateMemory(long length)
+        {
+            var temp = new byte[length];
+
+            //This means that buffer can only grow. 
+            //It's not clear what to do if we will try to reduce buffer size.
+            //I think that data should be read and buffer size should be reduced then.
+            //TODO buffer size reduce case
+            if (length > _buffer.Length)
+            {
+                System.Buffer.BlockCopy(_buffer, 0, temp, 0, _position);
+            }
+            
+            _buffer = temp;
+        }
+
+        private void MakeLeftShiftBy(int length)
+        {
+            if (length > _buffer.Length)
+                length = _buffer.Length;
+
+            var result = new byte[_buffer.Length];
+
+            if (length < _position)
+            {
+                System.Buffer.BlockCopy(_buffer, length, result, 0, _position - length);
+            }
+
+            _buffer = result;
+            _position -= length;
+        }
+
+        internal int Read(byte[] buffer, int offset, int count)
+        {
+            lock (_readWriteLock)
+            {
+                Contract.Assert(offset + count <= buffer.Length);
+                if (Available == 0)
+                    return 0;
+
+                if (count > _position)
+                    count = _position;
+
+                System.Buffer.BlockCopy(_buffer, 0, buffer, offset, count);
+
+                MakeLeftShiftBy(count);
+            }
+            return count;
+        }
+
+        internal void Write(byte[] buffer, int offset, int count)
+        {
+            lock (_readWriteLock)
+            {
+                Contract.Assert(offset + count <= buffer.Length);
+                if (_position + count > _buffer.Length)
+                    ReallocateMemory(_position + count);
+
+                System.Buffer.BlockCopy(buffer, offset, _buffer, _position, count);
+                _position += count;
+            }
+        }
+    }
+}

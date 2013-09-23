@@ -11,6 +11,9 @@ Bin/
 *.cache
 Thumbs.db
 
+# Don't include NuGet Packages http://docs.nuget.org/docs/workflows/using-nuget-without-committing-packages
+packages/
+
 # Project specific
 /Drop/
 /debug.log

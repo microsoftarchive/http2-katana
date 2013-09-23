@@ -1,0 +1,108 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">x86</Platform>
+    <ProductVersion>8.0.30703</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{139D5EE0-BFFF-4830-8517-1EEF4E05755F}</ProjectGuid>
+    <OutputType>Exe</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>Http2.TestClient</RootNamespace>
+    <AssemblyName>Http2.TestClient</AssemblyName>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <TargetFrameworkProfile>
+    </TargetFrameworkProfile>
+    <FileAlignment>512</FileAlignment>
+    <SccProjectName>SAK</SccProjectName>
+    <SccLocalPath>SAK</SccLocalPath>
+    <SccAuxPath>SAK</SccAuxPath>
+    <SccProvider>SAK</SccProvider>
+    <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\..\..\</SolutionDir>
+    <RestorePackages>true</RestorePackages>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x86' ">
+    <PlatformTarget>x86</PlatformTarget>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <RunCodeAnalysis>true</RunCodeAnalysis>
+    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
+    <Prefer32Bit>false</Prefer32Bit>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x86' ">
+    <PlatformTarget>x86</PlatformTarget>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.configuration" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="CommandParser\CommandParser.cs" />
+    <Compile Include="CommandParser\HelpDisplayer.cs" />
+    <Compile Include="Commands\Command.cs" />
+    <Compile Include="Commands\DeleteCommand.cs" />
+    <Compile Include="Commands\DirCommand.cs" />
+    <Compile Include="Commands\EmptyCommand.cs" />
+    <Compile Include="Commands\ExitCommand.cs" />
+    <Compile Include="Commands\GetCommand.cs" />
+    <Compile Include="CommandTypes.cs" />
+    <Compile Include="Commands\HelpCommand.cs" />
+    <Compile Include="Commands\IUriCommand.cs" />
+    <Compile Include="Commands\PingCommand.cs" />
+    <Compile Include="Commands\PostCommand.cs" />
+    <Compile Include="Commands\PutCommand.cs" />
+    <Compile Include="Commands\UnknownCommand.cs" />
+    <Compile Include="GlobalSuppressions.cs" />
+    <Compile Include="Handshake\HandshakeFailureReason.cs" />
+    <Compile Include="Handshake\HandshakeManager.cs" />
+    <Compile Include="Handshake\HandshakeResponse.cs" />
+    <Compile Include="Handshake\HandshakeResult.cs" />
+    <Compile Include="Handshake\Http2HandshakeFailed.cs" />
+    <Compile Include="Handshake\UpgradeHandshaker.cs" />
+    <Compile Include="Adapters\Http11ClientMessageHandler.cs" />
+    <Compile Include="Adapters\Http2ClientMessageHandler.cs" />
+    <Compile Include="Http2SessionHandler.cs" />
+    <Compile Include="Program.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Libraries\MentalisSecurityLibrary\Security Library.csproj">
+      <Project>{5bfa5a70-d384-4417-afcc-5c744485a85f}</Project>
+      <Name>Security Library</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Microsoft.Http2.Protocol.csproj">
+      <Project>{e34ac310-324c-46bc-af9f-1a41df58e867}</Project>
+      <Name>Microsoft.Http2.Protocol</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="app.config" />
+    <None Include="packages.config" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <PropertyGroup>
+    <PostBuildEvent>copy /y "$(TargetPath)" "$(SolutionDir)Drop\$(TargetFileName)"
+copy /y "$(SolutionDir)res\certificate.pfx" "$(TargetDir)certificate.pfx"
+copy /y "$(TargetDir)Http2.TestClient.exe.config" "$(SolutionDir)Drop\Http2.TestClient.exe.config"</PostBuildEvent>
+  </PropertyGroup>
+  <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
+</Project>
