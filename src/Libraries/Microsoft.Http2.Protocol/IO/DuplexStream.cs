@@ -14,13 +14,13 @@ namespace Microsoft.Http2.Protocol.IO
     /// </summary>
     public class DuplexStream : Stream
     {
-        private StreamBuffer _writeBuffer;
-        private StreamBuffer _readBuffer;
+        private readonly StreamBuffer _writeBuffer;
+        private readonly StreamBuffer _readBuffer;
         private SecureSocket _socket;
         private bool _isClosed;
         private readonly bool _ownsSocket;
         private readonly object _locker;
-
+        private readonly ManualResetEvent _streamStateChangeRaised;
         public override int ReadTimeout
         {
             get { return 600000; } // if local ep will get nothing from the remote ep in 10 minutes it will close connection
@@ -43,6 +43,11 @@ namespace Microsoft.Http2.Protocol.IO
             _socket = socket;
             _isClosed = false;
             _locker = new object();
+            _streamStateChangeRaised = new ManualResetEvent(false);
+
+            OnDataAvailable += (sender, args) => _streamStateChangeRaised.Set();
+
+            OnClose += (sender, args) => _streamStateChangeRaised.Set();
 
             Task.Run(async () => 
                 {
@@ -75,35 +80,24 @@ namespace Microsoft.Http2.Protocol.IO
                     Http2Logger.LogInfo("Connection was lost. Closing io stream");
 
                     Close();
-                    return;
+                    break;
                 }
                 //TODO Connection was lost
                 if (received == 0)
                 {
                     Close();
-                    return;
+                    break;
                 }
 
                 _readBuffer.Write(tmpBuffer, 0, received);
 
                 // TODO SG - we should pass num received or new buffer since tmpBuffer could be filled  partially
                 //Signal data available and it can be read
-                lock (_locker)
-                {
-                    // lock is required since another thread can be updating OnDataAvailable
-                    if (OnDataAvailable != null)
-                    {
-                        try
-                        {
-                            OnDataAvailable(this, new DataAvailableEventArgs(tmpBuffer));
-                        }
-                        catch (NullReferenceException ex)
-                        {
-
-                        }
-                    }
-                }
+                if (OnDataAvailable != null)
+                    OnDataAvailable(this, new DataAvailableEventArgs(tmpBuffer));
             }
+
+            Http2Logger.LogDebug("Listen thread finished");
         }
 
         /// <summary>
@@ -111,58 +105,29 @@ namespace Microsoft.Http2.Protocol.IO
         /// Usable for receiving headers. Header block finishes with \r\n\r\n
         /// </summary>
         /// <param name="timeout">The timeout.</param>
-        /// <param name="match">The match.</param>
         /// <returns></returns>
-        private bool WaitForDataAvailable(int timeout, Predicate<byte[]> match = null)
+        private bool WaitForDataAvailable(int timeout)
         {
-            bool result = false;
-
-            if (Available != 0)
+            lock (_locker)
             {
-                return true;
-            }
-
-            using (var wait = new ManualResetEvent(false))
-            {
-                EventHandler<DataAvailableEventArgs> dataReceivedHandler = delegate(object sender, DataAvailableEventArgs args)
+                if (Available != 0)
                 {
-                    lock (_locker)
-                    {
-                        var receivedBuffer = args.ReceivedBytes;
-                        if (match == null || match.Invoke(receivedBuffer))
-                        {
-                            wait.Set();
-                        }
-                    }
-                };
-
-                EventHandler<System.EventArgs> closeHandler = (s, arg) => wait.Set();
-
-                //TODO think about if wait was already disposed
-
-                lock (_locker) // lock is required since several threads access/change OnDataAvailable/OnClose events
-                {
-                    // check if the data has become available while we were creating handlers and sync event
-                    // this could happen since data is pumped by separate thread
-                    if (Available != 0)
-                    {
-                        return true;
-                    }
-
-                    OnDataAvailable += dataReceivedHandler;
-                    OnClose += closeHandler;
+                    return true;
                 }
 
+                bool wasDataReceived = _streamStateChangeRaised.WaitOne(timeout);
+                Thread.Sleep(5);
+                bool result = wasDataReceived && Available != 0;
 
-                result = wait.WaitOne(timeout) && Available != 0;
-
-                lock (_locker)
+                //Debug Entry
+                //TODO remove
+                if (!result)
                 {
-                    OnDataAvailable -= dataReceivedHandler;
-                    OnClose -= closeHandler;
+                    int a = 1;
                 }
+
+                return result;
             }
-            return result;
         }
 
         public override void Flush()
@@ -220,13 +185,37 @@ namespace Microsoft.Http2.Protocol.IO
             if (_isClosed)
                 return 0;
 
+            _streamStateChangeRaised.Reset();
+
             if (!WaitForDataAvailable(ReadTimeout))
             {
-                // TODO consider throwing appropriate timeout exception
+                //We've waited enough and there was no data. Close connection due timeout
+                Close();
                 return 0;
             }
 
             return _readBuffer.Read(buffer, offset, count);
+        }
+
+        public async override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+        {
+            if (_isClosed)
+                return 0;
+
+            if (cancellationToken.IsCancellationRequested)
+                cancellationToken.ThrowIfCancellationRequested();
+
+            _streamStateChangeRaised.Reset();
+
+            if (!WaitForDataAvailable(ReadTimeout))
+            {
+                //We waited enough and there was no data. Close connection due timeout
+                Close();
+                return 0;
+            }
+
+            //Refactor. Do not use lambda
+            return await Task.Factory.StartNew(() => _readBuffer.Read(buffer, offset, count));
         }
 
         public override void Write(byte[] buffer, int offset, int count)
@@ -266,23 +255,6 @@ namespace Microsoft.Http2.Protocol.IO
             
             //Refactor. Do not use lambda
             await Task.Factory.StartNew(() => _writeBuffer.Write(buffer, offset, count));
-        }
-
-        public async override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
-        {
-            if (_isClosed)
-                return 0;
-
-            if (cancellationToken.IsCancellationRequested)
-                cancellationToken.ThrowIfCancellationRequested();
-
-            if (!WaitForDataAvailable(ReadTimeout))
-            {
-                return 0;
-            }
-
-            //Refactor. Do not use lambda
-            return await Task.Factory.StartNew(() => _readBuffer.Read(buffer, offset, count));
         }
 
         public int Available { get { return _readBuffer.Available; } }
@@ -325,6 +297,8 @@ namespace Microsoft.Http2.Protocol.IO
                 //it knows nothing about defined exception.
                 if (_isClosed)
                     return;
+
+                Http2Logger.LogDebug("Closing duplex stream");
 
                 _isClosed = true;
 

@@ -54,7 +54,7 @@ namespace Microsoft.Http2.Owin.Server
             var extensions = new[] { ExtensionType.Renegotiation, ExtensionType.ALPN };
 
             // protocols should be in order of their priority
-            _options = _scheme == Uri.UriSchemeHttps ? new SecurityOptions(SecureProtocol.Tls1, extensions, new[] { Protocols.Http2, Protocols.Http1 }, ConnectionEnd.Server)
+            _options = _scheme == Uri.UriSchemeHttps ? new SecurityOptions(SecureProtocol.Tls1, extensions, new[] { Protocols.Http2, Protocols.Http204, Protocols.Http1 }, ConnectionEnd.Server)
                                 : new SecurityOptions(SecureProtocol.None, extensions, new[] { Protocols.Http2, Protocols.Http1 }, ConnectionEnd.Server);
 
             _options.VerificationType = CredentialVerification.None;

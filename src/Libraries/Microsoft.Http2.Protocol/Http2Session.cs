@@ -130,8 +130,6 @@ namespace Microsoft.Http2.Protocol
             _comprProc = new CompressionProcessor(_ourEnd);
             _ioStream = stream;
 
-            //_ioStream.OnClose += IoStreamClosedHandler;
-
             _frameReader = new FrameReader(_ioStream);
 
             ActiveStreams = new ActiveStreams();
@@ -182,7 +180,6 @@ namespace Microsoft.Http2.Protocol
             {
                 initialRequest.Add(":path", "/index.html");
             }
-
 
             var initialStream = CreateStream(new HeadersList(initialRequest), 1);
 
@@ -293,17 +290,16 @@ namespace Microsoft.Http2.Protocol
                 {
                     // Read failure, abort the connection/session.
                     Dispose();
+                    break;
                 }
 
-                if (frame == null)
-                {
-                    Thread.Sleep(5);
-                }
-                else
+                if (frame != null)
                 {
                     DispatchIncomingFrame(frame);
                 }
             }
+
+            Http2Logger.LogDebug("Read thread finished");
         }
 
         /// <summary>
@@ -328,6 +324,8 @@ namespace Microsoft.Http2.Protocol
                          Http2Logger.LogError("Sending frame was cancelled because connection was lost");
                          Dispose();
                      }
+
+                     Http2Logger.LogDebug("Write thread finished");
                  });
         }
 
@@ -821,12 +819,6 @@ namespace Microsoft.Http2.Protocol
             return newNow - now;
         }
 
-        private void IoStreamClosedHandler(object sender, System.EventArgs args)
-        {
-            //If ioStream was closed, then session should be closed too
-            Dispose();
-        }
-
         public void Dispose()
         {
             Dispose(true);
@@ -863,22 +855,34 @@ namespace Microsoft.Http2.Protocol
             if (!_goAwayReceived)
             {
                 WriteGoAway(status);
-
-                if (_writeQueue != null)
-                {
-                    _writeQueue.Flush();
-                    _writeQueue.Dispose();
-                }
             }
 
-            _comprProc.Dispose();
+            if (_writeQueue != null)
+            {
+                _writeQueue.Flush();
+                _writeQueue.Dispose();
+            }
 
-            _ioStream.Close();
-            
+            if (_frameReader != null)
+            {
+                _frameReader.Dispose();
+            }
+
+            if (_comprProc != null)
+            {
+                _comprProc.Dispose();
+            }
+
+            if (_ioStream != null)
+            {
+                _ioStream.Close();
+            }
+
             if (OnSessionDisposed != null)
             {
                 OnSessionDisposed(this, null);
             }
+
             OnSessionDisposed = null;
 
             Http2Logger.LogDebug("Session closed");

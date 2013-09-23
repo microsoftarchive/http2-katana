@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Http2.Protocol.Utils;
 using Org.Mentalis.Security.Ssl;
 using Microsoft.Http2.Protocol.EventArgs;
 using Microsoft.Http2.Protocol.Framing;
@@ -108,12 +109,9 @@ namespace Microsoft.Http2.Protocol
             _session = new Http2Session(_stream, _end, true, true, _isSecure, _cancToken, initialWindowSize, maxStreams);
             _session.OnFrameReceived += OnFrameReceivedHandler;
             _session.OnSettingsSent += OnSettingsSentHandler;
-            _session.OnSessionDisposed += OnSessionDisposedHandler;
 
             return Task.Run(async () => await _session.Start(initRequest));
         }
-
-        protected abstract void OnSessionDisposedHandler(object sender, System.EventArgs e);
 
         private void OnSettingsSentHandler(object sender, SettingsSentEventArgs e)
         {
@@ -140,6 +138,8 @@ namespace Microsoft.Http2.Protocol
             OnFirstSettingsSent = null;
 
             _isDisposed = true;
+
+            Http2Logger.LogDebug("Adapter disposed");
         }
     }
 }

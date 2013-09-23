@@ -1,23 +1,27 @@
 ﻿using System;
 using System.IO;
-using Microsoft.Http2.Protocol.IO;
 
 namespace Microsoft.Http2.Protocol.Framing
 {
     /// <summary>
     /// This class reads frames and gets their type
     /// </summary>
-    internal class FrameReader
+    internal class FrameReader : IDisposable
     {
         private readonly Stream _stream;
+        private bool _isDisposed;
 
         public FrameReader(Stream stream)
         {
             _stream = stream;
+            _isDisposed = false;
         }
 
         public Frame ReadFrame()
         {
+            if (_isDisposed)
+                return null;
+
             var preamble = new Frame();
             if (!TryFill(preamble.Buffer, 0, preamble.Buffer.Length))
             {
@@ -75,18 +79,30 @@ namespace Microsoft.Http2.Protocol.Framing
         private bool TryFill(byte[] buffer, int offset, int count)
         {
             int totalRead = 0;
-            while (totalRead < count)
+            while (totalRead < count && !_isDisposed)
             {
                 int read = _stream.Read(buffer, offset + totalRead, count - totalRead);
+                
+                //MUST be fixed
+                //Do not check for read <= 0 because DuplexStream Read method guarantees that data already came,
+                //but read buffer may not already updated it's position because of _readWriteLock.
 
                 if (read <= 0)
                 {
                     //The stream ended before we could get as much as we needed.
-                    return false;
+                   return false;
                 }
                 totalRead += read;
             }
             return true;
+        }
+
+        public void Dispose()
+        {
+            if (_isDisposed)
+                return;
+
+            _isDisposed = true;
         }
     }
 }

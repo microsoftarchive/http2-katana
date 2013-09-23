@@ -1,11 +1,12 @@
-﻿using System.Diagnostics.Contracts;
+﻿using System;
+using System.Diagnostics.Contracts;
 
 namespace Microsoft.Http2.Protocol.IO
 {
     /// <summary>
     /// This struct represents buffer on which Stream can be built
     /// </summary>
-    internal struct StreamBuffer
+    internal class StreamBuffer
     {
         private byte[] _buffer;
         private int _position;
@@ -55,12 +56,12 @@ namespace Microsoft.Http2.Protocol.IO
 
         internal int Read(byte[] buffer, int offset, int count)
         {
-            Contract.Assert(offset + count <= buffer.Length);
-            if (Available == 0)
-                return 0;
-
             lock (_readWriteLock)
             {
+                Contract.Assert(offset + count <= buffer.Length);
+                if (Available == 0)
+                    return 0;
+
                 if (count > _position)
                     count = _position;
 
@@ -73,10 +74,9 @@ namespace Microsoft.Http2.Protocol.IO
 
         internal void Write(byte[] buffer, int offset, int count)
         {
-            Contract.Assert(offset + count <= buffer.Length);
-
             lock (_readWriteLock)
             {
+                Contract.Assert(offset + count <= buffer.Length);
                 if (_position + count > _buffer.Length)
                     ReallocateMemory(_position + count);
 
