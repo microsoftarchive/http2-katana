@@ -242,6 +242,8 @@ namespace Http2.TestClient
                 }
  
                 await _sessionAdapter.StartSessionAsync(initialRequest);
+
+                GC.Collect();
             }
             else if (_sessionAdapter.IsDisposed)
             {
