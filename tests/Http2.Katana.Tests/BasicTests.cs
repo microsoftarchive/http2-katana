@@ -28,6 +28,24 @@ namespace Http2.Katana.Tests
         }
 
         [StandardFact]
+        public void MinExtendedMathMultipleNumbersSuccessful()
+        {
+            var tests = new List<int[]>
+                {
+                    new [] {1, 0, -1, 10},
+                    new [] {16383, 16383, 16383, 16383},
+                    new [] {10, int.MaxValue, -100, int.MinValue},
+                };
+
+            var results = new[] { -1, 16383, int.MinValue };
+
+            for (int i = 0; i < tests.Count; i++)
+            {
+                Assert.Equal(MathEx.Min(tests[i]), results[i]);
+            }
+        }
+
+        [StandardFact]
         public void MinExtendedMathWithComparerSuccessful()
         {
             var tests = new List<string[]>

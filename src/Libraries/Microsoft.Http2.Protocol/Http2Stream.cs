@@ -239,7 +239,7 @@ namespace Microsoft.Http2.Protocol
 
             //We cant let lesser frame that were passed through flow control window
             //be sent before greater frames that were not passed through flow control window
-            if (_unshippedFrames.Count != 0)
+            if (_unshippedFrames.Count != 0 || WindowSize <= 0)
             {
                 _unshippedFrames.Enqueue(dataFrame);
                 return;
@@ -358,16 +358,19 @@ namespace Microsoft.Http2.Protocol
             Http2Logger.LogDebug("Total frames sent: {0}", FramesSent);
             Http2Logger.LogDebug("Total frames received: {0}", FramesReceived);
 
+            if (code == ResetStatusCode.Cancel || code == ResetStatusCode.InternalError)
+                WriteRst(code);
+
+            _flowCrtlManager.StreamClosedHandler(this);
+
+            Disposed = true;
+
             if (OnClose != null)
                 OnClose(this, new StreamClosedEventArgs(_id));
 
-            if (code == ResetStatusCode.Cancel)
-                WriteRst(code);
+            OnClose = null;
 
             Http2Logger.LogDebug("Stream closed " + _id);
-            OnClose = null;
-            _flowCrtlManager.StreamClosedHandler(this);
-            Disposed = true;
         }
     }
 }

@@ -77,14 +77,14 @@ namespace Microsoft.Http2.Protocol.IO
                 {
                     Http2Logger.LogInfo("Connection was closed by the remote endpoint");
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
                     Http2Logger.LogInfo("Connection was lost. Closing io stream");
 
                     Close();
                     break;
                 }
-                //TODO Connection was lost
+
                 if (received == 0)
                 {
                     Close();
@@ -93,7 +93,6 @@ namespace Microsoft.Http2.Protocol.IO
 
                 _readBuffer.Write(tmpBuffer, 0, received);
 
-                // TODO SG - we should pass num received or new buffer since tmpBuffer could be filled  partially
                 //Signal data available and it can be read
                 if (OnDataAvailable != null)
                     OnDataAvailable(this, new DataAvailableEventArgs(tmpBuffer));
@@ -120,13 +119,6 @@ namespace Microsoft.Http2.Protocol.IO
                 bool wasDataReceived = _streamStateChangeRaised.WaitOne(timeout);
                 Thread.Sleep(5);
                 bool result = wasDataReceived && Available != 0;
-
-                //Debug Entry
-                //TODO remove
-                if (!result)
-                {
-                    int a = 1;
-                }
 
                 return result;
             }

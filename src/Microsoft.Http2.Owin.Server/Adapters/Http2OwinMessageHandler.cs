@@ -159,7 +159,6 @@ namespace Microsoft.Http2.Owin.Server.Adapters
                 Http2Logger.LogDebug("Transfer begin");
                 int contentLen = int.Parse(response.Headers["Content-Length"]);
                 int read = 0;
-                //Debug.Assert(contentLen == responseBody.Length);
 
                 responseBody.Seek(0, SeekOrigin.Begin);
                 while (read < contentLen)
@@ -175,15 +174,6 @@ namespace Microsoft.Http2.Owin.Server.Adapters
                     read += tmpRead;
                     SendDataTo(stream, readBytes, read == contentLen);
                 }
-                //If stream is empty then do not send anything
-                //var responseDataBuffer = new byte[responseBody.Position];
-               // responseBody.Seek(0, SeekOrigin.Begin);
-                //Get data from stream, chunk it and send
-               // read = await responseBody.ReadAsync(responseDataBuffer, 0, responseDataBuffer.Length);
-
-                //Debug.Assert(read > 0);
-
-                //SendDataTo(stream, responseDataBuffer, true);
 
                 Http2Logger.LogDebug("Transfer end");
             }
@@ -223,12 +213,7 @@ namespace Microsoft.Http2.Owin.Server.Adapters
             Debug.Assert(binaryData.Length <= Constants.MaxFrameContentSize);
             do
             {
-                //bool isLastData = binaryData.Length - i < Constants.MaxFrameContentSize;
-
-                int chunkSize = stream.WindowSize > 0
-                                    ? MathEx.Min(binaryData.Length - i, Constants.MaxFrameContentSize,
-                                                    stream.WindowSize)
-                                    : MathEx.Min(binaryData.Length - i, Constants.MaxFrameContentSize);
+                int chunkSize = MathEx.Min(binaryData.Length - i, Constants.MaxFrameContentSize);
 
                 var chunk = new byte[chunkSize];
                 Buffer.BlockCopy(binaryData, i, chunk, 0, chunk.Length);
