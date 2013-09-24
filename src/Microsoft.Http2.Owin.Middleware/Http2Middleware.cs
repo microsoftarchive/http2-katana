@@ -125,6 +125,10 @@ namespace Microsoft.Http2.Owin.Middleware
                             ? request.Scheme
                             : "http";
 
+            var host = !String.IsNullOrEmpty(request.Host)
+                            ? request.Host
+                            :  "localhost";
+
             var splittedSettings = new string[0];
             try
             {
@@ -159,7 +163,8 @@ namespace Microsoft.Http2.Owin.Middleware
                     {":method", method},
                     {":initial_window_size", windowSize},
                     {":max_concurrent_streams", maxStreams},
-                    {":scheme", scheme}
+                    {":scheme", scheme},
+                    {":host", host}
                 };
         }
         
