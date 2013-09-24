@@ -61,6 +61,7 @@ namespace Microsoft.Http2.Owin.Server.Adapters
             owinRequest.Path = headers.GetValue(":path");
             owinRequest.CallCancelled = CancellationToken.None;
 
+            owinRequest.Host = headers.GetValue(":host");
             owinRequest.PathBase = String.Empty;
             owinRequest.QueryString = String.Empty;
             owinRequest.Body = new MemoryStream();
@@ -84,22 +85,59 @@ namespace Microsoft.Http2.Owin.Server.Adapters
         /// <returns></returns>
         protected override void ProcessRequest(Http2Stream stream, Frame frame)
         {
-                Task.Factory.StartNew(async () =>
+            //spec 06
+            //8.1.2.1.  Request Header Fields
+            //HTTP/2.0 defines a number of headers starting with a ':' character
+            //that carry information about the request target:
+ 
+            //o  The ":method" header field includes the HTTP method ([HTTP-p2],
+            //      Section 4).
+ 
+            //o  The ":scheme" header field includes the scheme portion of the
+            //      target URI ([RFC3986], Section 3.1).
+ 
+            //o  The ":host" header field includes the authority portion of the
+            //      target URI ([RFC3986], Section 3.2).
+ 
+            //o  The ":path" header field includes the path and query parts of the
+                //target URI (the "path-absolute" production from [RFC3986] and
+                 //optionally a '?' character followed by the "query" production, see
+                 //[RFC3986], Section 3.3 and [RFC3986], Section 3.4).  This field
+                 //MUST NOT be empty; URIs that do not contain a path component MUST
+                 //include a value of '/', unless the request is an OPTIONS request
+                 //for '*', in which case the ":path" header field MUST include '*'.
+ 
+            //All HTTP/2.0 requests MUST include exactly one valid value for all of
+            //these header fields.  An intermediary MUST ensure that requests that
+            //it forwards are correct.  A server MUST treat the absence of any of
+            //these header fields, presence of multiple values, or an invalid value
+            //as a stream error (Section 5.4.2) of type PROTOCOL_ERROR.
+
+            if (stream.Headers.GetValue(":method") == null
+                || stream.Headers.GetValue(":path") == null
+                || stream.Headers.GetValue(":scheme") == null
+                || stream.Headers.GetValue(":host") == null)
+            {
+                stream.WriteRst(ResetStatusCode.ProtocolError);
+                return;
+            }
+
+            Task.Factory.StartNew(async () =>
+            {
+                var env = PopulateEnvironment(stream.Headers);
+
+                try
                 {
-                    var env = PopulateEnvironment(stream.Headers);
+                    await _next(env);
+                }
+                catch (Exception ex)
+                {   
+                    EndResponse(stream, ex);
+                    return;
+                }
 
-                    try
-                    {
-                        await _next(env);
-                    }
-                    catch (Exception ex)
-                    {   
-                        EndResponse(stream, ex);
-                        return;
-                    }
-
-                    await EndResponse(stream, env);
-                });
+                await EndResponse(stream, env);
+            });
             
         }
 
