@@ -47,7 +47,7 @@ namespace Microsoft.Http2.Protocol
         //Incoming
         internal Http2Stream(HeadersList headers, int id,
                            WriteQueue writeQueue, FlowControlManager flowCrtlManager, 
-                           ICompressionProcessor comprProc, Priority priority = Priority.Pri3)
+                           ICompressionProcessor comprProc, int priority = Constants.DefaultStreamPriority)
             : this(id, writeQueue, flowCrtlManager, comprProc, priority)
         {
             Headers = headers;
@@ -55,7 +55,7 @@ namespace Microsoft.Http2.Protocol
 
         //Outgoing
         internal Http2Stream(int id, WriteQueue writeQueue, FlowControlManager flowCrtlManager,
-                           ICompressionProcessor comprProc, Priority priority = Priority.Pri3)
+                           ICompressionProcessor comprProc, int priority = Constants.DefaultStreamPriority)
         {
             _id = id;
             Priority = priority;
@@ -116,7 +116,7 @@ namespace Microsoft.Http2.Protocol
             }
         }
 
-        public Priority Priority { get; set; }
+        public int Priority { get; set; }
 
         public bool ResetSent
         {

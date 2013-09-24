@@ -358,6 +358,7 @@ namespace Microsoft.Http2.Protocol
                 }
 
                 HeadersSequence sequence;
+                
                 switch (frame.FrameType)
                 {
                     case FrameType.Headers:
@@ -399,6 +400,11 @@ namespace Microsoft.Http2.Protocol
                             sequence.AddHeaders(headersFrame);
                         }
 
+                        if (headersFrame.HasPriority)
+                        {
+                            sequence.Priority = headersFrame.Priority;
+                        }
+
                         if (!sequence.IsComplete)
                         {
                             return;
@@ -407,7 +413,7 @@ namespace Microsoft.Http2.Protocol
                         stream = GetStream(headersFrame.StreamId);
                         if (stream == null)
                         {
-                            stream = CreateStream(sequence.Headers, frame.StreamId);
+                            stream = CreateStream(sequence.Headers, frame.StreamId, sequence.Priority);
                         }
                         else
                         {
@@ -461,7 +467,7 @@ namespace Microsoft.Http2.Protocol
                         stream = GetStream(contFrame.StreamId);
                         if (stream == null)
                         {
-                            stream = CreateStream(sequence.Headers, frame.StreamId);
+                            stream = CreateStream(sequence.Headers, frame.StreamId, sequence.Priority);
                         }
                         else
                         {
@@ -478,11 +484,12 @@ namespace Microsoft.Http2.Protocol
                         //type PROTOCOL_ERROR [PROTOCOL_ERROR].
                         if (priorityFrame.StreamId == 0)
                         {
-                            throw new ProtocolError(ResetStatusCode.ProtocolError, "Incoming headers frame with id = 0");
+                            throw new ProtocolError(ResetStatusCode.ProtocolError, "Incoming priority frame with id = 0");
                         }
 
                         Http2Logger.LogDebug("Priority frame. StreamId: {0} Priority: {1}", priorityFrame.StreamId,
                                              priorityFrame.Priority);
+
                         stream = GetStream(priorityFrame.StreamId);
                         if (_usePriorities)
                         {
@@ -609,18 +616,18 @@ namespace Microsoft.Http2.Protocol
                     stream.EndStreamReceived = true;
                 }
 
-                if (stream != null && OnFrameReceived != null)
-                {
-                    OnFrameReceived(this, new FrameReceivedEventArgs(stream, frame));
-                    stream.FramesReceived++;
-                }
+                if (stream == null || OnFrameReceived == null) 
+                    return;
+
+                OnFrameReceived(this, new FrameReceivedEventArgs(stream, frame));
+                stream.FramesReceived++;
             }
 
-                //An endpoint MUST NOT send frames on a closed stream.  An endpoint
-                //that receives a frame after receiving a RST_STREAM [RST_STREAM] or
-                //a frame containing a END_STREAM flag on that stream MUST treat
-                //that as a stream error (Section 5.4.2) of type STREAM_CLOSED
-                //[STREAM_CLOSED].
+            //An endpoint MUST NOT send frames on a closed stream.  An endpoint
+            //that receives a frame after receiving a RST_STREAM [RST_STREAM] or
+            //a frame containing a END_STREAM flag on that stream MUST treat
+            //that as a stream error (Section 5.4.2) of type STREAM_CLOSED
+            //[STREAM_CLOSED].
             catch (Http2StreamNotFoundException ex)
             {
                 Http2Logger.LogDebug("Frame for already closed stream with Id = {0}", ex.Id);
@@ -656,14 +663,14 @@ namespace Microsoft.Http2.Protocol
         /// <param name="streamId"></param>
         /// <param name="priority"></param>
         /// <returns></returns>
-        private Http2Stream CreateStream(HeadersList headers, int streamId, Priority priority = Priority.None)
+        private Http2Stream CreateStream(HeadersList headers, int streamId, int priority = -1)
         {
             if (ActiveStreams.GetOpenedStreamsBy(_remoteEnd) + 1 > OurMaxConcurrentStreams)
             {
                 throw new MaxConcurrentStreamsLimitException();
             }
 
-            if (priority == Priority.None)
+            if (priority == -1)
                 priority = Constants.DefaultStreamPriority;
 
             var stream = new Http2Stream(headers, streamId,
@@ -699,7 +706,7 @@ namespace Microsoft.Http2.Protocol
         /// <param name="priority">The stream priority.</param>
         /// <returns></returns>
         /// <exception cref="System.InvalidOperationException">Thrown when trying to create more streams than allowed by the remote side</exception>
-        private Http2Stream CreateStream(Priority priority)
+        private Http2Stream CreateStream(int priority)
         {
             if (ActiveStreams.GetOpenedStreamsBy(_ourEnd) + 1 > RemoteMaxConcurrentStreams)
             {
@@ -746,7 +753,7 @@ namespace Microsoft.Http2.Protocol
         /// <param name="pairs">The header pairs.</param>
         /// <param name="priority">The stream priority.</param>
         /// <param name="isEndStream">True if initial headers+priority is also the final frame from endpoint.</param>
-        public void SendRequest(HeadersList pairs, Priority priority, bool isEndStream)
+        public void SendRequest(HeadersList pairs, int priority, bool isEndStream)
         {
             var stream = CreateStream(priority);
 

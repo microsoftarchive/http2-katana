@@ -115,7 +115,7 @@ namespace Http2.Katana.Tests
                     new KeyValuePair<string, string>(":scheme", scheme),
                 };
 
-            adapter.SendRequest(pairs, Priority.Pri0, true);
+            adapter.SendRequest(pairs, Constants.DefaultStreamPriority, true);
         }
 
         [StandardFact]

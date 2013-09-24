@@ -5,15 +5,15 @@ namespace Microsoft.Http2.Protocol.IO
     internal class PriorityQueueEntry : IPriorityItem
     {
         private readonly Frame _frame;
-        private readonly Priority _priority;
+        private readonly int _priority;
 
-        public PriorityQueueEntry(Frame frame, Priority priority)
+        public PriorityQueueEntry(Frame frame, int priority)
         {
             _frame = frame;
             _priority = priority;
         }
 
-        public Priority Priority { get { return _priority; } }
+        public int Priority { get { return _priority; } }
 
         public Frame Frame { get { return _frame; } }
 

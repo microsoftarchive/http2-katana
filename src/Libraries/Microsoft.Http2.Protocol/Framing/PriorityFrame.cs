@@ -8,13 +8,13 @@ namespace Microsoft.Http2.Protocol.Framing
     /// </summary>
     internal class PriorityFrame : Frame
     {
-        public Priority Priority
+        public int Priority
         {
-            get { return (Priority) FrameHelpers.Get31BitsAt(Buffer, 8); }
-            set { FrameHelpers.Set31BitsAt(Buffer, 8, (int) value); }
+            get { return  FrameHelpers.Get31BitsAt(Buffer, 8); }
+            set { FrameHelpers.Set31BitsAt(Buffer, 8, value); }
         }
 
-        public PriorityFrame(Priority priority, int streamId)
+        public PriorityFrame(int priority, int streamId)
         {
             Contract.Assert(streamId != 0);
             StreamId = streamId;

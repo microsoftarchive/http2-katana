@@ -60,6 +60,7 @@
     <Compile Include="Exceptions\CompressionError.cs" />
     <Compile Include="Exceptions\Http2StreamNotFoundException.cs" />
     <Compile Include="Exceptions\InvalidHeaderException.cs" />
+    <Compile Include="Exceptions\MaxConcurrentStreamsLimitException.cs" />
     <Compile Include="Exceptions\MonitorIsBusyException.cs" />
     <Compile Include="Exceptions\ProtocolError.cs" />
     <Compile Include="Extensions\DictionaryExtenstions.cs" />
@@ -96,7 +97,6 @@
     <Compile Include="Framing\GoAwayFrame.cs" />
     <Compile Include="Framing\GoAwayStatusCode.cs" />
     <Compile Include="Framing\PingFrame.cs" />
-    <Compile Include="Framing\Priority.cs" />
     <Compile Include="Framing\ResetStatusCode.cs" />
     <Compile Include="Framing\RstStreamFrame.cs" />
     <Compile Include="Framing\SettingsIds.cs" />
