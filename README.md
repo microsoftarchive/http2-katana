@@ -6,7 +6,7 @@ HTTP/2.0 with Katana
 Please note following:
 * Be aware this code is released as a prototype and it currently handles only basic static files. 
 * This code should only be used for interoperability testing.
-* This prototype supports header compression (draft-ietf-httpbis-header-compression-01), and HTTP/2.0 features such as stream multiplexing, and negotiation mechanisms such as ALPN and HTTP upgrade, as well as the ability to establish direct HTTP/2.0 connections. 
+* This prototype supports header compression (draft-ietf-httpbis-header-compression-03), and HTTP/2.0 features such as stream multiplexing, and negotiation mechanisms such as ALPN and HTTP upgrade, as well as the ability to establish direct HTTP/2.0 connections. 
 * It does not yet implement server push or flow control. 
 * Apart from the server component, this prototype also includes a test command line client that makes HTTP/2.0 protocol requests to the server.
 * The following endpoints can be used for testing but will only work with an HTTP/2.0-enabled browser or HTTP/2.0 client (included in this source):
@@ -19,14 +19,14 @@ Please note following:
 
 Build and deployment instructions:
 
-1. Build http2Demo solution
+1. Build http2.Katana solution
 2. Navigate to Drop folder
-3. In Drop folder you can start server.exe to run server as console app
+3. In Drop folder you can start Http2.Owin.StaticFiles.Sample.exe to run server as console app
 4. Alternatively you can install server as service using Http2ServerService.exe as service executable
    For example: sc create http2Service displayname= "http2Service" binpath= "<your path>\Http2ServerService.exe"
    
 Configuration:
-1. You can use server.exe.config to configure console server or Http2ServerService.exe.config to configure service
+1. You can use Http2.Owin.StaticFiles.Sample.exe.config to configure console server or Http2ServerService.exe.config to configure service
 2. Configuration options description:
 	useSecurePort:		true or false
 	secureAddress:		address for https server that uses ALPN
