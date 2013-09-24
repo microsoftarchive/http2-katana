@@ -19,7 +19,8 @@ namespace Microsoft.Http2.Protocol.IO
         private SecureSocket _socket;
         private bool _isClosed;
         private readonly bool _ownsSocket;
-        private readonly object _locker;
+        private readonly object _waitLock;
+        private readonly object _closeLock;
         private readonly ManualResetEvent _streamStateChangeRaised;
         public override int ReadTimeout
         {
@@ -42,7 +43,8 @@ namespace Microsoft.Http2.Protocol.IO
             _ownsSocket = ownsSocket;
             _socket = socket;
             _isClosed = false;
-            _locker = new object();
+            _waitLock = new object();
+            _closeLock = new object();
             _streamStateChangeRaised = new ManualResetEvent(false);
 
             OnDataAvailable += (sender, args) => _streamStateChangeRaised.Set();
@@ -108,7 +110,7 @@ namespace Microsoft.Http2.Protocol.IO
         /// <returns></returns>
         private bool WaitForDataAvailable(int timeout)
         {
-            lock (_locker)
+            lock (_waitLock)
             {
                 if (Available != 0)
                 {
@@ -291,7 +293,7 @@ namespace Microsoft.Http2.Protocol.IO
 
         public override void Close()
         {
-            lock (_locker)
+            lock (_closeLock)
             {
                 //Return instead of throwing exception because external code calls Close and 
                 //it knows nothing about defined exception.

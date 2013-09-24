@@ -157,6 +157,8 @@ namespace Microsoft.Http2.Owin.Server
                     Http2Logger.LogError("Client was disconnected");
                 }
             }
+
+            GC.Collect();
         }
 
         private TransportInformation GetTransportInfo(SecureSocket incomingClient)
