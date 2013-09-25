@@ -51,32 +51,29 @@ namespace Microsoft.Http2.Owin.Middleware
                 // save original request parameters; used to complete request after upaque upgrade is done
                 var requestCopy = GetInitialRequestParams(context.Request);
 
-                upgradeDelegate.Invoke(new Dictionary<string, object>(), opaque =>
+                upgradeDelegate.Invoke(new Dictionary<string, object>(), async opaque =>
                     {
                         //use the same stream which was used during upgrade
                         var opaqueStream = opaque["opaque.Stream"] as DuplexStream;
 
                         //TODO Provide cancellation token here
                         // Move to method
-                        return Task.Run(async () =>
+                        try
+                        {
+                            using (var http2MessageHandler = new Http2OwinMessageHandler(opaqueStream,
+                                                                                            ConnectionEnd.Server,
+                                                                                            trInfo, _next,
+                                                                                            CancellationToken.None)
+                                )
                             {
-                                try
-                                {
-                                    using (var http2MessageHandler = new Http2OwinMessageHandler(opaqueStream,
-                                                                                                 ConnectionEnd.Server,
-                                                                                                 trInfo, _next,
-                                                                                                 CancellationToken.None)
-                                        )
-                                    {
-                                        await http2MessageHandler.StartSessionAsync(requestCopy);
-                                        GC.Collect();
-                                    }
-                                }
-                                catch (Exception ex)
-                                {
-                                    Http2Logger.LogError(ex.Message);
-                                }
-                            });
+                                await http2MessageHandler.StartSessionAsync(requestCopy);
+                                GC.Collect();
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Http2Logger.LogError(ex.Message);
+                        }
                     });
 
                 // specify Upgrade protocol
