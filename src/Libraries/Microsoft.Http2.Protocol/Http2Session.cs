@@ -580,11 +580,16 @@ namespace Microsoft.Http2.Protocol
                             stream = GetStream(windowFrame.StreamId);
 
                             //06
+                            //The legal range for the increment to the flow control window is 1 to
+                            //2^31 - 1 (0x7fffffff) bytes.
+                            bool isDeltaCorrect = 0 < windowFrame.Delta && windowFrame.Delta <= 0x7fffffff;
+
+                            //06
                             //A receiver can ignore WINDOW_UPDATE [WINDOW_UPDATE] or PRIORITY
                             //[PRIORITY] frames in this state.
                             //Tsyshnatiy: it can ignore, but it can not ignore also. I'm using it for
                             //initial request handling
-                            if (stream != null)
+                            if (stream != null && isDeltaCorrect)
                             {
                                 stream.UpdateWindowSize(windowFrame.Delta);
                                 stream.PumpUnshippedFrames();
