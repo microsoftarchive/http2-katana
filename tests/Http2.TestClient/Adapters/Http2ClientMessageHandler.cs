@@ -114,7 +114,7 @@ namespace Http2.TestClient.Adapters
             return _session.Ping();
         }
 
-        public void SendRequest(HeadersList pairs, Priority priority, bool isEndStream)
+        public void SendRequest(HeadersList pairs, int priority, bool isEndStream)
         {
             if (_wereFirstSettingsSent)
             {

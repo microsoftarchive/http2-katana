@@ -8,7 +8,6 @@ using System.Threading.Tasks;
 using Org.Mentalis.Security.Certificates;
 using Org.Mentalis.Security.Ssl;
 using Org.Mentalis.Security.Ssl.Shared.Extensions;
-using System.Configuration;
 using Microsoft.Http2.Protocol;
 using Microsoft.Http2.Protocol.Utils;
 

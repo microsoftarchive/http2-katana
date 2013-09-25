@@ -58,14 +58,14 @@ namespace Microsoft.Http2.Protocol.Framing
             }
         }
 
-        public Priority Priority
+        public int Priority
         {
             get
             {
                 if (!HasPriority)
-                    return Priority.Pri7;
+                    return Constants.DefaultStreamPriority;
 
-                return (Priority)FrameHelpers.Get32BitsAt(Buffer, 8);
+                return FrameHelpers.Get32BitsAt(Buffer, 8);
             }
             private set
             {
@@ -96,13 +96,13 @@ namespace Microsoft.Http2.Protocol.Framing
         /// <param name="streamId">Stream id</param>
         /// <param name="headerBytes">Header bytes</param>
         /// <param name="priority">Priority</param>
-        public HeadersFrame(int streamId, byte[] headerBytes, Priority priority = Priority.Pri7)
+        public HeadersFrame(int streamId, byte[] headerBytes, int priority = -1)
         {
             //PRIORITY (0x8):  Bit 4 being set indicates that the first four octets
             //of this frame contain a single reserved bit and a 31-bit priority;
             //If this bit is not set, the four bytes do not
             //appear and the frame only contains a header block fragment.
-            bool hasPriority = (priority != Priority.None);
+            bool hasPriority = (priority != -1);
 
             int preambleLength = hasPriority
                 ? PreambleSizeWithPriority

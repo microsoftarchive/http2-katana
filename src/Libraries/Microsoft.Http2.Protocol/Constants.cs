@@ -14,7 +14,7 @@ namespace Microsoft.Http2.Protocol
         public const int DefaultFlowControlCredit = 0xFFFF; // 64kb
         public const int MaxFrameContentSize = 0x3fff; // Spec 06 defines max frame size to be 16383 bytes.
         public const int InitialFlowControlOptionsValue = 0;
-        public const Priority DefaultStreamPriority = Priority.Pri6;
+        public const int DefaultStreamPriority = 1 << 30;
         public const string OwinVersion = "1.0";
     }
 }

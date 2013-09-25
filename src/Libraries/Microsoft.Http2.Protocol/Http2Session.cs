@@ -232,14 +232,14 @@ namespace Microsoft.Http2.Protocol
             {
                 WriteSettings(new[]
                     {
-                        new SettingsPair(SettingsFlags.None, SettingsIds.InitialWindowSize, 200000)
+                        new SettingsPair(SettingsFlags.None, SettingsIds.InitialWindowSize, Constants.MaxFrameContentSize)
                     });
             }
             else
             {
                 WriteSettings(new[]
                     {
-                        new SettingsPair(SettingsFlags.None, SettingsIds.InitialWindowSize, 200000),
+                        new SettingsPair(SettingsFlags.None, SettingsIds.InitialWindowSize, Constants.MaxFrameContentSize),
                         new SettingsPair(SettingsFlags.None, SettingsIds.FlowControlOptions, (byte) FlowControlOptions.DontUseFlowControl)
                     });
             }
@@ -286,7 +286,7 @@ namespace Microsoft.Http2.Protocol
                         _wasResponseReceived = true;
                     }
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
                     // Read failure, abort the connection/session.
                     Dispose();
@@ -319,7 +319,7 @@ namespace Microsoft.Http2.Protocol
                          Http2Logger.LogError("Handling session was cancelled");
                          Dispose();
                      }
-                     catch (Exception ex)
+                     catch (Exception)
                      {
                          Http2Logger.LogError("Sending frame was cancelled because connection was lost");
                          Dispose();
@@ -342,8 +342,9 @@ namespace Microsoft.Http2.Protocol
             {
                 if (frame.FrameLength > Constants.MaxFrameContentSize)
                 {
-                    throw new ProtocolError(ResetStatusCode.FrameTooLarge, 
-                                String.Format("Frame too large: Type: {0} {1}", frame.FrameType, frame.FrameLength));
+                    throw new ProtocolError(ResetStatusCode.FrameTooLarge,
+                                            String.Format("Frame too large: Type: {0} {1}", frame.FrameType,
+                                                          frame.FrameLength));
                 }
 
                 //Settings MUST be first frame in the session from server and 
@@ -357,11 +358,12 @@ namespace Microsoft.Http2.Protocol
                 }
 
                 HeadersSequence sequence;
+                
                 switch (frame.FrameType)
                 {
                     case FrameType.Headers:
                         Http2Logger.LogDebug("New headers with id = " + frame.StreamId);
-                        var headersFrame = (HeadersFrame)frame;
+                        var headersFrame = (HeadersFrame) frame;
 
                         //spec 06:
                         //If a HEADERS frame
@@ -398,6 +400,11 @@ namespace Microsoft.Http2.Protocol
                             sequence.AddHeaders(headersFrame);
                         }
 
+                        if (headersFrame.HasPriority)
+                        {
+                            sequence.Priority = headersFrame.Priority;
+                        }
+
                         if (!sequence.IsComplete)
                         {
                             return;
@@ -406,7 +413,7 @@ namespace Microsoft.Http2.Protocol
                         stream = GetStream(headersFrame.StreamId);
                         if (stream == null)
                         {
-                            stream = CreateStream(sequence.Headers, frame.StreamId);
+                            stream = CreateStream(sequence.Headers, frame.StreamId, sequence.Priority);
                         }
                         else
                         {
@@ -416,14 +423,16 @@ namespace Microsoft.Http2.Protocol
                     case FrameType.Continuation:
 
                         if (!(_lastFrame is ContinuationFrame || _lastFrame is HeadersFrame))
-                            throw new ProtocolError(ResetStatusCode.ProtocolError, "Last frame was not headers or continuation");
+                            throw new ProtocolError(ResetStatusCode.ProtocolError,
+                                                    "Last frame was not headers or continuation");
 
                         Http2Logger.LogDebug("New continuation with id = " + frame.StreamId);
-                        var contFrame = (HeadersFrame)frame;
+                        var contFrame = (HeadersFrame) frame;
 
                         if (contFrame.StreamId == 0)
                         {
-                            throw new ProtocolError(ResetStatusCode.ProtocolError, "Incoming continuation frame with id = 0");
+                            throw new ProtocolError(ResetStatusCode.ProtocolError,
+                                                    "Incoming continuation frame with id = 0");
                         }
 
                         var serHeaders = new byte[contFrame.CompressedHeaders.Count];
@@ -458,7 +467,7 @@ namespace Microsoft.Http2.Protocol
                         stream = GetStream(contFrame.StreamId);
                         if (stream == null)
                         {
-                            stream = CreateStream(sequence.Headers, frame.StreamId);
+                            stream = CreateStream(sequence.Headers, frame.StreamId, sequence.Priority);
                         }
                         else
                         {
@@ -466,7 +475,7 @@ namespace Microsoft.Http2.Protocol
                         }
                         break;
                     case FrameType.Priority:
-                        var priorityFrame = (PriorityFrame)frame;
+                        var priorityFrame = (PriorityFrame) frame;
 
                         //spec 06:
                         //The PRIORITY frame is associated with an existing stream.  If a
@@ -475,10 +484,12 @@ namespace Microsoft.Http2.Protocol
                         //type PROTOCOL_ERROR [PROTOCOL_ERROR].
                         if (priorityFrame.StreamId == 0)
                         {
-                            throw new ProtocolError(ResetStatusCode.ProtocolError, "Incoming headers frame with id = 0");
+                            throw new ProtocolError(ResetStatusCode.ProtocolError, "Incoming priority frame with id = 0");
                         }
 
-                        Http2Logger.LogDebug("Priority frame. StreamId: {0} Priority: {1}", priorityFrame.StreamId, priorityFrame.Priority);
+                        Http2Logger.LogDebug("Priority frame. StreamId: {0} Priority: {1}", priorityFrame.StreamId,
+                                             priorityFrame.Priority);
+
                         stream = GetStream(priorityFrame.StreamId);
                         if (_usePriorities)
                         {
@@ -497,13 +508,15 @@ namespace Microsoft.Http2.Protocol
                         break;
 
                     case FrameType.RstStream:
-                        var resetFrame = (RstStreamFrame)frame;
+                        var resetFrame = (RstStreamFrame) frame;
                         stream = GetStream(resetFrame.StreamId);
 
+                        //Spec 06 tells that impl MUST not answer with rst on rst to avoid loop.
                         if (stream != null)
                         {
-                            Http2Logger.LogDebug("RST frame with code {0} for id {1}", resetFrame.StatusCode, resetFrame.StreamId);
-                            stream.Dispose(resetFrame.StatusCode);
+                            Http2Logger.LogDebug("RST frame with code {0} for id {1}", resetFrame.StatusCode,
+                                                 resetFrame.StreamId);
+                            stream.Dispose(ResetStatusCode.None);
                         }
                         //Do not signal an error because (06)
                         //WINDOW_UPDATE [WINDOW_UPDATE], PRIORITY [PRIORITY], or RST_STREAM
@@ -511,17 +524,18 @@ namespace Microsoft.Http2.Protocol
                         //period after a frame containing an END_STREAM flag is sent.
                         break;
                     case FrameType.Data:
-                        var dataFrame = (DataFrame)frame;
+                        var dataFrame = (DataFrame) frame;
 
                         stream = GetStream(dataFrame.StreamId);
 
                         //Aggressive window update
                         if (stream != null)
                         {
-                            Http2Logger.LogDebug("Data frame. StreamId: {0} Length: {1}", dataFrame.StreamId, dataFrame.FrameLength);
+                            Http2Logger.LogDebug("Data frame. StreamId: {0} Length: {1}", dataFrame.StreamId,
+                                                 dataFrame.FrameLength);
                             if (stream.IsFlowControlEnabled)
                             {
-                                stream.WriteWindowUpdate(200000);
+                                stream.WriteWindowUpdate(Constants.MaxFrameContentSize);
                             }
                         }
                         else
@@ -530,8 +544,9 @@ namespace Microsoft.Http2.Protocol
                         }
                         break;
                     case FrameType.Ping:
-                        var pingFrame = (PingFrame)frame;
-                        Http2Logger.LogDebug("Ping frame with StreamId:{0} Payload:{1}", pingFrame.StreamId, pingFrame.Payload.Count);
+                        var pingFrame = (PingFrame) frame;
+                        Http2Logger.LogDebug("Ping frame with StreamId:{0} Payload:{1}", pingFrame.StreamId,
+                                             pingFrame.Payload.Count);
 
                         if (pingFrame.FrameLength != PingFrame.PayloadLength)
                         {
@@ -551,15 +566,17 @@ namespace Microsoft.Http2.Protocol
                         break;
                     case FrameType.Settings:
                         _wasSettingsReceived = true;
-                        var settingFrame = (SettingsFrame)frame;
-                        Http2Logger.LogDebug("Settings frame. Entry count: {0} StreamId: {1}", settingFrame.EntryCount, settingFrame.StreamId);
+                        var settingFrame = (SettingsFrame) frame;
+                        Http2Logger.LogDebug("Settings frame. Entry count: {0} StreamId: {1}", settingFrame.EntryCount,
+                                             settingFrame.StreamId);
                         _settingsManager.ProcessSettings(settingFrame, this, _flowControlManager);
                         break;
                     case FrameType.WindowUpdate:
                         if (_useFlowControl)
                         {
-                            var windowFrame = (WindowUpdateFrame)frame;
-                            Http2Logger.LogDebug("WindowUpdate frame. Delta: {0} StreamId: {1}", windowFrame.Delta, windowFrame.StreamId);
+                            var windowFrame = (WindowUpdateFrame) frame;
+                            Http2Logger.LogDebug("WindowUpdate frame. Delta: {0} StreamId: {1}", windowFrame.Delta,
+                                                 windowFrame.StreamId);
                             stream = GetStream(windowFrame.StreamId);
 
                             //06
@@ -592,18 +609,18 @@ namespace Microsoft.Http2.Protocol
 
                 _lastFrame = frame;
 
-                if (stream != null && frame is IEndStreamFrame && ((IEndStreamFrame)frame).IsEndStream)
+                if (stream != null && frame is IEndStreamFrame && ((IEndStreamFrame) frame).IsEndStream)
                 {
                     //Tell the stream that it was the last frame
                     Http2Logger.LogDebug("Final frame received for stream with id = " + stream.Id);
                     stream.EndStreamReceived = true;
                 }
 
-                if (stream != null && OnFrameReceived != null)
-                {
-                    OnFrameReceived(this, new FrameReceivedEventArgs(stream, frame));
-                    stream.FramesReceived++;
-                }
+                if (stream == null || OnFrameReceived == null) 
+                    return;
+
+                OnFrameReceived(this, new FrameReceivedEventArgs(stream, frame));
+                stream.FramesReceived++;
             }
 
             //An endpoint MUST NOT send frames on a closed stream.  An endpoint
@@ -627,6 +644,11 @@ namespace Microsoft.Http2.Protocol
                 Http2Logger.LogError("Protocol error occurred: " + pEx.Message);
                 Close(pEx.Code);
             }
+            catch (MaxConcurrentStreamsLimitException)
+            {
+                //Remote side tries to open more streams than allowed
+                Dispose();
+            }
             catch (Exception ex)
             {
                 Http2Logger.LogError("Unknown error occurred: " + ex.Message);
@@ -641,16 +663,14 @@ namespace Microsoft.Http2.Protocol
         /// <param name="streamId"></param>
         /// <param name="priority"></param>
         /// <returns></returns>
-        private Http2Stream CreateStream(HeadersList headers, int streamId, Priority priority = Priority.None)
+        private Http2Stream CreateStream(HeadersList headers, int streamId, int priority = -1)
         {
             if (ActiveStreams.GetOpenedStreamsBy(_remoteEnd) + 1 > OurMaxConcurrentStreams)
             {
-                //Remote side tries to open more streams than allowed
-                Dispose();
-                throw new InvalidOperationException("Trying to create more streams than allowed!");
+                throw new MaxConcurrentStreamsLimitException();
             }
 
-            if (priority == Priority.None)
+            if (priority == -1)
                 priority = Constants.DefaultStreamPriority;
 
             var stream = new Http2Stream(headers, streamId,
@@ -686,12 +706,11 @@ namespace Microsoft.Http2.Protocol
         /// <param name="priority">The stream priority.</param>
         /// <returns></returns>
         /// <exception cref="System.InvalidOperationException">Thrown when trying to create more streams than allowed by the remote side</exception>
-        private Http2Stream CreateStream(Priority priority)
+        private Http2Stream CreateStream(int priority)
         {
             if (ActiveStreams.GetOpenedStreamsBy(_ourEnd) + 1 > RemoteMaxConcurrentStreams)
             {
-                Dispose();
-                throw new InvalidOperationException("Trying to create more streams than allowed!");
+                throw new MaxConcurrentStreamsLimitException();
             }
 
             var id = GetNextId();
@@ -734,7 +753,7 @@ namespace Microsoft.Http2.Protocol
         /// <param name="pairs">The header pairs.</param>
         /// <param name="priority">The stream priority.</param>
         /// <param name="isEndStream">True if initial headers+priority is also the final frame from endpoint.</param>
-        public void SendRequest(HeadersList pairs, Priority priority, bool isEndStream)
+        public void SendRequest(HeadersList pairs, int priority, bool isEndStream)
         {
             var stream = CreateStream(priority);
 

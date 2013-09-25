@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using Microsoft.Http2.Protocol.Framing;
 
 namespace Microsoft.Http2.Protocol.IO
 {
@@ -9,15 +8,6 @@ namespace Microsoft.Http2.Protocol.IO
     {
         private List<IPriorityItem> _storage;
         private readonly object _lock = new object();
-        private readonly ListSorter _sorter;
-
-        private class ListSorter : IComparer<Priority>
-        {
-            public int Compare(Priority x, Priority y)
-            {
-                return x < y ? 1 : x == y ? 0 : -1;
-            }
-        }
 
         public int Count { get { return _storage.Count; } }
 
@@ -29,7 +19,6 @@ namespace Microsoft.Http2.Protocol.IO
         public PriorityQueue()
         {
             _storage = new List<IPriorityItem>();
-            _sorter = new ListSorter();
         }
 
         public PriorityQueue(IEnumerable<IPriorityItem> initialCollection)

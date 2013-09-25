@@ -46,7 +46,7 @@ namespace Microsoft.Http2.Protocol.IO
                 return;
             }
 
-            var priority = frame.StreamId != 0 ? _streams[frame.StreamId].Priority : Priority.Pri7;
+            var priority = frame.StreamId != 0 ? _streams[frame.StreamId].Priority : Constants.DefaultStreamPriority;
 
             IQueueItem entry;
 

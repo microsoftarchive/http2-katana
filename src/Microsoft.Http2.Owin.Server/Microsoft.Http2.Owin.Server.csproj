@@ -7,7 +7,7 @@
     <ProjectGuid>{658C0A0D-A624-4532-AFF0-180EC5ED7887}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>SocketServer</RootNamespace>
+    <RootNamespace>Microsoft.Http2.Owin.Server</RootNamespace>
     <AssemblyName>Microsoft.Http2.Owin.Server</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>

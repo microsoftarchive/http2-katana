@@ -8,6 +8,7 @@ namespace Microsoft.Http2.Protocol.Framing
         private bool _wasFirstFrameReceived;
         public int StreamId { get; private set; }
         public bool IsComplete { get; private set; }
+        public int Priority { get; set; }
 
         public HeadersList Headers
         {
@@ -16,6 +17,7 @@ namespace Microsoft.Http2.Protocol.Framing
 
         internal HeadersSequence(int streamId, IHeadersFrame initialFrame = null)
         {
+            Priority = Constants.DefaultStreamPriority;
             StreamId = streamId;
             IsComplete = false;
             _wasFirstFrameReceived = false;

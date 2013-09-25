@@ -46,7 +46,7 @@
         }
 
         //outgoing
-        public ContinuationFrame(int streamId, byte[] headerBytes, Priority priority = Priority.Pri7)
+        public ContinuationFrame(int streamId, byte[] headerBytes, int priority = Constants.DefaultStreamPriority)
         {
             _buffer = new byte[headerBytes.Length + PreambleSizeWithoutPriority];
 

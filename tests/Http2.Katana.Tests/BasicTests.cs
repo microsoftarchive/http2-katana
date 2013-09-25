@@ -28,6 +28,24 @@ namespace Http2.Katana.Tests
         }
 
         [StandardFact]
+        public void MinExtendedMathMultipleNumbersSuccessful()
+        {
+            var tests = new List<int[]>
+                {
+                    new [] {1, 0, -1, 10},
+                    new [] {16383, 16383, 16383, 16383},
+                    new [] {10, int.MaxValue, -100, int.MinValue},
+                };
+
+            var results = new[] { -1, 16383, int.MinValue };
+
+            for (int i = 0; i < tests.Count; i++)
+            {
+                Assert.Equal(MathEx.Min(tests[i]), results[i]);
+            }
+        }
+
+        [StandardFact]
         public void MinExtendedMathWithComparerSuccessful()
         {
             var tests = new List<string[]>
@@ -186,49 +204,49 @@ namespace Http2.Katana.Tests
         {
             var itemsCollection = new List<IPriorityItem>
                 {
-                    new PriorityQueueEntry(null, Priority.Pri0),
-                    new PriorityQueueEntry(null, Priority.Pri7),
-                    new PriorityQueueEntry(null, Priority.Pri3),
-                    new PriorityQueueEntry(null, Priority.Pri5),
-                    new PriorityQueueEntry(null, Priority.Pri2),
-                    new PriorityQueueEntry(null, Priority.Pri6),
-                    new PriorityQueueEntry(null, Priority.Pri2),
-                    new PriorityQueueEntry(null, Priority.Pri4),
-                    new PriorityQueueEntry(null, Priority.Pri1),
-                    new PriorityQueueEntry(null, Priority.Pri6),
-                    new PriorityQueueEntry(null, Priority.Pri0),
+                    new PriorityQueueEntry(null, 0),
+                    new PriorityQueueEntry(null, 7),
+                    new PriorityQueueEntry(null, 3),
+                    new PriorityQueueEntry(null, 4),
+                    new PriorityQueueEntry(null, 2),
+                    new PriorityQueueEntry(null, 6),
+                    new PriorityQueueEntry(null, 2),
+                    new PriorityQueueEntry(null, 4),
+                    new PriorityQueueEntry(null, 1),
+                    new PriorityQueueEntry(null, 6),
+                    new PriorityQueueEntry(null, 0),
                 };
 
             var queue = new PriorityQueue(itemsCollection);
             Assert.Equal(queue.Count, 11);
             var firstItem1 = queue.First();
-            Assert.Equal(((PriorityQueueEntry)firstItem1).Priority, Priority.Pri7);
+            Assert.Equal(((PriorityQueueEntry)firstItem1).Priority, 7);
             var lastItem1 = queue.Last();
-            Assert.Equal(((PriorityQueueEntry)lastItem1).Priority, Priority.Pri0);
+            Assert.Equal(((PriorityQueueEntry)lastItem1).Priority, 0);
             var peekedItem1 = queue.Peek();
-            Assert.Equal(((PriorityQueueEntry)peekedItem1).Priority, Priority.Pri7);
+            Assert.Equal(((PriorityQueueEntry)peekedItem1).Priority, 7);
             var item1 = queue.Dequeue();
-            Assert.Equal(((PriorityQueueEntry)item1).Priority, Priority.Pri7);
+            Assert.Equal(((PriorityQueueEntry)item1).Priority, 7);
             var item2 = queue.Dequeue();
-            Assert.Equal(((PriorityQueueEntry)item2).Priority, Priority.Pri6);
+            Assert.Equal(((PriorityQueueEntry)item2).Priority, 6);
             var item3 = queue.Dequeue();
-            Assert.Equal(((PriorityQueueEntry)item3).Priority, Priority.Pri6);
+            Assert.Equal(((PriorityQueueEntry)item3).Priority, 6);
             var item4 = queue.Dequeue();
-            Assert.Equal(((PriorityQueueEntry)item4).Priority, Priority.Pri5);
+            Assert.Equal(((PriorityQueueEntry)item4).Priority, 4);
             var item5 = queue.Dequeue();
-            Assert.Equal(((PriorityQueueEntry)item5).Priority, Priority.Pri4);
+            Assert.Equal(((PriorityQueueEntry)item5).Priority, 4);
             var item6 = queue.Dequeue();
-            Assert.Equal(((PriorityQueueEntry)item6).Priority, Priority.Pri3);
+            Assert.Equal(((PriorityQueueEntry)item6).Priority, 3);
             var item7 = queue.Dequeue();
-            Assert.Equal(((PriorityQueueEntry)item7).Priority, Priority.Pri2);
+            Assert.Equal(((PriorityQueueEntry)item7).Priority, 2);
             var item8 = queue.Dequeue();
-            Assert.Equal(((PriorityQueueEntry)item8).Priority, Priority.Pri2);
+            Assert.Equal(((PriorityQueueEntry)item8).Priority, 2);
             var item9 = queue.Dequeue();
-            Assert.Equal(((PriorityQueueEntry)item9).Priority, Priority.Pri1);
+            Assert.Equal(((PriorityQueueEntry)item9).Priority, 1);
             var item10 = queue.Dequeue();
-            Assert.Equal(((PriorityQueueEntry)item10).Priority, Priority.Pri0);
+            Assert.Equal(((PriorityQueueEntry)item10).Priority,0);
             var item11 = queue.Dequeue();
-            Assert.Equal(((PriorityQueueEntry)item11).Priority, Priority.Pri0);
+            Assert.Equal(((PriorityQueueEntry)item11).Priority, 0);
         }
 
         [StandardFact]

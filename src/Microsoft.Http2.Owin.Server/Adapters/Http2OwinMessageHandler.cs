@@ -61,6 +61,7 @@ namespace Microsoft.Http2.Owin.Server.Adapters
             owinRequest.Path = headers.GetValue(":path");
             owinRequest.CallCancelled = CancellationToken.None;
 
+            owinRequest.Host = headers.GetValue(":host");
             owinRequest.PathBase = String.Empty;
             owinRequest.QueryString = String.Empty;
             owinRequest.Body = new MemoryStream();
@@ -84,22 +85,59 @@ namespace Microsoft.Http2.Owin.Server.Adapters
         /// <returns></returns>
         protected override void ProcessRequest(Http2Stream stream, Frame frame)
         {
-                Task.Factory.StartNew(async () =>
+            //spec 06
+            //8.1.2.1.  Request Header Fields
+            //HTTP/2.0 defines a number of headers starting with a ':' character
+            //that carry information about the request target:
+ 
+            //o  The ":method" header field includes the HTTP method ([HTTP-p2],
+            //      Section 4).
+ 
+            //o  The ":scheme" header field includes the scheme portion of the
+            //      target URI ([RFC3986], Section 3.1).
+ 
+            //o  The ":host" header field includes the authority portion of the
+            //      target URI ([RFC3986], Section 3.2).
+ 
+            //o  The ":path" header field includes the path and query parts of the
+                //target URI (the "path-absolute" production from [RFC3986] and
+                 //optionally a '?' character followed by the "query" production, see
+                 //[RFC3986], Section 3.3 and [RFC3986], Section 3.4).  This field
+                 //MUST NOT be empty; URIs that do not contain a path component MUST
+                 //include a value of '/', unless the request is an OPTIONS request
+                 //for '*', in which case the ":path" header field MUST include '*'.
+ 
+            //All HTTP/2.0 requests MUST include exactly one valid value for all of
+            //these header fields.  An intermediary MUST ensure that requests that
+            //it forwards are correct.  A server MUST treat the absence of any of
+            //these header fields, presence of multiple values, or an invalid value
+            //as a stream error (Section 5.4.2) of type PROTOCOL_ERROR.
+
+            if (stream.Headers.GetValue(":method") == null
+                || stream.Headers.GetValue(":path") == null
+                || stream.Headers.GetValue(":scheme") == null
+                || stream.Headers.GetValue(":host") == null)
+            {
+                stream.WriteRst(ResetStatusCode.ProtocolError);
+                return;
+            }
+
+            Task.Factory.StartNew(async () =>
+            {
+                var env = PopulateEnvironment(stream.Headers);
+
+                try
                 {
-                    var env = PopulateEnvironment(stream.Headers);
+                    await _next(env);
+                }
+                catch (Exception ex)
+                {   
+                    EndResponse(stream, ex);
+                    return;
+                }
 
-                    try
-                    {
-                        await _next(env);
-                    }
-                    catch (Exception ex)
-                    {   
-                        EndResponse(stream, ex);
-                        return;
-                    }
-
-                    await EndResponse(stream, env);
-                });
+                await EndResponse(stream, env);
+            });
             
         }
 
@@ -159,7 +197,6 @@ namespace Microsoft.Http2.Owin.Server.Adapters
                 Http2Logger.LogDebug("Transfer begin");
                 int contentLen = int.Parse(response.Headers["Content-Length"]);
                 int read = 0;
-                //Debug.Assert(contentLen == responseBody.Length);
 
                 responseBody.Seek(0, SeekOrigin.Begin);
                 while (read < contentLen)
@@ -175,15 +212,6 @@ namespace Microsoft.Http2.Owin.Server.Adapters
                     read += tmpRead;
                     SendDataTo(stream, readBytes, read == contentLen);
                 }
-                //If stream is empty then do not send anything
-                //var responseDataBuffer = new byte[responseBody.Position];
-               // responseBody.Seek(0, SeekOrigin.Begin);
-                //Get data from stream, chunk it and send
-               // read = await responseBody.ReadAsync(responseDataBuffer, 0, responseDataBuffer.Length);
-
-                //Debug.Assert(read > 0);
-
-                //SendDataTo(stream, responseDataBuffer, true);
 
                 Http2Logger.LogDebug("Transfer end");
             }
@@ -223,12 +251,7 @@ namespace Microsoft.Http2.Owin.Server.Adapters
             Debug.Assert(binaryData.Length <= Constants.MaxFrameContentSize);
             do
             {
-                //bool isLastData = binaryData.Length - i < Constants.MaxFrameContentSize;
-
-                int chunkSize = stream.WindowSize > 0
-                                    ? MathEx.Min(binaryData.Length - i, Constants.MaxFrameContentSize,
-                                                    stream.WindowSize)
-                                    : MathEx.Min(binaryData.Length - i, Constants.MaxFrameContentSize);
+                int chunkSize = MathEx.Min(binaryData.Length - i, Constants.MaxFrameContentSize);
 
                 var chunk = new byte[chunkSize];
                 Buffer.BlockCopy(binaryData, i, chunk, 0, chunk.Length);
