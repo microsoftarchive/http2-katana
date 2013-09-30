@@ -57,7 +57,7 @@ namespace Microsoft.Http2.Protocol.Framing
         }
 
         //outgoing
-        public ContinuationFrame(int streamId, byte[] headerBytes, int priority = Constants.DefaultStreamPriority)
+        public ContinuationFrame(int streamId, byte[] headerBytes)
         {
             _buffer = new byte[headerBytes.Length + PreambleSizeWithoutPriority];
 
