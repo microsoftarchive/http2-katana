@@ -73,6 +73,7 @@
     <Compile Include="Commands\UnknownCommand.cs" />
     <Compile Include="GlobalSuppressions.cs" />
     <Compile Include="Handshake\HandshakeFailureReason.cs" />
+    <Compile Include="Handshake\HandshakeKeys.cs" />
     <Compile Include="Handshake\HandshakeManager.cs" />
     <Compile Include="Handshake\HandshakeResponse.cs" />
     <Compile Include="Handshake\HandshakeResult.cs" />

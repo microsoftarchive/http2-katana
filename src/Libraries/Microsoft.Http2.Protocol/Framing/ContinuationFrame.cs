@@ -1,6 +1,8 @@
-﻿namespace Microsoft.Http2.Protocol.Framing
+﻿using System;
+
+namespace Microsoft.Http2.Protocol.Framing
 {
-    internal class ContinuationFrame : Frame, IEndStreamFrame
+    internal class ContinuationFrame : Frame, IEndStreamFrame, IHeadersFrame
     {
 
         private const int PreambleSizeWithoutPriority = 8;
@@ -42,6 +44,15 @@
                 {
                     Flags |= FrameFlags.EndStream;
                 }
+            }
+        }
+
+        public ArraySegment<byte> CompressedHeaders
+        {
+            get
+            {
+                const int offset = Constants.FramePreambleSize;
+                return new ArraySegment<byte>(Buffer, offset, Buffer.Length - offset);
             }
         }
 

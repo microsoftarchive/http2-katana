@@ -67,8 +67,12 @@ namespace Microsoft.Http2.Protocol.FlowControl
 
         public FlowControlManager(Http2Session flowControlledSession)
         {
-            SessionInitialWindowSize = Constants.DefaultFlowControlCredit;
-            StreamsInitialWindowSize = Constants.DefaultFlowControlCredit;
+            //06
+            //When a HTTP/2.0 connection is first established, new streams are
+            //created with an initial flow control window size of 65535 bytes.  The
+            //connection flow control window is 65535 bytes.  
+            SessionInitialWindowSize = Constants.InitialFlowControlWindowSize;
+            StreamsInitialWindowSize = Constants.InitialFlowControlWindowSize;
 
             _flowControlledSession = flowControlledSession;
             _streamCollection = _flowControlledSession.ActiveStreams;

@@ -97,17 +97,17 @@ namespace Http2.TestClient
             }
         }
 
-        private void MakeHandshakeEnvironment(SecureSocket socket)
+        private void MakeHandshakeEnvironment()
         {
             _environment.AddRange(new Dictionary<string, object>
 			{
-                    {":path", _path},
-					{":version", _version},
-                    {":scheme", _scheme},
-                    {":host", _host},
-                    {"securityOptions", Options},
-                    {"stream", _clientStream},
-                    {"end", ConnectionEnd.Client}
+                    {CommonHeaders.Path, _path},
+					{CommonHeaders.Version, _version},
+                    {CommonHeaders.Scheme, _scheme},
+                    {CommonHeaders.Host, _host},
+                    {HandshakeKeys.Options, Options},
+                    {HandshakeKeys.Stream, _clientStream},
+                    {HandshakeKeys.ConnectionEnd, ConnectionEnd.Client}
 			});
         }
 
@@ -162,7 +162,7 @@ namespace Http2.TestClient
 
                     if (_useHandshake)
                     {
-                        MakeHandshakeEnvironment(socket);
+                        MakeHandshakeEnvironment();
                         //Handshake manager determines what handshake must be used: upgrade or secure
 
                         if (socket.SecureProtocol != SecureProtocol.None)
@@ -176,8 +176,8 @@ namespace Http2.TestClient
                             try
                             {
                                 var handshakeResult = new UpgradeHandshaker(_environment).Handshake();
-                                _environment.Add("HandshakeResult", handshakeResult);
-                                _useHttp20 = handshakeResult["handshakeSuccessful"] as string == "true";
+                                _environment.Add(HandshakeKeys.Result, handshakeResult);
+                                _useHttp20 = handshakeResult[HandshakeKeys.Successful] as string == HandshakeKeys.True;
 
                                 if (!_useHttp20)
                                 {
@@ -231,13 +231,12 @@ namespace Http2.TestClient
         {
             if (_useHttp20 && !_sessionAdapter.IsDisposed && !_isDisposed)
             {
-                string initialPath = String.Empty;
                 Dictionary<string, string> initialRequest = null;
                 if (!_clientStream.IsSecure)
                 {
                     initialRequest = new Dictionary<string,string>
                         {
-                            {":path", _path},
+                            {CommonHeaders.Path, _path},
                         };
                 }
  
@@ -258,14 +257,15 @@ namespace Http2.TestClient
         {
             var headers = new HeadersList
                 {
-                    new KeyValuePair<string, string>(":method", method),
-                    new KeyValuePair<string, string>(":path", request.PathAndQuery),
-                    new KeyValuePair<string, string>(":version", _version),
-                    new KeyValuePair<string, string>(":host", _host),
-                    new KeyValuePair<string, string>(":scheme", _scheme),
+                    new KeyValuePair<string, string>(CommonHeaders.Method, method),
+                    new KeyValuePair<string, string>(CommonHeaders.Path, request.PathAndQuery),
+                    new KeyValuePair<string, string>(CommonHeaders.Version, _version),
+                    new KeyValuePair<string, string>(CommonHeaders.Host, _host),
+                    new KeyValuePair<string, string>(CommonHeaders.Scheme, _scheme),
                 };
 
-            if (!String.IsNullOrEmpty(localPath))
+            //Put and post handling
+            /*if (!String.IsNullOrEmpty(localPath))
             {
                 headers.Add(new KeyValuePair<string, string>(":localPath".ToLower(), localPath));
             }
@@ -273,7 +273,7 @@ namespace Http2.TestClient
             if (!String.IsNullOrEmpty(serverPostAct))
             {
                 headers.Add(new KeyValuePair<string, string>(":serverPostAct".ToLower(), serverPostAct));
-            }
+            }*/
                 //Sending request with default  priority
             _sessionAdapter.SendRequest(headers, Constants.DefaultStreamPriority, false);
         }

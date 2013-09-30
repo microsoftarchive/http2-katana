@@ -1,5 +1,6 @@
 ﻿using Microsoft.Http2.Protocol.Compression;
 using Microsoft.Http2.Protocol.EventArgs;
+using Microsoft.Http2.Protocol.Exceptions;
 using Microsoft.Http2.Protocol.FlowControl;
 using Microsoft.Http2.Protocol.Framing;
 using Microsoft.Http2.Protocol.IO;
@@ -145,7 +146,20 @@ namespace Microsoft.Http2.Protocol
         {
             if (IsFlowControlEnabled)
             {
+                //06
+                //A sender MUST NOT allow a flow control window to exceed 2^31 - 1
+                //bytes.  If a sender receives a WINDOW_UPDATE that causes a flow
+                //control window to exceed this maximum it MUST terminate either the
+                //stream or the connection, as appropriate.  For streams, the sender
+                //sends a RST_STREAM with the error code of FLOW_CONTROL_ERROR code;
+                //for the connection, a GOAWAY frame with a FLOW_CONTROL_ERROR code.
                 WindowSize += delta;
+
+                if (WindowSize > Constants.MaxWindowSize)
+                {
+                    Http2Logger.LogDebug("Incorrect window size : {0}", WindowSize);
+                    throw new ProtocolError(ResetStatusCode.FlowControlError, String.Format("Incorrect window size : {0}", WindowSize));
+                }
             }
 
             //Unblock stream if it was blocked by flowCtrlManager
@@ -239,7 +253,12 @@ namespace Microsoft.Http2.Protocol
 
             //We cant let lesser frame that were passed through flow control window
             //be sent before greater frames that were not passed through flow control window
-            if (_unshippedFrames.Count != 0 || WindowSize <= 0)
+
+            //06
+            //The sender MUST NOT
+            //send a flow controlled frame with a length that exceeds the space
+            //available in either of the flow control windows advertised by the receiver.
+            if (_unshippedFrames.Count != 0 || WindowSize - dataFrame.Data.Count < 0)
             {
                 _unshippedFrames.Enqueue(dataFrame);
                 return;
@@ -270,12 +289,12 @@ namespace Microsoft.Http2.Protocol
         }
 
         /// <summary>
-        /// Writes the data frame.
+        /// Writes the data frame. Method is used for pushing unshipped frames.
         /// If flow control manager has blocked stream, frames are adding to the unshippedFrames collection.
         /// After window update for that stream they will be delivered.
         /// </summary>
         /// <param name="dataFrame">The data frame.</param>
-        public void WriteDataFrame(DataFrame dataFrame)
+        private void WriteDataFrame(DataFrame dataFrame)
         {
             if (Disposed)
                 return;

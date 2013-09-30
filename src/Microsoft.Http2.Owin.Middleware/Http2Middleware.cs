@@ -77,7 +77,7 @@ namespace Microsoft.Http2.Owin.Middleware
                     });
 
                 // specify Upgrade protocol
-                context.Response.Headers.Add("Upgrade", new[] { Protocols.Http2 });
+                context.Response.Headers.Add(CommonHeaders.Upgrade, new[] { Protocols.Http2 });
                 return;
             }
 
@@ -88,10 +88,10 @@ namespace Microsoft.Http2.Owin.Middleware
         private static bool IsRequestForHttp2Upgrade(IOwinRequest request)
         {
             var headers = request.Headers as IDictionary<string, string[]>;
-            return  headers.ContainsKey("Connection")
-                    && headers.ContainsKey("HTTP2-Settings")
-                    && headers.ContainsKey("Upgrade") 
-                    && headers["Upgrade"].FirstOrDefault(it =>
+            return headers.ContainsKey(CommonHeaders.Connection)
+                    && headers.ContainsKey(CommonHeaders.Http2Settings)
+                    && headers.ContainsKey(CommonHeaders.Upgrade)
+                    && headers[CommonHeaders.Upgrade].FirstOrDefault(it =>
                                          it.ToUpper().IndexOf("HTTP", StringComparison.Ordinal) != -1 &&
                                          it.IndexOf("2.0", StringComparison.Ordinal) != -1) != null;
         }
@@ -113,23 +113,23 @@ namespace Microsoft.Http2.Owin.Middleware
 
             var path = !String.IsNullOrEmpty(request.Path)
                             ? request.Path
-                            : "/index.html";
+                            : Constants.DefaultPath;
             var method = !String.IsNullOrEmpty(request.Method)
                             ? request.Method
-                            : "get";
+                            : Constants.DefaultMethod;
 
             var scheme = !String.IsNullOrEmpty(request.Scheme)
                             ? request.Scheme
-                            : "http";
+                            : Uri.UriSchemeHttp;
 
             var host = !String.IsNullOrEmpty(request.Host)
                             ? request.Host
-                            :  "localhost";
+                            : Constants.DefaultHost;
 
             var splittedSettings = new string[0];
             try
             {
-                var settingsBytes = Convert.FromBase64String(request.Headers["Http2-Settings"]);
+                var settingsBytes = Convert.FromBase64String(request.Headers[CommonHeaders.Http2Settings]);
                 var http2Settings = Encoding.UTF8.GetString(settingsBytes);
                 if (http2Settings.IndexOf(',') != -1)
                 {
@@ -156,12 +156,12 @@ namespace Microsoft.Http2.Owin.Middleware
             return new Dictionary<string, string>
                 {
                     //Add more headers
-                    {":path", path},
-                    {":method", method},
-                    {":initial_window_size", windowSize},
-                    {":max_concurrent_streams", maxStreams},
-                    {":scheme", scheme},
-                    {":host", host}
+                    {CommonHeaders.Path, path},
+                    {CommonHeaders.Method, method},
+                    {CommonHeaders.InitialWindowSize, windowSize},
+                    {CommonHeaders.MaxConcurrentStreams, maxStreams},
+                    {CommonHeaders.Scheme, scheme},
+                    {CommonHeaders.Host, host}
                 };
         }
         

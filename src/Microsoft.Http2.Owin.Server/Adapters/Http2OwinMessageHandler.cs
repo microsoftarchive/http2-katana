@@ -57,16 +57,16 @@ namespace Microsoft.Http2.Owin.Server.Adapters
             var owinRequest = owinContext.Request;
             var owinResponse = owinContext.Response;
 
-            owinRequest.Method = headers.GetValue(":method");
-            owinRequest.Path = headers.GetValue(":path");
+            owinRequest.Method = headers.GetValue(CommonHeaders.Method);
+            owinRequest.Path = headers.GetValue(CommonHeaders.Path);
             owinRequest.CallCancelled = CancellationToken.None;
 
-            owinRequest.Host = headers.GetValue(":host");
+            owinRequest.Host = headers.GetValue(CommonHeaders.Host);
             owinRequest.PathBase = String.Empty;
             owinRequest.QueryString = String.Empty;
             owinRequest.Body = new MemoryStream();
             owinRequest.Protocol = Protocols.Http2;
-            owinRequest.Scheme = headers.GetValue(":scheme") == Uri.UriSchemeHttp ? Uri.UriSchemeHttp : Uri.UriSchemeHttps;
+            owinRequest.Scheme = headers.GetValue(CommonHeaders.Scheme) == Uri.UriSchemeHttp ? Uri.UriSchemeHttp : Uri.UriSchemeHttps;
             owinRequest.RemoteIpAddress = _transportInfo.RemoteIpAddress;
             owinRequest.RemotePort = Convert.ToInt32(_transportInfo.RemotePort);
             owinRequest.LocalIpAddress = _transportInfo.LocalIpAddress;
@@ -113,10 +113,10 @@ namespace Microsoft.Http2.Owin.Server.Adapters
             //these header fields, presence of multiple values, or an invalid value
             //as a stream error (Section 5.4.2) of type PROTOCOL_ERROR.
 
-            if (stream.Headers.GetValue(":method") == null
-                || stream.Headers.GetValue(":path") == null
-                || stream.Headers.GetValue(":scheme") == null
-                || stream.Headers.GetValue(":host") == null)
+            if (stream.Headers.GetValue(CommonHeaders.Method) == null
+                || stream.Headers.GetValue(CommonHeaders.Path) == null
+                || stream.Headers.GetValue(CommonHeaders.Scheme) == null
+                || stream.Headers.GetValue(CommonHeaders.Host) == null)
             {
                 stream.WriteRst(ResetStatusCode.ProtocolError);
                 return;
@@ -195,7 +195,7 @@ namespace Microsoft.Http2.Owin.Server.Adapters
             if (hasDataContent)
             {
                 Http2Logger.LogDebug("Transfer begin");
-                int contentLen = int.Parse(response.Headers["Content-Length"]);
+                int contentLen = int.Parse(response.Headers[CommonHeaders.ContentLength]);
                 int read = 0;
 
                 responseBody.Seek(0, SeekOrigin.Begin);
@@ -228,7 +228,7 @@ namespace Microsoft.Http2.Owin.Server.Adapters
         {
             var headers = new HeadersList
                 {
-                    new KeyValuePair<string, string>(":status", statusCode.ToString()),
+                    new KeyValuePair<string, string>(CommonHeaders.Status, statusCode.ToString()),
                 };
 
             if (additionalHeaders != null)

@@ -42,6 +42,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ActiveStreams.cs" />
+    <Compile Include="CommonHeaders.cs" />
     <Compile Include="Compression\HeadersDeltaCompression\CompressionInitialHeaders.cs" />
     <Compile Include="Compression\HeadersDeltaCompression\CompressionProcessor.cs" />
     <Compile Include="Compression\IAdditionalHeaderInfo.cs" />
@@ -75,6 +76,7 @@
     <Compile Include="Framing\PriorityFrame.cs" />
     <Compile Include="HeadersList.cs" />
     <Compile Include="Http2MessageHandler.cs" />
+    <Compile Include="Http2Session\Http2SessionFrameHandling.cs" />
     <Compile Include="IO\DuplexStream.cs" />
     <Compile Include="IO\FileHelper.cs" />
     <Compile Include="Constants.cs" />
@@ -105,7 +107,7 @@
     <Compile Include="Framing\SettingsFrame.cs" />
     <Compile Include="Framing\Headers.cs" />
     <Compile Include="Framing\WindowUpdateFrame.cs" />
-    <Compile Include="Http2Session.cs" />
+    <Compile Include="Http2Session\Http2SessionDesc.cs" />
     <Compile Include="Http2Stream.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="IO\WriteQueue.cs" />
@@ -114,6 +116,7 @@
     <Compile Include="TransportInformation.cs" />
     <Compile Include="Utils\Http2Logger.cs" />
     <Compile Include="Utils\Http2LoggerState.cs" />
+    <Compile Include="Verbs.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

@@ -74,6 +74,9 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\CommonHeaders.cs">
+      <Link>Sources\Libraries\Microsoft.Http2.Protocol\CommonHeaders.cs</Link>
+    </Compile>
     <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Exceptions\MaxConcurrentStreamsLimitException.cs">
       <Link>Sources\Libraries\Microsoft.Http2.Protocol\Exceptions\MaxConcurrentStreamsLimitException.cs</Link>
     </Compile>
@@ -88,6 +91,15 @@
     </Compile>
     <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Http2MessageHandler.cs">
       <Link>Sources\Libraries\Microsoft.Http2.Protocol\Http2MessageHandler.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Http2Session\Http2SessionDesc.cs">
+      <Link>Sources\Libraries\Microsoft.Http2.Protocol\Http2Session\Http2SessionDesc.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Http2Session\Http2SessionFrameHandling.cs">
+      <Link>Sources\Libraries\Microsoft.Http2.Protocol\Http2Session\Http2SessionFrameHandling.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Verbs.cs">
+      <Link>Sources\Libraries\Microsoft.Http2.Protocol\Verbs.cs</Link>
     </Compile>
     <Compile Include="..\..\src\Microsoft.Http2.Owin.Server\Adapters\Http11Helper.cs">
       <Link>Sources\Microsoft.Http2.Owin.Server\Adapters\Http11Helper.cs</Link>
@@ -530,9 +542,6 @@
     </Compile>
     <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\HeadersList.cs">
       <Link>Sources\Libraries\Microsoft.Http2.Protocol\HeadersList</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Http2Session.cs">
-      <Link>Sources\Libraries\Microsoft.Http2.Protocol\Http2Session</Link>
     </Compile>
     <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Http2Stream.cs">
       <Link>Sources\Libraries\Microsoft.Http2.Protocol\Http2Stream</Link>

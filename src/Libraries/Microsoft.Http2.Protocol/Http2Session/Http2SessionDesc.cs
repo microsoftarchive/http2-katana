@@ -23,7 +23,7 @@ namespace Microsoft.Http2.Protocol
     /// This class creates and closes session, pumps incoming and outcoming frames and dispatches them.
     /// It defines events for request handling by subscriber. Also it is responsible for sending some frames.
     /// </summary>
-    public class Http2Session : IDisposable
+    public partial class Http2Session : IDisposable
     {
         private bool _goAwayReceived;
         private readonly FrameReader _frameReader;
@@ -176,9 +176,9 @@ namespace Microsoft.Http2.Protocol
         //Calls only in unsecure connection case
         private void DispatchInitialRequest(IDictionary<string, string> initialRequest)
         {
-            if (!initialRequest.ContainsKey(":path"))
+            if (!initialRequest.ContainsKey(CommonHeaders.Path))
             {
-                initialRequest.Add(":path", "/index.html");
+                initialRequest.Add(CommonHeaders.Path, Constants.DefaultPath);
             }
 
             var initialStream = CreateStream(new HeadersList(initialRequest), 1);
@@ -259,6 +259,7 @@ namespace Microsoft.Http2.Protocol
 
             incomingTask.Start();
             outgoingTask.Start();
+
             var endPumpsTask = Task.WhenAll(incomingTask, outgoingTask);
 
             //Handle upgrade handshake headers.
@@ -276,7 +277,7 @@ namespace Microsoft.Http2.Protocol
         {
             while (!_goAwayReceived && !_disposed)
             {
-                Frame frame = null;
+                Frame frame;
                 try
                 {
                     frame = _frameReader.ReadFrame();
@@ -306,27 +307,24 @@ namespace Microsoft.Http2.Protocol
         /// Pumps the outgoing data to write queue
         /// </summary>
         /// <returns></returns>
-        private Task PumpOutgoingData()
+        private void PumpOutgoingData()
         {
-             return Task.Run(() =>
-                 {
-                     try
-                     {
-                         _writeQueue.PumpToStream(_cancelSessionToken);
-                     }
-                     catch (OperationCanceledException)
-                     {
-                         Http2Logger.LogError("Handling session was cancelled");
-                         Dispose();
-                     }
-                     catch (Exception)
-                     {
-                         Http2Logger.LogError("Sending frame was cancelled because connection was lost");
-                         Dispose();
-                     }
+                try
+                {
+                    _writeQueue.PumpToStream(_cancelSessionToken);
+                }
+                catch (OperationCanceledException)
+                {
+                    Http2Logger.LogError("Handling session was cancelled");
+                    Dispose();
+                }
+                catch (Exception)
+                {
+                    Http2Logger.LogError("Sending frame was cancelled because connection was lost");
+                    Dispose();
+                }
 
-                     Http2Logger.LogDebug("Write thread finished");
-                 });
+                Http2Logger.LogDebug("Write thread finished");
         }
 
         /// <summary>
@@ -357,254 +355,34 @@ namespace Microsoft.Http2.Protocol
                                             "Settings was not the first frame in the session");
                 }
 
-                HeadersSequence sequence;
-                
                 switch (frame.FrameType)
                 {
                     case FrameType.Headers:
-                        Http2Logger.LogDebug("New headers with id = " + frame.StreamId);
-                        var headersFrame = (HeadersFrame) frame;
-
-                        //spec 06:
-                        //If a HEADERS frame
-                        //is received whose stream identifier field is 0x0, the recipient MUST
-                        //respond with a connection error (Section 5.4.1) of type
-                        //PROTOCOL_ERROR [PROTOCOL_ERROR].
-                        if (headersFrame.StreamId == 0)
-                        {
-                            throw new ProtocolError(ResetStatusCode.ProtocolError, "Incoming headers frame with id = 0");
-                        }
-
-                        var serializedHeaders = new byte[headersFrame.CompressedHeaders.Count];
-
-                        Buffer.BlockCopy(headersFrame.CompressedHeaders.Array,
-                                         headersFrame.CompressedHeaders.Offset,
-                                         serializedHeaders, 0, serializedHeaders.Length);
-
-                        var decompressedHeaders = _comprProc.Decompress(serializedHeaders);
-                        var headers = new HeadersList(decompressedHeaders);
-                        foreach (var header in headers)
-                        {
-                            Http2Logger.LogDebug("Stream {0} header: {1}={2}", frame.StreamId, header.Key, header.Value);
-                        }
-                        headersFrame.Headers.AddRange(headers);
-
-                        sequence = _headersSequences.Find(seq => seq.StreamId == headersFrame.StreamId);
-                        if (sequence == null)
-                        {
-                            sequence = new HeadersSequence(headersFrame.StreamId, headersFrame);
-                            _headersSequences.Add(sequence);
-                        }
-                        else
-                        {
-                            sequence.AddHeaders(headersFrame);
-                        }
-
-                        if (headersFrame.HasPriority)
-                        {
-                            sequence.Priority = headersFrame.Priority;
-                        }
-
-                        if (!sequence.IsComplete)
-                        {
-                            return;
-                        }
-
-                        stream = GetStream(headersFrame.StreamId);
-                        if (stream == null)
-                        {
-                            stream = CreateStream(sequence.Headers, frame.StreamId, sequence.Priority);
-                        }
-                        else
-                        {
-                            stream.Headers.AddRange(sequence.Headers);
-                        }
+                        HandleHeaders(frame as HeadersFrame, out stream);
                         break;
                     case FrameType.Continuation:
-
-                        if (!(_lastFrame is ContinuationFrame || _lastFrame is HeadersFrame))
-                            throw new ProtocolError(ResetStatusCode.ProtocolError,
-                                                    "Last frame was not headers or continuation");
-
-                        Http2Logger.LogDebug("New continuation with id = " + frame.StreamId);
-                        var contFrame = (HeadersFrame) frame;
-
-                        if (contFrame.StreamId == 0)
-                        {
-                            throw new ProtocolError(ResetStatusCode.ProtocolError,
-                                                    "Incoming continuation frame with id = 0");
-                        }
-
-                        var serHeaders = new byte[contFrame.CompressedHeaders.Count];
-
-                        Buffer.BlockCopy(contFrame.CompressedHeaders.Array,
-                                         contFrame.CompressedHeaders.Offset,
-                                         serHeaders, 0, serHeaders.Length);
-
-                        var decomprHeaders = _comprProc.Decompress(serHeaders);
-                        var contHeaders = new HeadersList(decomprHeaders);
-                        foreach (var header in contHeaders)
-                        {
-                            Http2Logger.LogDebug("Stream {0} header: {1}={2}", frame.StreamId, header.Key, header.Value);
-                        }
-                        contFrame.Headers.AddRange(contHeaders);
-                        sequence = _headersSequences.Find(seq => seq.StreamId == contFrame.StreamId);
-                        if (sequence == null)
-                        {
-                            sequence = new HeadersSequence(contFrame.StreamId, contFrame);
-                            _headersSequences.Add(sequence);
-                        }
-                        else
-                        {
-                            sequence.AddHeaders(contFrame);
-                        }
-
-                        if (!sequence.IsComplete)
-                        {
-                            return;
-                        }
-
-                        stream = GetStream(contFrame.StreamId);
-                        if (stream == null)
-                        {
-                            stream = CreateStream(sequence.Headers, frame.StreamId, sequence.Priority);
-                        }
-                        else
-                        {
-                            stream.Headers.AddRange(sequence.Headers);
-                        }
+                        HandleContinuation(frame as ContinuationFrame, out stream);
                         break;
                     case FrameType.Priority:
-                        var priorityFrame = (PriorityFrame) frame;
-
-                        //spec 06:
-                        //The PRIORITY frame is associated with an existing stream.  If a
-                        //PRIORITY frame is received with a stream identifier of 0x0, the
-                        //recipient MUST respond with a connection error (Section 5.4.1) of
-                        //type PROTOCOL_ERROR [PROTOCOL_ERROR].
-                        if (priorityFrame.StreamId == 0)
-                        {
-                            throw new ProtocolError(ResetStatusCode.ProtocolError, "Incoming priority frame with id = 0");
-                        }
-
-                        Http2Logger.LogDebug("Priority frame. StreamId: {0} Priority: {1}", priorityFrame.StreamId,
-                                             priorityFrame.Priority);
-
-                        stream = GetStream(priorityFrame.StreamId);
-                        if (_usePriorities)
-                        {
-                            //06
-                            //A receiver can ignore WINDOW_UPDATE [WINDOW_UPDATE] or PRIORITY
-                            //[PRIORITY] frames in this state.
-                            if (stream != null && !stream.EndStreamReceived)
-                            {
-                                stream.Priority = priorityFrame.Priority;
-                            }
-                            //Do not signal an error because (06)
-                            //WINDOW_UPDATE [WINDOW_UPDATE], PRIORITY [PRIORITY], or RST_STREAM
-                            //[RST_STREAM] frames can be received in this state for a short
-                            //period after a frame containing an END_STREAM flag is sent.
-                        }
+                        HandlePriority(frame as PriorityFrame, out stream);
                         break;
-
                     case FrameType.RstStream:
-                        var resetFrame = (RstStreamFrame) frame;
-                        stream = GetStream(resetFrame.StreamId);
-
-                        //Spec 06 tells that impl MUST not answer with rst on rst to avoid loop.
-                        if (stream != null)
-                        {
-                            Http2Logger.LogDebug("RST frame with code {0} for id {1}", resetFrame.StatusCode,
-                                                 resetFrame.StreamId);
-                            stream.Dispose(ResetStatusCode.None);
-                        }
-                        //Do not signal an error because (06)
-                        //WINDOW_UPDATE [WINDOW_UPDATE], PRIORITY [PRIORITY], or RST_STREAM
-                        //[RST_STREAM] frames can be received in this state for a short
-                        //period after a frame containing an END_STREAM flag is sent.
+                        HandleRstFrame(frame as RstStreamFrame, out stream);
                         break;
                     case FrameType.Data:
-                        var dataFrame = (DataFrame) frame;
-
-                        stream = GetStream(dataFrame.StreamId);
-
-                        //Aggressive window update
-                        if (stream != null)
-                        {
-                            Http2Logger.LogDebug("Data frame. StreamId: {0} Length: {1}", dataFrame.StreamId,
-                                                 dataFrame.FrameLength);
-                            if (stream.IsFlowControlEnabled)
-                            {
-                                stream.WriteWindowUpdate(Constants.MaxFrameContentSize);
-                            }
-                        }
-                        else
-                        {
-                            throw new Http2StreamNotFoundException(dataFrame.StreamId);
-                        }
+                        HandleDataFrame(frame as DataFrame, out stream);
                         break;
                     case FrameType.Ping:
-                        var pingFrame = (PingFrame) frame;
-                        Http2Logger.LogDebug("Ping frame with StreamId:{0} Payload:{1}", pingFrame.StreamId,
-                                             pingFrame.Payload.Count);
-
-                        if (pingFrame.FrameLength != PingFrame.PayloadLength)
-                        {
-                            throw new ProtocolError(ResetStatusCode.ProtocolError, "Ping payload size is not equal to 8");
-                        }
-
-                        if (pingFrame.IsPong)
-                        {
-                            _wasPingReceived = true;
-                            _pingReceived.Set();
-                        }
-                        else
-                        {
-                            var pongFrame = new PingFrame(true, pingFrame.Payload.ToArray());
-                            _writeQueue.WriteFrame(pongFrame);
-                        }
+                        HandlePingFrame(frame as PingFrame);
                         break;
                     case FrameType.Settings:
-                        _wasSettingsReceived = true;
-                        var settingFrame = (SettingsFrame) frame;
-                        Http2Logger.LogDebug("Settings frame. Entry count: {0} StreamId: {1}", settingFrame.EntryCount,
-                                             settingFrame.StreamId);
-                        _settingsManager.ProcessSettings(settingFrame, this, _flowControlManager);
+                        HandleSettingsFrame(frame as SettingsFrame);
                         break;
                     case FrameType.WindowUpdate:
-                        if (_useFlowControl)
-                        {
-                            var windowFrame = (WindowUpdateFrame) frame;
-                            Http2Logger.LogDebug("WindowUpdate frame. Delta: {0} StreamId: {1}", windowFrame.Delta,
-                                                 windowFrame.StreamId);
-                            stream = GetStream(windowFrame.StreamId);
-
-                            //06
-                            //The legal range for the increment to the flow control window is 1 to
-                            //2^31 - 1 (0x7fffffff) bytes.
-                            bool isDeltaCorrect = 0 < windowFrame.Delta && windowFrame.Delta <= 0x7fffffff;
-
-                            //06
-                            //A receiver can ignore WINDOW_UPDATE [WINDOW_UPDATE] or PRIORITY
-                            //[PRIORITY] frames in this state.
-                            //Tsyshnatiy: it can ignore, but it can not ignore also. I'm using it for
-                            //initial request handling
-                            if (stream != null && isDeltaCorrect)
-                            {
-                                stream.UpdateWindowSize(windowFrame.Delta);
-                                stream.PumpUnshippedFrames();
-                            }
-                            //Do not signal an error because (06)
-                            //WINDOW_UPDATE [WINDOW_UPDATE], PRIORITY [PRIORITY], or RST_STREAM
-                            //[RST_STREAM] frames can be received in this state for a short
-                            //period after a frame containing an END_STREAM flag is sent.
-                        }
+                        HandleWindowUpdateFrame(frame as WindowUpdateFrame, out stream);
                         break;
-
                     case FrameType.GoAway:
-                        _goAwayReceived = true;
-                        Http2Logger.LogDebug("GoAway frame received");
-                        Dispose();
+                        HandleGoAwayFrame(frame as GoAwayFrame);
                         break;
                     default:
                         //Item 4.1 in 06 spec: Implementations MUST ignore frames of unsupported or unrecognized types

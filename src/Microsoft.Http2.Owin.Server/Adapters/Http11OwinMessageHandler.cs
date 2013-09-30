@@ -85,7 +85,7 @@ namespace Microsoft.Http2.Owin.Server.Adapters
                     throw new NotSupportedException(method + " method is not currently supported via HTTP/1.1");
                 }
 
-                var scheme = _protocol == SecureProtocol.None ? "http" : "https";
+                var scheme = _protocol == SecureProtocol.None ? Uri.UriSchemeHttp : Uri.UriSchemeHttps;
 
                 var path = splittedRequestString[1];
 
@@ -130,7 +130,7 @@ namespace Microsoft.Http2.Owin.Server.Adapters
         /// <returns>True if method is supported, otherwise False.</returns>
         private static bool IsMethodSupported(string method)
         {
-            var supported = new[] {"GET","DELETE" };
+            var supported = new[] {Verbs.Get, Verbs.Delete };
 
             return supported.Contains(method.ToUpper());
         }
@@ -148,7 +148,7 @@ namespace Microsoft.Http2.Owin.Server.Adapters
             _response.StatusCode = StatusCode.Code101SwitchingProtocols;
             _response.ReasonPhrase = StatusCode.Reason101SwitchingProtocols;
             _response.Protocol = Protocols.Http1;
-            _response.Headers.Add("Connection", new[] {"Upgrade"});
+            _response.Headers.Add(CommonHeaders.Connection, new[] {CommonHeaders.Upgrade});
 
             _opaqueCallback = opaqueCallback;
         }
@@ -245,7 +245,7 @@ namespace Microsoft.Http2.Owin.Server.Adapters
                     PathBase = pathBase,
                     QueryString = queryString,
                     Body = new MemoryStream(requestBody ?? new byte[0]),
-                    Protocol = "HTTP/1.1"
+                    Protocol = Protocols.Http1
                 };
 
             // request.Headers is readonly
