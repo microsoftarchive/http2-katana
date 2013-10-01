@@ -33,7 +33,7 @@ namespace Microsoft.Http2.Protocol
         /// <summary>
         /// Occurs when stream was sent frame.
         /// </summary>
-        public event EventHandler<FrameSentArgs> OnFrameSent;
+        public event EventHandler<FrameSentEventArgs> OnFrameSent;
 
         /// <summary>
         /// Occurs when stream closes.
@@ -219,7 +219,7 @@ namespace Microsoft.Http2.Protocol
 
             if (OnFrameSent != null)
             {
-                OnFrameSent(this, new FrameSentArgs(frame));
+                OnFrameSent(this, new FrameSentEventArgs(frame));
             }
         }
 
@@ -260,7 +260,7 @@ namespace Microsoft.Http2.Protocol
 
                 if (OnFrameSent != null)
                 {
-                    OnFrameSent(this, new FrameSentArgs(dataFrame));
+                    OnFrameSent(this, new FrameSentEventArgs(dataFrame));
                 }
             }
             else
@@ -295,7 +295,7 @@ namespace Microsoft.Http2.Protocol
 
                 if (OnFrameSent != null)
                 {
-                    OnFrameSent(this, new FrameSentArgs(dataFrame));
+                    OnFrameSent(this, new FrameSentEventArgs(dataFrame));
                 }
             }
             else
@@ -318,7 +318,7 @@ namespace Microsoft.Http2.Protocol
 
             if (OnFrameSent != null)
             {
-                OnFrameSent(this, new FrameSentArgs(frame));
+                OnFrameSent(this, new FrameSentEventArgs(frame));
             }
         }
 
@@ -334,7 +334,7 @@ namespace Microsoft.Http2.Protocol
 
             if (OnFrameSent != null)
             {
-                OnFrameSent(this, new FrameSentArgs(frame));
+                OnFrameSent(this, new FrameSentEventArgs(frame));
             }
         }
 

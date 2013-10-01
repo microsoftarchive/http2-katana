@@ -6,7 +6,7 @@
         ProtocolError = 1,
         InternalError = 2,
         FlowControlError = 3,
-        UnsuportedVersion = 4,
+        UnsupportedVersion = 4,
         StreamClosed = 5,
         FrameTooLarge = 6,
         RefusedStream = 7,

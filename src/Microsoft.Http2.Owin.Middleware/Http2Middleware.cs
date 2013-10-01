@@ -104,7 +104,7 @@ namespace Microsoft.Http2.Owin.Middleware
                    && environment["opaque.Upgrade"] is UpgradeDelegate;
         }
 
-        private IDictionary<string, string> GetInitialRequestParams(IOwinRequest request)
+        private static IDictionary<string, string> GetInitialRequestParams(IOwinRequest request)
         {
             var defaultWindowSize = 200000.ToString(CultureInfo.InvariantCulture);
             var defaultMaxStreams = 100.ToString(CultureInfo.InvariantCulture);
@@ -166,7 +166,7 @@ namespace Microsoft.Http2.Owin.Middleware
         }
         
 
-        private TransportInformation CreateTransportInfo(IOwinRequest owinRequest)
+        private static TransportInformation CreateTransportInfo(IOwinRequest owinRequest)
         {
             return new TransportInformation
             {

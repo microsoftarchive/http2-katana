@@ -5,11 +5,11 @@ namespace Microsoft.Http2.Protocol.EventArgs
     /// <summary>
     /// This class is designed for future usage
     /// </summary>
-    public class FrameSentArgs : System.EventArgs
+    public class FrameSentEventArgs : System.EventArgs
     {
         public Frame Frame { get; private set; }
 
-        public FrameSentArgs(Frame frame)
+        public FrameSentEventArgs(Frame frame)
         {
             Frame = frame;
         }
