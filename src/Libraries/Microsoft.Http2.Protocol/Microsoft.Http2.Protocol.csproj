@@ -52,6 +52,7 @@
     <Compile Include="EventArgs\DataAvailableEventArgs.cs" />
     <Compile Include="EventArgs\DataFrameReceivedEventArgs.cs" />
     <Compile Include="EventArgs\DataFrameSentEventArgs.cs" />
+    <Compile Include="EventArgs\DataIsWrittenEventArgs.cs" />
     <Compile Include="EventArgs\FrameReceivedEventArgs.cs" />
     <Compile Include="EventArgs\FrameSentArgs.cs" />
     <Compile Include="EventArgs\Http11ResourceDownloadedEventArgs.cs" />
@@ -87,6 +88,7 @@
     <Compile Include="IO\PriorityQueueEntry.cs" />
     <Compile Include="IO\QueueEntry.cs" />
     <Compile Include="IO\QueueWrapper.cs" />
+    <Compile Include="IO\ResponseStream.cs" />
     <Compile Include="IO\StreamBuffer.cs" />
     <Compile Include="Protocols.cs" />
     <Compile Include="Settings\SettingsManager.cs" />

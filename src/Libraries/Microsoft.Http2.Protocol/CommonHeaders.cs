@@ -13,6 +13,6 @@
         public const string Http2Settings = "Http2-Settings";
         public const string Connection = "Connection";
         public const string Upgrade = "Upgrade";
-        public const string ContentLength = "Content-Length";
+        public const string ContentLength = "content-length";
     }
 }

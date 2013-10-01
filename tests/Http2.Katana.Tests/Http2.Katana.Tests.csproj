@@ -77,6 +77,9 @@
     <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\CommonHeaders.cs">
       <Link>Sources\Libraries\Microsoft.Http2.Protocol\CommonHeaders.cs</Link>
     </Compile>
+    <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\EventArgs\DataIsWrittenEventArgs.cs">
+      <Link>Sources\Libraries\Microsoft.Http2.Protocol\EventArgs\DataIsWrittenEventArgs.cs</Link>
+    </Compile>
     <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Exceptions\MaxConcurrentStreamsLimitException.cs">
       <Link>Sources\Libraries\Microsoft.Http2.Protocol\Exceptions\MaxConcurrentStreamsLimitException.cs</Link>
     </Compile>
@@ -97,6 +100,9 @@
     </Compile>
     <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Http2Session\Http2SessionFrameHandling.cs">
       <Link>Sources\Libraries\Microsoft.Http2.Protocol\Http2Session\Http2SessionFrameHandling.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\IO\ResponseStream.cs">
+      <Link>Sources\Libraries\Microsoft.Http2.Protocol\IO\ResponseStream.cs</Link>
     </Compile>
     <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Verbs.cs">
       <Link>Sources\Libraries\Microsoft.Http2.Protocol\Verbs.cs</Link>
