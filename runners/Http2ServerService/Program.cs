@@ -1,4 +1,6 @@
-﻿using System.ServiceProcess;
+﻿using System;
+using System.IO;
+using System.ServiceProcess;
 
 namespace Microsoft.Http2.Owin.Server.Service
 {
@@ -9,6 +11,7 @@ namespace Microsoft.Http2.Owin.Server.Service
         /// </summary>
         static void Main()
         {
+            Directory.SetCurrentDirectory(AppDomain.CurrentDomain.BaseDirectory);
             var servicesToRun = new ServiceBase[] 
             { 
                 new Http2ServerService() 
