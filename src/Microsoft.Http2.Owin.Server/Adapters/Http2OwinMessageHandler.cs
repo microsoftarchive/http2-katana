@@ -72,7 +72,7 @@ namespace Microsoft.Http2.Owin.Server.Adapters
             owinRequest.LocalIpAddress = _transportInfo.LocalIpAddress;
             owinRequest.LocalPort = _transportInfo.LocalPort;
 
-            owinResponse.Body = new ResponseStream();
+            owinResponse.Body = new ResponseStream{Capacity = 16384};
 
             return owinContext;
         }
@@ -163,7 +163,7 @@ namespace Microsoft.Http2.Owin.Server.Adapters
 
                                 respBody.Seek(0, SeekOrigin.Begin);
                                 int tmpRead = respBody.Read(temp, 0, temp.Length);
-                                respBody.Seek(position - tmpRead, SeekOrigin.Begin);
+                                respBody.Seek(0, SeekOrigin.Begin);
 
                                 Debug.Assert(tmpRead > 0);
 
