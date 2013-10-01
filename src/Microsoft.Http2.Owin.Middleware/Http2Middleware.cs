@@ -104,7 +104,7 @@ namespace Microsoft.Http2.Owin.Middleware
                    && environment[CommonOwinKeys.OpaqueUpgrade] is UpgradeDelegate;
         }
 
-        private IDictionary<string, string> GetInitialRequestParams(IOwinRequest request)
+        private static IDictionary<string, string> GetInitialRequestParams(IOwinRequest request)
         {
             var defaultWindowSize = Constants.InitialFlowControlWindowSize.ToString(CultureInfo.InvariantCulture);
             var defaultMaxStreams = Constants.DefaultMaxConcurrentStreams.ToString(CultureInfo.InvariantCulture);
@@ -166,7 +166,7 @@ namespace Microsoft.Http2.Owin.Middleware
         }
         
 
-        private TransportInformation CreateTransportInfo(IOwinRequest owinRequest)
+        private static TransportInformation CreateTransportInfo(IOwinRequest owinRequest)
         {
             return new TransportInformation
             {

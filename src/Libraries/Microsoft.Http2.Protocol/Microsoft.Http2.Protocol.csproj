@@ -54,7 +54,7 @@
     <Compile Include="EventArgs\DataFrameSentEventArgs.cs" />
     <Compile Include="EventArgs\DataIsWrittenEventArgs.cs" />
     <Compile Include="EventArgs\FrameReceivedEventArgs.cs" />
-    <Compile Include="EventArgs\FrameSentArgs.cs" />
+    <Compile Include="EventArgs\FrameSentEventArgs.cs" />
     <Compile Include="EventArgs\Http11ResourceDownloadedEventArgs.cs" />
     <Compile Include="EventArgs\RequestSentEventArgs.cs" />
     <Compile Include="EventArgs\SettingsSentEventArgs.cs" />

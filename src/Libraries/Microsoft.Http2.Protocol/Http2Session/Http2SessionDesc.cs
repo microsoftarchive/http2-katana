@@ -51,7 +51,7 @@ namespace Microsoft.Http2.Protocol
         /// <summary>
         /// Occurs when frame was sent.
         /// </summary>
-        public event EventHandler<FrameSentArgs> OnFrameSent;
+        public event EventHandler<FrameSentEventArgs> OnFrameSent;
 
         /// <summary>
         /// Occurs when frame was received.
