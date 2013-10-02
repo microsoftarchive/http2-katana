@@ -206,7 +206,6 @@ namespace Microsoft.Http2.Protocol
 
             if (pingFrame.IsPong)
             {
-                _wasPingReceived = true;
                 _pingReceived.Set();
             }
             else

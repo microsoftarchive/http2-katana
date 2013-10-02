@@ -22,6 +22,7 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -50,7 +51,6 @@
     <Compile Include="Compression\HeadersDeltaCompression\Indexation.cs" />
     <Compile Include="Compression\HeadersDeltaCompression\IndexationType.cs" />
     <Compile Include="EventArgs\DataAvailableEventArgs.cs" />
-    <Compile Include="EventArgs\DataFrameReceivedEventArgs.cs" />
     <Compile Include="EventArgs\DataFrameSentEventArgs.cs" />
     <Compile Include="EventArgs\DataIsWrittenEventArgs.cs" />
     <Compile Include="EventArgs\FrameReceivedEventArgs.cs" />
@@ -79,7 +79,6 @@
     <Compile Include="Http2MessageHandler.cs" />
     <Compile Include="Http2Session\Http2SessionFrameHandling.cs" />
     <Compile Include="IO\DuplexStream.cs" />
-    <Compile Include="IO\FileHelper.cs" />
     <Compile Include="Constants.cs" />
     <Compile Include="IO\IPriorityItem.cs" />
     <Compile Include="IO\IQueue.cs" />

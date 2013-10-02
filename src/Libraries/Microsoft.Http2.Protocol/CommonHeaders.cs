@@ -1,6 +1,6 @@
 ﻿namespace Microsoft.Http2.Protocol
 {
-    public class CommonHeaders
+    public static class CommonHeaders
     {
         public const string Version = ":version";
         public const string Status = ":status";

@@ -2,17 +2,16 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
-using System.Threading.Tasks;
 using Org.Mentalis.Security.Ssl;
 using Microsoft.Http2.Protocol.Extensions;
 using System.Linq;
 
-namespace Microsoft.Http2.Protocol.IO
+namespace Client.IO
 {
     /// <summary>
     /// This class compares files by their md5hash, gets file's content, saves data to specified file.
     /// </summary>
-    public class FileHelper : IDisposable
+    internal class FileHelper : IDisposable
     {
         private readonly Dictionary<string, FileStream> _pathStreamDict;
         private readonly ConnectionEnd _end;

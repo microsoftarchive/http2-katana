@@ -119,6 +119,9 @@
     <Compile Include="..\Http2.TestClient\Adapters\Http2ClientMessageHandler.cs">
       <Link>Sources\Client\Adapters\Http2ClientMessageHandler.cs</Link>
     </Compile>
+    <Compile Include="..\Http2.TestClient\IO\FileHelper.cs">
+      <Link>Sources\Client\IO\FileHelper.cs</Link>
+    </Compile>
     <Compile Include="BasicTests.cs" />
     <Compile Include="HandshakeTests.cs" />
     <Compile Include="Http11Tests.cs" />
@@ -435,9 +438,6 @@
     <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\EventArgs\DataAvailableEventArgs.cs">
       <Link>Sources\Libraries\Microsoft.Http2.Protocol\EventArgs\DataAvailableEventArgs</Link>
     </Compile>
-    <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\EventArgs\DataFrameReceivedEventArgs.cs">
-      <Link>Sources\Libraries\Microsoft.Http2.Protocol\EventArgs\DataFrameReceivedEventArgs</Link>
-    </Compile>
     <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\EventArgs\DataFrameSentEventArgs.cs">
       <Link>Sources\Libraries\Microsoft.Http2.Protocol\EventArgs\DataFrameSentEventArgs</Link>
     </Compile>
@@ -554,9 +554,6 @@
     </Compile>
     <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\IO\DuplexStream.cs">
       <Link>Sources\Libraries\Microsoft.Http2.Protocol\IO\DuplexStream</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\IO\FileHelper.cs">
-      <Link>Sources\Libraries\Microsoft.Http2.Protocol\IO\FileHelper</Link>
     </Compile>
     <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\IO\IPriorityItem.cs">
       <Link>Sources\Libraries\Microsoft.Http2.Protocol\IO\IPriorityItem</Link>

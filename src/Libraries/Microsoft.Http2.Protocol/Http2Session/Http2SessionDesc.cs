@@ -1,5 +1,4 @@
 ﻿using System.IO;
-using System.Linq;
 using System.Text;
 using System.Threading;
 using Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression;
@@ -18,7 +17,6 @@ using Microsoft.Http2.Protocol.Utils;
 
 namespace Microsoft.Http2.Protocol
 {
-    using AppFunc = Func<IDictionary<string, object>, Task>;
     /// <summary>
     /// This class creates and closes session, pumps incoming and outcoming frames and dispatches them.
     /// It defines events for request handling by subscriber. Also it is responsible for sending some frames.
@@ -29,7 +27,7 @@ namespace Microsoft.Http2.Protocol
         private readonly FrameReader _frameReader;
         private readonly WriteQueue _writeQueue;
         private readonly Stream _ioStream;
-        private readonly ManualResetEvent _pingReceived = new ManualResetEvent(false);
+        private ManualResetEvent _pingReceived = new ManualResetEvent(false);
         private bool _disposed;
         private readonly SettingsManager _settingsManager;
         private readonly ICompressionProcessor _comprProc;
@@ -41,7 +39,6 @@ namespace Microsoft.Http2.Protocol
         private readonly bool _isSecure;
         private int _lastId;
         private bool _wasSettingsReceived;
-        private bool _wasPingReceived;
         private bool _wasResponseReceived;
         private Frame _lastFrame;
         private readonly CancellationToken _cancelSessionToken;
@@ -606,18 +603,15 @@ namespace Microsoft.Http2.Protocol
             _writeQueue.WriteFrame(pingFrame);
             var now = DateTime.UtcNow;
 
-            _pingReceived.WaitOne(3000);
-            _pingReceived.Reset();
-
-            if (!_wasPingReceived)
+            if (!_pingReceived.WaitOne(3000))
             {
                 //Remote endpoint was not answer at time.
                 Dispose();
             }
+            _pingReceived.Reset();
 
             var newNow = DateTime.UtcNow;
             Http2Logger.LogDebug("Ping: " + (newNow - now).Milliseconds);
-            _wasPingReceived = false;
             return newNow - now;
         }
 
@@ -678,6 +672,12 @@ namespace Microsoft.Http2.Protocol
             if (_ioStream != null)
             {
                 _ioStream.Close();
+            }
+
+            if (_pingReceived != null)
+            {
+                _pingReceived.Dispose();
+                _pingReceived = null;
             }
 
             if (OnSessionDisposed != null)

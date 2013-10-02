@@ -5,7 +5,7 @@ namespace Microsoft.Http2.Protocol
     /// <summary>
     /// This class contains the most commonly used constants
     /// </summary>
-    public class Constants
+    public static class Constants
     {
         // There are always at least 8 bytes in a control frame or data frame
         public const int FramePreambleSize = 8;

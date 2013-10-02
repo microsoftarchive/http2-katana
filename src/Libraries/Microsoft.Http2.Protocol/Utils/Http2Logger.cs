@@ -42,7 +42,7 @@ namespace Microsoft.Http2.Protocol.Utils
     /// <summary>
     /// Http2 logger class
     /// </summary>   
-    public class Http2Logger
+    public static class Http2Logger
     {
         private static readonly string AssemblyPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().CodeBase.Substring(8));
         private const string LogFileName = "log.txt";

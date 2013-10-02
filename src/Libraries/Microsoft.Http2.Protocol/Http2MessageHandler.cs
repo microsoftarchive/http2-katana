@@ -7,12 +7,9 @@ using Microsoft.Http2.Protocol.Utils;
 using Org.Mentalis.Security.Ssl;
 using Microsoft.Http2.Protocol.EventArgs;
 using Microsoft.Http2.Protocol.Framing;
-using Microsoft.Http2.Protocol.IO;
 
 namespace Microsoft.Http2.Protocol
 {
-    using AppFunc = Func<IDictionary<string, object>, Task>;
-
     /// <summary>
     /// This class defines basic http2 request/response processing logic.
     /// </summary>

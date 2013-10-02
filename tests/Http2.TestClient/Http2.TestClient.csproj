@@ -82,6 +82,7 @@
     <Compile Include="Adapters\Http11ClientMessageHandler.cs" />
     <Compile Include="Adapters\Http2ClientMessageHandler.cs" />
     <Compile Include="Http2SessionHandler.cs" />
+    <Compile Include="IO\FileHelper.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

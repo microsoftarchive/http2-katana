@@ -2,6 +2,7 @@
 using System.IO;
 using System.Reflection;
 using System.Threading;
+using Client.IO;
 using Microsoft.Http2.Protocol;
 using Microsoft.Http2.Protocol.Framing;
 using Microsoft.Http2.Protocol.IO;
@@ -27,7 +28,7 @@ namespace Http2.TestClient.Adapters
 
         private void SaveDataFrame(Http2Stream stream, DataFrame dataFrame)
         {
-            string originalPath = stream.Headers.GetValue(":path".ToLower());
+            string originalPath = stream.Headers.GetValue(CommonHeaders.Path.ToLower());
             //If user sets the empty file in get command we return notFound webpage
             string fileName = string.IsNullOrEmpty(Path.GetFileName(originalPath)) ? Index : Path.GetFileName(originalPath);
             string path = Path.Combine(AssemblyPath, fileName);
@@ -102,7 +103,7 @@ namespace Http2.TestClient.Adapters
             //multiple values, or an invalid value as a stream error
             //(Section 5.4.2) of type PROTOCOL_ERROR [PROTOCOL_ERROR].
 
-            if (stream.Headers.GetValue(":status") == null)
+            if (stream.Headers.GetValue(CommonHeaders.Status) == null)
             {
                 stream.WriteRst(ResetStatusCode.ProtocolError); 
             }
