@@ -107,6 +107,9 @@
     <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Verbs.cs">
       <Link>Sources\Libraries\Microsoft.Http2.Protocol\Verbs.cs</Link>
     </Compile>
+    <Compile Include="..\..\src\Microsoft.Http2.Owin.Server\Adapters\CommonOwinKeys.cs">
+      <Link>Sources\Microsoft.Http2.Owin.Server\Adapters\CommonOwinKeys.cs</Link>
+    </Compile>
     <Compile Include="..\..\src\Microsoft.Http2.Owin.Server\Adapters\Http11Helper.cs">
       <Link>Sources\Microsoft.Http2.Owin.Server\Adapters\Http11Helper.cs</Link>
     </Compile>
