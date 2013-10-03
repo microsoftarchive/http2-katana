@@ -259,7 +259,7 @@ namespace Microsoft.Http2.Protocol
                 //06
                 //The legal range for the increment to the flow control window is 1 to
                 //2^31 - 1 (0x7fffffff) bytes.
-                if (!(0 < windowUpdateFrame.Delta && windowUpdateFrame.Delta <= 0x7fffffff))
+                if (!(0 < windowUpdateFrame.Delta && windowUpdateFrame.Delta <= Constants.MaxPriority))
                 {
                     Http2Logger.LogDebug("Incorrect window update delta : {0}", windowUpdateFrame.Delta);
                     throw new ProtocolError(ResetStatusCode.FlowControlError, String.Format("Incorrect window update delta : {0}", windowUpdateFrame.Delta));

@@ -21,7 +21,7 @@ namespace Microsoft.Http2.Protocol
         //06
         //A sender MUST NOT allow a flow control window to exceed 2^31 - 1 bytes.
         public const int MaxWindowSize = 0x7FFFFFFF;
-
+        public const int MaxPriority = 0x7fffffff;
         //06
         //When a HTTP/2.0 connection is first established, new streams are
         //created with an initial flow control window size of 65535 bytes.  The

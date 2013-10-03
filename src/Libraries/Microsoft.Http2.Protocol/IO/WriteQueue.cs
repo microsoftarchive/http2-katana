@@ -18,6 +18,12 @@ namespace Microsoft.Http2.Protocol.IO
 
         public WriteQueue(Stream stream, ActiveStreams streams, bool isPriorityTurnedOn)
         {
+            if (stream == null)
+                throw new ArgumentNullException("io stream is null");
+
+            if (streams == null)
+                throw new ArgumentNullException("streams collection is null");
+
             //Priorities are turned on for debugging
             IsPriorityTurnedOn = isPriorityTurnedOn;
             _streams = streams;
@@ -37,6 +43,9 @@ namespace Microsoft.Http2.Protocol.IO
         // Queue up a fully rendered frame to send
         public void WriteFrame(Frame frame)
         {
+            if (frame == null)
+                throw new ArgumentNullException("frame is null");
+
             //Do not write to already closed stream
             if (frame.FrameType != FrameType.Settings
                 && frame.FrameType != FrameType.GoAway
@@ -64,6 +73,9 @@ namespace Microsoft.Http2.Protocol.IO
 
         public void PumpToStream(CancellationToken cancel)
         {
+            if (cancel == null)
+                throw new ArgumentNullException("cancellation token is null");
+
             while (!_disposed)
             {
                 if (cancel.IsCancellationRequested)
@@ -104,6 +116,9 @@ namespace Microsoft.Http2.Protocol.IO
 
         public void Dispose()
         {
+            if (_disposed)
+                return;
+
             _disposed = true;
         }
     }

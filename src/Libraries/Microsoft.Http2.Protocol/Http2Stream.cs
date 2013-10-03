@@ -51,6 +51,10 @@ namespace Microsoft.Http2.Protocol
                            ICompressionProcessor comprProc, int priority = Constants.DefaultStreamPriority)
             : this(id, writeQueue, flowCrtlManager, comprProc, priority)
         {
+
+            if (headers == null)
+                throw new ArgumentNullException("cannot create stream with null headers");
+
             Headers = headers;
         }
 
@@ -58,6 +62,15 @@ namespace Microsoft.Http2.Protocol
         internal Http2Stream(int id, WriteQueue writeQueue, FlowControlManager flowCrtlManager,
                            ICompressionProcessor comprProc, int priority = Constants.DefaultStreamPriority)
         {
+            if (id <= 0)
+                throw new ArgumentOutOfRangeException("invalid id for stream");
+
+            if (writeQueue == null || flowCrtlManager == null || comprProc == null)
+                throw new ArgumentNullException("writeQueue or flowControlManager or compr proc is null");
+
+            if (priority < 0 || priority > Constants.MaxPriority)
+                throw  new ArgumentOutOfRangeException("priority out of range");
+
             _id = id;
             Priority = priority;
             _writeQueue = writeQueue;
@@ -211,6 +224,9 @@ namespace Microsoft.Http2.Protocol
 
         public void WriteHeadersFrame(HeadersList headers, bool isEndStream, bool isEndHeaders)
         {
+            if (headers == null)
+                throw new ArgumentNullException("headers is null");
+
             if (Disposed)
                 return;
 
@@ -246,6 +262,9 @@ namespace Microsoft.Http2.Protocol
         /// <param name="isEndStream">if set to <c>true</c> [is fin].</param>
         public void WriteDataFrame(byte[] data, bool isEndStream)
         {
+            if (data == null)
+                throw new ArgumentNullException("data is null");
+
             if (Disposed)
                 return;
 
@@ -296,6 +315,9 @@ namespace Microsoft.Http2.Protocol
         /// <param name="dataFrame">The data frame.</param>
         private void WriteDataFrame(DataFrame dataFrame)
         {
+            if (dataFrame == null)
+                throw new ArgumentNullException("dataFrame is null");
+
             if (Disposed)
                 return;
 
@@ -325,6 +347,12 @@ namespace Microsoft.Http2.Protocol
 
         public void WriteWindowUpdate(Int32 windowSize)
         {
+            if (windowSize <= 0)
+                throw new ArgumentOutOfRangeException("windowSize should be greater thasn 0");
+
+            if (windowSize > Constants.MaxWindowSize)
+                throw new ProtocolError(ResetStatusCode.FlowControlError, "window size is too large");
+
             //Spec 06
             //After a receiver reads in a frame that marks the end of a stream (for
             //example, a data stream with a END_STREAM flag set), it MUST cease

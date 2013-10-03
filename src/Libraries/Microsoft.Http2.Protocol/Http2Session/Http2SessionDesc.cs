@@ -100,8 +100,21 @@ namespace Microsoft.Http2.Protocol
                             bool usePriorities, bool useFlowControl, bool isSecure,
                             CancellationToken cancel,
                             int initialWindowSize = Constants.InitialFlowControlWindowSize,
-                            int maxConcurrentStream = Constants.DefaultMaxConcurrentStreams)
+                            int maxConcurrentStreams = Constants.DefaultMaxConcurrentStreams)
         {
+
+            if (stream == null)
+                throw new ArgumentNullException("stream is null");
+
+            if (cancel == null)
+                throw new ArgumentNullException("cancellation token is null");
+
+            if (maxConcurrentStreams <= 0)
+                throw new ArgumentOutOfRangeException("maxConcurrentStreams cant be less or equal then 0");
+
+            if (initialWindowSize <= 0 && useFlowControl)
+                throw new ArgumentOutOfRangeException("initialWindowSize cant be less or equal then 0");
+
             _ourEnd = end;
             _usePriorities = usePriorities;
             _useFlowControl = useFlowControl;
@@ -129,8 +142,8 @@ namespace Microsoft.Http2.Protocol
             ActiveStreams = new ActiveStreams();
 
             _writeQueue = new WriteQueue(_ioStream, ActiveStreams, _usePriorities);
-            OurMaxConcurrentStreams = maxConcurrentStream;
-            RemoteMaxConcurrentStreams = maxConcurrentStream;
+            OurMaxConcurrentStreams = maxConcurrentStreams;
+            RemoteMaxConcurrentStreams = maxConcurrentStreams;
             InitialWindowSize = initialWindowSize;
 
             _flowControlManager = new FlowControlManager(this);
@@ -442,6 +455,13 @@ namespace Microsoft.Http2.Protocol
         /// <returns></returns>
         private Http2Stream CreateStream(HeadersList headers, int streamId, int priority = -1)
         {
+
+            if (headers == null)
+                throw new ArgumentNullException("pairs is null");
+
+            if (priority < 0 || priority > Constants.MaxPriority)
+                throw new ArgumentOutOfRangeException("priority is not between 0 and MaxPriority");
+
             if (ActiveStreams.GetOpenedStreamsBy(_remoteEnd) + 1 > OurMaxConcurrentStreams)
             {
                 throw new MaxConcurrentStreamsLimitException();
@@ -485,6 +505,9 @@ namespace Microsoft.Http2.Protocol
         /// <exception cref="System.InvalidOperationException">Thrown when trying to create more streams than allowed by the remote side</exception>
         private Http2Stream CreateStream(int priority)
         {
+            if (priority < 0 || priority > Constants.MaxPriority)
+                throw new ArgumentOutOfRangeException("priority is not between 0 and MaxPriority");
+
             if (ActiveStreams.GetOpenedStreamsBy(_ourEnd) + 1 > RemoteMaxConcurrentStreams)
             {
                 throw new MaxConcurrentStreamsLimitException();
@@ -532,6 +555,12 @@ namespace Microsoft.Http2.Protocol
         /// <param name="isEndStream">True if initial headers+priority is also the final frame from endpoint.</param>
         public void SendRequest(HeadersList pairs, int priority, bool isEndStream)
         {
+            if (pairs == null)
+                throw new ArgumentNullException("pairs is null");
+
+            if (priority < 0 || priority > Constants.MaxPriority)
+                throw new ArgumentOutOfRangeException("priority is not between 0 and MaxPriority");
+
             var stream = CreateStream(priority);
 
             stream.WriteHeadersFrame(pairs, isEndStream, true);

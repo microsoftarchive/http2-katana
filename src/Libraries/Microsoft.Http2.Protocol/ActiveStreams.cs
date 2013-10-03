@@ -136,11 +136,17 @@ namespace Microsoft.Http2.Protocol
 
         public void Add(int key, Http2Stream value)
         {
+            if (value == null)
+                throw new ArgumentNullException("value is null");
+
             Add(value);
         }
 
         public void Add(KeyValuePair<int, Http2Stream> item)
         {
+            if (item.Value == null)
+                throw new ArgumentNullException("value is null");
+
             Add(item.Value);
         }
 
@@ -157,6 +163,9 @@ namespace Microsoft.Http2.Protocol
 
         public bool Contains(KeyValuePair<int, Http2Stream> item)
         {
+            if (item.Value == null)
+                throw new ArgumentNullException("value is null");
+
             return ContainsKey(item.Key);
         }
 
@@ -207,6 +216,9 @@ namespace Microsoft.Http2.Protocol
 
         public bool Remove(KeyValuePair<int, Http2Stream> item)
         {
+            if (item.Value == null)
+                throw new ArgumentNullException("value is null");
+
             return Remove(item.Key);
         }
 
@@ -235,6 +247,9 @@ namespace Microsoft.Http2.Protocol
 
         public void DisableFlowControl(Http2Stream stream)
         {
+            if (stream == null)
+                throw new ArgumentNullException("stream is null");
+
             if (IsStreamFlowControlled(stream))
             {
                 Remove(stream);
