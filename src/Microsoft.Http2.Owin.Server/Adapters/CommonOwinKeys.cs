@@ -1,6 +1,6 @@
 ﻿namespace Microsoft.Http2.Owin.Server.Adapters
 {
-    internal static class CommonOwinKeys
+    public static class CommonOwinKeys
     {
         public const string RequestHeaders = "owin.RequestHeaders";
         public const string ResponseHeaders = "owin.ResponseHeaders";

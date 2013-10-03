@@ -563,6 +563,9 @@ namespace Microsoft.Http2.Protocol
         /// <param name="settings">The settings.</param>
         public void WriteSettings(SettingsPair[] settings)
         {
+            if (settings == null)
+                throw new ArgumentNullException("settings array is null");
+
             var frame = new SettingsFrame(new List<SettingsPair>(settings));
 
             _writeQueue.WriteFrame(frame);

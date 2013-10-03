@@ -43,7 +43,7 @@ namespace Microsoft.Http2.Owin.Middleware
 
             if (IsOpaqueUpgradePossible(context.Request) && IsRequestForHttp2Upgrade(context.Request))
             {
-                var upgradeDelegate = environment["opaque.Upgrade"] as UpgradeDelegate;
+                var upgradeDelegate = environment[CommonOwinKeys.OpaqueUpgrade] as UpgradeDelegate;
                 Debug.Assert(upgradeDelegate != null, "upgradeDelegate is not null");
 
                 var trInfo = CreateTransportInfo(context.Request);
@@ -54,7 +54,7 @@ namespace Microsoft.Http2.Owin.Middleware
                 upgradeDelegate.Invoke(new Dictionary<string, object>(), async opaque =>
                     {
                         //use the same stream which was used during upgrade
-                        var opaqueStream = opaque["opaque.Stream"] as DuplexStream;
+                        var opaqueStream = opaque[CommonOwinKeys.OpaqueStream] as DuplexStream;
 
                         //TODO Provide cancellation token here
                         // Move to method
@@ -92,22 +92,22 @@ namespace Microsoft.Http2.Owin.Middleware
                     && headers.ContainsKey(CommonHeaders.Http2Settings)
                     && headers.ContainsKey(CommonHeaders.Upgrade)
                     && headers[CommonHeaders.Upgrade].FirstOrDefault(it =>
-                                         it.ToUpper().IndexOf("HTTP", StringComparison.Ordinal) != -1 &&
-                                         it.IndexOf("2.0", StringComparison.Ordinal) != -1) != null;
+                                         it.ToUpper().IndexOf(Protocols.Http2, StringComparison.OrdinalIgnoreCase) != -1
+                                         || it.ToUpper().IndexOf(Protocols.Http204, StringComparison.OrdinalIgnoreCase) != -1) != null;
         }
 
         private static bool IsOpaqueUpgradePossible(IOwinRequest request)
         {
             var environment = request.Environment;
 
-            return environment.ContainsKey("opaque.Upgrade")
-                   && environment["opaque.Upgrade"] is UpgradeDelegate;
+            return environment.ContainsKey(CommonOwinKeys.OpaqueUpgrade)
+                   && environment[CommonOwinKeys.OpaqueUpgrade] is UpgradeDelegate;
         }
 
         private IDictionary<string, string> GetInitialRequestParams(IOwinRequest request)
         {
-            var defaultWindowSize = 200000.ToString(CultureInfo.InvariantCulture);
-            var defaultMaxStreams = 100.ToString(CultureInfo.InvariantCulture);
+            var defaultWindowSize = Constants.InitialFlowControlWindowSize.ToString(CultureInfo.InvariantCulture);
+            var defaultMaxStreams = Constants.DefaultMaxConcurrentStreams.ToString(CultureInfo.InvariantCulture);
 
             bool areSettingsOk = true;
 

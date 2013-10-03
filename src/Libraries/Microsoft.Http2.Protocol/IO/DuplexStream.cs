@@ -41,6 +41,9 @@ namespace Microsoft.Http2.Protocol.IO
 
         public DuplexStream(SecureSocket socket, bool ownsSocket = false)
         {
+            if (socket == null)
+                throw new ArgumentNullException("socket is null");
+
             _writeBuffer = new StreamBuffer(1024);
             _readBuffer = new StreamBuffer(1024);
             _ownsSocket = ownsSocket;
@@ -233,7 +236,6 @@ namespace Microsoft.Http2.Protocol.IO
         // TODO to extension methods ?? + check for args
         public int Write(byte[] buffer)
         {
-
             if (buffer == null)
                 throw new ArgumentNullException("buffer is null");
 
