@@ -220,7 +220,32 @@ namespace Microsoft.Http2.Protocol
             _wasSettingsReceived = true;
             Http2Logger.LogDebug("Settings frame. Entry count: {0} StreamId: {1}", settingsFrame.EntryCount,
                                  settingsFrame.StreamId);
-            _settingsManager.ProcessSettings(settingsFrame, this, _flowControlManager);
+
+            for (int i = 0; i < settingsFrame.EntryCount; i++)
+            {
+
+                switch (settingsFrame[i].Id)
+                {
+                    case SettingsIds.MaxConcurrentStreams:
+                        RemoteMaxConcurrentStreams = settingsFrame[i].Value;
+                        break;
+                    case SettingsIds.InitialWindowSize:
+                        int newInitWindowSize = settingsFrame[i].Value;
+                        int windowSizeDiff = newInitWindowSize - _flowControlManager.StreamsInitialWindowSize;
+
+                        foreach (var stream in ActiveStreams.FlowControlledStreams.Values)
+                        {
+                            stream.WindowSize += windowSizeDiff;
+                        }
+
+                        _flowControlManager.StreamsInitialWindowSize = newInitWindowSize;
+                        InitialWindowSize = newInitWindowSize;
+                        break;
+                    case SettingsIds.FlowControlOptions:
+                        _flowControlManager.Options = settingsFrame[i].Value;
+                        break;
+                }
+            }
         }
 
         private void HandleWindowUpdateFrame(WindowUpdateFrame windowUpdateFrame, out Http2Stream stream)

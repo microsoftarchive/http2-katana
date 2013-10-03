@@ -91,7 +91,6 @@
     <Compile Include="IO\ResponseStream.cs" />
     <Compile Include="IO\StreamBuffer.cs" />
     <Compile Include="Protocols.cs" />
-    <Compile Include="Settings\SettingsManager.cs" />
     <Compile Include="Framing\DataFrame.cs" />
     <Compile Include="Framing\Frame.cs" />
     <Compile Include="Framing\FrameFlags.cs" />

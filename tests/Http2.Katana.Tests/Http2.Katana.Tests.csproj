@@ -597,9 +597,6 @@
     <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Protocols.cs">
       <Link>Sources\Libraries\Microsoft.Http2.Protocol\Protocols</Link>
     </Compile>
-    <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Settings\SettingsManager.cs">
-      <Link>Sources\Libraries\Microsoft.Http2.Protocol\Settings\SettingsManager</Link>
-    </Compile>
     <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\StatusCode.cs">
       <Link>Sources\Libraries\Microsoft.Http2.Protocol\StatusCode</Link>
     </Compile>

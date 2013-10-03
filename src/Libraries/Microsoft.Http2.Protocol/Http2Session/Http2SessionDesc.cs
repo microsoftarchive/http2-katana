@@ -8,7 +8,6 @@ using Org.Mentalis.Security.Ssl;
 using Microsoft.Http2.Protocol.Compression;
 using Microsoft.Http2.Protocol.Framing;
 using Microsoft.Http2.Protocol.IO;
-using Microsoft.Http2.Protocol.Settings;
 using Microsoft.Http2.Protocol.FlowControl;
 using System;
 using System.Collections.Generic;
@@ -29,7 +28,6 @@ namespace Microsoft.Http2.Protocol
         private readonly Stream _ioStream;
         private ManualResetEvent _pingReceived = new ManualResetEvent(false);
         private bool _disposed;
-        private readonly SettingsManager _settingsManager;
         private readonly ICompressionProcessor _comprProc;
         private readonly FlowControlManager _flowControlManager;
         private readonly ConnectionEnd _ourEnd;
@@ -123,7 +121,6 @@ namespace Microsoft.Http2.Protocol
             }
 
             _goAwayReceived = false;
-            _settingsManager = new SettingsManager();
             _comprProc = new CompressionProcessor(_ourEnd);
             _ioStream = stream;
 
