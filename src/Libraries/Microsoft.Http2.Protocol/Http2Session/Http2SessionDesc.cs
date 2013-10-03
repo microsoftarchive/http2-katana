@@ -101,8 +101,8 @@ namespace Microsoft.Http2.Protocol
         public Http2Session(Stream stream, ConnectionEnd end, 
                             bool usePriorities, bool useFlowControl, bool isSecure,
                             CancellationToken cancel,
-                            int initialWindowSize = 200000,
-                            int maxConcurrentStream = 100)
+                            int initialWindowSize = Constants.InitialFlowControlWindowSize,
+                            int maxConcurrentStream = Constants.DefaultMaxConcurrentStreams)
         {
             _ourEnd = end;
             _usePriorities = usePriorities;

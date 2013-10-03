@@ -24,7 +24,7 @@ namespace Microsoft.Http2.Owin.Server
         private const string CertificateFilename = @"\certificate.pfx";
 
         private readonly Thread _listenThread;
-        private readonly CancellationTokenSource _cancelAccept;
+        private CancellationTokenSource _cancelAccept;
         private readonly AppFunc _next;
         private readonly int _port;
         private readonly string _scheme;
@@ -94,8 +94,12 @@ namespace Microsoft.Http2.Owin.Server
             if (_disposed)
                 return;
 
-            _cancelAccept.Cancel();
-            _cancelAccept.Dispose();
+            if (_cancelAccept != null)
+            {
+                _cancelAccept.Cancel();
+                _cancelAccept.Dispose();
+                _cancelAccept = null;
+            }
 
             _disposed = true;
             if (_server != null)

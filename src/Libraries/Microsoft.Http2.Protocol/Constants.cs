@@ -17,6 +17,7 @@ namespace Microsoft.Http2.Protocol
         public const string DefaultMethod = Verbs.Get;
         public const string DefaultHost = "localhost";
 
+        public const int DefaultMaxConcurrentStreams = 100;
         //06
         //A sender MUST NOT allow a flow control window to exceed 2^31 - 1 bytes.
         public const int MaxWindowSize = 0x7FFFFFFF;
@@ -27,6 +28,5 @@ namespace Microsoft.Http2.Protocol
         //connection flow control window is 65535 bytes.  
         public const int InitialFlowControlWindowSize = 0xFFFF;
         public const int DefaultStreamPriority = 1 << 30;
-        public const string OwinVersion = "1.0";
     }
 }

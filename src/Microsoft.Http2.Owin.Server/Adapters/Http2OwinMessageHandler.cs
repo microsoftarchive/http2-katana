@@ -51,8 +51,8 @@ namespace Microsoft.Http2.Owin.Server.Adapters
 
             var headersAsDict = headers.ToDictionary(header => header.Key, header => new[] {header.Value}, StringComparer.OrdinalIgnoreCase);
 
-            owinContext.Environment["owin.RequestHeaders"] = headersAsDict;
-            owinContext.Environment["owin.ResponseHeaders"] = new Dictionary<string, string[]>();
+            owinContext.Environment[CommonOwinKeys.RequestHeaders] = headersAsDict;
+            owinContext.Environment[CommonOwinKeys.ResponseHeaders] = new Dictionary<string, string[]>();
 
             var owinRequest = owinContext.Request;
             var owinResponse = owinContext.Response;
@@ -158,8 +158,6 @@ namespace Microsoft.Http2.Owin.Server.Adapters
                             if (read < contentLen)
                             {
                                 var temp = new byte[args.Count];
-
-                                long position = respBody.Position;
 
                                 respBody.Seek(0, SeekOrigin.Begin);
                                 int tmpRead = respBody.Read(temp, 0, temp.Length);

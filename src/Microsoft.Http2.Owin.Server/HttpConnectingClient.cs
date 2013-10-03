@@ -33,7 +33,7 @@ namespace Microsoft.Http2.Owin.Server
         private readonly bool _useHandshake;
         private readonly bool _usePriorities;
         private readonly bool _useFlowControl;
-        private readonly CancellationTokenSource _cancelClientHandling;
+        private CancellationTokenSource _cancelClientHandling;
         private bool _isDisposed;
 
         internal HttpConnectingClient(SecureTcpListener server, SecurityOptions options, AppFunc next, 
@@ -199,6 +199,12 @@ namespace Microsoft.Http2.Owin.Server
         {
             if (_isDisposed)
                 return;
+
+            if (_cancelClientHandling != null)
+            {
+                _cancelClientHandling.Dispose();
+                _cancelClientHandling = null;
+            }
 
             _isDisposed = true;
         }

@@ -161,9 +161,9 @@ namespace Microsoft.Http2.Owin.Server.Adapters
 
             var headers = _request.Headers;
 
-            if (headers.ContainsKey("Connection") && headers.ContainsKey("Upgrade"))
+            if (headers.ContainsKey(CommonHeaders.Connection) && headers.ContainsKey(CommonHeaders.Upgrade))
             {
-                _environment["opaque.Upgrade"] = new UpgradeDelegate(OpaqueUpgradeDelegate);
+                _environment[CommonOwinKeys.OpaqueUpgrade] = new UpgradeDelegate(OpaqueUpgradeDelegate);
             }
        
         }
@@ -175,9 +175,9 @@ namespace Microsoft.Http2.Owin.Server.Adapters
         private Environment CreateOpaqueEnvironment()
         {
             var env = new Dictionary<string, object>(StringComparer.Ordinal);
-            env["opaque.Stream"] = _client;
-            env["opaque.Version"] = "1.0";
-            env["opaque.CallCancelled"] = new CancellationToken();
+            env[CommonOwinKeys.OpaqueStream] = _client;
+            env[CommonOwinKeys.OpaqueVersion] = CommonOwinKeys.OwinVersion;
+            env[CommonOwinKeys.OpaqueCallCancelled] = new CancellationToken();
 
             return env;
         }
@@ -233,7 +233,7 @@ namespace Microsoft.Http2.Owin.Server.Adapters
                                                                         string path, IDictionary<string, string[]> headers, string queryString = "", byte[] requestBody = null)
         {
             var environment = new Dictionary<string, object>(StringComparer.Ordinal);
-            environment["owin.CallCancelled"] = new CancellationToken();
+            environment[CommonOwinKeys.OwinCallCancelled] = new CancellationToken();
 
             #region OWIN request params
 
@@ -249,7 +249,7 @@ namespace Microsoft.Http2.Owin.Server.Adapters
                 };
 
             // request.Headers is readonly
-            request.Set("owin.RequestHeaders", headers);
+            request.Set(CommonOwinKeys.RequestHeaders, headers);
 
             #endregion
 
@@ -258,7 +258,7 @@ namespace Microsoft.Http2.Owin.Server.Adapters
 
             var response = new OwinResponse(environment) {Body = new MemoryStream(), StatusCode = StatusCode.Code200Ok};
             //response.Headers is readonly
-            response.Set("owin.ResponseHeaders", new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase));
+            response.Set(CommonOwinKeys.ResponseHeaders, new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase));
 
             #endregion
 
