@@ -459,6 +459,9 @@ namespace Microsoft.Http2.Protocol
             if (headers == null)
                 throw new ArgumentNullException("pairs is null");
 
+            if (priority == -1)
+                priority = Constants.DefaultStreamPriority;
+
             if (priority < 0 || priority > Constants.MaxPriority)
                 throw new ArgumentOutOfRangeException("priority is not between 0 and MaxPriority");
 
@@ -466,9 +469,6 @@ namespace Microsoft.Http2.Protocol
             {
                 throw new MaxConcurrentStreamsLimitException();
             }
-
-            if (priority == -1)
-                priority = Constants.DefaultStreamPriority;
 
             var stream = new Http2Stream(headers, streamId,
                                          _writeQueue, _flowControlManager,
