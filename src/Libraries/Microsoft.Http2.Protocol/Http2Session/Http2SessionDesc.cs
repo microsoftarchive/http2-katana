@@ -264,14 +264,15 @@ namespace Microsoft.Http2.Protocol
                     PumpOutgoingData();
                 });
 
-            incomingTask.Start();
             outgoingTask.Start();
-
-            var endPumpsTask = Task.WhenAll(incomingTask, outgoingTask);
 
             //Handle upgrade handshake headers.
             if (initialRequest != null && !_isSecure)
                 DispatchInitialRequest(initialRequest);
+            
+            incomingTask.Start();
+
+            var endPumpsTask = Task.WhenAll(incomingTask, outgoingTask);
 
             //Cancellation token
             endPumpsTask.Wait();

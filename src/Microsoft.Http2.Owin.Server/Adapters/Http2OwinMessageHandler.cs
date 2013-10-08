@@ -123,73 +123,77 @@ namespace Microsoft.Http2.Owin.Server.Adapters
             }
 
             Task.Factory.StartNew(async () =>
-            {          
-                try
                 {
-                    var context = PopulateEnvironment(stream.Headers); 
-                    var isFirstWrite = true;
-                    var response = context.Response;
-                    var respBody = response.Body as ResponseStream;
-                    HeadersList responseHeaders = null;
+                    var context = PopulateEnvironment(stream.Headers);
+                    await SendResponse(stream, context);
+                });
 
-                    if (respBody == null)
+        }
+
+        private async Task SendResponse(Http2Stream stream, IOwinContext context)
+        {
+            try
+            {
+                var isFirstWrite = true;
+                var response = context.Response;
+                var respBody = response.Body as ResponseStream;
+                HeadersList responseHeaders = null;
+
+                if (respBody == null)
+                {
+                    stream.WriteRst(ResetStatusCode.InternalError);
+                    return;
+                }
+
+                int contentLen = 0;
+                int read = 0;
+
+                respBody.OnDataWritten += (sender, args) =>
                     {
-                        stream.WriteRst(ResetStatusCode.InternalError);
-                        return;
-                    }
-
-                    int contentLen = 0;
-                    int read = 0;
-
-                    respBody.OnDataWritten += (sender, args) =>
+                        if (isFirstWrite)
                         {
-                            if (isFirstWrite)
+                            Http2Logger.LogDebug("Transfer begin");
+                            if (response.Headers != null)
                             {
-                                Http2Logger.LogDebug("Transfer begin");
-                                if (response.Headers != null)
-                                {
-                                    responseHeaders = new HeadersList(response.Headers);
-                                    contentLen = int.Parse(responseHeaders.GetValue(CommonHeaders.ContentLength));
-                                }
-                                WriteStatus(stream, response.StatusCode, response.StatusCode != StatusCode.Code200Ok, responseHeaders);
+                                responseHeaders = new HeadersList(response.Headers);
+                                contentLen = int.Parse(responseHeaders.GetValue(CommonHeaders.ContentLength));
                             }
-                            isFirstWrite = false;
+                            WriteStatus(stream, response.StatusCode, response.StatusCode != StatusCode.Code200Ok, responseHeaders);
+                        }
+                        isFirstWrite = false;
 
-                            if (read < contentLen)
-                            {
-                                var temp = new byte[args.Count];
+                        if (read < contentLen)
+                        {
+                            var temp = new byte[args.Count];
 
-                                respBody.Seek(0, SeekOrigin.Begin);
-                                int tmpRead = respBody.Read(temp, 0, temp.Length);
-                                respBody.Seek(0, SeekOrigin.Begin);
+                            respBody.Seek(0, SeekOrigin.Begin);
+                            int tmpRead = respBody.Read(temp, 0, temp.Length);
+                            respBody.Seek(0, SeekOrigin.Begin);
 
-                                Debug.Assert(tmpRead > 0);
+                            Debug.Assert(tmpRead > 0);
 
-                                var readBytes = new byte[tmpRead];
-                                Buffer.BlockCopy(temp, 0, readBytes, 0, tmpRead);
+                            var readBytes = new byte[tmpRead];
+                            Buffer.BlockCopy(temp, 0, readBytes, 0, tmpRead);
 
-                                read += tmpRead;
-                                SendDataTo(stream, readBytes, read == contentLen);
-                            }
-                        };
+                            read += tmpRead;
+                            SendDataTo(stream, readBytes, read == contentLen);
+                        }
+                    };
 
-                    await _next(context.Environment);
+                await _next(context.Environment);
 
-
-                    //Handle file not found case
-                    if (response.StatusCode == StatusCode.Code404NotFound)
-                    {
-                        WriteStatus(stream, response.StatusCode, response.StatusCode != StatusCode.Code200Ok, responseHeaders);
-                    }
-
-                    Http2Logger.LogDebug("Transfer end");
+                //Handle file not found case
+                if (response.StatusCode == StatusCode.Code404NotFound)
+                {
+                    WriteStatus(stream, response.StatusCode, response.StatusCode != StatusCode.Code200Ok, responseHeaders);
                 }
-                catch (Exception ex)
-                {   
-                    EndResponse(stream, ex);;
-                }
-            });
-            
+
+                Http2Logger.LogDebug("Transfer end");
+            }
+            catch (Exception ex)
+            {   
+                EndResponse(stream, ex);;
+            }
         }
 
         /// <summary>
