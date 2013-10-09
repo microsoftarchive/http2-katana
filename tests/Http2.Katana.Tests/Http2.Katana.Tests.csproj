@@ -116,6 +116,9 @@
     <Compile Include="..\..\src\Microsoft.Http2.Owin.Server\Adapters\Http11OwinMessageHandler.cs">
       <Link>Sources\Microsoft.Http2.Owin.Server\Adapters\Http11OwinMessageHandler.cs</Link>
     </Compile>
+    <Compile Include="..\..\src\Microsoft.Http2.Owin.Server\Adapters\Http2OwinMessageContext.cs">
+      <Link>Sources\Microsoft.Http2.Owin.Server\Adapters\Http2OwinMessageContext.cs</Link>
+    </Compile>
     <Compile Include="..\..\src\Microsoft.Http2.Owin.Server\Adapters\Http2OwinMessageHandler.cs">
       <Link>Sources\Microsoft.Http2.Owin.Server\Adapters\Http2OwinMessageHandler.cs</Link>
     </Compile>
