@@ -51,10 +51,6 @@ namespace Microsoft.Http2.Protocol
                            ICompressionProcessor comprProc, int priority = Constants.DefaultStreamPriority)
             : this(id, writeQueue, flowCrtlManager, comprProc, priority)
         {
-
-            if (headers == null)
-                throw new ArgumentNullException("cannot create stream with null headers");
-
             Headers = headers;
         }
 
@@ -64,9 +60,6 @@ namespace Microsoft.Http2.Protocol
         {
             if (id <= 0)
                 throw new ArgumentOutOfRangeException("invalid id for stream");
-
-            if (writeQueue == null || flowCrtlManager == null || comprProc == null)
-                throw new ArgumentNullException("writeQueue or flowControlManager or compr proc is null");
 
             if (priority < 0 || priority > Constants.MaxPriority)
                 throw  new ArgumentOutOfRangeException("priority out of range");
