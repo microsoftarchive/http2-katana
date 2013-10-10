@@ -2,37 +2,90 @@
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Http2.Protocol.EventArgs;
+using Microsoft.Http2.Protocol.Extensions;
 
 namespace Microsoft.Http2.Protocol.IO
 {
-    public class ResponseStream : MemoryStream
+    public class ResponseStream : Stream
     {
-        public event EventHandler<DataIsWrittenEventArgs> OnDataWritten;
+        private Http2Stream _stream;
+        private Action _onFirstWrite;
+        private bool _firstWrite = true;
+
+        public ResponseStream(Http2Stream stream, Action onFirstWrite)
+        {
+            _stream = stream;
+            _onFirstWrite = onFirstWrite;
+        }
+
+        public override bool CanRead
+        {
+            get { return false; }
+        }
+
+        public override bool CanSeek
+        {
+            get { return false; }
+        }
+
+        public override bool CanWrite
+        {
+            get { return true; }
+        }
+
+        public override long Length
+        {
+            get { throw new NotSupportedException(); }
+        }
+
+        public override long Position
+        {
+            get
+            {
+                throw new NotSupportedException();
+            }
+            set
+            {
+                throw new NotSupportedException();
+            }
+        }
+
+        private void FirstWrite()
+        {
+            if (_firstWrite)
+            {
+                _firstWrite = false;
+                _onFirstWrite();
+            }
+        }
+
+        public override void Flush()
+        {
+            FirstWrite();
+            // TODO: Flush all frames to the wire.
+            // _stream.Flush();
+        }
 
         public override void Write(byte[] buffer, int offset, int count)
         {
-            base.Write(buffer, offset, count);
+            FirstWrite();
+            // TODO: Validate buffer, offset, count
 
-            if (OnDataWritten != null)
-                OnDataWritten(this, new DataIsWrittenEventArgs(count));
+            int sent = 0;
+            while (sent < count)
+            {
+                int chunkSize = MathEx.Min(count - sent, Constants.MaxFrameContentSize);
+                ArraySegment<byte> segment = new ArraySegment<byte>(buffer, offset + sent, chunkSize);
+                _stream.WriteDataFrame(segment, isEndStream: false);
+                sent += chunkSize;
+            }
         }
 
         public override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
         {
-            return base.WriteAsync(buffer, offset, count, cancellationToken).ContinueWith(task =>
-                {
-                    if (OnDataWritten != null)
-                        OnDataWritten(this, new DataIsWrittenEventArgs(count));
-                });
-        }
-
-        public override void WriteByte(byte value)
-        {
-            base.WriteByte(value);
-
-            if (OnDataWritten != null)
-                OnDataWritten(this, new DataIsWrittenEventArgs(1));
+            cancellationToken.ThrowIfCancellationRequested();
+            Write(buffer, offset, count);
+            return Task.FromResult(0);
         }
         
         //We may not override BeginWrite method because
@@ -46,5 +99,20 @@ namespace Microsoft.Http2.Protocol.IO
         //See: 
         //Any public static (Shared in Visual Basic) members of this type are thread safe. 
         //Any instance members are not guaranteed to be thread safe.
+
+        public override int Read(byte[] buffer, int offset, int count)
+        {
+            throw new NotSupportedException();
+        }
+
+        public override long Seek(long offset, SeekOrigin origin)
+        {
+            throw new NotSupportedException();
+        }
+
+        public override void SetLength(long value)
+        {
+            throw new NotSupportedException();
+        }
     }
 }

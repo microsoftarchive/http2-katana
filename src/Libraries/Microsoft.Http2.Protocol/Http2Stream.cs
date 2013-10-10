@@ -260,15 +260,15 @@ namespace Microsoft.Http2.Protocol
         /// </summary>
         /// <param name="data">The data.</param>
         /// <param name="isEndStream">if set to <c>true</c> [is fin].</param>
-        public void WriteDataFrame(byte[] data, bool isEndStream)
+        public void WriteDataFrame(ArraySegment<byte> data, bool isEndStream)
         {
-            if (data == null)
+            if (data.Array == null)
                 throw new ArgumentNullException("data is null");
 
             if (Disposed)
                 return;
 
-            var dataFrame = new DataFrame(_id, new ArraySegment<byte>(data), isEndStream);
+            var dataFrame = new DataFrame(_id, data, isEndStream);
 
             //We cant let lesser frame that were passed through flow control window
             //be sent before greater frames that were not passed through flow control window
