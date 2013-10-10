@@ -126,7 +126,6 @@ namespace Microsoft.Http2.Owin.Server.Adapters
         /// <param name="stream">The stream.</param>
         /// <param name="statusCode">The status code.</param>
         /// <param name="final">if set to <c>true</c> then marks headers frame as final.</param>
-        /// <param name="additionalHeaders">The additional headers.</param>
         /// <param name="headers">Additional headers</param>
         private void WriteStatus(Http2Stream stream, int statusCode, bool final, HeadersList headers = null)
         {

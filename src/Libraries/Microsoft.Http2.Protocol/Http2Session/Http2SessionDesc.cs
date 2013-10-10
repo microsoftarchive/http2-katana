@@ -141,7 +141,7 @@ namespace Microsoft.Http2.Protocol
 
             ActiveStreams = new ActiveStreams();
 
-            _writeQueue = new WriteQueue(_ioStream, ActiveStreams, _usePriorities);
+            _writeQueue = new WriteQueue(_ioStream, ActiveStreams, _comprProc, _usePriorities);
             OurMaxConcurrentStreams = maxConcurrentStreams;
             RemoteMaxConcurrentStreams = maxConcurrentStreams;
             InitialWindowSize = initialWindowSize;
@@ -206,7 +206,7 @@ namespace Microsoft.Http2.Protocol
                 initialStream.EndStreamReceived = true;
                 if (OnFrameReceived != null)
                 {
-                    OnFrameReceived(this, new FrameReceivedEventArgs(initialStream, new HeadersFrame(1, new byte[0])));
+                    OnFrameReceived(this, new FrameReceivedEventArgs(initialStream, new HeadersFrame(1)));
                 }
             }
         }

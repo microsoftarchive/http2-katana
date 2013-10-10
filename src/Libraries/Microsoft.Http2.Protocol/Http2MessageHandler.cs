@@ -103,7 +103,7 @@ namespace Microsoft.Http2.Protocol
             }
 
             //TODO provide cancellation token and transport info
-            _session = new Http2Session(_stream, _end, false, true, _isSecure, _cancToken, initialWindowSize, maxStreams);
+            _session = new Http2Session(_stream, _end, true, true, _isSecure, _cancToken, initialWindowSize, maxStreams);
             _session.OnFrameReceived += OnFrameReceivedHandler;
             _session.OnSettingsSent += OnSettingsSentHandler;
 

@@ -232,12 +232,13 @@ namespace Microsoft.Http2.Protocol
 
             Headers.AddRange(headers);
 
-            byte[] headerBytes = _compressionProc.Compress(headers);
+            //byte[] headerBytes = _compressionProc.Compress(headers);
 
-            var frame = new HeadersFrame(_id, headerBytes, Priority)
+            var frame = new HeadersFrame(_id, /*headerBytes,*/ Priority)
                 {
                     IsEndHeaders = isEndHeaders,
                     IsEndStream = isEndStream,
+                    Headers = headers,
                 };
 
             _writeQueue.WriteFrame(frame);
