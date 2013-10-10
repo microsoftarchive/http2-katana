@@ -1,4 +1,5 @@
-﻿using Microsoft.Http2.Protocol;
+﻿using System.Globalization;
+using Microsoft.Http2.Protocol;
 using Microsoft.Http2.Protocol.IO;
 using Microsoft.Http2.Protocol.Utils;
 using Microsoft.Owin;
@@ -7,20 +8,18 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace Microsoft.Http2.Owin.Server.Adapters
 {
     // Tracks per-request state.
     internal class Http2OwinMessageContext
     {
-        private Http2Stream _protocolStream;
+        private readonly Http2Stream _protocolStream;
         private IOwinContext _owinContext;
         private IHeaderDictionary _responseHeaders;
-        private TransportInformation _transportInfo;
-        private bool _responseStarted = false;
+        private readonly TransportInformation _transportInfo;
+        private bool _responseStarted;
 
         internal Http2OwinMessageContext(Http2Stream protocolStream, TransportInformation transportInfo)
         {
@@ -71,7 +70,6 @@ namespace Microsoft.Http2.Owin.Server.Adapters
         {
             Debug.Assert(!_responseStarted, "Response started more than once");
             _responseStarted = true;
-            IOwinResponse response = _owinContext.Response;
             Http2Logger.LogDebug("Transfer begin");
 
             SendHeaders(final: false);
@@ -98,14 +96,13 @@ namespace Microsoft.Http2.Owin.Server.Adapters
         /// <summary>
         /// Writes the status header to the stream.
         /// </summary>
-        /// <param name="stream">The stream.</param>
-        /// <param name="statusCode">The status code.</param>
         /// <param name="final">if set to <c>true</c> then marks headers frame as final.</param>
-        /// <param name="additionalHeaders">The additional headers.</param>
         private void SendHeaders(bool final)
         {
-            HeadersList responseHeaders = new HeadersList(_responseHeaders);
-            responseHeaders.Add(new KeyValuePair<string, string>(CommonHeaders.Status, _owinContext.Response.StatusCode.ToString()));
+            var responseHeaders = new HeadersList(_responseHeaders)
+                {
+                    new KeyValuePair<string, string>(CommonHeaders.Status, _owinContext.Response.StatusCode.ToString(CultureInfo.InvariantCulture))
+                };
             _protocolStream.WriteHeadersFrame(responseHeaders, final, true);
         }
     }

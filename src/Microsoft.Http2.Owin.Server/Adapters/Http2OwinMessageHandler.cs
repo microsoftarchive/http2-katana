@@ -1,16 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.Linq;
+using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Http2.Protocol;
-using Microsoft.Http2.Protocol.Extensions;
 using Microsoft.Http2.Protocol.Framing;
 using Microsoft.Http2.Protocol.IO;
 using Microsoft.Http2.Protocol.Utils;
-using Microsoft.Owin;
 using Org.Mentalis.Security.Ssl;
 
 namespace Microsoft.Http2.Owin.Server.Adapters
@@ -119,7 +115,7 @@ namespace Microsoft.Http2.Owin.Server.Adapters
         /// <param name="ex">The caught exception.</param>
         private void EndResponse(Http2Stream stream, Exception ex)
         {
-            Http2Logger.LogDebug("Error processing request:\r\n" + ex.ToString());
+            Http2Logger.LogDebug("Error processing request:\r\n" + ex);
             // TODO: What if the response has already started?
             WriteStatus(stream, StatusCode.Code500InternalServerError, true);
         }
@@ -131,13 +127,14 @@ namespace Microsoft.Http2.Owin.Server.Adapters
         /// <param name="statusCode">The status code.</param>
         /// <param name="final">if set to <c>true</c> then marks headers frame as final.</param>
         /// <param name="additionalHeaders">The additional headers.</param>
+        /// <param name="headers">Additional headers</param>
         private void WriteStatus(Http2Stream stream, int statusCode, bool final, HeadersList headers = null)
         {
             if (headers == null)
             {
                 headers = new HeadersList();
             }
-            headers.Add(new KeyValuePair<string, string>(CommonHeaders.Status, statusCode.ToString()));
+            headers.Add(new KeyValuePair<string, string>(CommonHeaders.Status, statusCode.ToString(CultureInfo.InvariantCulture)));
 
             stream.WriteHeadersFrame(headers, final, true);
         }
