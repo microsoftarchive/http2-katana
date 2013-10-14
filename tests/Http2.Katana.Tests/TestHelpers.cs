@@ -70,29 +70,32 @@ namespace Microsoft.Http2.Protocol.Tests
         public async static Task AppFunction(IDictionary<string, object> environment)
         {
             // process response
-            var owinResponse = new OwinResponse(environment);
+            var owinResponse = new OwinResponse(environment) {ContentType = "text/plain"};
             var owinRequest = new OwinRequest(environment);
             var writer = new StreamWriter(owinResponse.Body);
             switch (owinRequest.Path)
             {
                 case "/10mbTest.txt":
                     writer.Write(TestHelpers.FileContent10MbTest);
+                    owinResponse.ContentLength = FileContent10MbTest.Length;
                     break;
                 case "/simpleTest.txt":
                     writer.Write(TestHelpers.FileContentSimpleTest);
+                    owinResponse.ContentLength = FileContentSimpleTest.Length;
                     break;
                 case "/emptyFile.txt":
                     writer.Write(TestHelpers.FileContentEmptyFile);
+                    owinResponse.ContentLength = FileContentEmptyFile.Length;
                     break;
                 default:
                     writer.Write(TestHelpers.FileContentAnyFile);
+                    owinResponse.ContentLength = FileContentAnyFile.Length;
                     break;
             }
 
             await writer.FlushAsync();
 
-            owinResponse.ContentLength = owinResponse.Body.Length;
-            owinResponse.ContentType = "text/plain";
+            
         }
 
         public static DuplexStream GetHandshakedDuplexStream(string address, bool allowHttp2Communication = true, bool useMock = false)
