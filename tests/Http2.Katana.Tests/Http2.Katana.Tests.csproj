@@ -125,8 +125,32 @@
     <Compile Include="..\..\src\Microsoft.Http2.Owin.Server\Adapters\Http2OwinMessageHandler.cs">
       <Link>Sources\Microsoft.Http2.Owin.Server\Adapters\Http2OwinMessageHandler.cs</Link>
     </Compile>
+    <Compile Include="..\Http2.TestClient\Adapters\Http11ClientMessageHandler.cs">
+      <Link>Sources\Client\Adapters\Http11ClientMessageHandler.cs</Link>
+    </Compile>
     <Compile Include="..\Http2.TestClient\Adapters\Http2ClientMessageHandler.cs">
       <Link>Sources\Client\Adapters\Http2ClientMessageHandler.cs</Link>
+    </Compile>
+    <Compile Include="..\Http2.TestClient\Handshake\HandshakeFailureReason.cs">
+      <Link>Sources\Client\Handshake\HandshakeFailureReason.cs</Link>
+    </Compile>
+    <Compile Include="..\Http2.TestClient\Handshake\HandshakeKeys.cs">
+      <Link>Sources\Client\Handshake\HandshakeKeys.cs</Link>
+    </Compile>
+    <Compile Include="..\Http2.TestClient\Handshake\HandshakeManager.cs">
+      <Link>Sources\Client\Handshake\HandshakeManager.cs</Link>
+    </Compile>
+    <Compile Include="..\Http2.TestClient\Handshake\HandshakeResponse.cs">
+      <Link>Sources\Client\Handshake\HandshakeResponse.cs</Link>
+    </Compile>
+    <Compile Include="..\Http2.TestClient\Handshake\HandshakeResult.cs">
+      <Link>Sources\Client\Handshake\HandshakeResult.cs</Link>
+    </Compile>
+    <Compile Include="..\Http2.TestClient\Handshake\Http2HandshakeFailed.cs">
+      <Link>Sources\Client\Handshake\Http2HandshakeFailed.cs</Link>
+    </Compile>
+    <Compile Include="..\Http2.TestClient\Handshake\UpgradeHandshaker.cs">
+      <Link>Sources\Client\Handshake\UpgradeHandshaker.cs</Link>
     </Compile>
     <Compile Include="..\Http2.TestClient\IO\FileHelper.cs">
       <Link>Sources\Client\IO\FileHelper.cs</Link>

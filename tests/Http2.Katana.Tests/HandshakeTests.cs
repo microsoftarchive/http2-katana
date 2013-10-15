@@ -1,4 +1,5 @@
 ﻿using System.Globalization;
+using Http2.TestClient.Handshake;
 using Microsoft.Http1.Protocol;
 using Microsoft.Http2.Owin.Middleware;
 using Microsoft.Http2.Owin.Server;
@@ -120,24 +121,19 @@ namespace Http2.Katana.Tests
         public void UpgradeHandshakeSuccessful()
         {
             const string address = "/";
-            var duplexStream = TestHelpers.GetHandshakedDuplexStream(address, false);
-            var requestString = "GET " + address + " HTTP/1.1\r\n" +
-                                "Host: localhost\r\n" +
-                                "Connection: Upgrade,HTTP2-Settings\r\n" +
-                                "Upgrade: " + Protocols.Http2 + "\r\n" +
-                                "HTTP2-Settings: \r\n" + // TODO send any valid parameters
-                                "\r\n";
+            bool gotException = false;
+            try
+            {
+                var duplexStream = TestHelpers.GetHandshakedDuplexStream(address, false);
+                duplexStream.Write(TestHelpers.ClientSessionHeader);
+                duplexStream.Flush();
+            }
+            catch (Http2HandshakeFailed)
+            {
+                gotException = true;
+            }
 
-            duplexStream.Write(Encoding.UTF8.GetBytes(requestString));
-            duplexStream.Flush();
-
-            var rawHeaders = Http11Helper.ReadHeaders(duplexStream);
-            Assert.Equal("HTTP/1.1 " + StatusCode.Code101SwitchingProtocols + " " + StatusCode.Reason101SwitchingProtocols, rawHeaders[0]);
-            var headers = Http11Helper.ParseHeaders(rawHeaders.Skip(1));
-            Assert.Contains("Connection", headers.Keys);
-            Assert.Contains("Upgrade", headers["Connection"]);
-            Assert.Contains("Upgrade", headers.Keys);
-            Assert.Contains(Protocols.Http2, headers["Upgrade"]);
+            Assert.Equal(gotException, false);
         }
 
         public void Dispose()
