@@ -49,12 +49,12 @@ namespace Microsoft.Http2.Owin.Server.Adapters
             var owinResponse = _owinContext.Response;
 
             owinRequest.Method = headers.GetValue(CommonHeaders.Method);
-            owinRequest.Path = headers.GetValue(CommonHeaders.Path);
+            owinRequest.Path = new PathString(headers.GetValue(CommonHeaders.Path));
             owinRequest.CallCancelled = CancellationToken.None;
 
-            owinRequest.Host = headers.GetValue(CommonHeaders.Host);
-            owinRequest.PathBase = String.Empty;
-            owinRequest.QueryString = String.Empty;
+            owinRequest.Host = new HostString(headers.GetValue(CommonHeaders.Host));
+            owinRequest.PathBase = PathString.Empty;
+            owinRequest.QueryString = QueryString.Empty;
             owinRequest.Body = Stream.Null;
             owinRequest.Protocol = Protocols.Http2;
             owinRequest.Scheme = headers.GetValue(CommonHeaders.Scheme) == Uri.UriSchemeHttp ? Uri.UriSchemeHttp : Uri.UriSchemeHttps;

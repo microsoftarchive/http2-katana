@@ -241,9 +241,9 @@ namespace Microsoft.Http2.Owin.Server.Adapters
                 {
                     Method = method,
                     Scheme = scheme,
-                    Path = path,
-                    PathBase = pathBase,
-                    QueryString = queryString,
+                    Path = new PathString(path),
+                    PathBase = new PathString(pathBase),
+                    QueryString = new QueryString(queryString),
                     Body = new MemoryStream(requestBody ?? new byte[0]),
                     Protocol = Protocols.Http1
                 };

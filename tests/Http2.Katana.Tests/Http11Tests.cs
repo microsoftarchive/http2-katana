@@ -98,12 +98,12 @@ namespace Http2.Katana.Tests
             var owinRequest = new OwinRequest(environment);
             Assert.Equal(owinRequest.Method, method);
             Assert.Equal(owinRequest.Scheme, scheme);
-            Assert.Equal(owinRequest.PathBase, pathBase);
-            Assert.Equal(owinRequest.Path, path);
+            Assert.Equal(owinRequest.PathBase.Value, pathBase);
+            Assert.Equal(owinRequest.Path.Value, path);
             Assert.Equal(owinRequest.Body.Length, 0);
             Assert.Equal(owinRequest.Headers.ContainsKey("Host"), true);
             Assert.Equal(owinRequest.Headers["Host"], host);
-            Assert.Equal(owinRequest.QueryString, queryString);
+            Assert.Equal(owinRequest.QueryString.Value, queryString);
             Assert.Equal(owinRequest.CallCancelled.IsCancellationRequested, false);
 
             var owinResponse = new OwinResponse(environment);

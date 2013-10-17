@@ -122,7 +122,7 @@ namespace Microsoft.Http2.Protocol
         {
             if (ContainsKey(item.Id))
             {
-                throw new ArgumentException("This key already exists in the collection");
+                throw new ArgumentException("This key already exists in the collection: " + item.Id);
             }
 
             if (item.IsFlowControlEnabled)

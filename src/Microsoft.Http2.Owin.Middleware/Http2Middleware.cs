@@ -111,9 +111,9 @@ namespace Microsoft.Http2.Owin.Middleware
 
             bool areSettingsOk = true;
 
-            var path = !String.IsNullOrEmpty(request.Path)
-                            ? request.Path
-                            : Constants.DefaultPath;
+            var path = !String.IsNullOrEmpty(request.Path.Value)
+                            ? request.Path.Value
+                            : "/";
             var method = !String.IsNullOrEmpty(request.Method)
                             ? request.Method
                             : Constants.DefaultMethod;
@@ -122,8 +122,8 @@ namespace Microsoft.Http2.Owin.Middleware
                             ? request.Scheme
                             : Uri.UriSchemeHttp;
 
-            var host = !String.IsNullOrEmpty(request.Host)
-                            ? request.Host
+            var host = !String.IsNullOrEmpty(request.Host.Value)
+                            ? request.Host.Value
                             : Constants.DefaultHost;
 
             var splittedSettings = new string[0];
