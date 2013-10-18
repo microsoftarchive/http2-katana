@@ -98,7 +98,7 @@ namespace Microsoft.Http2.Protocol.Tests
             var owinResponse = new OwinResponse(environment) {ContentType = "text/plain"};
             var owinRequest = new OwinRequest(environment);
             var writer = new StreamWriter(owinResponse.Body);
-            switch (owinRequest.Path)
+            switch (owinRequest.Path.Value)
             {
                 case "/10mbTest.txt":
                     writer.Write(FileContent5bTest);

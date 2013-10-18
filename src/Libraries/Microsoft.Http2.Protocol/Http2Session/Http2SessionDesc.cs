@@ -185,7 +185,7 @@ namespace Microsoft.Http2.Protocol
         {
             if (!initialRequest.ContainsKey(CommonHeaders.Path))
             {
-                initialRequest.Add(CommonHeaders.Path, Constants.DefaultPath);
+                initialRequest.Add(CommonHeaders.Path, "/");
             }
 
             var initialStream = CreateStream(new HeadersList(initialRequest), 1);
