@@ -1,4 +1,5 @@
 ﻿using System.IO;
+using Microsoft.Http2.Protocol.Compression;
 using Microsoft.Http2.Protocol.Framing;
 using System;
 using System.Threading;
@@ -13,10 +14,10 @@ namespace Microsoft.Http2.Protocol.IO
         private bool _disposed;
         private readonly object _writeLock = new object();
         private readonly ActiveStreams _streams;
-
+        private readonly ICompressionProcessor _proc;
         public bool IsPriorityTurnedOn { get; private set; }
 
-        public WriteQueue(Stream stream, ActiveStreams streams, bool isPriorityTurnedOn)
+        public WriteQueue(Stream stream, ActiveStreams streams, ICompressionProcessor processor, bool isPriorityTurnedOn)
         {
             if (stream == null)
                 throw new ArgumentNullException("io stream is null");
@@ -27,7 +28,7 @@ namespace Microsoft.Http2.Protocol.IO
             //Priorities are turned on for debugging
             IsPriorityTurnedOn = isPriorityTurnedOn;
             _streams = streams;
-
+            _proc = processor;
             if (IsPriorityTurnedOn)
             {
                 _messageQueue = new PriorityQueue();
@@ -87,7 +88,18 @@ namespace Microsoft.Http2.Protocol.IO
                     if (_messageQueue.Count > 0)
                     {
                         var entry = _messageQueue.Dequeue();
-                        if (entry != null)
+
+                        //fixes issue 55. Invoking compression when frame sending order is known.
+                        if (IsPriorityTurnedOn && entry.Frame is IHeadersFrame)
+                        {
+                            var headersFrame = entry.Frame as IHeadersFrame;
+                            var headers = headersFrame.Headers;
+                            var compressedHeaders = _proc.Compress(headers);
+                            entry.Frame.FrameLength += compressedHeaders.Length;
+                            _stream.Write(entry.Buffer, 0, entry.Buffer.Length);
+                            _stream.Write(compressedHeaders, 0, compressedHeaders.Length);
+                        }
+                        else
                         {
                             _stream.Write(entry.Buffer, 0, entry.Buffer.Length);
                         }

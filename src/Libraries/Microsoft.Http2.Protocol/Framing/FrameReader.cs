@@ -47,7 +47,7 @@ namespace Microsoft.Http2.Protocol.Framing
             return wholeFrame;
         }
 
-        private Frame GetFrameType(Frame preamble)
+        private static Frame GetFrameType(Frame preamble)
         {
             switch (preamble.FrameType)
             {

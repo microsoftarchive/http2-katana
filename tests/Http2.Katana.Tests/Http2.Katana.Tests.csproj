@@ -36,7 +36,7 @@
   <ItemGroup>
     <Reference Include="Microsoft.Owin, Version=2.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\packages\Microsoft.Owin.2.0.0-rc1\lib\net45\Microsoft.Owin.dll</HintPath>
+      <HintPath>..\..\packages\Microsoft.Owin.2.0.0\lib\net45\Microsoft.Owin.dll</HintPath>
     </Reference>
     <Reference Include="Moq">
       <HintPath>..\..\packages\Moq.4.1.1308.2321\lib\net40\Moq.dll</HintPath>
@@ -80,6 +80,9 @@
     <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\EventArgs\DataIsWrittenEventArgs.cs">
       <Link>Sources\Libraries\Microsoft.Http2.Protocol\EventArgs\DataIsWrittenEventArgs.cs</Link>
     </Compile>
+    <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\EventArgs\FrameSentEventArgs.cs">
+      <Link>Sources\Libraries\Microsoft.Http2.Protocol\EventArgs\FrameSentEventArgs.cs</Link>
+    </Compile>
     <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Exceptions\MaxConcurrentStreamsLimitException.cs">
       <Link>Sources\Libraries\Microsoft.Http2.Protocol\Exceptions\MaxConcurrentStreamsLimitException.cs</Link>
     </Compile>
@@ -116,11 +119,38 @@
     <Compile Include="..\..\src\Microsoft.Http2.Owin.Server\Adapters\Http11OwinMessageHandler.cs">
       <Link>Sources\Microsoft.Http2.Owin.Server\Adapters\Http11OwinMessageHandler.cs</Link>
     </Compile>
+    <Compile Include="..\..\src\Microsoft.Http2.Owin.Server\Adapters\Http2OwinMessageContext.cs">
+      <Link>Sources\Microsoft.Http2.Owin.Server\Adapters\Http2OwinMessageContext.cs</Link>
+    </Compile>
     <Compile Include="..\..\src\Microsoft.Http2.Owin.Server\Adapters\Http2OwinMessageHandler.cs">
       <Link>Sources\Microsoft.Http2.Owin.Server\Adapters\Http2OwinMessageHandler.cs</Link>
     </Compile>
+    <Compile Include="..\Http2.TestClient\Adapters\Http11ClientMessageHandler.cs">
+      <Link>Sources\Client\Adapters\Http11ClientMessageHandler.cs</Link>
+    </Compile>
     <Compile Include="..\Http2.TestClient\Adapters\Http2ClientMessageHandler.cs">
       <Link>Sources\Client\Adapters\Http2ClientMessageHandler.cs</Link>
+    </Compile>
+    <Compile Include="..\Http2.TestClient\Handshake\HandshakeFailureReason.cs">
+      <Link>Sources\Client\Handshake\HandshakeFailureReason.cs</Link>
+    </Compile>
+    <Compile Include="..\Http2.TestClient\Handshake\HandshakeKeys.cs">
+      <Link>Sources\Client\Handshake\HandshakeKeys.cs</Link>
+    </Compile>
+    <Compile Include="..\Http2.TestClient\Handshake\HandshakeManager.cs">
+      <Link>Sources\Client\Handshake\HandshakeManager.cs</Link>
+    </Compile>
+    <Compile Include="..\Http2.TestClient\Handshake\HandshakeResponse.cs">
+      <Link>Sources\Client\Handshake\HandshakeResponse.cs</Link>
+    </Compile>
+    <Compile Include="..\Http2.TestClient\Handshake\HandshakeResult.cs">
+      <Link>Sources\Client\Handshake\HandshakeResult.cs</Link>
+    </Compile>
+    <Compile Include="..\Http2.TestClient\Handshake\Http2HandshakeFailed.cs">
+      <Link>Sources\Client\Handshake\Http2HandshakeFailed.cs</Link>
+    </Compile>
+    <Compile Include="..\Http2.TestClient\Handshake\UpgradeHandshaker.cs">
+      <Link>Sources\Client\Handshake\UpgradeHandshaker.cs</Link>
     </Compile>
     <Compile Include="..\Http2.TestClient\IO\FileHelper.cs">
       <Link>Sources\Client\IO\FileHelper.cs</Link>
@@ -446,9 +476,6 @@
     </Compile>
     <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\EventArgs\FrameReceivedEventArgs.cs">
       <Link>Sources\Libraries\Microsoft.Http2.Protocol\EventArgs\FrameReceivedEventArgs</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\EventArgs\FrameSentArgs.cs">
-      <Link>Sources\Libraries\Microsoft.Http2.Protocol\EventArgs\FrameSentArgs</Link>
     </Compile>
     <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\EventArgs\Http11ResourceDownloadedEventArgs.cs">
       <Link>Sources\Libraries\Microsoft.Http2.Protocol\EventArgs\Http11ResourceDownloadedEventArgs</Link>

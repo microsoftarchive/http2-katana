@@ -34,7 +34,7 @@ namespace Microsoft.Http2.Protocol
         /// <summary>
         /// Occurs when stream was sent frame.
         /// </summary>
-        public event EventHandler<FrameSentArgs> OnFrameSent;
+        public event EventHandler<FrameSentEventArgs> OnFrameSent;
 
         /// <summary>
         /// Occurs when stream closes.
@@ -51,10 +51,6 @@ namespace Microsoft.Http2.Protocol
                            ICompressionProcessor comprProc, int priority = Constants.DefaultStreamPriority)
             : this(id, writeQueue, flowCrtlManager, comprProc, priority)
         {
-
-            if (headers == null)
-                throw new ArgumentNullException("cannot create stream with null headers");
-
             Headers = headers;
         }
 
@@ -64,9 +60,6 @@ namespace Microsoft.Http2.Protocol
         {
             if (id <= 0)
                 throw new ArgumentOutOfRangeException("invalid id for stream");
-
-            if (writeQueue == null || flowCrtlManager == null || comprProc == null)
-                throw new ArgumentNullException("writeQueue or flowControlManager or compr proc is null");
 
             if (priority < 0 || priority > Constants.MaxPriority)
                 throw  new ArgumentOutOfRangeException("priority out of range");
@@ -232,12 +225,13 @@ namespace Microsoft.Http2.Protocol
 
             Headers.AddRange(headers);
 
-            byte[] headerBytes = _compressionProc.Compress(headers);
+            //byte[] headerBytes = _compressionProc.Compress(headers);
 
-            var frame = new HeadersFrame(_id, headerBytes, Priority)
+            var frame = new HeadersFrame(_id, /*headerBytes,*/ Priority)
                 {
                     IsEndHeaders = isEndHeaders,
                     IsEndStream = isEndStream,
+                    Headers = headers,
                 };
 
             _writeQueue.WriteFrame(frame);
@@ -249,7 +243,7 @@ namespace Microsoft.Http2.Protocol
 
             if (OnFrameSent != null)
             {
-                OnFrameSent(this, new FrameSentArgs(frame));
+                OnFrameSent(this, new FrameSentEventArgs(frame));
             }
         }
 
@@ -260,15 +254,15 @@ namespace Microsoft.Http2.Protocol
         /// </summary>
         /// <param name="data">The data.</param>
         /// <param name="isEndStream">if set to <c>true</c> [is fin].</param>
-        public void WriteDataFrame(byte[] data, bool isEndStream)
+        public void WriteDataFrame(ArraySegment<byte> data, bool isEndStream)
         {
-            if (data == null)
+            if (data.Array == null)
                 throw new ArgumentNullException("data is null");
 
             if (Disposed)
                 return;
 
-            var dataFrame = new DataFrame(_id, new ArraySegment<byte>(data), isEndStream);
+            var dataFrame = new DataFrame(_id, data, isEndStream);
 
             //We cant let lesser frame that were passed through flow control window
             //be sent before greater frames that were not passed through flow control window
@@ -298,7 +292,7 @@ namespace Microsoft.Http2.Protocol
 
                 if (OnFrameSent != null)
                 {
-                    OnFrameSent(this, new FrameSentArgs(dataFrame));
+                    OnFrameSent(this, new FrameSentEventArgs(dataFrame));
                 }
             }
             else
@@ -336,7 +330,7 @@ namespace Microsoft.Http2.Protocol
 
                 if (OnFrameSent != null)
                 {
-                    OnFrameSent(this, new FrameSentArgs(dataFrame));
+                    OnFrameSent(this, new FrameSentEventArgs(dataFrame));
                 }
             }
             else
@@ -365,7 +359,7 @@ namespace Microsoft.Http2.Protocol
 
             if (OnFrameSent != null)
             {
-                OnFrameSent(this, new FrameSentArgs(frame));
+                OnFrameSent(this, new FrameSentEventArgs(frame));
             }
         }
 
@@ -381,7 +375,7 @@ namespace Microsoft.Http2.Protocol
 
             if (OnFrameSent != null)
             {
-                OnFrameSent(this, new FrameSentArgs(frame));
+                OnFrameSent(this, new FrameSentEventArgs(frame));
             }
         }
 

@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
+using System.Text;
 using System.Threading;
 using Client.IO;
 using Microsoft.Http2.Protocol;
@@ -56,7 +58,7 @@ namespace Http2.TestClient.Adapters
                 if (!stream.EndStreamSent)
                 {
                     //send terminator
-                    stream.WriteDataFrame(new byte[0], true);
+                    stream.WriteDataFrame(new ArraySegment<byte>(new byte[0]), true);
                     Http2Logger.LogConsole("Terminator was sent");
                 }
                 _fileHelper.RemoveStream(path);

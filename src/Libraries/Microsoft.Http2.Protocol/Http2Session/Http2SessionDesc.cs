@@ -51,7 +51,7 @@ namespace Microsoft.Http2.Protocol
         /// <summary>
         /// Occurs when frame was sent.
         /// </summary>
-        public event EventHandler<FrameSentArgs> OnFrameSent;
+        public event EventHandler<FrameSentEventArgs> OnFrameSent;
 
         /// <summary>
         /// Occurs when frame was received.
@@ -141,7 +141,7 @@ namespace Microsoft.Http2.Protocol
 
             ActiveStreams = new ActiveStreams();
 
-            _writeQueue = new WriteQueue(_ioStream, ActiveStreams, _usePriorities);
+            _writeQueue = new WriteQueue(_ioStream, ActiveStreams, _comprProc, _usePriorities);
             OurMaxConcurrentStreams = maxConcurrentStreams;
             RemoteMaxConcurrentStreams = maxConcurrentStreams;
             InitialWindowSize = initialWindowSize;
@@ -185,7 +185,7 @@ namespace Microsoft.Http2.Protocol
         {
             if (!initialRequest.ContainsKey(CommonHeaders.Path))
             {
-                initialRequest.Add(CommonHeaders.Path, Constants.DefaultPath);
+                initialRequest.Add(CommonHeaders.Path, "/");
             }
 
             var initialStream = CreateStream(new HeadersList(initialRequest), 1);
@@ -206,7 +206,7 @@ namespace Microsoft.Http2.Protocol
                 initialStream.EndStreamReceived = true;
                 if (OnFrameReceived != null)
                 {
-                    OnFrameReceived(this, new FrameReceivedEventArgs(initialStream, new HeadersFrame(1, new byte[0])));
+                    OnFrameReceived(this, new FrameReceivedEventArgs(initialStream, new HeadersFrame(1)));
                 }
             }
         }
@@ -326,7 +326,7 @@ namespace Microsoft.Http2.Protocol
                     Http2Logger.LogError("Handling session was cancelled");
                     Dispose();
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
                     Http2Logger.LogError("Sending frame was cancelled because connection was lost");
                     Dispose();

@@ -90,7 +90,7 @@ namespace Microsoft.Http2.Owin.Server.Adapters
                 var path = splittedRequestString[1];
 
                 // main OWIN environment components
-                // OWIN request and reponse below shares the same environment dictionary instance
+                // OWIN request and response below shares the same environment dictionary instance
                 _environment = CreateOwinEnvironment(method, scheme, "", path, headers);
                 _request = new OwinRequest(_environment);
                 _response = new OwinResponse(_environment);
@@ -241,9 +241,9 @@ namespace Microsoft.Http2.Owin.Server.Adapters
                 {
                     Method = method,
                     Scheme = scheme,
-                    Path = path,
-                    PathBase = pathBase,
-                    QueryString = queryString,
+                    Path = new PathString(path),
+                    PathBase = new PathString(pathBase),
+                    QueryString = new QueryString(queryString),
                     Body = new MemoryStream(requestBody ?? new byte[0]),
                     Protocol = Protocols.Http1
                 };

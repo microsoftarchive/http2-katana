@@ -104,16 +104,16 @@ namespace Microsoft.Http2.Owin.Middleware
                    && environment[CommonOwinKeys.OpaqueUpgrade] is UpgradeDelegate;
         }
 
-        private IDictionary<string, string> GetInitialRequestParams(IOwinRequest request)
+        private static IDictionary<string, string> GetInitialRequestParams(IOwinRequest request)
         {
             var defaultWindowSize = Constants.InitialFlowControlWindowSize.ToString(CultureInfo.InvariantCulture);
             var defaultMaxStreams = Constants.DefaultMaxConcurrentStreams.ToString(CultureInfo.InvariantCulture);
 
             bool areSettingsOk = true;
 
-            var path = !String.IsNullOrEmpty(request.Path)
-                            ? request.Path
-                            : Constants.DefaultPath;
+            var path = !String.IsNullOrEmpty(request.Path.Value)
+                            ? request.Path.Value
+                            : "/";
             var method = !String.IsNullOrEmpty(request.Method)
                             ? request.Method
                             : Constants.DefaultMethod;
@@ -122,8 +122,8 @@ namespace Microsoft.Http2.Owin.Middleware
                             ? request.Scheme
                             : Uri.UriSchemeHttp;
 
-            var host = !String.IsNullOrEmpty(request.Host)
-                            ? request.Host
+            var host = !String.IsNullOrEmpty(request.Host.Value)
+                            ? request.Host.Value
                             : Constants.DefaultHost;
 
             var splittedSettings = new string[0];
@@ -166,7 +166,7 @@ namespace Microsoft.Http2.Owin.Middleware
         }
         
 
-        private TransportInformation CreateTransportInfo(IOwinRequest owinRequest)
+        private static TransportInformation CreateTransportInfo(IOwinRequest owinRequest)
         {
             return new TransportInformation
             {

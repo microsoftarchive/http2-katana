@@ -61,7 +61,7 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
         /// <param name="headerType">Type of the header.</param>
         /// <param name="useHeadersTable">The use headers table.</param>
         /// <param name="index">The index.</param>
-        private void ModifyTable(string headerName, string headerValue, IndexationType headerType,
+        private static void ModifyTable(string headerName, string headerValue, IndexationType headerType,
                                         HeadersList useHeadersTable, int index)
         {
             int headerLen = headerName.Length + headerValue.Length + sizeof(Int32);
@@ -477,7 +477,7 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
             _serializerStream.Write(bytes, offset, length);
         }
 
-        private void ClearStream(Stream input, int len)
+        private static void ClearStream(Stream input, int len)
         {
             var buffer = new byte[len];
             input.Position = 0;

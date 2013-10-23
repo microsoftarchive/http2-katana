@@ -6,13 +6,20 @@ namespace Microsoft.Http2.Protocol.Framing
     {
 
         private const int PreambleSizeWithoutPriority = 8;
-        private readonly HeadersList _headers = new HeadersList();
+        private HeadersList _headers = new HeadersList();
 
         public HeadersList Headers
         {
             get
             {
                 return _headers;
+            }
+            set
+            {
+                if (value == null)
+                    return;
+
+                _headers = value;
             }
         }
 

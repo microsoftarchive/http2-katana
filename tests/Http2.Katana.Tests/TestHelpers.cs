@@ -1,6 +1,6 @@
 ﻿using System.Configuration;
 using System.Net;
-using System.Reflection;
+using Http2.TestClient.Handshake;
 using Microsoft.Http2.Owin.Server.Adapters;
 using Microsoft.Http2.Protocol.IO;
 using Microsoft.Owin;
@@ -20,15 +20,40 @@ namespace Microsoft.Http2.Protocol.Tests
 {
     public static class TestHelpers
     {
-        private static readonly byte[] ClientSessionHeader = Encoding.UTF8.GetBytes("PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n");
+        public static readonly byte[] ClientSessionHeader = Encoding.UTF8.GetBytes("PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n");
         private static readonly bool UseSecurePort = ConfigurationManager.AppSettings["useSecurePort"] == "true";
 
-        public static readonly string FileContent10MbTest = 
-                                            new StreamReader(new FileStream(@"root\10mbTest.txt", FileMode.Open)).ReadToEnd(),
+        public static readonly string FileContent5bTest = 
+                                            new StreamReader(new FileStream(@"root\5mbTest.txt", FileMode.Open)).ReadToEnd(),
                                       FileContentSimpleTest = 
                                             new StreamReader(new FileStream(@"root\simpleTest.txt", FileMode.Open)).ReadToEnd(),
                                       FileContentEmptyFile = string.Empty,
                                       FileContentAnyFile = "some text";
+
+
+        private static Dictionary<string, object> MakeHandshakeEnvironment(Uri uri, SecurityOptions options, DuplexStream stream)
+        {
+            return new Dictionary<string, object>
+			{
+                    {CommonHeaders.Path, uri.PathAndQuery},
+					{CommonHeaders.Version, Protocols.Http2},
+                    {CommonHeaders.Scheme, Uri.UriSchemeHttp},
+                    {CommonHeaders.Host, uri.Host},
+                    {HandshakeKeys.Options, options},
+                    {HandshakeKeys.Stream, stream},
+                    {HandshakeKeys.ConnectionEnd, ConnectionEnd.Client}
+			};
+        }
+
+        private static void MakeUnsecureHandshake(Uri uri, SecurityOptions options, DuplexStream stream)
+        {
+            var env = MakeHandshakeEnvironment(uri, options, stream);
+            var result = new UpgradeHandshaker(env).Handshake();
+            var success = result[HandshakeKeys.Successful] as string == HandshakeKeys.True;
+
+            if (!success)
+                throw new Http2HandshakeFailed(HandshakeFailureReason.InternalError);
+        }
 
         public static DuplexStream CreateStream()
         {
@@ -70,29 +95,32 @@ namespace Microsoft.Http2.Protocol.Tests
         public async static Task AppFunction(IDictionary<string, object> environment)
         {
             // process response
-            var owinResponse = new OwinResponse(environment);
+            var owinResponse = new OwinResponse(environment) {ContentType = "text/plain"};
             var owinRequest = new OwinRequest(environment);
             var writer = new StreamWriter(owinResponse.Body);
-            switch (owinRequest.Path)
+            switch (owinRequest.Path.Value)
             {
                 case "/10mbTest.txt":
-                    writer.Write(TestHelpers.FileContent10MbTest);
+                    writer.Write(FileContent5bTest);
+                    owinResponse.ContentLength = FileContent5bTest.Length;
                     break;
                 case "/simpleTest.txt":
-                    writer.Write(TestHelpers.FileContentSimpleTest);
+                    writer.Write(FileContentSimpleTest);
+                    owinResponse.ContentLength = FileContentSimpleTest.Length;
                     break;
                 case "/emptyFile.txt":
-                    writer.Write(TestHelpers.FileContentEmptyFile);
+                    writer.Write(FileContentEmptyFile);
+                    owinResponse.ContentLength = FileContentEmptyFile.Length;
                     break;
                 default:
-                    writer.Write(TestHelpers.FileContentAnyFile);
+                    writer.Write(FileContentAnyFile);
+                    owinResponse.ContentLength = FileContentAnyFile.Length;
                     break;
             }
 
             await writer.FlushAsync();
 
-            owinResponse.ContentLength = owinResponse.Body.Length;
-            owinResponse.ContentType = "text/plain";
+            
         }
 
         public static DuplexStream GetHandshakedDuplexStream(string address, bool allowHttp2Communication = true, bool useMock = false)
@@ -122,6 +150,7 @@ namespace Microsoft.Http2.Protocol.Tests
             var sessionSocket = new SecureSocket(AddressFamily.InterNetwork, SocketType.Stream,
                                                 ProtocolType.Tcp, options);
 
+            DuplexStream clientStream;
             using (var monitor = new ALPNExtensionMonitor())
             {
                 monitor.OnProtocolSelected += (sender, args) => { selectedProtocol = args.SelectedProtocol; };
@@ -130,21 +159,18 @@ namespace Microsoft.Http2.Protocol.Tests
 
                 sessionSocket.Connect(new DnsEndPoint(uri.Host, uri.Port), monitor);
 
+                clientStream = new DuplexStream(sessionSocket, true);
+
                 if (useHandshake)
                 {
-                    sessionSocket.MakeSecureHandshake(options);
+                    if (UseSecurePort)
+                        sessionSocket.MakeSecureHandshake(options);
+                    else
+                        MakeUnsecureHandshake(uri, options, clientStream);
                 }
             }
 
-            //SendSessionHeader(sessionSocket);
-
-            return useMock ? new Mock<DuplexStream>(sessionSocket, true).Object : new DuplexStream(sessionSocket, true);
-        }
-
-        public static void SendSessionHeader(DuplexStream stream)
-        {
-            stream.Write(ClientSessionHeader);
-            stream.Flush();
+            return useMock ? new Mock<DuplexStream>(sessionSocket, true).Object : clientStream;
         }
 
         public static string GetAddress()
