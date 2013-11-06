@@ -217,9 +217,10 @@ namespace Org.Mentalis.Security.Ssl.Shared {
 			HandshakeMessage temp;
 			byte[] bytes;
 
-            Int16 extensionsSize = sizeof(Int16);
-            if (this.clientHelloExts != null)
+            Int16 extensionsSize = 0;
+            if (this.clientHelloExts != null && this.clientHelloExts.Count != 0)
             {
+                extensionsSize = sizeof(Int16);
                 extensionsSize += this.clientHelloExts.ExtensionsByteLength;
             }
 			// ServerHello message
@@ -235,14 +236,19 @@ namespace Org.Mentalis.Security.Ssl.Shared {
 			Buffer.BlockCopy(CipherSuites.GetCipherAlgorithmBytes(m_EncryptionScheme), 0, temp.fragment, 35, 2);
 			temp.fragment[37] = CompressionAlgorithm.GetAlgorithmByte(m_CompressionMethod);
 
-            MemoryStream extsStream = new MemoryStream();
-            this.clientHelloExts.WriteExtensions(extsStream, ConnectionEnd.Server);
-            byte[] extsBytes = extsStream.ToArray();
-            Buffer.BlockCopy(extsBytes, 0, temp.fragment, 38, extsBytes.Length);
-			bytes = temp.ToBytes();
-			retMessage.Write(bytes, 0, bytes.Length);
-
-			// Certificate message
+		    if (this.clientHelloExts != null && this.clientHelloExts.Count != 0)
+		    {
+		        using (var extsStream = new MemoryStream())
+		        {
+		            this.clientHelloExts.WriteExtensions(extsStream, ConnectionEnd.Server);
+		            byte[] extsBytes = extsStream.ToArray();
+		            Buffer.BlockCopy(extsBytes, 0, temp.fragment, 38, extsBytes.Length);
+		        }
+		    }	
+	       
+            bytes = temp.ToBytes();
+		    retMessage.Write(bytes, 0, bytes.Length);
+		    // Certificate message
 			byte[] certs = GetCertificateList(m_Options.Certificate);
 			temp.type = HandshakeType.Certificate;
 			temp.fragment = certs;
