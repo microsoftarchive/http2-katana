@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -11,7 +12,8 @@ using Microsoft.Http2.Protocol.Utils;
 using Microsoft.Owin;
 using Microsoft.Http2.Protocol;
 using Microsoft.Http2.Protocol.IO;
-using Org.Mentalis.Security.Ssl;
+using OpenSSL;
+using OpenSSL.SSL;
 
 namespace Microsoft.Http2.Owin.Middleware
 {
@@ -43,7 +45,7 @@ namespace Microsoft.Http2.Owin.Middleware
 
             if (IsOpaqueUpgradePossible(context.Request) && IsRequestForHttp2Upgrade(context.Request))
             {
-                var upgradeDelegate = environment["opaque.Upgrade"] as UpgradeDelegate;
+                var upgradeDelegate = environment[CommonOwinKeys.OpaqueUpgrade] as UpgradeDelegate;
                 Debug.Assert(upgradeDelegate != null, "upgradeDelegate is not null");
 
                 var trInfo = CreateTransportInfo(context.Request);
@@ -54,7 +56,7 @@ namespace Microsoft.Http2.Owin.Middleware
                 upgradeDelegate.Invoke(new Dictionary<string, object>(), async opaque =>
                     {
                         //use the same stream which was used during upgrade
-                        var opaqueStream = opaque["opaque.Stream"] as DuplexStream;
+                        var opaqueStream = opaque[CommonOwinKeys.OpaqueStream] as Stream;
 
                         //TODO Provide cancellation token here
                         // Move to method
@@ -62,8 +64,8 @@ namespace Microsoft.Http2.Owin.Middleware
                         {
                             using (var http2MessageHandler = new Http2OwinMessageHandler(opaqueStream,
                                                                                             ConnectionEnd.Server,
-                                                                                            trInfo, _next,
-                                                                                            CancellationToken.None)
+                                                                                            opaqueStream is SslStream,
+                                                                                            _next, CancellationToken.None)
                                 )
                             {
                                 await http2MessageHandler.StartSessionAsync(requestCopy);
@@ -77,7 +79,7 @@ namespace Microsoft.Http2.Owin.Middleware
                     });
 
                 // specify Upgrade protocol
-                context.Response.Headers.Add("Upgrade", new[] { Protocols.Http2 });
+                context.Response.Headers.Add(CommonHeaders.Upgrade, new[] { Protocols.Http2 });
                 return;
             }
 
@@ -88,48 +90,48 @@ namespace Microsoft.Http2.Owin.Middleware
         private static bool IsRequestForHttp2Upgrade(IOwinRequest request)
         {
             var headers = request.Headers as IDictionary<string, string[]>;
-            return  headers.ContainsKey("Connection")
-                    && headers.ContainsKey("HTTP2-Settings")
-                    && headers.ContainsKey("Upgrade") 
-                    && headers["Upgrade"].FirstOrDefault(it =>
-                                         it.ToUpper().IndexOf("HTTP", StringComparison.Ordinal) != -1 &&
-                                         it.IndexOf("2.0", StringComparison.Ordinal) != -1) != null;
+            return headers.ContainsKey(CommonHeaders.Connection)
+                    && headers.ContainsKey(CommonHeaders.Http2Settings)
+                    && headers.ContainsKey(CommonHeaders.Upgrade)
+                    && headers[CommonHeaders.Upgrade].FirstOrDefault(it =>
+                                         it.ToUpper().IndexOf(Protocols.Http2, StringComparison.OrdinalIgnoreCase) != -1
+                                         || it.ToUpper().IndexOf(Protocols.Http204, StringComparison.OrdinalIgnoreCase) != -1) != null;
         }
 
         private static bool IsOpaqueUpgradePossible(IOwinRequest request)
         {
             var environment = request.Environment;
 
-            return environment.ContainsKey("opaque.Upgrade")
-                   && environment["opaque.Upgrade"] is UpgradeDelegate;
+            return environment.ContainsKey(CommonOwinKeys.OpaqueUpgrade)
+                   && environment[CommonOwinKeys.OpaqueUpgrade] is UpgradeDelegate;
         }
 
         private static IDictionary<string, string> GetInitialRequestParams(IOwinRequest request)
         {
-            var defaultWindowSize = 200000.ToString(CultureInfo.InvariantCulture);
-            var defaultMaxStreams = 100.ToString(CultureInfo.InvariantCulture);
+            var defaultWindowSize = Constants.InitialFlowControlWindowSize.ToString(CultureInfo.InvariantCulture);
+            var defaultMaxStreams = Constants.DefaultMaxConcurrentStreams.ToString(CultureInfo.InvariantCulture);
 
             bool areSettingsOk = true;
 
-            var path = !String.IsNullOrEmpty(request.Path)
-                            ? request.Path
-                            : "/index.html";
+            var path = !String.IsNullOrEmpty(request.Path.Value)
+                            ? request.Path.Value
+                            : "/";
             var method = !String.IsNullOrEmpty(request.Method)
                             ? request.Method
-                            : "get";
+                            : Constants.DefaultMethod;
 
             var scheme = !String.IsNullOrEmpty(request.Scheme)
                             ? request.Scheme
-                            : "http";
+                            : Uri.UriSchemeHttp;
 
-            var host = !String.IsNullOrEmpty(request.Host)
-                            ? request.Host
-                            :  "localhost";
+            var host = !String.IsNullOrEmpty(request.Host.Value)
+                            ? request.Host.Value
+                            : Constants.DefaultHost;
 
             var splittedSettings = new string[0];
             try
             {
-                var settingsBytes = Convert.FromBase64String(request.Headers["Http2-Settings"]);
+                var settingsBytes = Convert.FromBase64String(request.Headers[CommonHeaders.Http2Settings]);
                 var http2Settings = Encoding.UTF8.GetString(settingsBytes);
                 if (http2Settings.IndexOf(',') != -1)
                 {
@@ -156,12 +158,12 @@ namespace Microsoft.Http2.Owin.Middleware
             return new Dictionary<string, string>
                 {
                     //Add more headers
-                    {":path", path},
-                    {":method", method},
-                    {":initial_window_size", windowSize},
-                    {":max_concurrent_streams", maxStreams},
-                    {":scheme", scheme},
-                    {":host", host}
+                    {CommonHeaders.Path, path},
+                    {CommonHeaders.Method, method},
+                    {CommonHeaders.InitialWindowSize, windowSize},
+                    {CommonHeaders.MaxConcurrentStreams, maxStreams},
+                    {CommonHeaders.Scheme, scheme},
+                    {CommonHeaders.Host, host}
                 };
         }
         

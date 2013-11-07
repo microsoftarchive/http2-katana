@@ -1,16 +1,25 @@
-﻿namespace Microsoft.Http2.Protocol.Framing
+﻿using System;
+
+namespace Microsoft.Http2.Protocol.Framing
 {
-    internal class ContinuationFrame : Frame, IEndStreamFrame
+    internal class ContinuationFrame : Frame, IEndStreamFrame, IHeadersFrame
     {
 
         private const int PreambleSizeWithoutPriority = 8;
-        private readonly HeadersList _headers = new HeadersList();
+        private HeadersList _headers = new HeadersList();
 
         public HeadersList Headers
         {
             get
             {
                 return _headers;
+            }
+            set
+            {
+                if (value == null)
+                    return;
+
+                _headers = value;
             }
         }
 
@@ -45,8 +54,17 @@
             }
         }
 
+        public ArraySegment<byte> CompressedHeaders
+        {
+            get
+            {
+                const int offset = Constants.FramePreambleSize;
+                return new ArraySegment<byte>(Buffer, offset, Buffer.Length - offset);
+            }
+        }
+
         //outgoing
-        public ContinuationFrame(int streamId, byte[] headerBytes, int priority = Constants.DefaultStreamPriority)
+        public ContinuationFrame(int streamId, byte[] headerBytes)
         {
             _buffer = new byte[headerBytes.Length + PreambleSizeWithoutPriority];
 

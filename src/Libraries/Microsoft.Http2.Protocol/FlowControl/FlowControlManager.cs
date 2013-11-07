@@ -67,8 +67,15 @@ namespace Microsoft.Http2.Protocol.FlowControl
 
         public FlowControlManager(Http2Session flowControlledSession)
         {
-            SessionInitialWindowSize = Constants.DefaultFlowControlCredit;
-            StreamsInitialWindowSize = Constants.DefaultFlowControlCredit;
+            if (flowControlledSession == null)
+                throw new ArgumentNullException("flowControlledSession is null");
+
+            //06
+            //When a HTTP/2.0 connection is first established, new streams are
+            //created with an initial flow control window size of 65535 bytes.  The
+            //connection flow control window is 65535 bytes.  
+            SessionInitialWindowSize = Constants.InitialFlowControlWindowSize;
+            StreamsInitialWindowSize = Constants.InitialFlowControlWindowSize;
 
             _flowControlledSession = flowControlledSession;
             _streamCollection = _flowControlledSession.ActiveStreams;
@@ -87,16 +94,25 @@ namespace Microsoft.Http2.Protocol.FlowControl
         /// </returns>
         public bool IsStreamFlowControlled(Http2Stream stream)
         {
+            if (stream == null)
+                throw new ArgumentNullException("stream is null");
+
             return _streamCollection.IsStreamFlowControlled(stream);
         }
 
         public void NewStreamOpenedHandler(Http2Stream stream)
         {
+            if (stream == null)
+                throw new ArgumentNullException("stream is null");
+
             _flowControlledSession.SessionWindowSize += StreamsInitialWindowSize;
         }
 
         public void StreamClosedHandler(Http2Stream stream)
         {
+            if (stream == null)
+                throw new ArgumentNullException("stream is null");
+
             _flowControlledSession.SessionWindowSize -= stream.WindowSize;
         }
 
@@ -107,6 +123,9 @@ namespace Microsoft.Http2.Protocol.FlowControl
         /// <param name="stream">The stream.</param>
         public void DisableStreamFlowControl(Http2Stream stream)
         {
+            if (stream == null)
+                throw new ArgumentNullException("stream is null");
+
             _streamCollection.DisableFlowControl(stream);
         }
 

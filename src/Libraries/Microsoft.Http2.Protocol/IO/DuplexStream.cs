@@ -18,10 +18,13 @@ namespace Microsoft.Http2.Protocol.IO
         private readonly StreamBuffer _readBuffer;
         private SecureSocket _socket;
         private bool _isClosed;
+
+        //If stream owns socket then it will close this socket when someone will close stream.
+        //if stream doesnt own socket then socket will not be closed.
         private readonly bool _ownsSocket;
         private readonly object _waitLock;
         private readonly object _closeLock;
-        private readonly ManualResetEvent _streamStateChangeRaised;
+        private ManualResetEvent _streamStateChangeRaised;
         public override int ReadTimeout
         {
             get { return 600000; } // if local ep will get nothing from the remote ep in 10 minutes it will close connection
@@ -38,6 +41,9 @@ namespace Microsoft.Http2.Protocol.IO
 
         public DuplexStream(SecureSocket socket, bool ownsSocket = false)
         {
+            if (socket == null)
+                throw new ArgumentNullException("socket is null");
+
             _writeBuffer = new StreamBuffer(1024);
             _readBuffer = new StreamBuffer(1024);
             _ownsSocket = ownsSocket;
@@ -109,6 +115,7 @@ namespace Microsoft.Http2.Protocol.IO
         /// <returns></returns>
         private bool WaitForDataAvailable(int timeout)
         {
+            _streamStateChangeRaised.Reset();
             lock (_waitLock)
             {
                 if (Available != 0)
@@ -144,24 +151,17 @@ namespace Microsoft.Http2.Protocol.IO
 
         public async override Task FlushAsync(CancellationToken cancellationToken)
         {
-            if (_isClosed)
-                return;
-
-            if (cancellationToken.IsCancellationRequested)
-                cancellationToken.ThrowIfCancellationRequested();
-
-            if (_writeBuffer.Available == 0)
-                return;
-
-            var flushBuffer = new byte[_writeBuffer.Available];
-
-            int read = _writeBuffer.Read(flushBuffer, 0, flushBuffer.Length);
-
-            if (read == 0)
-                return;
-
-            await Task.Factory.FromAsync<int>(_socket.BeginSend(flushBuffer, 0, flushBuffer.Length, SocketFlags.None, null, null),
-                                                _socket.EndSend, TaskCreationOptions.None, TaskScheduler.Default);
+            await Task.Factory.StartNew(() =>
+                {
+                    try
+                    {
+                        Flush();
+                    }
+                    catch (Exception ex)
+                    {
+                        Http2Logger.LogDebug("FlushAsync failed :" + ex.Message);
+                    }
+                });
         }
 
         public override long Seek(long offset, SeekOrigin origin)
@@ -176,10 +176,14 @@ namespace Microsoft.Http2.Protocol.IO
 
         public override int Read(byte[] buffer, int offset, int count)
         {
+            if (buffer == null)
+                throw new ArgumentNullException("buffer is null");
+
+            if (offset < 0 || count < 0)
+                throw new ArgumentOutOfRangeException("offset or count < 0");
+
             if (_isClosed)
                 return 0;
-
-            _streamStateChangeRaised.Reset();
 
             if (!WaitForDataAvailable(ReadTimeout))
             {
@@ -193,27 +197,36 @@ namespace Microsoft.Http2.Protocol.IO
 
         public async override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
         {
-            if (_isClosed)
-                return 0;
+            if (buffer == null)
+                throw new ArgumentNullException("buffer is null");
 
-            if (cancellationToken.IsCancellationRequested)
-                cancellationToken.ThrowIfCancellationRequested();
-
-            _streamStateChangeRaised.Reset();
-
-            if (!WaitForDataAvailable(ReadTimeout))
-            {
-                //We waited enough and there was no data. Close connection due timeout
-                Close();
-                return 0;
-            }
+            if (offset < 0 || count < 0)
+                throw new ArgumentOutOfRangeException("offset or count < 0");
 
             //Refactor. Do not use lambda
-            return await Task.Factory.StartNew(() => _readBuffer.Read(buffer, offset, count));
+            return await Task.Factory.StartNew(() =>
+                {
+                    try
+                    {
+                        return Read(buffer, offset, count);
+                    }
+                    catch (Exception ex)
+                    {
+                        Http2Logger.LogDebug("DuplexStream.ReadAsync got exception: " + ex.Message);
+                    }
+
+                    return 0;
+                });
         }
 
         public override void Write(byte[] buffer, int offset, int count)
         {
+            if (buffer == null)
+                throw new ArgumentNullException("buffer is null");
+
+            if (offset < 0 || count < 0)
+                throw new ArgumentOutOfRangeException("offset or count < 0");
+
             if (_isClosed)
                 return;
 
@@ -223,6 +236,9 @@ namespace Microsoft.Http2.Protocol.IO
         // TODO to extension methods ?? + check for args
         public int Write(byte[] buffer)
         {
+            if (buffer == null)
+                throw new ArgumentNullException("buffer is null");
+
             if (_isClosed)
                 return 0;
 
@@ -241,14 +257,24 @@ namespace Microsoft.Http2.Protocol.IO
 
         public async override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
         {
-            if (_isClosed)
-                return;
+            if (buffer == null)
+                throw new ArgumentNullException("buffer is null");
 
-            if (cancellationToken.IsCancellationRequested)
-                cancellationToken.ThrowIfCancellationRequested();
-            
+            if (offset < 0 || count < 0)
+                throw new ArgumentOutOfRangeException("offset or count < 0");
+
             //Refactor. Do not use lambda
-            await Task.Factory.StartNew(() => _writeBuffer.Write(buffer, offset, count));
+            await Task.Factory.StartNew(() =>                 
+                {
+                    try
+                    {
+                        Write(buffer, offset, count);
+                    }
+                    catch (Exception ex)
+                    {
+                        Http2Logger.LogDebug("DuplexStream.WriteAsync got exception: " + ex.Message);
+                    }
+                });
         }
 
         public int Available { get { return _readBuffer.Available; } }
@@ -308,6 +334,12 @@ namespace Microsoft.Http2.Protocol.IO
                     OnClose(this, null);
 
                 OnClose = null;
+
+                if (_streamStateChangeRaised != null)
+                {
+                    _streamStateChangeRaised.Dispose();
+                    _streamStateChangeRaised = null;
+                }
             }
         }
     }

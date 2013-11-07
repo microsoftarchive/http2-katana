@@ -73,7 +73,7 @@
     <Compile Include="Commands\UnknownCommand.cs" />
     <Compile Include="GlobalSuppressions.cs" />
     <Compile Include="Handshake\HandshakeFailureReason.cs" />
-    <Compile Include="Handshake\HandshakeManager.cs" />
+    <Compile Include="Handshake\HandshakeKeys.cs" />
     <Compile Include="Handshake\HandshakeResponse.cs" />
     <Compile Include="Handshake\HandshakeResult.cs" />
     <Compile Include="Handshake\Http2HandshakeFailed.cs" />
@@ -81,17 +81,18 @@
     <Compile Include="Adapters\Http11ClientMessageHandler.cs" />
     <Compile Include="Adapters\Http2ClientMessageHandler.cs" />
     <Compile Include="Http2SessionHandler.cs" />
+    <Compile Include="IO\FileHelper.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Libraries\MentalisSecurityLibrary\Security Library.csproj">
-      <Project>{5bfa5a70-d384-4417-afcc-5c744485a85f}</Project>
-      <Name>Security Library</Name>
-    </ProjectReference>
     <ProjectReference Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Microsoft.Http2.Protocol.csproj">
       <Project>{e34ac310-324c-46bc-af9f-1a41df58e867}</Project>
       <Name>Microsoft.Http2.Protocol</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\src\Libraries\OpenSsl\ManagedOpenSsl\ManagedOpenSsl-2010.csproj">
+      <Project>{73dcc218-655b-485f-8eac-0ce5f2f7343d}</Project>
+      <Name>ManagedOpenSsl-2010</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

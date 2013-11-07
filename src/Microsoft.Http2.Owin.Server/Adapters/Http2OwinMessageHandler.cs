@@ -1,17 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
+using System.Globalization;
 using System.IO;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Http2.Protocol;
-using Microsoft.Http2.Protocol.Extensions;
 using Microsoft.Http2.Protocol.Framing;
-using Microsoft.Http2.Protocol.IO;
 using Microsoft.Http2.Protocol.Utils;
-using Microsoft.Owin;
-using Org.Mentalis.Security.Ssl;
+using OpenSSL;
 
 namespace Microsoft.Http2.Owin.Server.Adapters
 {
@@ -32,49 +28,12 @@ namespace Microsoft.Http2.Owin.Server.Adapters
         /// <param name="transportInfo">The transport information.</param>
         /// <param name="next">The next layer delegate.</param>
         /// <param name="cancel">The cancellation token.</param>
-        public Http2OwinMessageHandler(DuplexStream stream, ConnectionEnd end, TransportInformation transportInfo,
+        public Http2OwinMessageHandler(Stream stream, ConnectionEnd end, bool isSecure,
                                 AppFunc next, CancellationToken cancel)
-            : base(stream, end, stream.IsSecure, transportInfo, cancel)
+            : base(stream, end, isSecure, cancel)
         {
             _next = next;
-            stream.OnClose += delegate { Dispose(); };
-        }
-
-        /// <summary>
-        /// Adopts protocol terms into owin environment.
-        /// </summary>
-        /// <param name="headers">The headers.</param>
-        /// <returns></returns>
-        private IDictionary<string, object> PopulateEnvironment(HeadersList headers)
-        {
-            var owinContext = new OwinContext();
-
-            var headersAsDict = headers.ToDictionary(header => header.Key, header => new[] {header.Value}, StringComparer.OrdinalIgnoreCase);
-
-            owinContext.Environment["owin.RequestHeaders"] = headersAsDict;
-            owinContext.Environment["owin.ResponseHeaders"] = new Dictionary<string, string[]>();
-
-            var owinRequest = owinContext.Request;
-            var owinResponse = owinContext.Response;
-
-            owinRequest.Method = headers.GetValue(":method");
-            owinRequest.Path = headers.GetValue(":path");
-            owinRequest.CallCancelled = CancellationToken.None;
-
-            owinRequest.Host = headers.GetValue(":host");
-            owinRequest.PathBase = String.Empty;
-            owinRequest.QueryString = String.Empty;
-            owinRequest.Body = new MemoryStream();
-            owinRequest.Protocol = Protocols.Http2;
-            owinRequest.Scheme = headers.GetValue(":scheme") == Uri.UriSchemeHttp ? Uri.UriSchemeHttp : Uri.UriSchemeHttps;
-            owinRequest.RemoteIpAddress = _transportInfo.RemoteIpAddress;
-            owinRequest.RemotePort = Convert.ToInt32(_transportInfo.RemotePort);
-            owinRequest.LocalIpAddress = _transportInfo.LocalIpAddress;
-            owinRequest.LocalPort = _transportInfo.LocalPort;
-
-            owinResponse.Body = new MemoryStream();
-
-            return owinContext.Environment;
+            //stream.OnClose += delegate { Dispose(); };
         }
 
         /// <summary>
@@ -113,10 +72,10 @@ namespace Microsoft.Http2.Owin.Server.Adapters
             //these header fields, presence of multiple values, or an invalid value
             //as a stream error (Section 5.4.2) of type PROTOCOL_ERROR.
 
-            if (stream.Headers.GetValue(":method") == null
-                || stream.Headers.GetValue(":path") == null
-                || stream.Headers.GetValue(":scheme") == null
-                || stream.Headers.GetValue(":host") == null)
+            if (stream.Headers.GetValue(CommonHeaders.Method) == null
+                || stream.Headers.GetValue(CommonHeaders.Path) == null
+                || stream.Headers.GetValue(CommonHeaders.Scheme) == null
+                || stream.Headers.GetValue(CommonHeaders.Host) == null)
             {
                 stream.WriteRst(ResetStatusCode.ProtocolError);
                 return;
@@ -124,19 +83,16 @@ namespace Microsoft.Http2.Owin.Server.Adapters
 
             Task.Factory.StartNew(async () =>
             {
-                var env = PopulateEnvironment(stream.Headers);
-
                 try
                 {
-                    await _next(env);
+                    var context = new Http2OwinMessageContext(stream);
+                    await _next(context.Environment);
+                    context.FinishResponse();
                 }
                 catch (Exception ex)
                 {   
                     EndResponse(stream, ex);
-                    return;
                 }
-
-                await EndResponse(stream, env);
             });
             
         }
@@ -156,65 +112,12 @@ namespace Microsoft.Http2.Owin.Server.Adapters
         /// Ends the response in case of error.
         /// </summary>
         /// <param name="stream">The stream.</param>
-        /// <param name="ex">The catched exception.</param>
+        /// <param name="ex">The caught exception.</param>
         private void EndResponse(Http2Stream stream, Exception ex)
         {
-            WriteStatus(stream, StatusCode.Code500InternalServerError, false);
-        }
-
-        /// <summary>
-        /// Ends the owin response.
-        /// </summary>
-        /// <param name="stream">The stream.</param>
-        /// <param name="environment">The environment.</param>
-        /// <returns></returns>
-        private async Task EndResponse(Http2Stream stream, IDictionary<string, object> environment)
-        {
-            Stream responseBody = null;
-            IDictionary<string, string[]> owinResponseHeaders = null;
-            HeadersList responseHeaders = null;
-
-            var response = new OwinResponse(environment);
-
-            if (response.Body != null)
-                responseBody = response.Body;
-
-            if (response.Headers != null)
-                owinResponseHeaders = response.Headers;
-
-            var responseStatusCode = response.StatusCode;
-
-            if (owinResponseHeaders != null)
-                responseHeaders = new HeadersList(owinResponseHeaders);
-
-            var hasDataContent = responseBody != null && responseBody.Position != 0;
-
-            WriteStatus(stream, responseStatusCode, !hasDataContent, responseHeaders);
-
-            //Memory stream contains all response data and can be read by one iteration.
-            if (hasDataContent)
-            {
-                Http2Logger.LogDebug("Transfer begin");
-                int contentLen = int.Parse(response.Headers["Content-Length"]);
-                int read = 0;
-
-                responseBody.Seek(0, SeekOrigin.Begin);
-                while (read < contentLen)
-                {
-                    var temp = new byte[Constants.MaxFrameContentSize];
-                    int tmpRead = await responseBody.ReadAsync(temp, 0, temp.Length);
-                    
-                    Debug.Assert(tmpRead > 0);
-                    
-                    var readBytes = new byte[tmpRead];
-                    Buffer.BlockCopy(temp, 0, readBytes, 0, tmpRead);
-
-                    read += tmpRead;
-                    SendDataTo(stream, readBytes, read == contentLen);
-                }
-
-                Http2Logger.LogDebug("Transfer end");
-            }
+            Http2Logger.LogDebug("Error processing request:\r\n" + ex);
+            // TODO: What if the response has already started?
+            WriteStatus(stream, StatusCode.Code500InternalServerError, true);
         }
 
         /// <summary>
@@ -223,43 +126,16 @@ namespace Microsoft.Http2.Owin.Server.Adapters
         /// <param name="stream">The stream.</param>
         /// <param name="statusCode">The status code.</param>
         /// <param name="final">if set to <c>true</c> then marks headers frame as final.</param>
-        /// <param name="additionalHeaders">The additional headers.</param>
-        private void WriteStatus(Http2Stream stream, int statusCode, bool final, HeadersList additionalHeaders = null)
+        /// <param name="headers">Additional headers</param>
+        private void WriteStatus(Http2Stream stream, int statusCode, bool final, HeadersList headers = null)
         {
-            var headers = new HeadersList
+            if (headers == null)
                 {
-                    new KeyValuePair<string, string>(":status", statusCode.ToString()),
-                };
-
-            if (additionalHeaders != null)
-            {
-                headers.AddRange(additionalHeaders);
+                headers = new HeadersList();
             }
+            headers.Add(new KeyValuePair<string, string>(CommonHeaders.Status, statusCode.ToString(CultureInfo.InvariantCulture)));
 
             stream.WriteHeadersFrame(headers, final, true);
-        }
-
-        /// <summary>
-        /// Wraps data into data frames and sends it 
-        /// </summary>
-        /// <param name="stream">The stream.</param>
-        /// <param name="binaryData">The binary data.</param>
-        /// <param name="isLastChunk">if set to <c>true</c> then marks last data frame as final.</param>
-        private void SendDataTo(Http2Stream stream, byte[] binaryData, bool isLastChunk)
-        {
-            int i = 0;
-            Debug.Assert(binaryData.Length <= Constants.MaxFrameContentSize);
-            do
-            {
-                int chunkSize = MathEx.Min(binaryData.Length - i, Constants.MaxFrameContentSize);
-
-                var chunk = new byte[chunkSize];
-                Buffer.BlockCopy(binaryData, i, chunk, 0, chunk.Length);
-
-                stream.WriteDataFrame(chunk, isLastChunk);
-
-                i += chunkSize;
-            } while (binaryData.Length > i);
         }
     }
 }

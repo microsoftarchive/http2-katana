@@ -1,20 +1,19 @@
-﻿using Http2.TestClient.Adapters;
+﻿using System.IO;
+using Http2.TestClient.Adapters;
 using Http2.TestClient.Handshake;
 using Microsoft.Http2.Protocol;
 using Microsoft.Http2.Protocol.Extensions;
-using Microsoft.Http2.Protocol.IO;
 using Microsoft.Http2.Protocol.Utils;
-using Org.Mentalis;
-using Org.Mentalis.Security;
-using Org.Mentalis.Security.Ssl;
-using Org.Mentalis.Security.Ssl.Shared.Extensions;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
-using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
+using OpenSSL;
+using OpenSSL.Core;
+using OpenSSL.SSL;
+using OpenSSL.X509;
 
 namespace Http2.TestClient
 {
@@ -26,20 +25,25 @@ namespace Http2.TestClient
     {
         #region Fields
         private Http2ClientMessageHandler _sessionAdapter;
-        private DuplexStream _clientStream;
+        private Stream _clientStream;
         private const string CertificatePath = @"certificate.pfx";
         private string _selectedProtocol;
         private bool _useHttp20 = true;
         private readonly bool _usePriorities;
         private readonly bool _useHandshake;
         private readonly bool _useFlowControl;
+        private bool _isSecure;
         private bool _isDisposed;
         private string _path;
         private int _port;
         private string _version;
         private string _scheme;
         private string _host;
-        private readonly IDictionary<string, object> _environment; 
+        private readonly IDictionary<string, object> _environment;
+
+        private X509Chain _chain;
+        private X509Certificate _certificate;
+
         #endregion
 
         #region Events
@@ -55,19 +59,29 @@ namespace Http2.TestClient
 
         public string ServerUri { get; private set; }
 
-        public SecurityOptions Options { get; private set; }
-
         public bool WasHttp1Used 
         {
             get { return !_useHttp20; }
         }
 
+        public SslProtocols Protocol { get; private set; }
+
         #endregion
 
         #region Methods
 
+        private X509Certificate LoadPKCS7_PEMCertificate(string certFilename)
+        {
+            using (var certFile = BIO.File(certFilename, "r"))
+            {
+                return X509Certificate.FromPKCS7_PEM(certFile);
+            }
+        }
+
         public Http2SessionHandler(IDictionary<string, object> environment)
         {
+            Protocol = SslProtocols.None;
+            
             _environment = new Dictionary<string, object>();
             //Copy environment
             _environment.AddRange(environment);
@@ -97,17 +111,16 @@ namespace Http2.TestClient
             }
         }
 
-        private void MakeHandshakeEnvironment(SecureSocket socket)
+        private void MakeHandshakeEnvironment()
         {
             _environment.AddRange(new Dictionary<string, object>
 			{
-                    {":path", _path},
-					{":version", _version},
-                    {":scheme", _scheme},
-                    {":host", _host},
-                    {"securityOptions", Options},
-                    {"stream", _clientStream},
-                    {"end", ConnectionEnd.Client}
+                {CommonHeaders.Path, _path},
+		        {CommonHeaders.Version, _version},
+                {CommonHeaders.Scheme, _scheme},
+                {CommonHeaders.Host, _host},
+                {HandshakeKeys.Stream, _clientStream},
+                {HandshakeKeys.ConnectionEnd, ConnectionEnd.Client}
 			});
         }
 
@@ -136,67 +149,56 @@ namespace Http2.TestClient
                     Http2Logger.LogError("Incorrect port in the config file!");
                     return false;
                 }
+                _isSecure = port == securePort;
 
+                //var socket = new SecureSocket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp, Options);
+                var tcpClnt = new TcpClient(connectUri.AbsoluteUri, port);
 
-                //Connect alpn extension, set known protocols
-                var extensions = new[] {ExtensionType.Renegotiation, ExtensionType.ALPN};
+                _clientStream = tcpClnt.GetStream();
 
-                Options = port == securePort
-                               ? new SecurityOptions(SecureProtocol.Tls1, extensions, new[] { Protocols.Http1, Protocols.Http2 },
-                                                     ConnectionEnd.Client)
-                               : new SecurityOptions(SecureProtocol.None, extensions, new[] { Protocols.Http1, Protocols.Http2 },
-                                                     ConnectionEnd.Client);
-
-                Options.VerificationType = CredentialVerification.None;
-                Options.Certificate = Org.Mentalis.Security.Certificates.Certificate.CreateFromCerFile(CertificatePath);
-                Options.Flags = SecurityFlags.Default;
-                Options.AllowedAlgorithms = SslAlgorithms.RSA_AES_256_SHA | SslAlgorithms.NULL_COMPRESSION;
-
-                var socket = new SecureSocket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp, Options);
-                using (var monitor = new ALPNExtensionMonitor())
+                if (_useHandshake)
                 {
-                    monitor.OnProtocolSelected += (o, args) => { _selectedProtocol = args.SelectedProtocol; };
-                    socket.Connect(new DnsEndPoint(connectUri.Host, connectUri.Port), monitor);
-
-                    _clientStream = new DuplexStream(socket, true);
-
-                    if (_useHandshake)
+                    if (_isSecure)
                     {
-                        MakeHandshakeEnvironment(socket);
-                        //Handshake manager determines what handshake must be used: upgrade or secure
+                        _clientStream = new SslStream(_clientStream, false);
+                        _certificate = LoadPKCS7_PEMCertificate(CertificatePath);
 
-                        if (socket.SecureProtocol != SecureProtocol.None)
-                        {
-                            socket.MakeSecureHandshake(Options);
-                            _selectedProtocol = socket.SelectedProtocol;
-                        }
+                        _chain = new X509Chain();
 
-                        if (socket.SecureProtocol == SecureProtocol.None || _selectedProtocol == Protocols.Http1)
+                        var certList = new X509List { _certificate };
+                        
+                        (_clientStream as SslStream).AuthenticateAsClient(connectUri.AbsoluteUri, certList, _chain,
+                                                                          SslProtocols.Tls, SslStrength.All, false);
+                        
+                        _selectedProtocol = (_clientStream as SslStream).AlpnSelectedProtocol;
+                    }
+
+                    if (!_isSecure || _selectedProtocol == Protocols.Http1)
+                    {
+                        MakeHandshakeEnvironment();
+                        try
                         {
-                            try
+                            var handshakeResult = new UpgradeHandshaker(_environment).Handshake();
+                            _environment.Add("HandshakeResult", handshakeResult);
+                            _useHttp20 = handshakeResult["handshakeSuccessful"] as string == "true";
+
+                            if (!_useHttp20)
                             {
-                                var handshakeResult = new UpgradeHandshaker(_environment).Handshake();
-                                _environment.Add("HandshakeResult", handshakeResult);
-                                _useHttp20 = handshakeResult["handshakeSuccessful"] as string == "true";
-
-                                if (!_useHttp20)
-                                {
-                                    Dispose(false);
-                                    return true;
-                                }
+                                Dispose(false);
+                                return true;
                             }
-                            catch (Http2HandshakeFailed ex)
+                        }
+                        catch (Http2HandshakeFailed ex)
+                        {
+                            if (ex.Reason == HandshakeFailureReason.InternalError)
                             {
-                                if (ex.Reason == HandshakeFailureReason.InternalError)
-                                {
-                                    _useHttp20 = false;
-                                }
-                                else
-                                {
-                                    Http2Logger.LogError("Specified server did not respond");
-                                    Dispose(true);
-                                    return false;
-                                }
+                                _useHttp20 = false;
+                            }
+                            else
+                            {
+                                Http2Logger.LogError("Specified server did not respond");
+                                Dispose(true);
+                                return false;
                             }
                         }
                     }
@@ -204,11 +206,11 @@ namespace Http2.TestClient
 
                 Http2Logger.LogDebug("Handshake finished");
 
+                Protocol = _isSecure ? SslProtocols.Tls : SslProtocols.None;
+
                 if (_useHttp20)
                 {
-                    //TODO provide transport info
-                    _sessionAdapter = new Http2ClientMessageHandler(_clientStream, ConnectionEnd.Client, default(TransportInformation),
-                                                                     CancellationToken.None);
+                    _sessionAdapter = new Http2ClientMessageHandler(_clientStream, ConnectionEnd.Client, _isSecure, CancellationToken.None);
                 }
             }
             catch (SocketException)
@@ -231,13 +233,12 @@ namespace Http2.TestClient
         {
             if (_useHttp20 && !_sessionAdapter.IsDisposed && !_isDisposed)
             {
-                string initialPath = String.Empty;
                 Dictionary<string, string> initialRequest = null;
-                if (!_clientStream.IsSecure)
+                if (!_isSecure)
                 {
                     initialRequest = new Dictionary<string,string>
                         {
-                            {":path", _path},
+                            {CommonHeaders.Path, _path},
                         };
                 }
  
@@ -258,14 +259,15 @@ namespace Http2.TestClient
         {
             var headers = new HeadersList
                 {
-                    new KeyValuePair<string, string>(":method", method),
-                    new KeyValuePair<string, string>(":path", request.PathAndQuery),
-                    new KeyValuePair<string, string>(":version", _version),
-                    new KeyValuePair<string, string>(":host", _host),
-                    new KeyValuePair<string, string>(":scheme", _scheme),
+                    new KeyValuePair<string, string>(CommonHeaders.Method, method),
+                    new KeyValuePair<string, string>(CommonHeaders.Path, request.PathAndQuery),
+                    new KeyValuePair<string, string>(CommonHeaders.Version, _version),
+                    new KeyValuePair<string, string>(CommonHeaders.Host, _host),
+                    new KeyValuePair<string, string>(CommonHeaders.Scheme, _scheme),
                 };
 
-            if (!String.IsNullOrEmpty(localPath))
+            //Put and post handling
+            /*if (!String.IsNullOrEmpty(localPath))
             {
                 headers.Add(new KeyValuePair<string, string>(":localPath".ToLower(), localPath));
             }
@@ -273,7 +275,7 @@ namespace Http2.TestClient
             if (!String.IsNullOrEmpty(serverPostAct))
             {
                 headers.Add(new KeyValuePair<string, string>(":serverPostAct".ToLower(), serverPostAct));
-            }
+            }*/
                 //Sending request with default  priority
             _sessionAdapter.SendRequest(headers, Constants.DefaultStreamPriority, false);
         }
@@ -337,6 +339,19 @@ namespace Http2.TestClient
             if (_clientStream != null)
             {
                 _clientStream.Dispose();
+                _clientStream = null;
+            }
+
+            if (_certificate != null)
+            {
+                _certificate.Dispose();
+                _certificate = null;
+            }
+
+            if (_chain != null)
+            {
+                _chain.Dispose();
+                _chain = null;
             }
 
             _isDisposed = true;

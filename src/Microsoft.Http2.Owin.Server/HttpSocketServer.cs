@@ -2,12 +2,11 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
+using System.Net.Sockets;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
-using Org.Mentalis.Security.Certificates;
-using Org.Mentalis.Security.Ssl;
-using Org.Mentalis.Security.Ssl.Shared.Extensions;
 using Microsoft.Http2.Protocol;
 using Microsoft.Http2.Protocol.Utils;
 
@@ -32,8 +31,7 @@ namespace Microsoft.Http2.Owin.Server
         private readonly bool _usePriorities;
         private readonly bool _useFlowControl;
         private bool _disposed;
-        private readonly SecurityOptions _options;
-        private readonly SecureTcpListener _server;
+        private readonly TcpListener _server;
 
         public HttpSocketServer(Func<IDictionary<string, object>, Task> next, IDictionary<string, object> properties)
         {
@@ -50,18 +48,7 @@ namespace Microsoft.Http2.Owin.Server
             _usePriorities = (bool)properties["use-priorities"];
             _useFlowControl = (bool)properties["use-flowControl"];
 
-            var extensions = new[] { ExtensionType.Renegotiation, ExtensionType.ALPN };
-
-            // protocols should be in order of their priority
-            _options = _scheme == Uri.UriSchemeHttps ? new SecurityOptions(SecureProtocol.Tls1, extensions, new[] { Protocols.Http2, Protocols.Http204, Protocols.Http1 }, ConnectionEnd.Server)
-                                : new SecurityOptions(SecureProtocol.None, extensions, new[] { Protocols.Http2, Protocols.Http1 }, ConnectionEnd.Server);
-
-            _options.VerificationType = CredentialVerification.None;
-            _options.Certificate = Certificate.CreateFromCerFile(AssemblyName + CertificateFilename);
-            _options.Flags = SecurityFlags.Default;
-            _options.AllowedAlgorithms = SslAlgorithms.RSA_AES_256_SHA | SslAlgorithms.NULL_COMPRESSION;
-
-            _server = new SecureTcpListener(_port, _options);
+            _server = new TcpListener(IPAddress.Any, _port);
 
             ThreadPool.SetMaxThreads(30, 10);
 
@@ -77,7 +64,7 @@ namespace Microsoft.Http2.Owin.Server
             {
                 try
                 {
-                    var client = new HttpConnectingClient(_server, _options, _next, _useHandshake, _usePriorities, _useFlowControl);
+                    var client = new HttpConnectingClient(_server, _next, _useHandshake, _usePriorities, _useFlowControl);
                     client.Accept(_cancelAccept.Token);
                 }
                 catch (Exception ex)
@@ -94,8 +81,11 @@ namespace Microsoft.Http2.Owin.Server
             if (_disposed)
                 return;
 
-            _cancelAccept.Cancel();
-            _cancelAccept.Dispose();
+            if (_cancelAccept != null)
+            {
+                _cancelAccept.Cancel();
+                _cancelAccept.Dispose();
+            }
 
             _disposed = true;
             if (_server != null)

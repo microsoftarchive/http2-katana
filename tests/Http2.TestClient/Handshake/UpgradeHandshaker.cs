@@ -8,7 +8,7 @@ using System.Text.RegularExpressions;
 using Http2.TestClient.Adapters;
 using Microsoft.Http2.Protocol;
 using Microsoft.Http2.Protocol.Utils;
-using Org.Mentalis.Security.Ssl;
+using OpenSSL;
 
 namespace Http2.TestClient.Handshake
 {
@@ -30,22 +30,22 @@ namespace Http2.TestClient.Handshake
 
         public UpgradeHandshaker(IDictionary<string, object> handshakeEnvironment)
         {
-            IoStream = (Stream)handshakeEnvironment["stream"];
-            _end = (ConnectionEnd) handshakeEnvironment["end"];
+            IoStream = (Stream)handshakeEnvironment[HandshakeKeys.Stream];
+            _end = (ConnectionEnd)handshakeEnvironment[HandshakeKeys.ConnectionEnd];
             _handshakeResult = new Dictionary<string, object>();
 
             if (_end == ConnectionEnd.Client)
             {
-                if (handshakeEnvironment.ContainsKey(":host") || (handshakeEnvironment[":host"] is string)
-                    || handshakeEnvironment.ContainsKey(":version") || (handshakeEnvironment[":version"] is string))
+                if (handshakeEnvironment.ContainsKey(CommonHeaders.Host) || (handshakeEnvironment[CommonHeaders.Host] is string)
+                    || handshakeEnvironment.ContainsKey(CommonHeaders.Version) || (handshakeEnvironment[CommonHeaders.Version] is string))
                 {
                     _headers = new Dictionary<string, object>
                         {
-                            {":path", handshakeEnvironment[":path"]},
-                            {":host", handshakeEnvironment[":host"]},
-                            {":version", handshakeEnvironment[":version"]},
-                            {":max_concurrent_streams", 100},
-                            {":initial_window_size", 2000000},
+                            {CommonHeaders.Path, handshakeEnvironment[CommonHeaders.Path]},
+                            {CommonHeaders.Host, handshakeEnvironment[CommonHeaders.Host]},
+                            {CommonHeaders.Version, handshakeEnvironment[CommonHeaders.Version]},
+                            {CommonHeaders.MaxConcurrentStreams, Constants.DefaultMaxConcurrentStreams},
+                            {CommonHeaders.InitialWindowSize, Constants.InitialFlowControlWindowSize},
                         };
                 }
                 else
@@ -75,20 +75,20 @@ namespace Http2.TestClient.Handshake
             {
                 // Build the request
                 var builder = new StringBuilder();
-                builder.AppendFormat("{0} {1} {2}\r\n", "GET", _headers[":path"], "HTTP/1.1");
+                builder.AppendFormat("{0} {1} {2}\r\n", Verbs.Get, _headers[CommonHeaders.Path], Protocols.Http1);
                 //TODO pass here requested filename
-                builder.AppendFormat("Host: {0}\r\n", _headers[":host"]);
-                builder.Append("Connection: Upgrade, HTTP2-Settings\r\n");
-                builder.Append(String.Format("Upgrade: {0}\r\n", Protocols.Http2));
+                builder.AppendFormat("Host: {0}\r\n", _headers[CommonHeaders.Host]);
+                builder.Append(String.Format("{0}: {1}, {2}\r\n", CommonHeaders.Connection, CommonHeaders.Upgrade, CommonHeaders.Http2Settings));
+                builder.Append(String.Format("{0}: {1}\r\n", CommonHeaders.Upgrade, Protocols.Http2));
                 var settingsPayload = String.Format("{0}, {1}", 200000, 100);
                 var settingsBytes = Encoding.UTF8.GetBytes(settingsPayload);
                 var settingsBase64 = Convert.ToBase64String(settingsBytes);
 
-                builder.Append("HTTP2-Settings: " + settingsBase64);
+                builder.Append(String.Format("{0}: {1}", CommonHeaders.Http2Settings, settingsBase64));
                 builder.Append("\r\n\r\n");
 
                 byte[] requestBytes = Encoding.UTF8.GetBytes(builder.ToString());
-                _handshakeResult = new Dictionary<string, object>(_headers) {{":method", "get"}};
+                _handshakeResult = new Dictionary<string, object>(_headers) {{CommonHeaders.Method, Verbs.Get.ToLower()}};
                 IoStream.Write(requestBytes, 0, requestBytes.Length);
                 IoStream.Flush();
                 ReadHeadersAndInspectHandshake();
@@ -98,14 +98,14 @@ namespace Http2.TestClient.Handshake
                 ReadHeadersAndInspectHandshake();
                 if (_response.Result == HandshakeResult.Upgrade)
                 {
-                    const string status = "101";
-                    const string protocol = "HTTP/1.1";
-                    const string postfix = "Switching Protocols";
+                    const int status = StatusCode.Code101SwitchingProtocols;
+                    string protocol = Protocols.Http1;
+                    string postfix = StatusCode.GetReasonPhrase(status);
 
                     var builder = new StringBuilder();
                     builder.AppendFormat("{0} {1} {2}\r\n", protocol, status, postfix);
-                    builder.Append("Connection: Upgrade\r\n");
-                    builder.Append(String.Format("Upgrade: {0}\r\n", Protocols.Http2));
+                    builder.Append(String.Format("{0}: {1}\r\n", CommonHeaders.Connection, CommonHeaders.Upgrade));
+                    builder.Append(String.Format("{0}: {1}\r\n", CommonHeaders.Upgrade, Protocols.Http2));
                     builder.Append("\r\n");
 
                     byte[] requestBytes = Encoding.ASCII.GetBytes(builder.ToString());
@@ -121,8 +121,8 @@ namespace Http2.TestClient.Handshake
 
             if (_response.Result != HandshakeResult.Upgrade)
             {
-                _handshakeResult.Add("handshakeSuccessful", "false");
-                var path = _headers[":path"] as string;
+                _handshakeResult.Add(HandshakeKeys.Successful, HandshakeKeys.False);
+                var path = _headers[CommonHeaders.Path] as string;
                 
                 Http2Logger.LogDebug("Handling with http11");
                 var http11Adapter = new Http11ClientMessageHandler(IoStream, path);
@@ -131,7 +131,7 @@ namespace Http2.TestClient.Handshake
                 return _handshakeResult;
             }
 
-            _handshakeResult.Add("handshakeSuccessful", "true");
+            _handshakeResult.Add(HandshakeKeys.Successful, HandshakeKeys.True);
             return _handshakeResult;
         }
 
@@ -210,11 +210,15 @@ namespace Http2.TestClient.Handshake
             var response = Encoding.ASCII.GetString(buffer, 0, split);
             if (_end == ConnectionEnd.Client)
             {
-                if (response.StartsWith("HTTP/1.1 101 SWITCHING PROTOCOLS", StringComparison.OrdinalIgnoreCase)
-                    && response.IndexOf("\r\nCONNECTION: UPGRADE\r\n", StringComparison.OrdinalIgnoreCase) >= 0
-                    &&
-                    response.IndexOf(string.Format("\r\nUPGRADE: {0}\r\n", Protocols.Http2),
-                                     StringComparison.OrdinalIgnoreCase) >= 0)
+                int status = StatusCode.Code101SwitchingProtocols;
+                string reasonPhrase = StatusCode.GetReasonPhrase(status);
+                
+                if (response.StartsWith(String.Format("{0} {1} {2}", Protocols.Http1, status.ToString(), reasonPhrase), 
+                                            StringComparison.OrdinalIgnoreCase)
+                    && response.IndexOf(String.Format("\r\n{0}: {1}\r\n", CommonHeaders.Connection, CommonHeaders.Upgrade), 
+                                            StringComparison.OrdinalIgnoreCase) >= 0
+                    &&  response.IndexOf(String.Format("\r\n{0}: {1}\r\n", CommonHeaders.Upgrade, Protocols.Http2),
+                                            StringComparison.OrdinalIgnoreCase) >= 0)
                 {
                     handshake.Result = HandshakeResult.Upgrade;
                 }
@@ -226,12 +230,11 @@ namespace Http2.TestClient.Handshake
             else
             {
                 if (
-                    response.IndexOf("\r\nCONNECTION: UPGRADE, HTTP2-SETTINGS\r\n", StringComparison.OrdinalIgnoreCase) >=
-                    0
-                    &&
-                    response.IndexOf(string.Format("\r\nUPGRADE: {0}\r\n", Protocols.Http2),
-                                     StringComparison.OrdinalIgnoreCase) >= 0
-                    && response.IndexOf("\r\nHTTP2-SETTINGS:", StringComparison.OrdinalIgnoreCase) >= 0)
+                    response.IndexOf(String.Format("\r\n{0}: {1}, {2}\r\n", CommonHeaders.Connection, CommonHeaders.Upgrade, CommonHeaders.Http2Settings), 
+                                    StringComparison.OrdinalIgnoreCase) >= 0
+                    && response.IndexOf(String.Format("\r\n{0}: {1}\r\n", CommonHeaders.Upgrade, Protocols.Http2),
+                                    StringComparison.OrdinalIgnoreCase) >= 0
+                    && response.IndexOf(String.Format("\r\n{0}:", CommonHeaders.Http2Settings), StringComparison.OrdinalIgnoreCase) >= 0)
                 {
                     GetHeaders(response);
                     handshake.Result = HandshakeResult.Upgrade;
@@ -247,13 +250,13 @@ namespace Http2.TestClient.Handshake
 
         private void GetHeaders(string clientResponse)
         {
-            int methodIndex = clientResponse.IndexOf("GET", StringComparison.OrdinalIgnoreCase);
+            int methodIndex = clientResponse.IndexOf(Verbs.Get, StringComparison.OrdinalIgnoreCase);
             int pathIndex = clientResponse.IndexOf("/", methodIndex, StringComparison.OrdinalIgnoreCase);
             int endPathIndex = clientResponse.IndexOf(" ", pathIndex, StringComparison.OrdinalIgnoreCase);
             string path = clientResponse.Substring(pathIndex, endPathIndex - pathIndex);
             string method = clientResponse.Substring(methodIndex, pathIndex).Trim().ToLower();
-            _handshakeResult.Add(":path", path);
-            _handshakeResult.Add(":method", method);
+            _handshakeResult.Add(CommonHeaders.Path, path);
+            _handshakeResult.Add(CommonHeaders.Method, method);
 
             string clientHeadersInBase64 = clientResponse.Substring(clientResponse.LastIndexOf(' ') + 1);
             byte[] buffer = Convert.FromBase64String(clientHeadersInBase64);

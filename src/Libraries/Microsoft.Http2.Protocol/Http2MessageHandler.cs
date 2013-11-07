@@ -4,15 +4,12 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Http2.Protocol.Utils;
-using Org.Mentalis.Security.Ssl;
+using OpenSSL;
 using Microsoft.Http2.Protocol.EventArgs;
 using Microsoft.Http2.Protocol.Framing;
-using Microsoft.Http2.Protocol.IO;
 
 namespace Microsoft.Http2.Protocol
 {
-    using AppFunc = Func<IDictionary<string, object>, Task>;
-
     /// <summary>
     /// This class defines basic http2 request/response processing logic.
     /// </summary>
@@ -22,7 +19,6 @@ namespace Microsoft.Http2.Protocol
         protected bool _isDisposed;
         protected readonly Stream _stream;
         protected readonly CancellationToken _cancToken;
-        protected readonly TransportInformation _transportInfo;
         protected readonly ConnectionEnd _end;
         protected readonly bool _isSecure;
         protected event EventHandler<SettingsSentEventArgs> OnFirstSettingsSent;
@@ -36,11 +32,9 @@ namespace Microsoft.Http2.Protocol
         /// <param name="isSecure"></param>
         /// <param name="transportInfo">The transport information.</param>
         /// <param name="cancel">The cancel.</param>
-        protected Http2MessageHandler(Stream stream, ConnectionEnd end, bool isSecure, 
-                                        TransportInformation transportInfo, CancellationToken cancel)
+        protected Http2MessageHandler(Stream stream, ConnectionEnd end, bool isSecure, CancellationToken cancel)
         {
             _isSecure = isSecure;
-            _transportInfo = transportInfo;
             _isDisposed = false;
             _cancToken = cancel;
             _stream = stream;

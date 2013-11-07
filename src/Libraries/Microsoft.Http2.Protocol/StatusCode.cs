@@ -4,7 +4,7 @@
     /// <summary>
     /// Http status codes.
     /// </summary>
-    public class StatusCode
+    public static class StatusCode
     {
             public const int Code500InternalServerError = 500;
             public const int Code200Ok = 200;

@@ -1,0 +1,33 @@
+* {
+	margin: 0px; padding: 0px;
+}
+html {
+	height: 100%;
+}
+body {
+	height: 100%; color: rgb(66, 66, 66); font-family: "Segoe UI" , Verdana, Helvetica, Sans-Serif; font-size: 10pt; background-color: white;
+}
+p {
+	padding: 0px 0px 10pt;
+}
+a {
+	text-decoration: none;
+}
+a {
+	color: rgb(0, 163, 239);
+}
+a:visited {
+	color: rgb(0, 163, 239);
+}
+a:hover {
+	color: rgb(0, 163, 239);
+}
+a:hover {
+	color: rgb(0, 163, 239); text-decoration: underline;
+}
+a:hover:visited {
+	color: rgb(0, 163, 239); text-decoration: underline;
+}
+.bold {
+	font-family: "Segoe UI Semibold";
+}

@@ -1,0 +1,24 @@
+body {
+	margin: 0px auto; padding: 0px 40px; position: relative; min-width: 960px; max-width: 1080px;
+}
+#DemoScreenreaderText {
+	left: -10000px; position: absolute;
+}
+#DemoTitle {
+	padding: 40px 0px 0px; color: rgb(0, 163, 239); font-size: 24pt; font-weight: normal;
+}
+#DemoIntroduction {
+	margin: 40px 0px 0px;
+}
+#DemoContent {
+	margin: 30px 0px 0px;
+}
+#DemoDetails {
+	margin: 30px 0px 0px;
+}
+#DemoReturnButton {
+	top: -1px; width: 210px; height: 29px; right: 40px; text-indent: -10000px; display: block; position: absolute; z-index: 1000; background-image: url("../../Includes/Image/ReturnButton.png");
+}
+#DemoReturnButton:hover {
+	background-image: url("../../Includes/Image/ReturnButtonHover.png");
+}

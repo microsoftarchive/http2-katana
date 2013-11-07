@@ -2,11 +2,12 @@
 using System.IO;
 using System.Reflection;
 using System.Threading;
+using Client.IO;
 using Microsoft.Http2.Protocol;
 using Microsoft.Http2.Protocol.Framing;
 using Microsoft.Http2.Protocol.IO;
 using Microsoft.Http2.Protocol.Utils;
-using Org.Mentalis.Security.Ssl;
+using OpenSSL;
 
 namespace Http2.TestClient.Adapters
 {
@@ -18,16 +19,16 @@ namespace Http2.TestClient.Adapters
 
         public bool IsDisposed { get { return _isDisposed; } }
 
-        public Http2ClientMessageHandler(DuplexStream stream, ConnectionEnd end, TransportInformation transportInfo, CancellationToken cancel) 
-            : base(stream, end, stream.IsSecure, transportInfo, cancel)
+        public Http2ClientMessageHandler(Stream stream, ConnectionEnd end, bool isSecure, CancellationToken cancel)
+            : base(stream, end, isSecure, cancel)
         {
             _fileHelper = new FileHelper(ConnectionEnd.Client);
-            stream.OnClose += delegate { Dispose(); };
+            //stream.OnClose += delegate { Dispose(); };
         }
 
         private void SaveDataFrame(Http2Stream stream, DataFrame dataFrame)
         {
-            string originalPath = stream.Headers.GetValue(":path".ToLower());
+            string originalPath = stream.Headers.GetValue(CommonHeaders.Path.ToLower());
             //If user sets the empty file in get command we return notFound webpage
             string fileName = string.IsNullOrEmpty(Path.GetFileName(originalPath)) ? Index : Path.GetFileName(originalPath);
             string path = Path.Combine(AssemblyPath, fileName);
@@ -55,7 +56,7 @@ namespace Http2.TestClient.Adapters
                 if (!stream.EndStreamSent)
                 {
                     //send terminator
-                    stream.WriteDataFrame(new byte[0], true);
+                    stream.WriteDataFrame(new ArraySegment<byte>(new byte[0]), true);
                     Http2Logger.LogConsole("Terminator was sent");
                 }
                 _fileHelper.RemoveStream(path);
@@ -102,7 +103,7 @@ namespace Http2.TestClient.Adapters
             //multiple values, or an invalid value as a stream error
             //(Section 5.4.2) of type PROTOCOL_ERROR [PROTOCOL_ERROR].
 
-            if (stream.Headers.GetValue(":status") == null)
+            if (stream.Headers.GetValue(CommonHeaders.Status) == null)
             {
                 stream.WriteRst(ResetStatusCode.ProtocolError); 
             }

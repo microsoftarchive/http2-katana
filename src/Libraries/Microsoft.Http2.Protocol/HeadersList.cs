@@ -80,12 +80,20 @@ namespace Microsoft.Http2.Protocol
             return GetEnumerator();
         }
 
+
+        /*The size of an entry is the sum of its name's length in bytes (as
+       defined in Section 4.1.2), of its value's length in bytes
+       (Section 4.1.3) and of 32 bytes.  The 32 bytes are an accounting for
+       the entry structure overhead.  For example, an entry structure using
+       two 64-bits pointers to reference the name and the value and the
+       entry, and two 64-bits integer for counting the number of references
+       to these name and value would use 32 bytes.*/
         public void Add(KeyValuePair<string, string> header)
         {
             lock (_modificationLock)
             {
                 _collection.Add(header);
-                StoredHeadersSize += header.Key.Length + header.Value.Length + sizeof (Int32);
+                StoredHeadersSize += header.Key.Length + header.Value.Length + 32;
             }
         }
 
@@ -109,11 +117,18 @@ namespace Microsoft.Http2.Protocol
             _collection.CopyTo(array, arrayIndex);
         }
 
+        /*The size of an entry is the sum of its name's length in bytes (as
+        defined in Section 4.1.2), of its value's length in bytes
+        (Section 4.1.3) and of 32 bytes.  The 32 bytes are an accounting for
+        the entry structure overhead.  For example, an entry structure using
+        two 64-bits pointers to reference the name and the value and the
+        entry, and two 64-bits integer for counting the number of references
+        to these name and value would use 32 bytes.*/
         public bool Remove(KeyValuePair<string, string> header)
         {
             lock (_modificationLock)
             {
-                StoredHeadersSize -= header.Key.Length + header.Value.Length + sizeof (Int32);
+                StoredHeadersSize -= header.Key.Length + header.Value.Length + 32;
                 return _collection.Remove(header);
             }
         }
@@ -138,16 +153,30 @@ namespace Microsoft.Http2.Protocol
             return _collection.IndexOf(header);
         }
 
+        /*The size of an entry is the sum of its name's length in bytes (as
+        defined in Section 4.1.2), of its value's length in bytes
+        (Section 4.1.3) and of 32 bytes.  The 32 bytes are an accounting for
+        the entry structure overhead.  For example, an entry structure using
+        two 64-bits pointers to reference the name and the value and the
+        entry, and two 64-bits integer for counting the number of references
+        to these name and value would use 32 bytes.*/
         public void Insert(int index, KeyValuePair<string, string> header)
         {
             lock (_modificationLock)
             {
                 Contract.Assert(index >= 0 && index < Count);
-                StoredHeadersSize += header.Key.Length + header.Value.Length + sizeof (Int32);
+                StoredHeadersSize += header.Key.Length + header.Value.Length + 32;
                 _collection.Insert(index, header);
             }
         }
 
+        /*The size of an entry is the sum of its name's length in bytes (as
+        defined in Section 4.1.2), of its value's length in bytes
+        (Section 4.1.3) and of 32 bytes.  The 32 bytes are an accounting for
+        the entry structure overhead.  For example, an entry structure using
+        two 64-bits pointers to reference the name and the value and the
+        entry, and two 64-bits integer for counting the number of references
+        to these name and value would use 32 bytes.*/
         public void RemoveAt(int index)
         {
             lock (_modificationLock)
@@ -155,17 +184,25 @@ namespace Microsoft.Http2.Protocol
                 Contract.Assert(index >= 0 && index < Count);
                 var header = _collection[index];
                 _collection.RemoveAt(index);
-                StoredHeadersSize -= header.Key.Length + header.Value.Length + sizeof (Int32);
+                StoredHeadersSize -= header.Key.Length + header.Value.Length + 32;
             }
         }
 
+
+        /*The size of an entry is the sum of its name's length in bytes (as
+        defined in Section 4.1.2), of its value's length in bytes
+        (Section 4.1.3) and of 32 bytes.  The 32 bytes are an accounting for
+        the entry structure overhead.  For example, an entry structure using
+        two 64-bits pointers to reference the name and the value and the
+        entry, and two 64-bits integer for counting the number of references
+        to these name and value would use 32 bytes.*/
         public int RemoveAll(Predicate<KeyValuePair<string,string>> predicate)
         {
             lock (_modificationLock)
             {
 
                 var predMatch = _collection.FindAll(predicate);
-                int toDeleteSize = predMatch.Sum(header => header.Key.Length + header.Value.Length + sizeof (Int32));
+                int toDeleteSize = predMatch.Sum(header => header.Key.Length + header.Value.Length + 32);
                 StoredHeadersSize -= toDeleteSize;
 
                 return _collection.RemoveAll(predicate);

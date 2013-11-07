@@ -1,5 +1,6 @@
 ﻿using Microsoft.Http2.Protocol.Compression;
 using Microsoft.Http2.Protocol.EventArgs;
+using Microsoft.Http2.Protocol.Exceptions;
 using Microsoft.Http2.Protocol.FlowControl;
 using Microsoft.Http2.Protocol.Framing;
 using Microsoft.Http2.Protocol.IO;
@@ -57,6 +58,12 @@ namespace Microsoft.Http2.Protocol
         internal Http2Stream(int id, WriteQueue writeQueue, FlowControlManager flowCrtlManager,
                            ICompressionProcessor comprProc, int priority = Constants.DefaultStreamPriority)
         {
+            if (id <= 0)
+                throw new ArgumentOutOfRangeException("invalid id for stream");
+
+            if (priority < 0 || priority > Constants.MaxPriority)
+                throw  new ArgumentOutOfRangeException("priority out of range");
+
             _id = id;
             Priority = priority;
             _writeQueue = writeQueue;
@@ -145,7 +152,20 @@ namespace Microsoft.Http2.Protocol
         {
             if (IsFlowControlEnabled)
             {
+                //06
+                //A sender MUST NOT allow a flow control window to exceed 2^31 - 1
+                //bytes.  If a sender receives a WINDOW_UPDATE that causes a flow
+                //control window to exceed this maximum it MUST terminate either the
+                //stream or the connection, as appropriate.  For streams, the sender
+                //sends a RST_STREAM with the error code of FLOW_CONTROL_ERROR code;
+                //for the connection, a GOAWAY frame with a FLOW_CONTROL_ERROR code.
                 WindowSize += delta;
+
+                if (WindowSize > Constants.MaxWindowSize)
+                {
+                    Http2Logger.LogDebug("Incorrect window size : {0}", WindowSize);
+                    throw new ProtocolError(ResetStatusCode.FlowControlError, String.Format("Incorrect window size : {0}", WindowSize));
+                }
             }
 
             //Unblock stream if it was blocked by flowCtrlManager
@@ -197,17 +217,21 @@ namespace Microsoft.Http2.Protocol
 
         public void WriteHeadersFrame(HeadersList headers, bool isEndStream, bool isEndHeaders)
         {
+            if (headers == null)
+                throw new ArgumentNullException("headers is null");
+
             if (Disposed)
                 return;
 
             Headers.AddRange(headers);
 
-            byte[] headerBytes = _compressionProc.Compress(headers);
+            //byte[] headerBytes = _compressionProc.Compress(headers);
 
-            var frame = new HeadersFrame(_id, headerBytes, Priority)
+            var frame = new HeadersFrame(_id, /*headerBytes,*/ Priority)
                 {
                     IsEndHeaders = isEndHeaders,
                     IsEndStream = isEndStream,
+                    Headers = headers,
                 };
 
             _writeQueue.WriteFrame(frame);
@@ -230,16 +254,24 @@ namespace Microsoft.Http2.Protocol
         /// </summary>
         /// <param name="data">The data.</param>
         /// <param name="isEndStream">if set to <c>true</c> [is fin].</param>
-        public void WriteDataFrame(byte[] data, bool isEndStream)
+        public void WriteDataFrame(ArraySegment<byte> data, bool isEndStream)
         {
+            if (data.Array == null)
+                throw new ArgumentNullException("data is null");
+
             if (Disposed)
                 return;
 
-            var dataFrame = new DataFrame(_id, new ArraySegment<byte>(data), isEndStream);
+            var dataFrame = new DataFrame(_id, data, isEndStream);
 
             //We cant let lesser frame that were passed through flow control window
             //be sent before greater frames that were not passed through flow control window
-            if (_unshippedFrames.Count != 0 || WindowSize <= 0)
+
+            //06
+            //The sender MUST NOT
+            //send a flow controlled frame with a length that exceeds the space
+            //available in either of the flow control windows advertised by the receiver.
+            if (_unshippedFrames.Count != 0 || WindowSize - dataFrame.Data.Count < 0)
             {
                 _unshippedFrames.Enqueue(dataFrame);
                 return;
@@ -270,13 +302,16 @@ namespace Microsoft.Http2.Protocol
         }
 
         /// <summary>
-        /// Writes the data frame.
+        /// Writes the data frame. Method is used for pushing unshipped frames.
         /// If flow control manager has blocked stream, frames are adding to the unshippedFrames collection.
         /// After window update for that stream they will be delivered.
         /// </summary>
         /// <param name="dataFrame">The data frame.</param>
-        public void WriteDataFrame(DataFrame dataFrame)
+        private void WriteDataFrame(DataFrame dataFrame)
         {
+            if (dataFrame == null)
+                throw new ArgumentNullException("dataFrame is null");
+
             if (Disposed)
                 return;
 
@@ -306,6 +341,12 @@ namespace Microsoft.Http2.Protocol
 
         public void WriteWindowUpdate(Int32 windowSize)
         {
+            if (windowSize <= 0)
+                throw new ArgumentOutOfRangeException("windowSize should be greater thasn 0");
+
+            if (windowSize > Constants.MaxWindowSize)
+                throw new ProtocolError(ResetStatusCode.FlowControlError, "window size is too large");
+
             //Spec 06
             //After a receiver reads in a frame that marks the end of a stream (for
             //example, a data stream with a END_STREAM flag set), it MUST cease

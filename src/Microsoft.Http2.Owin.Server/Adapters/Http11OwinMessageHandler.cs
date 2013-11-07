@@ -6,9 +6,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Http1.Protocol;
 using Microsoft.Owin;
-using Org.Mentalis.Security.Ssl;
 using Microsoft.Http2.Protocol;
 using Microsoft.Http2.Protocol.Utils;
+using OpenSSL.SSL;
 using StatusCode = Microsoft.Http2.Protocol.StatusCode;
 
 namespace Microsoft.Http2.Owin.Server.Adapters
@@ -24,7 +24,7 @@ namespace Microsoft.Http2.Owin.Server.Adapters
     public class Http11ProtocolOwinAdapter
     {
         private readonly Stream _client;
-        private readonly SecureProtocol _protocol;
+        private readonly SslProtocols _protocol;
         private readonly AppFunc _next;
         private Environment _environment;
         private IOwinRequest _request;
@@ -37,7 +37,7 @@ namespace Microsoft.Http2.Owin.Server.Adapters
         /// <param name="client">The client connection.</param>
         /// <param name="protocol">Security protocol which is used for connection.</param>
         /// <param name="next">The next component in the OWIN pipeline.</param>
-        public Http11ProtocolOwinAdapter(Stream client, SecureProtocol protocol, AppFunc next)
+        public Http11ProtocolOwinAdapter(Stream client, SslProtocols protocol, AppFunc next)
         {
             // args checking
             if (client == null)
@@ -85,12 +85,12 @@ namespace Microsoft.Http2.Owin.Server.Adapters
                     throw new NotSupportedException(method + " method is not currently supported via HTTP/1.1");
                 }
 
-                var scheme = _protocol == SecureProtocol.None ? "http" : "https";
+                var scheme = _protocol == SslProtocols.None ? Uri.UriSchemeHttp : Uri.UriSchemeHttps;
 
                 var path = splittedRequestString[1];
 
                 // main OWIN environment components
-                // OWIN request and reponse below shares the same environment dictionary instance
+                // OWIN request and response below shares the same environment dictionary instance
                 _environment = CreateOwinEnvironment(method, scheme, "", path, headers);
                 _request = new OwinRequest(_environment);
                 _response = new OwinResponse(_environment);
@@ -130,7 +130,7 @@ namespace Microsoft.Http2.Owin.Server.Adapters
         /// <returns>True if method is supported, otherwise False.</returns>
         private static bool IsMethodSupported(string method)
         {
-            var supported = new[] {"GET","DELETE" };
+            var supported = new[] {Verbs.Get, Verbs.Delete };
 
             return supported.Contains(method.ToUpper());
         }
@@ -148,7 +148,7 @@ namespace Microsoft.Http2.Owin.Server.Adapters
             _response.StatusCode = StatusCode.Code101SwitchingProtocols;
             _response.ReasonPhrase = StatusCode.Reason101SwitchingProtocols;
             _response.Protocol = Protocols.Http1;
-            _response.Headers.Add("Connection", new[] {"Upgrade"});
+            _response.Headers.Add(CommonHeaders.Connection, new[] {CommonHeaders.Upgrade});
 
             _opaqueCallback = opaqueCallback;
         }
@@ -161,9 +161,9 @@ namespace Microsoft.Http2.Owin.Server.Adapters
 
             var headers = _request.Headers;
 
-            if (headers.ContainsKey("Connection") && headers.ContainsKey("Upgrade"))
+            if (headers.ContainsKey(CommonHeaders.Connection) && headers.ContainsKey(CommonHeaders.Upgrade))
             {
-                _environment["opaque.Upgrade"] = new UpgradeDelegate(OpaqueUpgradeDelegate);
+                _environment[CommonOwinKeys.OpaqueUpgrade] = new UpgradeDelegate(OpaqueUpgradeDelegate);
             }
        
         }
@@ -175,9 +175,9 @@ namespace Microsoft.Http2.Owin.Server.Adapters
         private Environment CreateOpaqueEnvironment()
         {
             var env = new Dictionary<string, object>(StringComparer.Ordinal);
-            env["opaque.Stream"] = _client;
-            env["opaque.Version"] = "1.0";
-            env["opaque.CallCancelled"] = new CancellationToken();
+            env[CommonOwinKeys.OpaqueStream] = _client;
+            env[CommonOwinKeys.OpaqueVersion] = CommonOwinKeys.OwinVersion;
+            env[CommonOwinKeys.OpaqueCallCancelled] = new CancellationToken();
 
             return env;
         }
@@ -233,7 +233,7 @@ namespace Microsoft.Http2.Owin.Server.Adapters
                                                                         string path, IDictionary<string, string[]> headers, string queryString = "", byte[] requestBody = null)
         {
             var environment = new Dictionary<string, object>(StringComparer.Ordinal);
-            environment["owin.CallCancelled"] = new CancellationToken();
+            environment[CommonOwinKeys.OwinCallCancelled] = new CancellationToken();
 
             #region OWIN request params
 
@@ -241,15 +241,15 @@ namespace Microsoft.Http2.Owin.Server.Adapters
                 {
                     Method = method,
                     Scheme = scheme,
-                    Path = path,
-                    PathBase = pathBase,
-                    QueryString = queryString,
+                    Path = new PathString(path),
+                    PathBase = new PathString(pathBase),
+                    QueryString = new QueryString(queryString),
                     Body = new MemoryStream(requestBody ?? new byte[0]),
-                    Protocol = "HTTP/1.1"
+                    Protocol = Protocols.Http1
                 };
 
             // request.Headers is readonly
-            request.Set("owin.RequestHeaders", headers);
+            request.Set(CommonOwinKeys.RequestHeaders, headers);
 
             #endregion
 
@@ -258,7 +258,7 @@ namespace Microsoft.Http2.Owin.Server.Adapters
 
             var response = new OwinResponse(environment) {Body = new MemoryStream(), StatusCode = StatusCode.Code200Ok};
             //response.Headers is readonly
-            response.Set("owin.ResponseHeaders", new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase));
+            response.Set(CommonOwinKeys.ResponseHeaders, new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase));
 
             #endregion
 

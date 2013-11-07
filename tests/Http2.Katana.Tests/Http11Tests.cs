@@ -98,12 +98,12 @@ namespace Http2.Katana.Tests
             var owinRequest = new OwinRequest(environment);
             Assert.Equal(owinRequest.Method, method);
             Assert.Equal(owinRequest.Scheme, scheme);
-            Assert.Equal(owinRequest.PathBase, pathBase);
-            Assert.Equal(owinRequest.Path, path);
+            Assert.Equal(owinRequest.PathBase.Value, pathBase);
+            Assert.Equal(owinRequest.Path.Value, path);
             Assert.Equal(owinRequest.Body.Length, 0);
             Assert.Equal(owinRequest.Headers.ContainsKey("Host"), true);
             Assert.Equal(owinRequest.Headers["Host"], host);
-            Assert.Equal(owinRequest.QueryString, queryString);
+            Assert.Equal(owinRequest.QueryString.Value, queryString);
             Assert.Equal(owinRequest.CallCancelled.IsCancellationRequested, false);
 
             var owinResponse = new OwinResponse(environment);
@@ -261,42 +261,6 @@ namespace Http2.Katana.Tests
             Assert.Contains(StatusCode.Code501NotImplemented.ToString(CultureInfo.InvariantCulture), response[0]);
             Assert.Contains(StatusCode.Reason501NotImplemented, response[0]);
             Assert.Equal(string.Empty, response.Last());
-        }
-
-        [StandardFact]
-        public void Http11CommunicationSuccessful()
-        {
-            var address = ConfigurationManager.AppSettings["smallTestFile"];
-            var duplexStream = TestHelpers.GetHandshakedDuplexStream(address, false);
-            var requestString = "GET /" + address + " HTTP/1.1\r\n" +
-                                "Host: localhost\r\n" +
-                                "\r\n";
-
-            duplexStream.Write(Encoding.UTF8.GetBytes(requestString));
-            duplexStream.Flush();
-
-            var rawHeaders = Http11Helper.ReadHeaders(duplexStream);
-            Assert.True(rawHeaders.Length > 2); // response string, content-type and content-length headers at least
-            Assert.Equal("HTTP/1.1 " + StatusCode.Code200Ok + " " + StatusCode.Reason200Ok, rawHeaders[0]);
-            var headers = Http11Helper.ParseHeaders(rawHeaders.Skip(1));
-            Assert.Contains("Content-Type", headers.Keys);
-            Assert.Contains("Content-Length", headers.Keys);
-            Assert.Equal(headers["Content-Length"][0], TestHelpers.FileContentSimpleTest.Length.ToString(CultureInfo.InvariantCulture));
-
-            var size = int.Parse(headers["Content-Length"][0]);
-            var responseBody = new byte[size];
-            int read = int.MaxValue, total = 0;
-            while (read > 0)
-            {
-                read = duplexStream.Read(responseBody, total, size - total);
-                total += read;
-            }
-
-            duplexStream.Close();
-
-            Assert.Equal(responseBody.Length, total);
-            Assert.Equal(TestHelpers.FileContentSimpleTest, Encoding.UTF8.GetString(responseBody));
-
         }
     }
 }

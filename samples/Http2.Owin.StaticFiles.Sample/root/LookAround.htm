@@ -1,0 +1,278 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<!-- saved from url=(0054)http://ie.microsoft.com/testdrive/Graphics/LookAround/ -->
+<!DOCTYPE html PUBLIC "" ""><HTML><HEAD><META content="IE=10.000" 
+http-equiv="X-UA-Compatible">
+     <!-- Copyright © Microsoft Corporation. All Rights Reserved. -->     
+<META http-equiv="Content-Type" content="text/html; charset=windows-1252"><!-- Demo Author: Frank Olivier, Microsoft Corporation --> 
+    <!-- Cube map texture from http://www.humus.name/index.php?page=Textures --> 
+    
+<META http-equiv="X-UA-Compatible" content="IE=edge">     
+<META name="description" content="LookAround IE11 Test Drive Demo">     
+<META name="t_omni_demopage" content="1">     <!-- Used for live tile when site is pinned--> 
+    
+<META name="application-name" content="LookAround">     
+<META name="msapplication-config" content="../../PinnedSite/testdrive.xml">     
+<TITLE>LookAround</TITLE>     <LINK href="LookAround_files/BaseStyles.css" rel="stylesheet" 
+type="text/css">     <LINK href="LookAround_files/DemoTemplate.css" rel="stylesheet" 
+type="text/css">     <LINK href="LookAround_files/ReturnAndShareControls.css" 
+rel="stylesheet" type="text/css">     <LINK href="LookAround_files/Demo.css" 
+rel="stylesheet" type="text/css">     <LINK href="LookAround_files/FavIcon.ico" 
+rel="shortcut icon">     <LINK href="LookAround_files/ie-logo.png" rel="image_src"> 
+    
+<SCRIPT src="" type="text/javascript" data-detect=""></SCRIPT>
+ 
+<META name="GENERATOR" content="MSHTML 10.00.9200.16612"></HEAD> 
+<BODY>
+<DIV id="ReturnAndShareControls" style="opacity: 0.7;"></DIV>
+<H1 id="DemoTitle"><SPAN style="opacity: 0.7;">Look</SPAN><SPAN style="opacity: 0.4;">Around</SPAN> 
+    </H1>
+<DIV id="DemoScreenreaderText">        Look around the world with WebGL and 
+Device Orientation events     </DIV>
+<DIV id="DemoIntroduction" onclick="hideIntroduction()">
+<H1 id="H1" style="color: rgb(0, 163, 239);"><SPAN 
+style="opacity: 0.7;">Look</SPAN><SPAN style="opacity: 0.4;">Around</SPAN>       
+  </H1>        Look around the world with WebGL and Device Orientation 
+events.<BR><IMG src="LookAround_files/instructions.png"><BR>        Hold your 
+tablet on your lap; move it up, down or around you to look around.<BR>        
+(Or use mouse or touch to look around)<BR>
+<DIV id="loading" style="text-align: center;">        &nbsp;<BR>
+<DIV>Loading...</DIV><IMG src="LookAround_files/loading.gif">&nbsp;        
+</DIV></DIV>
+<SCRIPT src="LookAround_files/three.min.js"></SCRIPT>
+     
+<SCRIPT>
+
+        var introductionVisible = true;
+        function hideIntroduction() {
+            if ((introductionVisible == true)&&(loading==false)) document.getElementById('DemoIntroduction').style.display = 'none';
+            introductionVisible = false;
+        }
+
+        function hideLoading() {
+            if (loading == true) {
+                loading = false;
+                document.getElementById("loading").style.display = "none";
+            }
+        }
+
+        function gup(name) {
+            name = name.replace(/[\[]/, "\\\[").replace(/[\]]/, "\\\]");
+            var regexS = "[\\?&]" + name + "=([^&#]*)";
+            var regex = new RegExp(regexS);
+            var results = regex.exec(window.location.href);
+            if (results == null)
+                return "";
+            else
+                return results[1];
+        }
+
+        var container;
+        var renderer;
+        var scene;
+        var mesh;
+
+        var windowHalfX = window.innerWidth / 2;
+        var windowHalfY = window.innerHeight / 2;
+
+        var touchCompassHeading = 0;
+        var touchNeckAngle = 0;
+
+        var deviceCompassHeading = 0;
+        var deviceNeckAngle = 0;
+
+        var touchCompassHeading1 = 0;
+        var touchNeckAngle1 = 0;
+        var mouseX1 = 0;
+        var mouseY1 = 0;
+
+        var touching = false;
+        var loading = true;
+
+        init();
+
+        // From http://stackoverflow.com/questions/1517924/javascript-mapping-touch-events-to-mouse-events
+        function touchHandler(event)
+        {
+            var touches = event.changedTouches,
+                first = touches[0],
+                type = "";
+                 switch(event.type)
+            {
+                case "touchstart": type = "mousedown"; break;
+                case "touchmove":  type="mousemove"; break;        
+                case "touchend":   type="mouseup"; break;
+                default: return;
+            }
+
+             //initMouseEvent(type, canBubble, cancelable, view, clickCount, 
+            //           screenX, screenY, clientX, clientY, ctrlKey, 
+            //           altKey, shiftKey, metaKey, button, relatedTarget);
+
+            var simulatedEvent = document.createEvent("MouseEvent");
+            simulatedEvent.initMouseEvent(type, true, true, window, 1, 
+                              first.screenX, first.screenY, 
+                              first.clientX, first.clientY, false, 
+                              false, false, false, 0/*left*/, null);
+            
+            first.target.dispatchEvent(simulatedEvent);
+            event.preventDefault();
+	}
+
+
+
+        function init() {
+
+            if (!document.createElement('canvas').getContext('experimental-webgl')) {
+                document.getElementById("DemoIntroduction").innerHTML = "Sorry, this demo requires a browser that supports WebGL. Please update your browser or enable WebGL.";
+            }
+            else {
+                container = document.createElement('div');
+                document.body.appendChild(container);
+
+                scene = new THREE.Scene();
+                camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.01, 3);
+
+                // material samples
+                var r = "LookAround_files/";
+                var urls = [r + "posx.jpg", r + "negx.jpg",
+                             r + "posy.jpg", r + "negy.jpg",
+                             r + "posz.jpg", r + "negz.jpg"];
+
+                var textureCube = THREE.ImageUtils.loadTextureCube(urls);
+
+                // Skybox
+                var shader = THREE.ShaderLib["cube"];
+                shader.uniforms["tCube"].value = textureCube;
+
+                var material = new THREE.ShaderMaterial({
+                    fragmentShader: shader.fragmentShader,
+                    vertexShader: shader.vertexShader,
+                    uniforms: shader.uniforms,
+                    side: THREE.BackSide
+                });
+
+                mesh = new THREE.Mesh(new THREE.CubeGeometry(1, 1, 1), material);
+                scene.add(mesh);
+
+
+                renderer = new THREE.WebGLRenderer();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                container.appendChild(renderer.domElement);
+
+                // Set up input
+                if (window.screen.msLockOrientation) window.screen.msLockOrientation("landscape-primary");
+                document.addEventListener('mousemove', onMouseMove, false);
+                document.addEventListener('mousedown', onMouseDown, false);
+                document.addEventListener('mouseup', onMouseUp, false);
+                document.addEventListener('mouseout', onMouseUp, false);
+                document.addEventListener('ondragstart', function (e) { e.preventDefault(); }, false);
+
+		// Needed for Chrome
+                document.addEventListener("touchstart", touchHandler, true);
+                document.addEventListener("touchmove", touchHandler, true);
+                document.addEventListener("touchend", touchHandler, true);
+                document.addEventListener("touchcancel", touchHandler, true); 
+
+
+                window.addEventListener("deviceorientation", onDeviceOrientation, false);
+
+                window.addEventListener('resize', onWindowResize, false);
+
+                // Render the initial view
+                requestAnimationFrame(animate);
+            }
+        }
+
+        function onWindowResize() {
+
+            windowHalfX = window.innerWidth / 2,
+            windowHalfY = window.innerHeight / 2,
+
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+
+            renderer.setSize(window.innerWidth, window.innerHeight);
+
+        }
+
+        function onMouseDown(event) {
+            hideIntroduction();
+
+            mouseX1 = (event.clientX - windowHalfX) * 2 / -window.innerWidth;
+            mouseY1 = (event.clientY - windowHalfY) * 2 / -window.innerHeight;
+
+            touchCompassHeading1 = touchCompassHeading;
+            touchNeckAngle1 = touchNeckAngle;
+
+            touching = true;
+        }
+
+        function onMouseMove(event) {
+            if (touching == true) {
+                var mouseX = (event.clientX - windowHalfX) * 2 / -window.innerWidth;
+                var mouseY = (event.clientY - windowHalfY) * 2 / -window.innerHeight;
+
+                mouseX -= mouseX1;
+                mouseY -= mouseY1;
+                
+                var step = 4;
+
+                touchCompassHeading = touchCompassHeading1 - (-180 * mouseX) / step;
+                touchNeckAngle = touchNeckAngle1 - (90 * mouseY);
+
+
+                if (touchNeckAngle < -120) touchNeckAngle = -120;
+                if (touchNeckAngle > 120) touchNeckAngle = 120;
+
+                render();
+            }
+        }
+
+        function onMouseUp(event) {
+            touching = false;
+        }
+
+        function onDeviceOrientation(event) {
+            var alpha = 360 - event.alpha;
+            var beta = event.beta - 90;
+            var gamma = event.gamma;
+
+            beta = beta / 3;
+
+            deviceNeckAngle = beta;
+            deviceCompassHeading = alpha;
+
+            render();
+        }
+
+        function animate()
+	{
+            render();
+            requestAnimationFrame(animate);  
+	}
+
+        function render() {
+
+            hideLoading();
+
+            var combinedCompassHeading = touchCompassHeading + deviceCompassHeading;
+            var combinedNeckAngle = (touchNeckAngle + deviceNeckAngle) / 2;
+
+            var x = Math.cos(THREE.Math.degToRad(combinedCompassHeading));
+            var z = Math.sin(THREE.Math.degToRad(combinedCompassHeading));
+            var y = Math.sin(THREE.Math.degToRad(combinedNeckAngle));
+
+            var vector = new THREE.Vector3(x, y, z);
+
+            camera.lookAt(vector);
+
+            renderer.render(scene, camera);
+
+        }
+
+    </SCRIPT>
+     
+<SCRIPT src="LookAround_files/TestDriveCommon.js" type="text/javascript"></SCRIPT>
+     
+<SCRIPT src="LookAround_files/ReturnAndShareControls.js" type="text/javascript"></SCRIPT>
+ </BODY></HTML>

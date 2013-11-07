@@ -22,6 +22,8 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <PlatformTarget>x86</PlatformTarget>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -42,6 +44,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ActiveStreams.cs" />
+    <Compile Include="CommonHeaders.cs" />
     <Compile Include="Compression\HeadersDeltaCompression\CompressionInitialHeaders.cs" />
     <Compile Include="Compression\HeadersDeltaCompression\CompressionProcessor.cs" />
     <Compile Include="Compression\IAdditionalHeaderInfo.cs" />
@@ -49,8 +52,8 @@
     <Compile Include="Compression\HeadersDeltaCompression\Indexation.cs" />
     <Compile Include="Compression\HeadersDeltaCompression\IndexationType.cs" />
     <Compile Include="EventArgs\DataAvailableEventArgs.cs" />
-    <Compile Include="EventArgs\DataFrameReceivedEventArgs.cs" />
     <Compile Include="EventArgs\DataFrameSentEventArgs.cs" />
+    <Compile Include="EventArgs\DataIsWrittenEventArgs.cs" />
     <Compile Include="EventArgs\FrameReceivedEventArgs.cs" />
     <Compile Include="EventArgs\FrameSentEventArgs.cs" />
     <Compile Include="EventArgs\Http11ResourceDownloadedEventArgs.cs" />
@@ -73,10 +76,10 @@
     <Compile Include="Framing\IEndStreamFrames.cs" />
     <Compile Include="Framing\IHeadersFrame.cs" />
     <Compile Include="Framing\PriorityFrame.cs" />
+    <Compile Include="GlobalSuppressions.cs" />
     <Compile Include="HeadersList.cs" />
     <Compile Include="Http2MessageHandler.cs" />
-    <Compile Include="IO\DuplexStream.cs" />
-    <Compile Include="IO\FileHelper.cs" />
+    <Compile Include="Http2Session\Http2SessionFrameHandling.cs" />
     <Compile Include="Constants.cs" />
     <Compile Include="IO\IPriorityItem.cs" />
     <Compile Include="IO\IQueue.cs" />
@@ -85,9 +88,9 @@
     <Compile Include="IO\PriorityQueueEntry.cs" />
     <Compile Include="IO\QueueEntry.cs" />
     <Compile Include="IO\QueueWrapper.cs" />
+    <Compile Include="IO\ResponseStream.cs" />
     <Compile Include="IO\StreamBuffer.cs" />
     <Compile Include="Protocols.cs" />
-    <Compile Include="Settings\SettingsManager.cs" />
     <Compile Include="Framing\DataFrame.cs" />
     <Compile Include="Framing\Frame.cs" />
     <Compile Include="Framing\FrameFlags.cs" />
@@ -105,7 +108,7 @@
     <Compile Include="Framing\SettingsFrame.cs" />
     <Compile Include="Framing\Headers.cs" />
     <Compile Include="Framing\WindowUpdateFrame.cs" />
-    <Compile Include="Http2Session.cs" />
+    <Compile Include="Http2Session\Http2SessionDesc.cs" />
     <Compile Include="Http2Stream.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="IO\WriteQueue.cs" />
@@ -114,14 +117,15 @@
     <Compile Include="TransportInformation.cs" />
     <Compile Include="Utils\Http2Logger.cs" />
     <Compile Include="Utils\Http2LoggerState.cs" />
+    <Compile Include="Verbs.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\MentalisSecurityLibrary\Security Library.csproj">
-      <Project>{5bfa5a70-d384-4417-afcc-5c744485a85f}</Project>
-      <Name>Security Library</Name>
+    <ProjectReference Include="..\OpenSsl\ManagedOpenSsl\ManagedOpenSsl-2010.csproj">
+      <Project>{73dcc218-655b-485f-8eac-0ce5f2f7343d}</Project>
+      <Name>ManagedOpenSsl-2010</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup />

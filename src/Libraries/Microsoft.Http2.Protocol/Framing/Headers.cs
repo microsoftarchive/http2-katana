@@ -13,7 +13,7 @@ namespace Microsoft.Http2.Protocol.Framing
         // The number of bytes in the frame, not including the compressed headers.
         private const int PreambleSizeWithoutPriority = 8;
 
-        private readonly HeadersList _headers = new HeadersList();
+        private HeadersList _headers = new HeadersList();
 
         // 8 bits, 24-31
         public bool IsEndStream
@@ -88,6 +88,13 @@ namespace Microsoft.Http2.Protocol.Framing
             {
                 return _headers;
             }
+            set
+            {
+                if (value == null)
+                    return;
+
+                _headers = value;
+            }
         }
 
         /// <summary>
@@ -96,7 +103,7 @@ namespace Microsoft.Http2.Protocol.Framing
         /// <param name="streamId">Stream id</param>
         /// <param name="headerBytes">Header bytes</param>
         /// <param name="priority">Priority</param>
-        public HeadersFrame(int streamId, byte[] headerBytes, int priority = -1)
+        public HeadersFrame(int streamId, /*byte[] headerBytes,*/ int priority = -1)
         {
             //PRIORITY (0x8):  Bit 4 being set indicates that the first four octets
             //of this frame contain a single reserved bit and a 31-bit priority;
@@ -108,7 +115,7 @@ namespace Microsoft.Http2.Protocol.Framing
                 ? PreambleSizeWithPriority
                 : PreambleSizeWithoutPriority;
 
-            _buffer = new byte[headerBytes.Length + preambleLength];
+            _buffer = new byte[/*headerBytes.Length + */preambleLength];
             HasPriority = hasPriority;
 
             StreamId = streamId;
@@ -120,7 +127,7 @@ namespace Microsoft.Http2.Protocol.Framing
             }
 
             // Copy in the headers
-            System.Buffer.BlockCopy(headerBytes, 0, Buffer, preambleLength, headerBytes.Length);
+            //System.Buffer.BlockCopy(headerBytes, 0, Buffer, preambleLength, headerBytes.Length);
         }
 
         /// <summary>

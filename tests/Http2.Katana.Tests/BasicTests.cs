@@ -81,15 +81,15 @@ namespace Http2.Katana.Tests
                 });
 
             Assert.Equal(collection.Count, 10);
-            Assert.Equal(collection.StoredHeadersSize, 60 + 80 + sizeof(Int32) * collection.Count);
+            Assert.Equal(collection.StoredHeadersSize, 60 + 80 + 32 * collection.Count);
 
             collection.Add(new KeyValuePair<string, string>("someAddKey1", "someAddValue1"));
             collection.Add(new KeyValuePair<string, string>("someAddKey2", "someAddValue2"));
 
             Assert.Equal(collection.Count, 12);
-            Assert.Equal(collection.StoredHeadersSize, 60 + 80 + sizeof(Int32) * collection.Count + 22 + 26);
+            Assert.Equal(collection.StoredHeadersSize, 60 + 80 + 32 * collection.Count + 22 + 26);
 
-            int headersSize = collection.Sum(header => header.Key.Length + header.Value.Length + sizeof(Int32));
+            int headersSize = collection.Sum(header => header.Key.Length + header.Value.Length + 32);
 
             Assert.Equal(collection.StoredHeadersSize, headersSize);
         }
