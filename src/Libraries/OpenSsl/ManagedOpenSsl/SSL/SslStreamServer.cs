@@ -128,7 +128,7 @@ namespace OpenSSL.SSL
             }
 
             // Initialize the context
-            sslContext = new SslContext(SslMethod.TLSv1_server_method, ConnectionEnd.Server, true, new []{"http/1.1"});
+            sslContext = new SslContext(SslMethod.TLSv1_server_method, ConnectionEnd.Server, true, new[] { "http/1.1" });
             
             // Remove support for protocols not specified in the enabledSslProtocols
             if ((enabledSslProtocols & SslProtocols.Ssl2) != SslProtocols.Ssl2)

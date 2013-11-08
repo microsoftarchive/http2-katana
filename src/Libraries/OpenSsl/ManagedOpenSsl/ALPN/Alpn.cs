@@ -19,8 +19,8 @@ namespace OpenSSL.ALPN
     /// <param name="arg"></param>
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     public delegate int AlpnCallback(IntPtr ssl,
-                                     [MarshalAs(UnmanagedType.LPStr)] ref string selProto,
-                                     [MarshalAs(UnmanagedType.U1)] ref byte selProtoLen,
+                                     [MarshalAs(UnmanagedType.LPStr)] out string selProto,
+                                     [MarshalAs(UnmanagedType.U1)] out byte selProtoLen,
                                      IntPtr inProtos, int inProtosLen, IntPtr arg);
 
     internal class AlpnExtension
@@ -96,14 +96,13 @@ namespace OpenSSL.ALPN
                 Buffer.BlockCopy(protoStream.GetBuffer(), 0, _knownProtocols, 0, offset);
             }
 
-            //TODO refactor to be AlpnException
             if (SSL_CTX_set_alpn_protos(ctx, _knownProtocols, (UInt32)_knownProtocols.Length) != 0)
                 throw new AlpnException("cant set alpn protos");
         }
 
         public int AlpnCb(IntPtr ssl, 
-                                 [MarshalAs(UnmanagedType.LPStr)] ref string selProto, 
-                                 [MarshalAs(UnmanagedType.U1)] ref byte selProtoLen,
+                                 [MarshalAs(UnmanagedType.LPStr)] out string selProto, 
+                                 [MarshalAs(UnmanagedType.U1)] out byte selProtoLen,
                                  IntPtr inProtos, int inProtosLen, IntPtr arg)
         {
             var inProtosBytes = new byte[inProtosLen];
@@ -135,7 +134,6 @@ namespace OpenSSL.ALPN
                 i++;
             }
 
-            //TODO Refactor
             if (matchIndex == -1)
             {
                 selProto = null;
