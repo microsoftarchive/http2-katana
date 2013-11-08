@@ -75,7 +75,7 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <Content Include="root\10mbTest.txt">
+    <Content Include="root\5mbTest.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="root\simpleTest.txt">

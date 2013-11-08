@@ -323,7 +323,8 @@ namespace OpenSSL.SSL
         [FieldOffset(408 + Native.SSL_MAX_SID_CTX_LENGTH)]
         public IntPtr alpn_select_cb_arg;//void *alpn_select_cb_arg;
 
-        // For a client, this contains the list of supported protocols in wire format. 
+        // For a client, this contains the list of supported protocols in wire format.
+        //TODO refactor SizeConst
         [FieldOffset(412 + Native.SSL_MAX_SID_CTX_LENGTH)]
         [MarshalAs(UnmanagedType.LPStr, SizeConst = 9)] //Set counted value here
         string alpn_client_proto_list;//unsigned char* alpn_client_proto_list;

@@ -34,7 +34,12 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Http2.TestClient", "tests\H
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ManagedOpenSsl-2010", "src\Libraries\OpenSsl\ManagedOpenSsl\ManagedOpenSsl-2010.csproj", "{73DCC218-655B-485F-8EAC-0CE5F2F7343D}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnitTests-2010", "src\Libraries\OpenSsl\test\UnitTests-2010.csproj", "{779FA0D7-D7CB-4408-A94D-B5718F118894}"
+EndProject
 Global
+	GlobalSection(TestCaseManagementSettings) = postSolution
+		CategoryFile = SMDemoAll.vsmdi
+	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Debug|Mixed Platforms = Debug|Mixed Platforms
@@ -144,6 +149,18 @@ Global
 		{73DCC218-655B-485F-8EAC-0CE5F2F7343D}.Release|x64.ActiveCfg = Release|x64
 		{73DCC218-655B-485F-8EAC-0CE5F2F7343D}.Release|x64.Build.0 = Release|x64
 		{73DCC218-655B-485F-8EAC-0CE5F2F7343D}.Release|x86.ActiveCfg = Release|Any CPU
+		{779FA0D7-D7CB-4408-A94D-B5718F118894}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{779FA0D7-D7CB-4408-A94D-B5718F118894}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{779FA0D7-D7CB-4408-A94D-B5718F118894}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{779FA0D7-D7CB-4408-A94D-B5718F118894}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{779FA0D7-D7CB-4408-A94D-B5718F118894}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{779FA0D7-D7CB-4408-A94D-B5718F118894}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{779FA0D7-D7CB-4408-A94D-B5718F118894}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{779FA0D7-D7CB-4408-A94D-B5718F118894}.Release|Any CPU.Build.0 = Release|Any CPU
+		{779FA0D7-D7CB-4408-A94D-B5718F118894}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{779FA0D7-D7CB-4408-A94D-B5718F118894}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+		{779FA0D7-D7CB-4408-A94D-B5718F118894}.Release|x64.ActiveCfg = Release|Any CPU
+		{779FA0D7-D7CB-4408-A94D-B5718F118894}.Release|x86.ActiveCfg = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -155,10 +172,8 @@ Global
 		{19FB1EAA-0323-4366-B5DC-7632972FF2AE} = {C374FCAA-990B-4595-990B-35756DC3D81B}
 		{E34AC310-324C-46BC-AF9F-1A41DF58E867} = {273CBE86-F5C9-46D5-A833-8126E4E5646A}
 		{73DCC218-655B-485F-8EAC-0CE5F2F7343D} = {273CBE86-F5C9-46D5-A833-8126E4E5646A}
+		{779FA0D7-D7CB-4408-A94D-B5718F118894} = {72EF18F4-AE3D-4EED-A265-DCC8E08FE7A2}
 		{4E457454-CCD5-4E54-B9C1-C6600BCEC5C8} = {CD82C914-3D0C-4CA1-AC57-072D5E69D964}
 		{4AA8FA86-FFC9-4D4E-A94D-21AE24830010} = {CD82C914-3D0C-4CA1-AC57-072D5E69D964}
-	EndGlobalSection
-	GlobalSection(TestCaseManagementSettings) = postSolution
-		CategoryFile = SMDemoAll.vsmdi
 	EndGlobalSection
 EndGlobal

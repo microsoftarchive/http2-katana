@@ -16,7 +16,9 @@ using Microsoft.Http2.Protocol;
 using Microsoft.Http2.Protocol.IO;
 using Microsoft.Http2.Protocol.Utils;
 using OpenSSL;
+using OpenSSL.Core;
 using OpenSSL.SSL;
+using OpenSSL.X509;
 
 namespace Microsoft.Http2.Owin.Server
 {
@@ -34,8 +36,11 @@ namespace Microsoft.Http2.Owin.Server
         private readonly bool _useFlowControl;
         private readonly CancellationTokenSource _cancelClientHandling;
         private bool _isDisposed;
+        private X509Certificate _cert;
+        private bool _isSecure;
+        private TcpClient client;
 
-        internal HttpConnectingClient(TcpListener server, AppFunc next, 
+        internal HttpConnectingClient(TcpListener server, AppFunc next, X509Certificate cert, bool isSecure,
                                      bool useHandshake, bool usePriorities, bool useFlowControl)
         {
             _isDisposed = false;
@@ -43,7 +48,9 @@ namespace Microsoft.Http2.Owin.Server
             _useHandshake = useHandshake;
             _useFlowControl = useFlowControl;
             _server = server;
+            _isSecure = isSecure;
             _next = next;
+            _cert = cert;
             _cancelClientHandling = new CancellationTokenSource();
         }
 
@@ -52,11 +59,9 @@ namespace Microsoft.Http2.Owin.Server
         /// </summary>
         internal void Accept(CancellationToken cancel)
         {
-            TcpClient incomingClient;
-
             try
             {
-                incomingClient = _server.AcceptTcpClient();
+                client = _server.AcceptTcpClient();
             }
             catch (OperationCanceledException)
             {
@@ -64,19 +69,35 @@ namespace Microsoft.Http2.Owin.Server
                 return;
             }  
             Http2Logger.LogDebug("New connection accepted");
-            Task.Run(() => HandleAcceptedClient(incomingClient.GetStream()));
+            Task.Run(() => HandleAcceptedClient(client.GetStream()));
         }
 
         private void HandleAcceptedClient(Stream incomingClient)
         {
             bool backToHttp11 = false;
             string selectedProtocol = Protocols.Http1;
-            
+
             if (_useHandshake)
             {
                 try
                 {
+                    if (_isSecure)
+                    {
+                        incomingClient = new SslStream(incomingClient, false);
 
+                        //using (var chain = new X509Chain())
+                        //{
+                         //   chain.Add(_cert);
+                            (incomingClient as SslStream).AuthenticateAsServer(_cert/*, false, chain, SslProtocols.Tls,
+                                                                             SslStrength.All, false*/);
+
+                            selectedProtocol = (incomingClient as SslStream).AlpnSelectedProtocol;
+                        //}
+                    }
+                }
+                catch (OpenSslException ex)
+                {
+                    backToHttp11 = true;
                 }
                 catch (Exception e)
                 {
@@ -85,12 +106,9 @@ namespace Microsoft.Http2.Owin.Server
                     return;
                 }
             }
-
-            var clientStream = new SslStream(incomingClient, false);
-
             try
             {
-                HandleRequest(clientStream, selectedProtocol, backToHttp11);
+                HandleRequest(incomingClient, selectedProtocol, backToHttp11);
             }
             catch (Exception e)
             {

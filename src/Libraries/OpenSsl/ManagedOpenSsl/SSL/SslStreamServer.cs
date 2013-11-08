@@ -186,7 +186,7 @@ namespace OpenSSL.SSL
             // Set the private key
             sslContext.UsePrivateKey(serverCertificate.PrivateKey);
             // Set the session id context
-            sslContext.SetSessionIdContext(Encoding.ASCII.GetBytes(AppDomain.CurrentDomain.FriendlyName));
+            sslContext.SetSessionIdContext(Encoding.ASCII.GetBytes("AppDomainHost: UnitTests12345678"/*AppDomain.CurrentDomain.FriendlyName*/));
         }
     }
 }

@@ -1,4 +1,5 @@
 ﻿using System.IO;
+using System.Reflection;
 using Http2.TestClient.Adapters;
 using Http2.TestClient.Handshake;
 using Microsoft.Http2.Protocol;
@@ -26,7 +27,8 @@ namespace Http2.TestClient
         #region Fields
         private Http2ClientMessageHandler _sessionAdapter;
         private Stream _clientStream;
-        private const string CertificatePath = @"certificate.pfx";
+        private static readonly string AssemblyName = Path.GetDirectoryName(Assembly.GetExecutingAssembly().CodeBase.Substring(8));
+        private const string CertificatePath = @"\certificate.pfx";
         private string _selectedProtocol;
         private bool _useHttp20 = true;
         private readonly bool _usePriorities;
@@ -70,11 +72,11 @@ namespace Http2.TestClient
 
         #region Methods
 
-        private X509Certificate LoadPKCS7_PEMCertificate(string certFilename)
+        private X509Certificate LoadPKCS12Certificate(string certFilename, string password)
         {
-            using (var certFile = BIO.File(certFilename, "r"))
+            using (BIO certFile = BIO.File(certFilename, "r"))
             {
-                return X509Certificate.FromPKCS7_PEM(certFile);
+                return X509Certificate.FromPKCS12(certFile, password);
             }
         }
 
@@ -152,7 +154,7 @@ namespace Http2.TestClient
                 _isSecure = port == securePort;
 
                 //var socket = new SecureSocket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp, Options);
-                var tcpClnt = new TcpClient(connectUri.AbsoluteUri, port);
+                var tcpClnt = new TcpClient(connectUri.Host, port);
 
                 _clientStream = tcpClnt.GetStream();
 
@@ -161,10 +163,9 @@ namespace Http2.TestClient
                     if (_isSecure)
                     {
                         _clientStream = new SslStream(_clientStream, false);
-                        _certificate = LoadPKCS7_PEMCertificate(CertificatePath);
+                        _certificate = LoadPKCS12Certificate(AssemblyName + CertificatePath, String.Empty);
 
-                        _chain = new X509Chain();
-
+                        _chain = new X509Chain {_certificate};
                         var certList = new X509List { _certificate };
                         
                         (_clientStream as SslStream).AuthenticateAsClient(connectUri.AbsoluteUri, certList, _chain,
@@ -179,8 +180,8 @@ namespace Http2.TestClient
                         try
                         {
                             var handshakeResult = new UpgradeHandshaker(_environment).Handshake();
-                            _environment.Add("HandshakeResult", handshakeResult);
-                            _useHttp20 = handshakeResult["handshakeSuccessful"] as string == "true";
+                            _environment.Add(HandshakeKeys.Result, handshakeResult);
+                            _useHttp20 = handshakeResult[HandshakeKeys.Successful] as string == HandshakeKeys.True;
 
                             if (!_useHttp20)
                             {

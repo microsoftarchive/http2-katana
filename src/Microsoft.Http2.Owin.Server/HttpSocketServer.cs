@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -7,8 +8,9 @@ using System.Net.Sockets;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Http2.Protocol;
 using Microsoft.Http2.Protocol.Utils;
+using OpenSSL.Core;
+using OpenSSL.X509;
 
 namespace Microsoft.Http2.Owin.Server
 {
@@ -20,7 +22,7 @@ namespace Microsoft.Http2.Owin.Server
     public class HttpSocketServer : IDisposable
     {
         private static readonly string AssemblyName = Path.GetDirectoryName(Assembly.GetExecutingAssembly().CodeBase.Substring(8));
-        private const string CertificateFilename = @"\certificate.pfx";
+        private const string CertificateFilename = @"\server.pfx";
 
         private readonly Thread _listenThread;
         private readonly CancellationTokenSource _cancelAccept;
@@ -32,6 +34,16 @@ namespace Microsoft.Http2.Owin.Server
         private readonly bool _useFlowControl;
         private bool _disposed;
         private readonly TcpListener _server;
+        private X509Certificate _serverCert;
+        private bool _isSecure;
+
+        private X509Certificate LoadPKCS12Certificate(string certFilename, string password)
+        {
+            using (var certFile = BIO.File(certFilename, "r"))
+            {
+                return X509Certificate.FromPKCS12(certFile, password);
+            }
+        }
 
         public HttpSocketServer(Func<IDictionary<string, object>, Task> next, IDictionary<string, object> properties)
         {
@@ -47,6 +59,18 @@ namespace Microsoft.Http2.Owin.Server
             _useHandshake = (bool)properties["use-handshake"];
             _usePriorities = (bool)properties["use-priorities"];
             _useFlowControl = (bool)properties["use-flowControl"];
+
+            int securePort;
+
+            if (!int.TryParse(ConfigurationManager.AppSettings["securePort"], out securePort))
+            {
+                Http2Logger.LogError("Incorrect port in the config file!");
+                return;
+            }
+
+            _serverCert = LoadPKCS12Certificate(AssemblyName + CertificateFilename, "p@ssw0rd");
+
+            _isSecure = _port == securePort;
 
             _server = new TcpListener(IPAddress.Any, _port);
 
@@ -64,7 +88,7 @@ namespace Microsoft.Http2.Owin.Server
             {
                 try
                 {
-                    var client = new HttpConnectingClient(_server, _next, _useHandshake, _usePriorities, _useFlowControl);
+                    var client = new HttpConnectingClient(_server, _next, _serverCert, _isSecure, _useHandshake, _usePriorities, _useFlowControl);
                     client.Accept(_cancelAccept.Token);
                 }
                 catch (Exception ex)
@@ -91,6 +115,12 @@ namespace Microsoft.Http2.Owin.Server
             if (_server != null)
             {
                 _server.Stop();
+            }
+
+            if (_serverCert != null)
+            {
+                _serverCert.Dispose();
+                _serverCert = null;
             }
         }
     }

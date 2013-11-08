@@ -192,7 +192,7 @@ namespace UnitTests
 			Thread.Sleep(500);  // Ensure that the server is ready!
 			// Run synchronous tests
 			SyncServerTests tests = new SyncServerTests(this);
-			tests.BasicClientTest();
+			//tests.BasicClientTest();
 		}
 		
 		[Test]

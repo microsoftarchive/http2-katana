@@ -902,46 +902,6 @@ namespace OpenSSL.SSL
 			InternalBeginRead(readwriteAsyncResult);
 		}
 
-		/*
-		public abstract virtual bool ProcessRenegotiation();
-
-		private IAsyncResult BeginRenegotiate(InternalAsyncResult readwriteAsyncResult)
-		{
-			Console.WriteLine("BeginRenegotiate");
-
-			handShakeState = HandshakeState.Renegotiate;
-
-			// Wrap the readwriteAsyncResult in the renegotiateAsyncResult
-			InternalAsyncResult renegotiateAsyncResult = new InternalAsyncResult(new AsyncCallback(RenegotiateComplete), readwriteAsyncResult, null, 0, 0, readwriteAsyncResult.IsWriteOperation, readwriteAsyncResult.ContinueAfterHandshake);
-
-			if (ProcessRenegotiation())
-			{
-				handShakeState = HandshakeState.Complete;
-				renegotiateAsyncResult.SetComplete();
-			}
-			else
-			{
-				//!! if (readwriteAsyncResult.IsWriteOperation)
-				if (write_bio.BytesPending > 0)
-				{
-					renegotiateAsyncResult.IsWriteOperation = true;
-					BeginWrite(new byte[0], 0, 0, new AsyncCallback(RenegotiateCallback), renegotiateAsyncResult);
-				}
-				else
-				{
-					renegotiateAsyncResult.IsWriteOperation = false;
-					BeginRead(new byte[0], 0, 0, new AsyncCallback(RenegotiateCallback), renegotiateAsyncResult);
-				}
-			}
-			return renegotiateAsyncResult;
-		}
-
-		private void RenegotiateCallback(IAsyncResult asyncResult)
-		{
-			InternalAsyncResult renegotiateAsyncResult = asyncResult.AsyncState as InternalAsyncResult;
-		}
-		*/
-
 		private IAsyncResult BeginHandshake(InternalAsyncResult readwriteAsyncResult)
 		{
 			//!!
