@@ -288,6 +288,7 @@ namespace Microsoft.Http2.Protocol
         {
             //TODO handle additional debug info
             _goAwayReceived = true;
+            
             Http2Logger.LogDebug("GoAway frame received");
             Dispose();
         }

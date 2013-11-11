@@ -604,7 +604,7 @@ namespace OpenSSL.SSL
 				{
 					// Zero byte read most likely indicates connection closed (if it's a network stream)
 					internalAsyncResult.SetComplete(0);
-					return;
+                    throw new IOException("Connection was closed by the remote endpoint");
 				}
 				else
 				{

@@ -295,6 +295,12 @@ namespace Microsoft.Http2.Protocol
                         _wasResponseReceived = true;
                     }
                 }
+                catch (IOException)
+                {
+                    //Connection was closed by the remote endpoint
+                    Dispose();
+                    break;
+                }
                 catch (Exception ex)
                 {
                     // Read failure, abort the connection/session.
@@ -678,9 +684,11 @@ namespace Microsoft.Http2.Protocol
             OnFrameReceived = null;
             OnFrameSent = null;
 
+            //Missing GoAway means connection was forcibly closed by the remote ep. This means that we can
+            //send nothing into this connection. No need trying to send GoAway.
             if (!_goAwayReceived)
             {
-                WriteGoAway(status);
+                //WriteGoAway(status);
             }
 
             if (_writeQueue != null)

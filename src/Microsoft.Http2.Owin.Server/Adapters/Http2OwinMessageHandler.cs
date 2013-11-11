@@ -25,7 +25,7 @@ namespace Microsoft.Http2.Owin.Server.Adapters
         /// </summary>
         /// <param name="stream">The stream.</param>
         /// <param name="end"></param>
-        /// <param name="transportInfo">The transport information.</param>
+        /// <param name="isSecure"></param>
         /// <param name="next">The next layer delegate.</param>
         /// <param name="cancel">The cancellation token.</param>
         public Http2OwinMessageHandler(Stream stream, ConnectionEnd end, bool isSecure,
@@ -33,7 +33,7 @@ namespace Microsoft.Http2.Owin.Server.Adapters
             : base(stream, end, isSecure, cancel)
         {
             _next = next;
-            //stream.OnClose += delegate { Dispose(); };
+            _session.OnSessionDisposed += delegate { Dispose(); };
         }
 
         /// <summary>

@@ -40,6 +40,8 @@ namespace Microsoft.Http2.Protocol
             _stream = stream;
             _end = end;
             _wereFirstSettingsSent = false;
+
+            _session = new Http2Session(_stream, _end, true, true, _isSecure, _cancToken);
         }
 
         /// <summary>
@@ -99,10 +101,11 @@ namespace Microsoft.Http2.Protocol
                 maxStreams = int.Parse(initRequest[CommonHeaders.MaxConcurrentStreams]);
             }
 
-            //TODO provide cancellation token and transport info
-            _session = new Http2Session(_stream, _end, true, true, _isSecure, _cancToken, initialWindowSize, maxStreams);
             _session.OnFrameReceived += OnFrameReceivedHandler;
             _session.OnSettingsSent += OnSettingsSentHandler;
+
+            _session.InitialWindowSize = initialWindowSize;
+            _session.OurMaxConcurrentStreams = maxStreams;
 
             return Task.Run(async () => await _session.Start(initRequest));
         }

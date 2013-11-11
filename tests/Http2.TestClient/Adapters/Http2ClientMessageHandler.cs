@@ -5,7 +5,6 @@ using System.Threading;
 using Client.IO;
 using Microsoft.Http2.Protocol;
 using Microsoft.Http2.Protocol.Framing;
-using Microsoft.Http2.Protocol.IO;
 using Microsoft.Http2.Protocol.Utils;
 using OpenSSL;
 
@@ -23,7 +22,7 @@ namespace Http2.TestClient.Adapters
             : base(stream, end, isSecure, cancel)
         {
             _fileHelper = new FileHelper(ConnectionEnd.Client);
-            //stream.OnClose += delegate { Dispose(); };
+            _session.OnSessionDisposed += delegate { Dispose(); };
         }
 
         private void SaveDataFrame(Http2Stream stream, DataFrame dataFrame)
