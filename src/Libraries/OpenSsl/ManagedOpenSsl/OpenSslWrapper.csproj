@@ -158,16 +158,6 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="..\native\windows\x86\libeay32.dll">
-      <Link>libeay32.dll</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="..\native\windows\x86\ssleay32.dll">
-      <Link>ssleay32.dll</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
-  <ItemGroup>
     <BootstrapperPackage Include="Microsoft.Net.Client.3.5">
       <Visible>False</Visible>
       <ProductName>.NET Framework 3.5 SP1 Client Profile</ProductName>
@@ -184,6 +174,14 @@
       <Install>true</Install>
     </BootstrapperPackage>
   </ItemGroup>
+  <ItemGroup>
+    <Content Include="..\native\windows\x86\libeay32.dll">
+      <Link>libeay32.dll</Link>
+    </Content>
+    <Content Include="..\native\windows\x86\ssleay32.dll">
+      <Link>ssleay32.dll</Link>
+    </Content>
+  </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
@@ -192,9 +190,12 @@
   <Target Name="AfterBuild">
   </Target>
   -->
-  <ItemGroup />
   <PropertyGroup>
     <PostBuildEvent>mkdir "$(SolutionDir)Drop"
-copy /y "$(TargetPath)" "$(SolutionDir)Drop\$(TargetFileName)"</PostBuildEvent>
+copy /y "$(TargetPath)" "$(SolutionDir)Drop\$(TargetFileName)"
+
+copy /y "$(SolutionDir)src\Libraries\OpenSsl\native\windows\x86\libeay32.dll" "$(SolutionDir)Drop"
+
+copy /y "$(SolutionDir)src\Libraries\OpenSsl\native\windows\x86\ssleay32.dll" "$(SolutionDir)Drop"</PostBuildEvent>
   </PropertyGroup>
 </Project>

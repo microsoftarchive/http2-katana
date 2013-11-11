@@ -98,7 +98,7 @@
     <PostBuildEvent>
       copy /y "$(TargetPath)" "$(SolutionDir)Drop\$(TargetFileName)"
       copy /y "$(TargetDir)\Http2.Owin.StaticFiles.Sample.exe.config" "$(SolutionDir)Drop\Http2.Owin.StaticFiles.Sample.exe.config"
-      copy /y "$(SolutionDir)Drop\certificate.pfx" "$(TargetDir)"
+      copy /y "$(SolutionDir)Drop\server.pfx" "$(TargetDir)"
 
       xcopy "$(ProjectDir)\root"  "$(SolutionDir)Drop\root" /S /F /R /Y /I
 

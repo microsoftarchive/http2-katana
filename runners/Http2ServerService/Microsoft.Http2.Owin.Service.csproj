@@ -110,12 +110,12 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>copy /y "$(SolutionDir)Drop\certificate.pfx"  "$(TargetDir)\certificate.pfx"
+    <PostBuildEvent>copy /y "$(SolutionDir)Drop\server.pfx"  "$(TargetDir)\server.pfx"
 xcopy "$(ProjectDir)Root"  "$(TargetDir)Root" /S /F /R /Y /I
 copy /y "$(TargetPath)" "$(SolutionDir)Drop\$(TargetFileName)"
 copy /y "$(TargetDir)\$(TargetFileName).config" "$(SolutionDir)Drop\$(TargetFileName).config"
 
-copy /y "$(SolutionDir)Drop\certificate.pfx" "$(TargetDir)"</PostBuildEvent>
+copy /y "$(SolutionDir)Drop\server.pfx" "$(TargetDir)"</PostBuildEvent>
   </PropertyGroup>
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

@@ -28,7 +28,7 @@ namespace Http2.TestClient
         private Http2ClientMessageHandler _sessionAdapter;
         private Stream _clientStream;
         private static readonly string AssemblyName = Path.GetDirectoryName(Assembly.GetExecutingAssembly().CodeBase.Substring(8));
-        private const string CertificatePath = @"\certificate.pfx";
+        private const string CertificatePath = @"\client.pfx";
         private string _selectedProtocol;
         private bool _useHttp20 = true;
         private readonly bool _usePriorities;
