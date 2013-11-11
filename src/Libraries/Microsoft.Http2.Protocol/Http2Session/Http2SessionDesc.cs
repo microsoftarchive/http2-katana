@@ -298,12 +298,14 @@ namespace Microsoft.Http2.Protocol
                 catch (IOException)
                 {
                     //Connection was closed by the remote endpoint
+                    Http2Logger.LogInfo("Connection was closed by the remote endpoint");
                     Dispose();
                     break;
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
                     // Read failure, abort the connection/session.
+                    Http2Logger.LogInfo("Read failure, abort the connection/session");
                     Dispose();
                     break;
                 }
@@ -311,6 +313,12 @@ namespace Microsoft.Http2.Protocol
                 if (frame != null)
                 {
                     DispatchIncomingFrame(frame);
+                }
+                else
+                {
+                    //Looks like connection was lost
+                    Dispose();
+                    break;
                 }
             }
 

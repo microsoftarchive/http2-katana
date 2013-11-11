@@ -81,11 +81,7 @@ namespace Microsoft.Http2.Protocol.Framing
             int totalRead = 0;
             while (totalRead < count && !_isDisposed)
             {
-                int read = _stream.Read(buffer, offset + totalRead, count - totalRead);
-                
-                //MUST be fixed
-                //Do not check for read <= 0 because DuplexStream Read method guarantees that data already came,
-                //but read buffer may not already updated it's position because of _readWriteLock.
+                int read =_stream.Read(buffer, offset + totalRead, count - totalRead);
 
                 if (read <= 0)
                 {
@@ -94,6 +90,7 @@ namespace Microsoft.Http2.Protocol.Framing
                 }
                 totalRead += read;
             }
+
             return true;
         }
 
