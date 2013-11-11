@@ -162,14 +162,14 @@ namespace Http2.TestClient
                 {
                     if (_isSecure)
                     {
-                        _clientStream = new SslStream(_clientStream, false);
+                        _clientStream = new SslStream(_clientStream, true);
                         _certificate = LoadPKCS12Certificate(AssemblyName + CertificatePath, String.Empty);
 
                         _chain = new X509Chain {_certificate};
                         var certList = new X509List { _certificate };
                         
-                        (_clientStream as SslStream).AuthenticateAsClient(connectUri.AbsoluteUri, certList, _chain,
-                                                                          SslProtocols.Tls, SslStrength.All, false);
+                        (_clientStream as SslStream).AuthenticateAsClient(connectUri.AbsoluteUri/*, certList, _chain,
+                                                                          SslProtocols.Tls, SslStrength.All, false*/);
                         
                         _selectedProtocol = (_clientStream as SslStream).AlpnSelectedProtocol;
                     }

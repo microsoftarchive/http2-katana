@@ -116,6 +116,7 @@ namespace OpenSSL.ALPN
             byte matchLen = 0;
             for (int i = 0; i < _knownProtocols.Length; )
             {
+                bool gotMatch = false;
                 for (int j = 0; j < inProtosLen; )
                 {
                     if (_knownProtocols[i] == inProtosBytes[j] &&
@@ -124,12 +125,17 @@ namespace OpenSSL.ALPN
                         /* We found a match */
                         matchIndex = i;
                         matchLen = _knownProtocols[i];
+                        gotMatch = true;
                         break;
                     }
 
                     j += inProtosBytes[j];
                     j++;
                 }
+
+                if (gotMatch)
+                    break;
+
                 i += _knownProtocols[i];
                 i++;
             }

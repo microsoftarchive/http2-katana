@@ -68,9 +68,9 @@
       <Project>{e34ac310-324c-46bc-af9f-1a41df58e867}</Project>
       <Name>Microsoft.Http2.Protocol</Name>
     </ProjectReference>
-    <ProjectReference Include="..\Libraries\OpenSsl\ManagedOpenSsl\ManagedOpenSsl-2010.csproj">
+    <ProjectReference Include="..\Libraries\OpenSsl\ManagedOpenSsl\OpenSslWrapper.csproj">
       <Project>{73dcc218-655b-485f-8eac-0ce5f2f7343d}</Project>
-      <Name>ManagedOpenSsl-2010</Name>
+      <Name>OpenSslWrapper</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

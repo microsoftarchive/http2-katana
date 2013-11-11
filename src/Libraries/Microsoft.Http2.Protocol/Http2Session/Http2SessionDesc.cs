@@ -295,7 +295,7 @@ namespace Microsoft.Http2.Protocol
                         _wasResponseReceived = true;
                     }
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
                     // Read failure, abort the connection/session.
                     Dispose();

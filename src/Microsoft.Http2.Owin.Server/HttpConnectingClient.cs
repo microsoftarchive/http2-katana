@@ -83,7 +83,7 @@ namespace Microsoft.Http2.Owin.Server
                 {
                     if (_isSecure)
                     {
-                        incomingClient = new SslStream(incomingClient, false);
+                        incomingClient = new SslStream(incomingClient, true);
 
                         //using (var chain = new X509Chain())
                         //{

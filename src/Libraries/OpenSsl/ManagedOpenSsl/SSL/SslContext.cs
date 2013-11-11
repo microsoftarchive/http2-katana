@@ -49,8 +49,8 @@ namespace OpenSSL.SSL
 
         #endregion
 
-        private AlpnCallback alpnCb;
-        private AlpnExtension alpnExt;
+        internal static AlpnCallback alpnCb;
+        internal static AlpnExtension alpnExt;
 
         /// <summary>
         ///     Calls SSL_CTX_new()
@@ -67,7 +67,7 @@ namespace OpenSSL.SSL
                 return;
 
             alpnExt = new AlpnExtension(Handle, protoList);
-
+            
             if (end == ConnectionEnd.Server)
             {
                 alpnCb = alpnExt.AlpnCb;

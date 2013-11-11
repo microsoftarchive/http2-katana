@@ -123,9 +123,9 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\OpenSsl\ManagedOpenSsl\ManagedOpenSsl-2010.csproj">
+    <ProjectReference Include="..\OpenSsl\ManagedOpenSsl\OpenSslWrapper.csproj">
       <Project>{73dcc218-655b-485f-8eac-0ce5f2f7343d}</Project>
-      <Name>ManagedOpenSsl-2010</Name>
+      <Name>OpenSslWrapper</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup />

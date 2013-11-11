@@ -28,6 +28,7 @@ using System.Text;
 using System.IO;
 using OpenSSL.Core;
 using OpenSSL.X509;
+using OpenSsl.Protocols;
 
 namespace OpenSSL.SSL
 {
@@ -128,7 +129,7 @@ namespace OpenSSL.SSL
             }
 
             // Initialize the context
-            sslContext = new SslContext(SslMethod.TLSv1_server_method, ConnectionEnd.Server, true, new[] { "http/1.1" });
+            sslContext = new SslContext(SslMethod.TLSv1_server_method, ConnectionEnd.Server, true, new[] { Protocols.Http2, Protocols.Http1 });
             
             // Remove support for protocols not specified in the enabledSslProtocols
             if ((enabledSslProtocols & SslProtocols.Ssl2) != SslProtocols.Ssl2)

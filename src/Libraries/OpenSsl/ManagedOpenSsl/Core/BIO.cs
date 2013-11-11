@@ -252,6 +252,9 @@ namespace OpenSSL.Core
 		/// <returns></returns>
 		public ArraySegment<byte> ReadBytes(int count)
 		{
+		    if (count == 0)
+		        return new ArraySegment<byte>(new byte[0]);
+
 			byte[] buf = new byte[count];
 			int ret = Native.BIO_read(this.ptr, buf, buf.Length);
 			if (ret < 0)

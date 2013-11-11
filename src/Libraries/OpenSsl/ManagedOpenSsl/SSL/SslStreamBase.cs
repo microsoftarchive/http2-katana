@@ -232,6 +232,7 @@ namespace OpenSSL.SSL
 				throw new ArgumentException("Stream must allow read and write capabilities", "stream");
 			}
 			innerStream = stream;
+            
 			this.ownStream = ownStream;
 			read_buffer = new byte[16384];
 			//inHandshakeLoop = false;
@@ -653,7 +654,7 @@ namespace OpenSSL.SSL
 							}
 							else
 							{
-								throw new OpenSslException();
+								//throw new OpenSslException();
 							}
 						}
 						if (decryptedBytesRead > 0)
@@ -849,6 +850,10 @@ namespace OpenSSL.SSL
 			//!!while (bytesPending > 0)
 			{
 				ArraySegment<byte> buf = write_bio.ReadBytes((int)bytesPending);
+
+			    if (buf.Array == null)
+			        return;
+
 				innerStream.BeginWrite(buf.Array, 0, buf.Count, new AsyncCallback(InternalWriteCallback), asyncResult);
 				//!!bytesPending = write_bio.BytesPending;
 			}
