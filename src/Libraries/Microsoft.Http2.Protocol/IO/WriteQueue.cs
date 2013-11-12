@@ -121,7 +121,14 @@ namespace Microsoft.Http2.Protocol.IO
                 var entry = _messageQueue.Dequeue();
                 if (entry != null)
                 {
-                    _stream.Write(entry.Buffer, 0, entry.Buffer.Length);
+                    try
+                    {
+                        _stream.Write(entry.Buffer, 0, entry.Buffer.Length);
+                    }
+                    catch (ObjectDisposedException)
+                    {
+                        Dispose();
+                    }
                 }
             }
         }

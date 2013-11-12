@@ -48,8 +48,6 @@ namespace Microsoft.Http2.Owin.Middleware
                 var upgradeDelegate = environment[CommonOwinKeys.OpaqueUpgrade] as UpgradeDelegate;
                 Debug.Assert(upgradeDelegate != null, "upgradeDelegate is not null");
 
-                var trInfo = CreateTransportInfo(context.Request);
-
                 // save original request parameters; used to complete request after upaque upgrade is done
                 var requestCopy = GetInitialRequestParams(context.Request);
 
@@ -165,18 +163,6 @@ namespace Microsoft.Http2.Owin.Middleware
                     {CommonHeaders.Scheme, scheme},
                     {CommonHeaders.Host, host}
                 };
-        }
-        
-
-        private static TransportInformation CreateTransportInfo(IOwinRequest owinRequest)
-        {
-            return new TransportInformation
-            {
-                RemoteIpAddress = owinRequest.RemoteIpAddress,
-                RemotePort = owinRequest.RemotePort != null ? (int) owinRequest.RemotePort : 8080,
-                LocalIpAddress = owinRequest.LocalIpAddress,
-                LocalPort = owinRequest.LocalPort != null ? (int) owinRequest.LocalPort : 8080,
-            };
         }
     }
 }

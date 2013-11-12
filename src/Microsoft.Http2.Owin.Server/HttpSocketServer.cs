@@ -68,7 +68,16 @@ namespace Microsoft.Http2.Owin.Server
                 return;
             }
 
-            _serverCert = LoadPKCS12Certificate(AssemblyName + CertificateFilename, "p@ssw0rd");
+            try
+            {
+                _serverCert = LoadPKCS12Certificate(AssemblyName + CertificateFilename, "p@ssw0rd");
+            }
+            catch (Exception ex)
+            {
+                Http2Logger.LogInfo("Unable to start server. Check certificate. Exception: " + ex.Message);
+                return;
+            }
+            
 
             _isSecure = _port == securePort;
 

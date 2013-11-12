@@ -153,7 +153,6 @@ namespace Http2.TestClient
                 }
                 _isSecure = port == securePort;
 
-                //var socket = new SecureSocket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp, Options);
                 var tcpClnt = new TcpClient(connectUri.Host, port);
 
                 _clientStream = tcpClnt.GetStream();

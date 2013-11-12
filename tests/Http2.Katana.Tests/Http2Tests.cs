@@ -1,27 +1,22 @@
-using System.Net;
-using System.Net.Sockets;
+using System.Linq;
 using Http2.TestClient.Adapters;
 using Microsoft.Http1.Protocol;
 using Microsoft.Http2.Owin.Middleware;
 using Microsoft.Http2.Owin.Server;
 using Microsoft.Http2.Protocol;
 using Microsoft.Http2.Protocol.Framing;
-using Microsoft.Http2.Protocol.IO;
 using Microsoft.Http2.Protocol.Tests;
 using Moq;
 using Moq.Protected;
-using Org.Mentalis;
-using Org.Mentalis.Security;
-using Org.Mentalis.Security.Ssl;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Globalization;
-using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Org.Mentalis.Security.Ssl.Shared.Extensions;
+using OpenSSL;
+using OpenSSL.SSL;
 using Xunit;
 using Xunit.Extensions;
 
@@ -129,9 +124,9 @@ namespace Http2.Katana.Tests
 
             var headersReceivedEvent = new ManualResetEvent(false);
 
-            var duplexStream = TestHelpers.GetHandshakedDuplexStream(requestStr);
+            var iostream = TestHelpers.GetHandshakedStream(uri);
 
-            var mockedAdapter = new Mock<Http2ClientMessageHandler>(duplexStream, ConnectionEnd.Client, TestHelpers.GetTransportInformation(),
+            var mockedAdapter = new Mock<Http2ClientMessageHandler>(iostream, ConnectionEnd.Client, TestHelpers.UseSecurePort,
                 new CancellationToken()) { CallBase = true };
 
             var adapter = mockedAdapter.Object;
@@ -171,11 +166,11 @@ namespace Http2.Katana.Tests
             Uri.TryCreate(TestHelpers.GetAddress() + requestStr, UriKind.Absolute, out uri);
 
             bool gotException = false;
-            var stream = TestHelpers.GetHandshakedDuplexStream(requestStr);
+            var stream = TestHelpers.GetHandshakedStream(uri);
             
             try
             {
-                using (var adapter = new Http2ClientMessageHandler(stream, ConnectionEnd.Client, TestHelpers.GetTransportInformation(), new CancellationToken()))
+                using (var adapter = new Http2ClientMessageHandler(stream, ConnectionEnd.Client, TestHelpers.UseSecurePort, new CancellationToken()))
                 {
                     adapter.StartSessionAsync();
                 }
@@ -209,9 +204,9 @@ namespace Http2.Katana.Tests
 
             var finalFrameReceivedRaisedEvent = new ManualResetEvent(false);
 
-            var duplexStream = TestHelpers.GetHandshakedDuplexStream(requestStr);
+            var iostream = TestHelpers.GetHandshakedStream(uri);
 
-            var mockedAdapter = new Mock<Http2ClientMessageHandler>(duplexStream, ConnectionEnd.Client, TestHelpers.GetTransportInformation(),
+            var mockedAdapter = new Mock<Http2ClientMessageHandler>(iostream, ConnectionEnd.Client, TestHelpers.UseSecurePort,
                 new CancellationToken()) { CallBase = true };
             
             var adapter = mockedAdapter.Object;
@@ -234,7 +229,7 @@ namespace Http2.Katana.Tests
             {
                 adapter.StartSessionAsync();
 
-                if (duplexStream.IsSecure) //Server will answer on unsecure connection without request.
+                if (iostream is SslStream) //Server will answer on unsecure connection without request.
                     SendRequest(adapter, uri);
 
                 finalFrameReceivedRaisedEvent.WaitOne(120000);
@@ -247,8 +242,8 @@ namespace Http2.Katana.Tests
                 finalFrameReceivedRaisedEvent.Dispose();
                 finalFrameReceivedRaisedEvent = null;
 
-                duplexStream.Dispose();
-                duplexStream = null;
+                iostream.Dispose();
+                iostream = null;
 
                 adapter.Dispose();
                 adapter = null;
@@ -265,41 +260,12 @@ namespace Http2.Katana.Tests
             Uri.TryCreate(ConfigurationManager.AppSettings["unsecureAddress"] + requestStr, UriKind.Absolute, out uri);
 
             bool finalFrameReceived = false;
-
+            var responseBody = new StringBuilder();
             var finalFrameReceivedRaisedEvent = new ManualResetEvent(false);
 
-            var extensions = new[] { ExtensionType.Renegotiation, ExtensionType.ALPN };
-            var useHandshake = ConfigurationManager.AppSettings["handshakeOptions"] != "no-handshake";
+            var clientStream = TestHelpers.GetHandshakedStream(uri);
 
-            var protocols = new List<string> { Protocols.Http1 };
-
-            var options =  new SecurityOptions(SecureProtocol.None, extensions, protocols,
-                                                    ConnectionEnd.Client)
-            {
-                VerificationType = CredentialVerification.None,
-                Certificate = Org.Mentalis.Security.Certificates.Certificate.CreateFromCerFile(@"certificate.pfx"),
-                Flags = SecurityFlags.Default,
-                AllowedAlgorithms = SslAlgorithms.RSA_AES_256_SHA | SslAlgorithms.NULL_COMPRESSION
-            };
-
-            var sessionSocket = new SecureSocket(AddressFamily.InterNetwork, SocketType.Stream,
-                                                ProtocolType.Tcp, options);
-
-            using (var monitor = new ALPNExtensionMonitor())
-            {
-                sessionSocket.Connect(new DnsEndPoint(uri.Host, uri.Port), monitor);
-
-                if (useHandshake)
-                {
-                    sessionSocket.MakeSecureHandshake(options);
-                }
-            }
-
-            var responseBody = new StringBuilder();
-
-            var duplexStream = new DuplexStream(sessionSocket, true);
-
-            var mockedAdapter = new Mock<Http2ClientMessageHandler>(duplexStream, ConnectionEnd.Client, TestHelpers.GetTransportInformation(),
+            var mockedAdapter = new Mock<Http2ClientMessageHandler>(clientStream, ConnectionEnd.Client, clientStream is SslStream,
                 new CancellationToken()) {CallBase = true};
 
             var adapter = mockedAdapter.Object;
@@ -329,18 +295,21 @@ namespace Http2.Katana.Tests
                                 "Upgrade: " + Protocols.Http2 + "\r\n" +
                                 "HTTP2-Settings: \r\n" + // TODO send any valid settings
                                 "\r\n";
-            duplexStream.Write(Encoding.UTF8.GetBytes(http11Headers));
-            duplexStream.Flush();
-            var response = Http11Helper.ReadHeaders(duplexStream);
-            Assert.Equal("HTTP/1.1 " + StatusCode.Code101SwitchingProtocols + " " + StatusCode.Reason101SwitchingProtocols, response[0]);
-            var headers = Http11Helper.ParseHeaders(response.Skip(1));
-            Assert.Contains("Connection", headers.Keys);
-            Assert.Equal("Upgrade", headers["Connection"][0]);
-            Assert.Contains("Upgrade", headers.Keys);
-            Assert.Equal(Protocols.Http2, headers["Upgrade"][0]);
-
+            clientStream.Write(Encoding.UTF8.GetBytes(http11Headers));
+            clientStream.Flush();
             try
             {
+                var response = Http11Helper.ReadHeaders(clientStream);
+                Assert.Equal(
+                    "HTTP/1.1 " + StatusCode.Code101SwitchingProtocols + " " + StatusCode.Reason101SwitchingProtocols,
+                    response[0]);
+                var headers = Http11Helper.ParseHeaders(response.Skip(1));
+                Assert.Contains("Connection", headers.Keys);
+                Assert.Equal("Upgrade", headers["Connection"][0]);
+                Assert.Contains("Upgrade", headers.Keys);
+                Assert.Equal(Protocols.Http2, headers["Upgrade"][0]);
+
+
                 adapter.StartSessionAsync();
 
                 // there are http2 frames after upgrade headers - we don't need to send request explicitly
@@ -348,6 +317,10 @@ namespace Http2.Katana.Tests
 
                 Assert.True(finalFrameReceived);
                 Assert.Equal(TestHelpers.FileContentSimpleTest, responseBody.ToString());
+            }
+            catch (Exception)
+            {
+                int a = 1;
             }
             finally
             {
@@ -369,9 +342,9 @@ namespace Http2.Katana.Tests
 
             var allResourcesDowloadedRaisedEvent = new ManualResetEvent(false);
 
-            var duplexStream = TestHelpers.GetHandshakedDuplexStream(requestStr);
+            var iostream = TestHelpers.GetHandshakedStream(uri);
 
-            var mockedAdapter = new Mock<Http2ClientMessageHandler>(duplexStream, ConnectionEnd.Client, TestHelpers.GetTransportInformation(),
+            var mockedAdapter = new Mock<Http2ClientMessageHandler>(iostream, ConnectionEnd.Client, TestHelpers.UseSecurePort,
                 new CancellationToken()) { CallBase = true };
 
             var adapter = mockedAdapter.Object;
@@ -417,8 +390,8 @@ namespace Http2.Katana.Tests
                 allResourcesDowloadedRaisedEvent.Dispose();
                 allResourcesDowloadedRaisedEvent = null;
 
-                duplexStream.Dispose();
-                duplexStream = null;
+                iostream.Dispose();
+                iostream = null;
             }
 
         }
@@ -434,9 +407,9 @@ namespace Http2.Katana.Tests
 
             var finalFrameReceivedRaisedEvent = new ManualResetEvent(false);
 
-            var duplexStream = TestHelpers.GetHandshakedDuplexStream(requestStr);
+            var iostream = TestHelpers.GetHandshakedStream(uri);
 
-            var mockedAdapter = new Mock<Http2ClientMessageHandler>(duplexStream, ConnectionEnd.Client, TestHelpers.GetTransportInformation(),
+            var mockedAdapter = new Mock<Http2ClientMessageHandler>(iostream, ConnectionEnd.Client, TestHelpers.UseSecurePort,
                 new CancellationToken()) { CallBase = true };
 
             var adapter = mockedAdapter.Object;
@@ -462,6 +435,7 @@ namespace Http2.Katana.Tests
             finally
             {
                 adapter.Dispose();
+                iostream.Dispose();
             }
         }
 

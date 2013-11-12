@@ -1,13 +1,12 @@
-﻿using Microsoft.Http1.Protocol;
+﻿using System.IO;
+using Microsoft.Http1.Protocol;
 using Microsoft.Http2.Owin.Middleware;
 using Microsoft.Http2.Owin.Server;
 using Microsoft.Http2.Owin.Server.Adapters;
 using Microsoft.Http2.Protocol;
-using Microsoft.Http2.Protocol.IO;
 using Microsoft.Http2.Protocol.Tests;
 using Microsoft.Owin;
 using Moq;
-using Org.Mentalis.Security.Ssl;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
@@ -16,7 +15,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
+using OpenSSL.SSL;
 using Xunit;
 
 namespace Http2.Katana.Tests
@@ -26,6 +25,8 @@ namespace Http2.Katana.Tests
         public HttpSocketServer Server { get; private set; }
         public bool UseSecurePort { get; private set; }
         public bool UseHandshake { get; private set; }
+
+        public static Uri Uri;
 
         public Http11Setup()
         {
@@ -38,6 +39,8 @@ namespace Http2.Katana.Tests
 
             Uri uri;
             Uri.TryCreate(address, UriKind.Absolute, out uri);
+
+            Uri = uri;
 
             var properties = new Dictionary<string, object>();
             var addresses = new List<IDictionary<string, object>>
@@ -115,9 +118,10 @@ namespace Http2.Katana.Tests
         [StandardFact]
         public void OpaqueEnvironmentCreatedCorrect()
         {
-            var adapter = TestHelpers.CreateHttp11Adapter(TestHelpers.GetHandshakedDuplexStream("/", false, true),
-                e => new Task(() => { }));
+            var adapter = TestHelpers.CreateHttp11Adapter(TestHelpers.GetHandshakedStream(Http11Setup.Uri, false, true),
+                                                          e => null);
             adapter.ProcessRequest();
+
             var env = adapter.GetType().InvokeMember("CreateOpaqueEnvironment",
                 BindingFlags.InvokeMethod | BindingFlags.Instance | BindingFlags.NonPublic,
                 null, adapter, null) as IDictionary<string, object>;
@@ -142,7 +146,7 @@ namespace Http2.Katana.Tests
             byte[] requestBytes = Encoding.UTF8.GetBytes(request);
             int position = 0;
 
-            Mock<DuplexStream> mockStream = Mock.Get(TestHelpers.CreateStream());
+            Mock<Stream> mockStream = Mock.Get(TestHelpers.CreateStream(Http11Setup.Uri));
 
             mockStream.Setup(stream =>
                 stream.Read(It.IsAny<byte[]>(), It.IsAny<int>(), It.IsAny<int>())
@@ -195,7 +199,7 @@ namespace Http2.Katana.Tests
             const string dataString = "test";
             byte[] data = Encoding.UTF8.GetBytes(dataString);
 
-            var mock = Mock.Get(TestHelpers.CreateStream());
+            var mock = Mock.Get(TestHelpers.CreateStream(Http11Setup.Uri));
             var written = new List<byte>();
 
             mock.Setup(stream =>
@@ -233,13 +237,13 @@ namespace Http2.Katana.Tests
         [StandardFact]
         public void ResponseWithExceptionHasNoBody()
         {
-            var mock = Mock.Get(TestHelpers.CreateStream());
+            var mock = Mock.Get(TestHelpers.CreateStream(Http11Setup.Uri));
 
             var written = new List<byte>();
             mock.Setup(stream => stream.Write(It.IsAny<byte[]>(), It.IsAny<int>(), It.IsAny<int>()))
                 .Callback<byte[], int, int>((buffer, offset, count) => written.AddRange((buffer.Skip(offset).Take(count))));
 
-            var adapter = new Http11ProtocolOwinAdapter(mock.Object, SecureProtocol.Tls1, null);
+            var adapter = new Http11ProtocolOwinAdapter(mock.Object, SslProtocols.Tls, null);
             var endResponseMethod = adapter.GetType().GetMethod("EndResponse", BindingFlags.NonPublic | BindingFlags.Instance, null, new[] { typeof(Exception) }, null);
 
             endResponseMethod.Invoke(adapter, new object[] { new Exception() });

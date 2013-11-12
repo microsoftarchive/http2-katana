@@ -1,18 +1,18 @@
 ﻿using System.Globalization;
 using System.IO;
+using System.Net.Sockets;
 using Microsoft.Http2.Protocol;
 using Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression;
 using Microsoft.Http2.Protocol.Extensions;
 using Microsoft.Http2.Protocol.FlowControl;
 using Microsoft.Http2.Protocol.Framing;
 using Microsoft.Http2.Protocol.IO;
-using Microsoft.Http2.Protocol.Tests;
-using Org.Mentalis.Security.Ssl;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using OpenSSL;
 using Xunit;
 
 namespace Http2.Katana.Tests
@@ -252,7 +252,7 @@ namespace Http2.Katana.Tests
         [StandardFact]
         public void ActiveStreamsSuccessful()
         {
-            var session = new Http2Session(TestHelpers.CreateStream(), ConnectionEnd.Client, true, true, true, new CancellationToken());
+            var session = new Http2Session(Stream.Null, ConnectionEnd.Client, true, true, true, new CancellationToken());
             var testCollection = session.ActiveStreams;
             var fm = new FlowControlManager(session);
 
