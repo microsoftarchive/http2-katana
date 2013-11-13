@@ -1,6 +1,5 @@
 ﻿using System.Globalization;
 using System.IO;
-using System.Net.Sockets;
 using Microsoft.Http2.Protocol;
 using Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression;
 using Microsoft.Http2.Protocol.Extensions;

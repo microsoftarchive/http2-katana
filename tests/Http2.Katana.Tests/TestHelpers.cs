@@ -63,7 +63,7 @@ namespace Microsoft.Http2.Protocol.Tests
             }
         }
 
-        public static Stream CreateStream(Uri uri)
+        public static Stream CreateStream(Uri uri, bool useMock = false)
         {
             var tcpClnt = new TcpClient(uri.Host, uri.Port);
 

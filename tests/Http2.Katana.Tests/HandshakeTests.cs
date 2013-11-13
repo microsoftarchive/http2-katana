@@ -9,11 +9,7 @@ using Microsoft.Http2.Protocol.Tests;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
-using System.Net;
-using System.Net.Sockets;
-using OpenSSL.Core;
 using OpenSSL.SSL;
-using OpenSSL.X509;
 using Xunit;
 
 namespace Http2.Katana.Tests

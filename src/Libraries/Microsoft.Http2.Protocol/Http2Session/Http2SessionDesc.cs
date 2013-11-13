@@ -13,6 +13,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Http2.Protocol.Utils;
+using OpenSSL.SSL;
 
 namespace Microsoft.Http2.Protocol
 {
@@ -126,6 +127,13 @@ namespace Microsoft.Http2.Protocol
             {
                 _remoteEnd = ConnectionEnd.Server;
                 _lastId = -1; // Streams opened by client are odd
+
+                //if we got unsecure connection then server will respond with id == 1. We cant initiate 
+                //new stream with id == 1.
+                if (!(stream is SslStream))
+                {
+                    _lastId = 3;
+                }
             }
             else
             {
