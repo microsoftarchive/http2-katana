@@ -37,7 +37,7 @@
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
-    <OutputPath>..\bin\Debug\</OutputPath>
+    <OutputPath>bin\Debug\</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
@@ -93,7 +93,7 @@
     <Compile Include="TestServer.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\ManagedOpenSsl\OpenSslWrapper.csproj">
+    <ProjectReference Include="..\..\src\Libraries\OpenSsl\ManagedOpenSsl\OpenSslWrapper.csproj">
       <Project>{73DCC218-655B-485F-8EAC-0CE5F2F7343D}</Project>
       <Name>OpenSslWrapper</Name>
     </ProjectReference>
@@ -129,14 +129,6 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <Content Include="..\native\windows\x86\libeay32.dll">
-      <Link>libeay32.dll</Link>
-    </Content>
-    <Content Include="..\native\windows\x86\ssleay32.dll">
-      <Link>ssleay32.dll</Link>
-    </Content>
-  </ItemGroup>
-  <ItemGroup>
     <EmbeddedResource Include="certs\ca.crt" />
     <EmbeddedResource Include="certs\ca.der" />
     <EmbeddedResource Include="certs\ca.key" />
@@ -150,4 +142,8 @@
     <EmbeddedResource Include="certs\server.key" />
     <EmbeddedResource Include="certs\server.pfx" />
   </ItemGroup>
+  <PropertyGroup>
+    <PostBuildEvent>copy /y "$(SolutionDir)Drop\ssleay32.dll" "$(TargetDir)\ssleay32.dll"
+copy /y "$(SolutionDir)Drop\libeay32.dll" "$(TargetDir)\libeay32.dll"</PostBuildEvent>
+  </PropertyGroup>
 </Project>

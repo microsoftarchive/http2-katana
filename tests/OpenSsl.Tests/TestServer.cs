@@ -25,6 +25,7 @@
 // THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 using System;
+using System.IO;
 using System.Text;
 using System.Threading;
 using System.Net;
@@ -197,26 +198,27 @@ namespace UnitTests
 		
 		[Test]
 		public void TestCase() {
-			string serverCertPath = @"../../test/certs/server.pfx";
+			string serverCertPath = @"/certs/server.pfx";
 			string serverPrivateKeyPassword = "p@ssw0rd";
-			string caFilePath = "../../test/certs/ca_chain.pem";
-			string clientCertPath = "../../test/certs/client.pfx";
+			string caFilePath = "/certs/ca_chain.pem";
+			string clientCertPath = "/certs/client.pfx";
 			string clientPrivateKeyPassword = "p@ssw0rd";
+            string projDir = Directory.GetParent(Directory.GetParent(AppDomain.CurrentDomain.BaseDirectory).FullName).FullName;
 
 			// Initialize OpenSSL for multithreaded use
 			ThreadInitialization.InitializeThreads();
 			try {
 				// Intitialize server certificates
-				serverCAChain = LoadCACertificateChain(caFilePath);
-				serverCertificate = LoadPKCS12Certificate(serverCertPath, serverPrivateKeyPassword);
+                serverCAChain = LoadCACertificateChain(projDir + caFilePath);
+                serverCertificate = LoadPKCS12Certificate(projDir + serverCertPath, serverPrivateKeyPassword);
 
 				// Kick the server thread
 				Thread serverThread = new Thread(new ThreadStart(ServerTestThreadProc));
 				serverThread.Start();
 
 				// Intialize the client certificates
-				clientCAChain = LoadCACertificateChain(caFilePath);
-				X509Certificate clientCert = LoadPKCS12Certificate(clientCertPath, clientPrivateKeyPassword);
+                clientCAChain = LoadCACertificateChain(projDir +  caFilePath);
+                X509Certificate clientCert = LoadPKCS12Certificate(projDir + clientCertPath, clientPrivateKeyPassword);
 				// Add the cert to the client certificate list
 				clientCertificateList = new X509List();
 				clientCertificateList.Add(clientCert);
