@@ -127,7 +127,14 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <Content Include="..\native\windows\x86\libeay32.dll">
+      <Link>libeay32.dll</Link>
+    </Content>
+    <Content Include="..\native\windows\x86\ssleay32.dll">
+      <Link>ssleay32.dll</Link>
+    </Content>
+  </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="certs\ca.crt" />
     <EmbeddedResource Include="certs\ca.der" />

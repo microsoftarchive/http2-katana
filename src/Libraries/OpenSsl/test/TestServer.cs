@@ -98,7 +98,7 @@ namespace UnitTests
 						Shutdown(false);
 					}
 				}
-				catch (Exception ex) {
+				catch (Exception) {
 					Shutdown(false);
 				}
 			}
@@ -156,7 +156,7 @@ namespace UnitTests
 						Shutdown(false);
 					}
 				}
-				catch (Exception ex) {
+				catch (Exception) {
 					Shutdown(false);
 				}
 			}
