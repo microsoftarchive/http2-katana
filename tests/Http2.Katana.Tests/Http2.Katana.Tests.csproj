@@ -332,6 +332,7 @@
       <Link>Sources\Client\IO\FileHelper.cs</Link>
     </Compile>
     <Compile Include="BasicTests.cs" />
+    <Compile Include="GlobalSuppressions.cs" />
     <Compile Include="HandshakeTests.cs" />
     <Compile Include="Http11Tests.cs" />
     <Compile Include="Http2Tests.cs" />

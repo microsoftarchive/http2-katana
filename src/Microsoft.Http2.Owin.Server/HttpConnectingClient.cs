@@ -85,17 +85,12 @@ namespace Microsoft.Http2.Owin.Server
                     {
                         incomingClient = new SslStream(incomingClient, false);
 
-                        //using (var chain = new X509Chain())
-                        //{
-                         //   chain.Add(_cert);
-                            (incomingClient as SslStream).AuthenticateAsServer(_cert/*, false, chain, SslProtocols.Tls,
-                                                                             SslStrength.All, false*/);
+                        (incomingClient as SslStream).AuthenticateAsServer(_cert);
 
-                            selectedProtocol = (incomingClient as SslStream).AlpnSelectedProtocol;
-                        //}
+                        selectedProtocol = (incomingClient as SslStream).AlpnSelectedProtocol;
                     }
                 }
-                catch (OpenSslException ex)
+                catch (OpenSslException)
                 {
                     backToHttp11 = true;
                 }
