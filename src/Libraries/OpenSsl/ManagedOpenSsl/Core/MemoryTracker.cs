@@ -38,6 +38,7 @@ namespace OpenSSL.Core
 			GC.Collect();
 
 			CryptoUtil.Cleanup();
+            CryptoUtil.ErrFreeStrings();
 			CryptoUtil.RemoveState(0);
 
 			CryptoUtil.SetMemoryCheck(MemoryCheck.Off);

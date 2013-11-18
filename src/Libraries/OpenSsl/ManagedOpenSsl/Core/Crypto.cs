@@ -189,5 +189,10 @@ namespace OpenSSL.Core
 		{
 			Native.CRYPTO_mem_leaks_cb(callback);
 		}
+
+        public static void ErrFreeStrings()
+        {
+            Native.ERR_free_strings();
+        }
 	}
 }

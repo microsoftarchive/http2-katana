@@ -2253,7 +2253,7 @@ namespace OpenSSL.Core
 		[DllImport(SSLDLLNAME, CallingConvention=CallingConvention.Cdecl)]
 		public extern static int SSL_library_init();
 
-		[DllImport(SSLDLLNAME, CallingConvention=CallingConvention.Cdecl)]
+		[DllImport(DLLNAME, CallingConvention=CallingConvention.Cdecl)]
 		public extern static void ERR_free_strings();
 
 		#endregion
