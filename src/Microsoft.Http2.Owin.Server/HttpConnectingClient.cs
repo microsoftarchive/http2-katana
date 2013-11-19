@@ -5,15 +5,12 @@
 // -----------------------------------------------------------------------
 
 using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Http2.Owin.Server.Adapters;
 using Microsoft.Http2.Protocol;
-using Microsoft.Http2.Protocol.IO;
 using Microsoft.Http2.Protocol.Utils;
 using Microsoft.Owin;
 using OpenSSL;

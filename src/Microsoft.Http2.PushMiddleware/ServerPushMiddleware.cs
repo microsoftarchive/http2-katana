@@ -1,4 +1,5 @@
-﻿using Microsoft.Owin;
+﻿using Microsoft.Http2.Protocol;
+using Microsoft.Owin;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -17,7 +18,7 @@ namespace Microsoft.Http2.PushMiddleware
             // TODO: Validate that this table never has cycles.  Push recursion would be bad!
             _references = new Dictionary<string, IList<string>>(StringComparer.OrdinalIgnoreCase)
             {
-                { "/index.html", new List<string>() 
+                { "/index.html", new List<string>
                     {
                         "/images/image1.jpg",
                         "/scripts/sript.js",
@@ -39,7 +40,7 @@ namespace Microsoft.Http2.PushMiddleware
                 }
             }
 
-            await base.Next.Invoke(context);
+            await Next.Invoke(context);
         }
 
         private bool TryGetPushPromise(IOwinContext context, out PushPromiseFunc pushPromise)
@@ -53,23 +54,23 @@ namespace Microsoft.Http2.PushMiddleware
         private Task Push(IOwinRequest request, PushPromiseFunc pushPromise, string pushReference)
         {
             // Copy the headers
-            HeaderDictionary headers = new HeaderDictionary(
+            var headers = new HeaderDictionary(
                 new Dictionary<string, string[]>(request.Headers, StringComparer.OrdinalIgnoreCase));
 
             // Populate special HTTP2 headers
-            headers[":method"] = request.Method; // TODO: Not all methods are allowed for push.  Don't push, or change to GET?
-            headers[":scheme"] = request.Scheme;
+            headers[CommonHeaders.Method] = request.Method; // TODO: Not all methods are allowed for push.  Don't push, or change to GET?
+            headers[CommonHeaders.Scheme] = request.Scheme;
             headers.Remove("Host");
-            headers[":host"] = request.Headers["Host"];
+            headers[CommonHeaders.Host] = request.Headers["Host"];
 
-            headers.Remove("Content-Length"); // Push promises cannot emulate requests with bodies.
+            headers.Remove(CommonHeaders.ContentLength); // Push promises cannot emulate requests with bodies.
 
             // TODO: What about cache headers? If-Match, If-None-Match, If-Modified-Since, If-Unmodified-Since.
             // If-Match & If-None-Match are multi-value so the client could send e-tags for the primary resource and referenced resources.
             // If-Modified-Since and If-Unmodified-Since are single value, so it may not make sense to apply them for secondary resources.
 
             // Change the request path to the pushed resource
-            headers[":path"] = pushReference;
+            headers[CommonHeaders.Path] = pushReference;
 
             return pushPromise(headers);
         }

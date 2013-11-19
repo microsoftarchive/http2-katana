@@ -69,7 +69,7 @@ namespace Microsoft.Http2.Protocol.Framing
             }
             private set
             {
-                FrameHelpers.Set32BitsAt(Buffer, 8, (int)value);
+                FrameHelpers.Set32BitsAt(Buffer, 8, value);
             }
         }
 
@@ -101,9 +101,8 @@ namespace Microsoft.Http2.Protocol.Framing
         ///  Create an outgoing frame
         /// </summary>
         /// <param name="streamId">Stream id</param>
-        /// <param name="headerBytes">Header bytes</param>
         /// <param name="priority">Priority</param>
-        public HeadersFrame(int streamId, /*byte[] headerBytes,*/ int priority = -1)
+        public HeadersFrame(int streamId, int priority = -1)
         {
             //PRIORITY (0x8):  Bit 4 being set indicates that the first four octets
             //of this frame contain a single reserved bit and a 31-bit priority;

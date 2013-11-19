@@ -30,7 +30,6 @@ namespace Microsoft.Http2.Protocol
         /// <param name="stream">The stream.</param>
         /// <param name="end">TODO</param>
         /// <param name="isSecure"></param>
-        /// <param name="transportInfo">The transport information.</param>
         /// <param name="cancel">The cancel.</param>
         protected Http2MessageHandler(Stream stream, ConnectionEnd end, bool isSecure, CancellationToken cancel)
         {
@@ -77,19 +76,19 @@ namespace Microsoft.Http2.Protocol
         /// Processes the incoming data.
         /// </summary>
         /// <param name="stream">The stream.</param>
+        /// <param name="frame"></param>
         /// <returns></returns>
         protected abstract void ProcessIncomingData(Http2Stream stream, Frame frame);
 
         /// <summary>
         /// Starts the session.
         /// </summary>
-        /// <param name="end">The connection end.</param>
         /// <param name="initRequest">The initialize request params.</param>
         /// <returns></returns>
         public Task StartSessionAsync(IDictionary<string, string> initRequest = null)
         {
-            int initialWindowSize = 200000;
-            int maxStreams = 100;
+            int initialWindowSize = Constants.InitialFlowControlWindowSize;
+            int maxStreams = Constants.DefaultMaxConcurrentStreams;
 
             if (initRequest != null && initRequest.ContainsKey(CommonHeaders.InitialWindowSize))
             {

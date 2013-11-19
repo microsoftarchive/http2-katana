@@ -45,6 +45,12 @@
     <Compile Include="ServerPushMiddleware.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Libraries\Microsoft.Http2.Protocol\Microsoft.Http2.Protocol.csproj">
+      <Project>{e34ac310-324c-46bc-af9f-1a41df58e867}</Project>
+      <Name>Microsoft.Http2.Protocol</Name>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

@@ -22,13 +22,9 @@ namespace Microsoft.Http2.Owin.Middleware
     // Interestingly the HTTP/2.0 handshake does not need to be the first HTTP/1.1 request on a connection, only the last.
     public class Http2Middleware : OwinMiddleware
     {
-        // Pass requests onto this pipeline if not upgrading to HTTP/2.0.
-        private readonly OwinMiddleware _next;
-
         public Http2Middleware(OwinMiddleware next)
             :base(next)
         {
-            _next = next;
         }
 
         /// <summary>
@@ -36,12 +32,9 @@ namespace Microsoft.Http2.Owin.Middleware
         /// If so starts http2 session via provider.
         /// Calls next layer if not.
         /// </summary>
-        /// <param name="environment">The environment.</param>
         /// <returns></returns>
-        public override async Task Invoke(IOwinContext context/*IDictionary<string, object> environment*/)
+        public override async Task Invoke(IOwinContext context)
         {
-            //var context = new OwinContext(environment);
-
             if (IsOpaqueUpgradePossible(context.Request) && IsRequestForHttp2Upgrade(context.Request))
             {
                 var upgradeDelegate = context.Environment[CommonOwinKeys.OpaqueUpgrade] as UpgradeDelegate;
@@ -62,7 +55,7 @@ namespace Microsoft.Http2.Owin.Middleware
                             using (var http2MessageHandler = new Http2OwinMessageHandler(opaqueStream,
                                                                                             ConnectionEnd.Server,
                                                                                             opaqueStream is SslStream,
-                                                                                            _next.Invoke, CancellationToken.None)
+                                                                                            Next.Invoke, CancellationToken.None)
                                 )
                             {
                                 await http2MessageHandler.StartSessionAsync(requestCopy);
@@ -81,7 +74,7 @@ namespace Microsoft.Http2.Owin.Middleware
             }
 
             //If we dont have upgrade delegate then pass request to the next layer
-            await _next.Invoke(context);
+            await Next.Invoke(context);
         }
 
         private static bool IsRequestForHttp2Upgrade(IOwinRequest request)
