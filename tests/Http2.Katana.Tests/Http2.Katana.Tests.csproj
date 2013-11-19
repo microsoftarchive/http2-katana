@@ -97,6 +97,9 @@
     <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Framing\IHeadersFrame.cs">
       <Link>Sources\Libraries\Microsoft.Http2.Protocol\Framing\IHeadersFrame.cs</Link>
     </Compile>
+    <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Framing\PushPromiseFrame.cs">
+      <Link>Sources\Libraries\Microsoft.Http2.Protocol\Framing\PushPromiseFrame.cs</Link>
+    </Compile>
     <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Http2MessageHandler.cs">
       <Link>Sources\Libraries\Microsoft.Http2.Protocol\Http2MessageHandler.cs</Link>
     </Compile>

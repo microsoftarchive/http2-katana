@@ -15,6 +15,7 @@ using Microsoft.Http2.Owin.Server.Adapters;
 using Microsoft.Http2.Protocol;
 using Microsoft.Http2.Protocol.IO;
 using Microsoft.Http2.Protocol.Utils;
+using Microsoft.Owin;
 using OpenSSL;
 using OpenSSL.Core;
 using OpenSSL.SSL;
@@ -22,7 +23,7 @@ using OpenSSL.X509;
 
 namespace Microsoft.Http2.Owin.Server
 {
-    using AppFunc = Func<IDictionary<string, object>, Task>;
+    using AppFunc = Func<IOwinContext, Task>;
     /// <summary>
     /// This class handles incoming clients. It can accept them, make handshake and choose how to give a response.
     /// It encouraged to response with http11 or http20 
@@ -119,7 +120,7 @@ namespace Microsoft.Http2.Owin.Server
             {
                 Http2Logger.LogDebug("Ssl chose http11");
 
-                new Http11ProtocolOwinAdapter(incomingClient, SslProtocols.Tls, _next).ProcessRequest();
+                new Http11ProtocolOwinAdapter(incomingClient, SslProtocols.Tls, _next.Invoke).ProcessRequest();
                 return;
             }
 

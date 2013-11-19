@@ -2,10 +2,11 @@
 using System.Collections.Generic;
 using System.Configuration;
 using System.Threading.Tasks;
+using Microsoft.Owin;
 
 namespace Microsoft.Http2.Owin.Server
 {
-    using AppFunc = Func<IDictionary<string, object>, Task>;
+    using AppFunc = Func<IOwinContext, Task>;
 
     public class SocketServerFactory
     {

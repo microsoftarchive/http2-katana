@@ -7,11 +7,12 @@ using System.Threading.Tasks;
 using Microsoft.Http2.Protocol;
 using Microsoft.Http2.Protocol.Framing;
 using Microsoft.Http2.Protocol.Utils;
+using Microsoft.Owin;
 using OpenSSL;
 
 namespace Microsoft.Http2.Owin.Server.Adapters
 {
-    using AppFunc = Func<IDictionary<string, object>, Task>;
+    using AppFunc = Func<IOwinContext, Task>;
 
     /// <summary>
     /// This class overrides http2 request/response processing logic as owin requires
@@ -86,7 +87,7 @@ namespace Microsoft.Http2.Owin.Server.Adapters
                 try
                 {
                     var context = new Http2OwinMessageContext(stream);
-                    await _next(context.Environment);
+                    await _next(new OwinContext(context.Environment));
                     context.FinishResponse();
                 }
                 catch (Exception ex)

@@ -13,9 +13,9 @@ using StatusCode = Microsoft.Http2.Protocol.StatusCode;
 
 namespace Microsoft.Http2.Owin.Server.Adapters
 {
-    using AppFunc = Func<IDictionary<string, object>, Task>;
+    using AppFunc = Func<IOwinContext, Task>;
     using Environment = IDictionary<string, object>;
-    using UpgradeDelegate = Action<IDictionary<string, object>, Func<IDictionary<string, object>, Task>>;
+    using UpgradeDelegate = Action<IDictionary<string, object>, Func<IOwinContext, Task>>;
 
     /// <summary>
     /// This class overrides http11 request/response processing logic as owin requires
@@ -98,7 +98,7 @@ namespace Microsoft.Http2.Owin.Server.Adapters
                 // we may need to populate additional fields if request supports UPGRADE
                 AddOpaqueUpgradeIfNeeded();
 
-                await _next(_environment);
+                await _next.Invoke(new OwinContext(_environment));
 
                 if (_opaqueCallback == null)
                 {
@@ -110,7 +110,7 @@ namespace Microsoft.Http2.Owin.Server.Adapters
                     EndResponse(false);
 
                     var opaqueEnvironment = CreateOpaqueEnvironment();
-                    await _opaqueCallback(opaqueEnvironment);
+                    await _opaqueCallback(new OwinContext(opaqueEnvironment));
                 }
             }
             catch (Exception ex)

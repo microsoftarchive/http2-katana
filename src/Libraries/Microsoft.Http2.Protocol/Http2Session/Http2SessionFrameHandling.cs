@@ -292,5 +292,82 @@ namespace Microsoft.Http2.Protocol
             Http2Logger.LogDebug("GoAway frame received");
             Dispose();
         }
+
+        private void HandlePushPromiseFrame(PushPromiseFrame frame, out Http2Stream stream)
+        {
+            Http2Logger.LogDebug("New push_promise with id = " + frame.StreamId);
+            Http2Logger.LogDebug("Promised id = " + frame.PromisedStreamId);
+
+            //spec 06:
+            //PUSH_PROMISE frames MUST be associated with an existing, peer-
+            //initiated stream.  If the stream identifier field specifies the value
+            //0x0, a recipient MUST respond with a connection error (Section 5.4.1)
+            //of type PROTOCOL_ERROR.
+            if (frame.StreamId == 0)
+            {
+                throw new ProtocolError(ResetStatusCode.ProtocolError, "Incoming headers frame with id = 0");
+            }
+
+            var serializedHeaders = new byte[frame.CompressedHeaders.Count];
+
+            Buffer.BlockCopy(frame.CompressedHeaders.Array,
+                             frame.CompressedHeaders.Offset,
+                             serializedHeaders, 0, serializedHeaders.Length);
+
+            var decompressedHeaders = _comprProc.Decompress(serializedHeaders);
+            var headers = new HeadersList(decompressedHeaders);
+            foreach (var header in headers)
+            {
+                Http2Logger.LogDebug("Stream {0} header: {1}={2}", frame.StreamId, header.Key, header.Value);
+                 frame.Headers.Add(header);
+            }
+
+            var sequence = _headersSequences.Find(seq => seq.StreamId == frame.PromisedStreamId);
+            if (sequence == null)
+            {
+                sequence = new HeadersSequence(frame.StreamId, frame);
+                _headersSequences.Add(sequence);
+            }
+            else
+            {
+                //06
+                //A receiver MUST
+                //treat the receipt of a PUSH_PROMISE on a stream that is neither
+                //"open" nor "half-closed (local)" as a connection error
+                //(Section 5.4.1) of type PROTOCOL_ERROR.
+
+                //This means that we already got push_promise with the same PromisedId.
+                //Hence Stream is in the reserved state.
+                throw new ProtocolError(ResetStatusCode.ProtocolError, "Got multiple push_promises with same Promised id's");
+            }
+
+            //06
+            //A PUSH_PROMISE frame without the END_PUSH_PROMISE flag set MUST be
+            //followed by a CONTINUATION frame for the same stream.  A receiver
+            //MUST treat the receipt of any other type of frame or a frame on a
+            //different stream as a connection error (Section 5.4.1) of type
+            //PROTOCOL_ERROR.
+            if (!sequence.IsComplete)
+            {
+                stream = null;
+                return;
+            }
+
+            stream = GetStream(frame.PromisedStreamId);
+            if (stream == null)
+            {
+                stream = CreateStream(sequence.Headers, frame.PromisedStreamId, sequence.Priority);
+            }
+            else
+            {
+                //Similarly, a receiver MUST
+                //treat the receipt of a PUSH_PROMISE that promises an illegal stream
+                //identifier (Section 5.1.1) (that is, an identifier for a stream that
+                //is not currently in the "idle" state) as a connection error
+                //(Section 5.4.1) of type PROTOCOL_ERROR
+
+                throw new ProtocolError(ResetStatusCode.ProtocolError, "Remote ep tried to promise incorrect stream id");
+            }
+        }
     }
 }

@@ -9,12 +9,13 @@ using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Http2.Protocol.Utils;
+using Microsoft.Owin;
 using OpenSSL.Core;
 using OpenSSL.X509;
 
 namespace Microsoft.Http2.Owin.Server
 {
-    using AppFunc = Func<IDictionary<string, object>, Task>;
+    using AppFunc = Func<IOwinContext, Task>;
 
     /// <summary>
     /// Http2 socket server implementation that uses raw socket.
@@ -45,7 +46,7 @@ namespace Microsoft.Http2.Owin.Server
             }
         }
 
-        public HttpSocketServer(Func<IDictionary<string, object>, Task> next, IDictionary<string, object> properties)
+        public HttpSocketServer(Func<IOwinContext, Task> next, IDictionary<string, object> properties)
         {
             _next = next;
             var addresses = (IList<IDictionary<string, object>>)properties["host.Addresses"];
@@ -97,7 +98,7 @@ namespace Microsoft.Http2.Owin.Server
             {
                 try
                 {
-                    var client = new HttpConnectingClient(_server, _next, _serverCert, _isSecure, _useHandshake, _usePriorities, _useFlowControl);
+                    var client = new HttpConnectingClient(_server, _next.Invoke, _serverCert, _isSecure, _useHandshake, _usePriorities, _useFlowControl);
                     client.Accept(_cancelAccept.Token);
                 }
                 catch (Exception ex)

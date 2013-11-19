@@ -76,6 +76,7 @@
     <Compile Include="Framing\IEndStreamFrames.cs" />
     <Compile Include="Framing\IHeadersFrame.cs" />
     <Compile Include="Framing\PriorityFrame.cs" />
+    <Compile Include="Framing\PushPromiseFrame.cs" />
     <Compile Include="GlobalSuppressions.cs" />
     <Compile Include="HeadersList.cs" />
     <Compile Include="Http2MessageHandler.cs" />

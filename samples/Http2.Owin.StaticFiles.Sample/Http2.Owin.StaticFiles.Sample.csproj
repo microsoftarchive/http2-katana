@@ -91,6 +91,10 @@
       <Project>{658c0a0d-a624-4532-aff0-180ec5ed7887}</Project>
       <Name>Microsoft.Http2.Owin.Server</Name>
     </ProjectReference>
+    <ProjectReference Include="..\..\src\Microsoft.Http2.PushMiddleware\Microsoft.Http2.PushMiddleware.csproj">
+      <Project>{c8c35828-4199-4a5b-8289-6f589bcc323e}</Project>
+      <Name>Microsoft.Http2.PushMiddleware</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
@@ -111,7 +115,11 @@
 
       copy /y "$(SolutionDir)\packages\Microsoft.Owin.StaticFiles.0.25.0-pre-21017-669-rel\lib\net40\Microsoft.Owin.StaticFiles.dll" "$(SolutionDir)Drop\Microsoft.Owin.StaticFiles.dll"
 
-      copy /y "$(SolutionDir)\packages\Owin.1.0\lib\net40\Owin.dll" "$(SolutionDir)Drop\Owin.dll"</PostBuildEvent>
+      copy /y "$(SolutionDir)\packages\Owin.1.0\lib\net40\Owin.dll" "$(SolutionDir)Drop\Owin.dll"
+
+copy /y "$(SolutionDir)\Drop\ssleay32.dll" "$(TargetDir)\ssleay32.dll"
+
+copy /y "$(SolutionDir)\Drop\libeay32.dll" "$(TargetDir)\libeay32.dll"</PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

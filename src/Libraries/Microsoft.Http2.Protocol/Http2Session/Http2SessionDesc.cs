@@ -414,6 +414,9 @@ namespace Microsoft.Http2.Protocol
                     case FrameType.GoAway:
                         HandleGoAwayFrame(frame as GoAwayFrame);
                         break;
+                    case FrameType.PushPromise:
+                        HandlePushPromiseFrame(frame as PushPromiseFrame, out stream);
+                        break;
                     default:
                         //Item 4.1 in 06 spec: Implementations MUST ignore frames of unsupported or unrecognized types
                         Http2Logger.LogDebug("Unknown frame received. Ignoring it");

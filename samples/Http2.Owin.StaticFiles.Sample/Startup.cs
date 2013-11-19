@@ -1,4 +1,5 @@
-﻿using Owin;
+﻿using Microsoft.Http2.Owin.Middleware;
+using Owin;
 
 namespace Http2.Owin.StaticFiles.Sample
 {
