@@ -87,7 +87,7 @@ namespace Microsoft.Http2.Owin.Server.Adapters
                 try
                 {
                     var context = new Http2OwinMessageContext(stream);
-                    await _next(new OwinContext(context.Environment));
+                    await _next(context.OwinContext);
                     context.FinishResponse();
                 }
                 catch (Exception ex)

@@ -26,9 +26,9 @@ namespace Microsoft.Http2.Owin.Server.Adapters
             PopulateEnvironment();
         }
 
-        internal IDictionary<string, object> Environment
+        internal IOwinContext OwinContext
         {
-            get { return _owinContext.Environment; }
+            get { return _owinContext; }
         }
 
         /// <summary>
@@ -36,7 +36,7 @@ namespace Microsoft.Http2.Owin.Server.Adapters
         /// </summary>
         private void PopulateEnvironment()
         {
-            HeadersList headers = _protocolStream.Headers;
+            var headers = _protocolStream.Headers;
             _owinContext = new OwinContext();
             _responseHeaders = _owinContext.Response.Headers;
 

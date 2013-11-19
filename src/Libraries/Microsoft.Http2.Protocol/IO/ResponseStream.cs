@@ -75,7 +75,7 @@ namespace Microsoft.Http2.Protocol.IO
             while (sent < count)
             {
                 int chunkSize = MathEx.Min(count - sent, Constants.MaxFrameContentSize);
-                ArraySegment<byte> segment = new ArraySegment<byte>(buffer, offset + sent, chunkSize);
+                var segment = new ArraySegment<byte>(buffer, offset + sent, chunkSize);
                 _stream.WriteDataFrame(segment, isEndStream: false);
                 sent += chunkSize;
             }
