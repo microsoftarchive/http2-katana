@@ -4,7 +4,7 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Http2.Protocol.Utils;
-using Org.Mentalis.Security.Ssl;
+using OpenSSL;
 using Microsoft.Http2.Protocol.EventArgs;
 using Microsoft.Http2.Protocol.Framing;
 
@@ -19,7 +19,6 @@ namespace Microsoft.Http2.Protocol
         protected bool _isDisposed;
         protected readonly Stream _stream;
         protected readonly CancellationToken _cancToken;
-        protected readonly TransportInformation _transportInfo;
         protected readonly ConnectionEnd _end;
         protected readonly bool _isSecure;
         protected event EventHandler<SettingsSentEventArgs> OnFirstSettingsSent;
@@ -33,16 +32,16 @@ namespace Microsoft.Http2.Protocol
         /// <param name="isSecure"></param>
         /// <param name="transportInfo">The transport information.</param>
         /// <param name="cancel">The cancel.</param>
-        protected Http2MessageHandler(Stream stream, ConnectionEnd end, bool isSecure, 
-                                        TransportInformation transportInfo, CancellationToken cancel)
+        protected Http2MessageHandler(Stream stream, ConnectionEnd end, bool isSecure, CancellationToken cancel)
         {
             _isSecure = isSecure;
-            _transportInfo = transportInfo;
             _isDisposed = false;
             _cancToken = cancel;
             _stream = stream;
             _end = end;
             _wereFirstSettingsSent = false;
+
+            _session = new Http2Session(_stream, _end, true, true, _isSecure, _cancToken);
         }
 
         /// <summary>
@@ -92,20 +91,21 @@ namespace Microsoft.Http2.Protocol
             int initialWindowSize = 200000;
             int maxStreams = 100;
 
-            if (initRequest != null && initRequest.ContainsKey(":initial_window_size"))
+            if (initRequest != null && initRequest.ContainsKey(CommonHeaders.InitialWindowSize))
             {
-                initialWindowSize = int.Parse(initRequest[":initial_window_size"]);
+                initialWindowSize = int.Parse(initRequest[CommonHeaders.InitialWindowSize]);
             }
 
-            if (initRequest != null && initRequest.ContainsKey(":max_concurrent_streams"))
-            { 
-                maxStreams = int.Parse(initRequest[":max_concurrent_streams"]);
+            if (initRequest != null && initRequest.ContainsKey(CommonHeaders.MaxConcurrentStreams))
+            {
+                maxStreams = int.Parse(initRequest[CommonHeaders.MaxConcurrentStreams]);
             }
 
-            //TODO provide cancellation token and transport info
-            _session = new Http2Session(_stream, _end, true, true, _isSecure, _cancToken, initialWindowSize, maxStreams);
             _session.OnFrameReceived += OnFrameReceivedHandler;
             _session.OnSettingsSent += OnSettingsSentHandler;
+
+            _session.InitialWindowSize = initialWindowSize;
+            _session.OurMaxConcurrentStreams = maxStreams;
 
             return Task.Run(async () => await _session.Start(initRequest));
         }

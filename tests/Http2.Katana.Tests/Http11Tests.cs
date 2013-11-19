@@ -1,13 +1,12 @@
-﻿using Microsoft.Http1.Protocol;
+﻿using System.IO;
+using Microsoft.Http1.Protocol;
 using Microsoft.Http2.Owin.Middleware;
 using Microsoft.Http2.Owin.Server;
 using Microsoft.Http2.Owin.Server.Adapters;
 using Microsoft.Http2.Protocol;
-using Microsoft.Http2.Protocol.IO;
 using Microsoft.Http2.Protocol.Tests;
 using Microsoft.Owin;
 using Moq;
-using Org.Mentalis.Security.Ssl;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
@@ -16,7 +15,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
+using OpenSSL.SSL;
 using Xunit;
 
 namespace Http2.Katana.Tests
@@ -26,6 +25,8 @@ namespace Http2.Katana.Tests
         public HttpSocketServer Server { get; private set; }
         public bool UseSecurePort { get; private set; }
         public bool UseHandshake { get; private set; }
+
+        public static Uri Uri;
 
         public Http11Setup()
         {
@@ -38,6 +39,8 @@ namespace Http2.Katana.Tests
 
             Uri uri;
             Uri.TryCreate(address, UriKind.Absolute, out uri);
+
+            Uri = uri;
 
             var properties = new Dictionary<string, object>();
             var addresses = new List<IDictionary<string, object>>
@@ -113,23 +116,6 @@ namespace Http2.Katana.Tests
         }
 
         [StandardFact]
-        public void OpaqueEnvironmentCreatedCorrect()
-        {
-            var adapter = TestHelpers.CreateHttp11Adapter(TestHelpers.GetHandshakedDuplexStream("/", false, true),
-                e => new Task(() => { }));
-            adapter.ProcessRequest();
-            var env = adapter.GetType().InvokeMember("CreateOpaqueEnvironment",
-                BindingFlags.InvokeMethod | BindingFlags.Instance | BindingFlags.NonPublic,
-                null, adapter, null) as IDictionary<string, object>;
-
-            Assert.NotNull(env);
-            Assert.Contains("opaque.Stream", env.Keys);
-            Assert.Contains("opaque.Version", env.Keys);
-            Assert.Contains("opaque.CallCancelled", env.Keys);
-            Assert.True(env["opaque.CallCancelled"] is CancellationToken);
-        }
-
-        [StandardFact]
         public void HeadersParsedCorrect()
         {
             const string request = "GET / HTTP/1.1\r\n" +
@@ -142,46 +128,38 @@ namespace Http2.Katana.Tests
             byte[] requestBytes = Encoding.UTF8.GetBytes(request);
             int position = 0;
 
-            Mock<DuplexStream> mockStream = Mock.Get(TestHelpers.CreateStream());
+            using (var stream = new MemoryStream())
+            {
+                stream.Write(requestBytes, 0, requestBytes.Length);
 
-            mockStream.Setup(stream =>
-                stream.Read(It.IsAny<byte[]>(), It.IsAny<int>(), It.IsAny<int>())
-            )
-            .Callback<byte[], int, int>((buffer, offset, count) =>
-                {
-                    for (int i = offset; count > 0; --count, ++i)
-                    {
-                        buffer[i] = requestBytes[position];
-                        ++position;
-                    }
-                })
-            .Returns<byte[], int, int>((buf, offset, count) => count);
+                stream.Seek(0, SeekOrigin.Begin);
+                var rawHeaders = Http11Helper.ReadHeaders(stream);
 
-            var rawHeaders = Http11Helper.ReadHeaders(mockStream.Object);
-            Assert.Equal(rawHeaders.Length, 5);
+                Assert.Equal(rawHeaders.Length, 5);
 
-            string[] splittedRequestString = rawHeaders[0].Split(' ');
-            Assert.Equal(splittedRequestString[0], "GET");
-            Assert.Equal(splittedRequestString[1], "/");
-            Assert.Equal(splittedRequestString[2], "HTTP/1.1");
+                string[] splittedRequestString = rawHeaders[0].Split(' ');
+                Assert.Equal(splittedRequestString[0], "GET");
+                Assert.Equal(splittedRequestString[1], "/");
+                Assert.Equal(splittedRequestString[2], "HTTP/1.1");
 
-            var headers = Http11Helper.ParseHeaders(rawHeaders.Skip(1).ToArray());
-            Assert.Equal(headers.Count, 4);
-            Assert.Contains("Host", headers.Keys);
-            Assert.Contains("User-Agent", headers.Keys);
-            Assert.Contains("Connection", headers.Keys);
-            Assert.Contains("X-Multiple-Header", headers.Keys);
+                var headers = Http11Helper.ParseHeaders(rawHeaders.Skip(1).ToArray());
+                Assert.Equal(headers.Count, 4);
+                Assert.Contains("Host", headers.Keys);
+                Assert.Contains("User-Agent", headers.Keys);
+                Assert.Contains("Connection", headers.Keys);
+                Assert.Contains("X-Multiple-Header", headers.Keys);
 
-            Assert.Equal(headers["Host"].Length, 1);
-            Assert.Equal(headers["User-Agent"].Length, 1);
-            Assert.Equal(headers["Connection"].Length, 1);
-            Assert.Equal(headers["X-Multiple-Header"].Length, 2);
+                Assert.Equal(headers["Host"].Length, 1);
+                Assert.Equal(headers["User-Agent"].Length, 1);
+                Assert.Equal(headers["Connection"].Length, 1);
+                Assert.Equal(headers["X-Multiple-Header"].Length, 2);
 
-            Assert.Equal(headers["Host"][0], "localhost:80");
-            Assert.Equal(headers["User-Agent"][0], "xunit");
-            Assert.Equal(headers["Connection"][0], "close");
-            Assert.Equal(headers["X-Multiple-Header"][0], "value1");
-            Assert.Equal(headers["X-Multiple-Header"][1], "value2");
+                Assert.Equal(headers["Host"][0], "localhost:80");
+                Assert.Equal(headers["User-Agent"][0], "xunit");
+                Assert.Equal(headers["Connection"][0], "close");
+                Assert.Equal(headers["X-Multiple-Header"][0], "value1");
+                Assert.Equal(headers["X-Multiple-Header"][1], "value2");
+            }
         }
 
         [StandardFact]
@@ -194,73 +172,36 @@ namespace Http2.Katana.Tests
             };
             const string dataString = "test";
             byte[] data = Encoding.UTF8.GetBytes(dataString);
+            
+            using (var stream = new MemoryStream())
+            {
+                Http11Helper.SendResponse(stream, data, StatusCode.Code200Ok, headers);
+                stream.Seek(0, SeekOrigin.Begin);
+                string[] splittedResponse = Http11Helper.ReadHeaders(stream);
 
-            var mock = Mock.Get(TestHelpers.CreateStream());
-            var written = new List<byte>();
+                byte[] response = new byte[data.Length];//test - 4 bytes
+                int read = stream.Read(response, 0, response.Length);
 
-            mock.Setup(stream =>
-                stream.Write(It.IsAny<byte[]>(), It.IsAny<int>(), It.IsAny<int>())
-            ).Callback<byte[], int, int>((buffer, offset, count) => written.AddRange((buffer.Skip(offset).Take(count))));
+                //Need to loop here... 4 bytes only - let's think that C# is in the good mood today. :-)
+                Assert.Equal(read, response.Length);
 
-            Http11Helper.SendResponse(mock.Object, data, StatusCode.Code200Ok, headers);
+                // let count number of items:
+                // response string
+                // Connection header
+                // Content-Type header
+                // Content-Length header
+                // delimiter between headers and body - empty string
+                // lines in response body
+                Assert.Contains("HTTP/1.1", splittedResponse[0]);
+                Assert.Contains(StatusCode.Code200Ok.ToString(CultureInfo.InvariantCulture), splittedResponse[0]);
+                Assert.Contains(StatusCode.Reason200Ok, splittedResponse[0]);
 
-            string response = Encoding.UTF8.GetString(written.ToArray());
+                Assert.Contains("Connection: close", splittedResponse);
+                Assert.Contains("Content-Type: " + "text/plain", splittedResponse);
+                Assert.Contains("Content-Length: " + data.Length, splittedResponse);
 
-            string[] splittedResponse = response.Split(new[] { "\r\n" }, StringSplitOptions.None);
-
-            // let count number of items:
-            // response string
-            // Connection header
-            // Content-Type header
-            // Content-Length header
-            // delimiter between headers and body - empty string
-            // lines in response body
-            Assert.Equal(5 + dataString.Split(new[] { "\r\n" }, StringSplitOptions.None).Length, splittedResponse.Length);
-            Assert.Contains("HTTP/1.1", splittedResponse[0]);
-            Assert.Contains(StatusCode.Code200Ok.ToString(CultureInfo.InvariantCulture), splittedResponse[0]);
-            Assert.Contains(StatusCode.Reason200Ok, splittedResponse[0]);
-
-            Assert.Contains("Connection: close", splittedResponse);
-            Assert.Contains("Content-Type: " + "text/plain", splittedResponse);
-            Assert.Contains("Content-Length: " + data.Length, splittedResponse);
-            Assert.Contains(string.Empty, splittedResponse);
-
-            int dataStart = Array.FindIndex(splittedResponse, s => s == string.Empty);
-            string responseData = string.Join("\r\n", splittedResponse.Skip(dataStart + 1));
-            Assert.Equal(dataString, responseData);
-        }
-
-        [StandardFact]
-        public void ResponseWithExceptionHasNoBody()
-        {
-            var mock = Mock.Get(TestHelpers.CreateStream());
-
-            var written = new List<byte>();
-            mock.Setup(stream => stream.Write(It.IsAny<byte[]>(), It.IsAny<int>(), It.IsAny<int>()))
-                .Callback<byte[], int, int>((buffer, offset, count) => written.AddRange((buffer.Skip(offset).Take(count))));
-
-            var adapter = new Http11ProtocolOwinAdapter(mock.Object, SecureProtocol.Tls1, null);
-            var endResponseMethod = adapter.GetType().GetMethod("EndResponse", BindingFlags.NonPublic | BindingFlags.Instance, null, new[] { typeof(Exception) }, null);
-
-            endResponseMethod.Invoke(adapter, new object[] { new Exception() });
-
-            string[] response = Encoding.UTF8.GetString(written.ToArray()).Split(new[] { "\r\n" }, StringSplitOptions.None);
-            Assert.InRange(response.Length, 3, int.MaxValue);
-            Assert.Contains("HTTP/1.1", response[0]);
-            Assert.Contains(StatusCode.Code500InternalServerError.ToString(CultureInfo.InvariantCulture), response[0]);
-            Assert.Contains(StatusCode.Reason500InternalServerError, response[0]);
-            Assert.Equal(string.Empty, response.Last());
-
-            written.Clear();
-
-            endResponseMethod.Invoke(adapter, new object[] { new NotSupportedException() });
-
-            response = Encoding.UTF8.GetString(written.ToArray()).Split(new[] { "\r\n" }, StringSplitOptions.None);
-            Assert.InRange(response.Length, 3, int.MaxValue);
-            Assert.Contains("HTTP/1.1", response[0]);
-            Assert.Contains(StatusCode.Code501NotImplemented.ToString(CultureInfo.InvariantCulture), response[0]);
-            Assert.Contains(StatusCode.Reason501NotImplemented, response[0]);
-            Assert.Equal(string.Empty, response.Last());
+                Assert.Equal(read, data.Length);
+            }
         }
     }
 }

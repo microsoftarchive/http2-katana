@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
-using Org.Mentalis.Security.Ssl;
+using OpenSSL;
 using Microsoft.Http2.Protocol.Extensions;
 using System.Linq;
 

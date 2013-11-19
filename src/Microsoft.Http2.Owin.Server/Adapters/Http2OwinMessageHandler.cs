@@ -1,13 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Http2.Protocol;
 using Microsoft.Http2.Protocol.Framing;
-using Microsoft.Http2.Protocol.IO;
 using Microsoft.Http2.Protocol.Utils;
-using Org.Mentalis.Security.Ssl;
+using OpenSSL;
 
 namespace Microsoft.Http2.Owin.Server.Adapters
 {
@@ -25,15 +25,15 @@ namespace Microsoft.Http2.Owin.Server.Adapters
         /// </summary>
         /// <param name="stream">The stream.</param>
         /// <param name="end"></param>
-        /// <param name="transportInfo">The transport information.</param>
+        /// <param name="isSecure"></param>
         /// <param name="next">The next layer delegate.</param>
         /// <param name="cancel">The cancellation token.</param>
-        public Http2OwinMessageHandler(DuplexStream stream, ConnectionEnd end, TransportInformation transportInfo,
+        public Http2OwinMessageHandler(Stream stream, ConnectionEnd end, bool isSecure,
                                 AppFunc next, CancellationToken cancel)
-            : base(stream, end, stream.IsSecure, transportInfo, cancel)
+            : base(stream, end, isSecure, cancel)
         {
             _next = next;
-            stream.OnClose += delegate { Dispose(); };
+            _session.OnSessionDisposed += delegate { Dispose(); };
         }
 
         /// <summary>
@@ -48,24 +48,24 @@ namespace Microsoft.Http2.Owin.Server.Adapters
             //8.1.2.1.  Request Header Fields
             //HTTP/2.0 defines a number of headers starting with a ':' character
             //that carry information about the request target:
-
+ 
             //o  The ":method" header field includes the HTTP method ([HTTP-p2],
             //      Section 4).
-
+ 
             //o  The ":scheme" header field includes the scheme portion of the
             //      target URI ([RFC3986], Section 3.1).
-
+ 
             //o  The ":host" header field includes the authority portion of the
             //      target URI ([RFC3986], Section 3.2).
-
+ 
             //o  The ":path" header field includes the path and query parts of the
-            //target URI (the "path-absolute" production from [RFC3986] and
-            //optionally a '?' character followed by the "query" production, see
-            //[RFC3986], Section 3.3 and [RFC3986], Section 3.4).  This field
-            //MUST NOT be empty; URIs that do not contain a path component MUST
-            //include a value of '/', unless the request is an OPTIONS request
-            //for '*', in which case the ":path" header field MUST include '*'.
-
+                //target URI (the "path-absolute" production from [RFC3986] and
+                 //optionally a '?' character followed by the "query" production, see
+                 //[RFC3986], Section 3.3 and [RFC3986], Section 3.4).  This field
+                 //MUST NOT be empty; URIs that do not contain a path component MUST
+                 //include a value of '/', unless the request is an OPTIONS request
+                 //for '*', in which case the ":path" header field MUST include '*'.
+ 
             //All HTTP/2.0 requests MUST include exactly one valid value for all of
             //these header fields.  An intermediary MUST ensure that requests that
             //it forwards are correct.  A server MUST treat the absence of any of
@@ -85,16 +85,16 @@ namespace Microsoft.Http2.Owin.Server.Adapters
             {
                 try
                 {
-                    var context = new Http2OwinMessageContext(stream, _transportInfo);
+                    var context = new Http2OwinMessageContext(stream);
                     await _next(context.Environment);
                     context.FinishResponse();
                 }
                 catch (Exception ex)
-                {
+                {   
                     EndResponse(stream, ex);
                 }
             });
-
+            
         }
 
         /// <summary>
@@ -130,7 +130,7 @@ namespace Microsoft.Http2.Owin.Server.Adapters
         private void WriteStatus(Http2Stream stream, int statusCode, bool final, HeadersList headers = null)
         {
             if (headers == null)
-            {
+                {
                 headers = new HeadersList();
             }
             headers.Add(new KeyValuePair<string, string>(CommonHeaders.Status, statusCode.ToString(CultureInfo.InvariantCulture)));

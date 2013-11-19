@@ -1,21 +1,15 @@
 ﻿using System.Globalization;
+using System.IO;
 using Http2.TestClient.Handshake;
 using Microsoft.Http1.Protocol;
 using Microsoft.Http2.Owin.Middleware;
 using Microsoft.Http2.Owin.Server;
 using Microsoft.Http2.Protocol;
 using Microsoft.Http2.Protocol.Tests;
-using Org.Mentalis;
-using Org.Mentalis.Security;
-using Org.Mentalis.Security.Ssl;
-using Org.Mentalis.Security.Ssl.Shared.Extensions;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
-using System.Linq;
-using System.Net;
-using System.Net.Sockets;
-using System.Text;
+using OpenSSL.SSL;
 using Xunit;
 
 namespace Http2.Katana.Tests
@@ -85,34 +79,24 @@ namespace Http2.Katana.Tests
         public void AlpnSelectionHttp2Successful()
         {
             const string requestStr = @"https://localhost:8443/";
-            string selectedProtocol = null;
             Uri uri;
             Uri.TryCreate(requestStr, UriKind.Absolute, out uri);
-
-            var extensions = new[] { ExtensionType.Renegotiation, ExtensionType.ALPN };
-
-            var options = new SecurityOptions(SecureProtocol.Tls1, extensions, new[] { Protocols.Http2, Protocols.Http1 }, ConnectionEnd.Client)
-            {
-                VerificationType = CredentialVerification.None,
-                Certificate = Org.Mentalis.Security.Certificates.Certificate.CreateFromCerFile(@"certificate.pfx"),
-                Flags = SecurityFlags.Default,
-                AllowedAlgorithms = SslAlgorithms.RSA_AES_256_SHA | SslAlgorithms.NULL_COMPRESSION
-            };
-
-            var sessionSocket = new SecureSocket(AddressFamily.InterNetwork, SocketType.Stream,
-                                                ProtocolType.Tcp, options);
+            Stream clientStream = null;
+            var selectedProtocol = String.Empty;
+            bool gotSecurityError = false;
             try
             {
-                using (var monitor = new ALPNExtensionMonitor())
-                {
-                    monitor.OnProtocolSelected += (sender, args) => { selectedProtocol = args.SelectedProtocol; };
-                    sessionSocket.Connect(new DnsEndPoint(uri.Host, uri.Port), monitor);
-                    sessionSocket.MakeSecureHandshake(options);
-                }
+                clientStream = TestHelpers.GetHandshakedStream(uri);
+                if (!(clientStream is SslStream))
+                    gotSecurityError = true;
+                else
+                    selectedProtocol = (clientStream as SslStream).AlpnSelectedProtocol;
             }
             finally
             {
-                sessionSocket.Close();
+                Assert.Equal(gotSecurityError, false);
+                Assert.NotEqual(clientStream, null);
+                clientStream.Dispose();
                 Assert.Equal(Protocols.Http2, selectedProtocol);
             }
         }
@@ -120,13 +104,15 @@ namespace Http2.Katana.Tests
         [StandardFact]
         public void UpgradeHandshakeSuccessful()
         {
-            const string address = "/";
+            const string requestStr = @"http://localhost:8080/";
+            Uri uri;
+            Uri.TryCreate(requestStr, UriKind.Absolute, out uri);
             bool gotException = false;
             try
             {
-                var duplexStream = TestHelpers.GetHandshakedDuplexStream(address, false);
-                duplexStream.Write(TestHelpers.ClientSessionHeader);
-                duplexStream.Flush();
+                var stream = TestHelpers.GetHandshakedStream(uri);
+                stream.Write(TestHelpers.ClientSessionHeader);
+                stream.Flush();
             }
             catch (Http2HandshakeFailed)
             {

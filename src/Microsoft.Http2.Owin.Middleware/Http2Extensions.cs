@@ -1,4 +1,7 @@
-﻿using Microsoft.Http2.Owin.Middleware;
+﻿using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using Microsoft.Http2.Owin.Middleware;
 
 namespace Owin
 {

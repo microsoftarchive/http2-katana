@@ -6,17 +6,19 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Net;
+using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Http2.Owin.Server.Adapters;
-using Org.Mentalis;
-using Org.Mentalis.Security;
-using Org.Mentalis.Security.Ssl;
-using Security.Ssl;
 using Microsoft.Http2.Protocol;
 using Microsoft.Http2.Protocol.IO;
 using Microsoft.Http2.Protocol.Utils;
+using OpenSSL;
+using OpenSSL.Core;
+using OpenSSL.SSL;
+using OpenSSL.X509;
 
 namespace Microsoft.Http2.Owin.Server
 {
@@ -27,16 +29,18 @@ namespace Microsoft.Http2.Owin.Server
     /// </summary>
     internal sealed class HttpConnectingClient : IDisposable
     {
-        private readonly SecureTcpListener _server;
-        private readonly SecurityOptions _options;
+        private readonly TcpListener _server;
         private readonly AppFunc _next;     
         private readonly bool _useHandshake;
         private readonly bool _usePriorities;
         private readonly bool _useFlowControl;
-        private CancellationTokenSource _cancelClientHandling;
+        private readonly CancellationTokenSource _cancelClientHandling;
         private bool _isDisposed;
+        private X509Certificate _cert;
+        private bool _isSecure;
+        private TcpClient client;
 
-        internal HttpConnectingClient(SecureTcpListener server, SecurityOptions options, AppFunc next, 
+        internal HttpConnectingClient(TcpListener server, AppFunc next, X509Certificate cert, bool isSecure,
                                      bool useHandshake, bool usePriorities, bool useFlowControl)
         {
             _isDisposed = false;
@@ -44,8 +48,9 @@ namespace Microsoft.Http2.Owin.Server
             _useHandshake = useHandshake;
             _useFlowControl = useFlowControl;
             _server = server;
+            _isSecure = isSecure;
             _next = next;
-            _options = options;
+            _cert = cert;
             _cancelClientHandling = new CancellationTokenSource();
         }
 
@@ -54,12 +59,9 @@ namespace Microsoft.Http2.Owin.Server
         /// </summary>
         internal void Accept(CancellationToken cancel)
         {
-            SecureSocket incomingClient;
-
-            var monitor = new ALPNExtensionMonitor();
             try
             {
-                incomingClient = _server.AcceptSocket(cancel, monitor);
+                client = _server.AcceptTcpClient();
             }
             catch (OperationCanceledException)
             {
@@ -67,40 +69,30 @@ namespace Microsoft.Http2.Owin.Server
                 return;
             }  
             Http2Logger.LogDebug("New connection accepted");
-            Task.Run(() => HandleAcceptedClient(incomingClient, monitor));
+            Task.Run(() => HandleAcceptedClient(client.GetStream()));
         }
 
-        private void HandleAcceptedClient(SecureSocket incomingClient, ALPNExtensionMonitor monitor)
+        private void HandleAcceptedClient(Stream incomingClient)
         {
             bool backToHttp11 = false;
             string selectedProtocol = Protocols.Http1;
-            
+
             if (_useHandshake)
             {
                 try
                 {
-                    if (_options.Protocol != SecureProtocol.None)
+                    if (_isSecure)
                     {
-                        incomingClient.MakeSecureHandshake(_options);
-                        selectedProtocol = incomingClient.SelectedProtocol;
+                        incomingClient = new SslStream(incomingClient, false);
+
+                        (incomingClient as SslStream).AuthenticateAsServer(_cert);
+
+                        selectedProtocol = (incomingClient as SslStream).AlpnSelectedProtocol;
                     }
                 }
-                catch (SecureHandshakeException ex)
+                catch (OpenSslException)
                 {
-                    switch (ex.Reason)
-                    {
-                        case SecureHandshakeFailureReason.HandshakeInternalError:
-                            backToHttp11 = true;
-                            break;
-                        case SecureHandshakeFailureReason.HandshakeTimeout:
-                            incomingClient.Close();
-                            Http2Logger.LogError("Handshake timeout. Client was disconnected.");
-                            return;
-                        default:
-                            incomingClient.Close();
-                            Http2Logger.LogError("Unknown error occurred during secure handshake");
-                            return;
-                    }
+                    backToHttp11 = true;
                 }
                 catch (Exception e)
                 {
@@ -109,15 +101,9 @@ namespace Microsoft.Http2.Owin.Server
                     return;
                 }
             }
-
-            var clientStream = new DuplexStream(incomingClient, true);
-            var transportInfo = GetTransportInfo(incomingClient);
-
-            monitor.Dispose();
-
             try
             {
-                HandleRequest(clientStream, selectedProtocol, transportInfo, backToHttp11);
+                HandleRequest(incomingClient, selectedProtocol, backToHttp11);
             }
             catch (Exception e)
             {
@@ -126,28 +112,27 @@ namespace Microsoft.Http2.Owin.Server
             }
         }
 
-        private void HandleRequest(DuplexStream incomingClient, string alpnSelectedProtocol, 
-                                   TransportInformation transportInformation, bool backToHttp11)
+        private void HandleRequest(Stream incomingClient, string alpnSelectedProtocol, bool backToHttp11)
         {
             //Server checks selected protocol and calls http2 or http11 layer
             if (backToHttp11 || alpnSelectedProtocol == Protocols.Http1)
             {
-                if (incomingClient.IsSecure)
-                    Http2Logger.LogDebug("Ssl chose http11");
+                Http2Logger.LogDebug("Ssl chose http11");
 
-                new Http11ProtocolOwinAdapter(incomingClient, _options.Protocol, _next).ProcessRequest();
+                new Http11ProtocolOwinAdapter(incomingClient, SslProtocols.Tls, _next).ProcessRequest();
                 return;
             }
 
             //ALPN selected http2. No need to perform upgrade handshake.
-            OpenHttp2Session(incomingClient, transportInformation);
+            OpenHttp2Session(incomingClient);
         }
 
-        private async void OpenHttp2Session(DuplexStream incomingClientStream, 
-                                            TransportInformation transportInformation)
+        private async void OpenHttp2Session(Stream incomingClientStream)
         {
             Http2Logger.LogDebug("Handshake successful");
-            using (var messageHandler = new Http2OwinMessageHandler(incomingClientStream, ConnectionEnd.Server, transportInformation, _next, _cancelClientHandling.Token))
+            using (var messageHandler = new Http2OwinMessageHandler(incomingClientStream, ConnectionEnd.Server, 
+                                                                    incomingClientStream is SslStream, _next, 
+                                                                    _cancelClientHandling.Token))
             {
                 try
                 {
@@ -162,49 +147,10 @@ namespace Microsoft.Http2.Owin.Server
             GC.Collect();
         }
 
-        private TransportInformation GetTransportInfo(SecureSocket incomingClient)
-        {
-            var localEndPoint = (IPEndPoint)incomingClient.LocalEndPoint;
-            var remoteEndPoint = (IPEndPoint)incomingClient.RemoteEndPoint;
-
-            var transportInfo = new TransportInformation
-            {
-                LocalPort = localEndPoint.Port,
-                RemotePort = remoteEndPoint.Port,
-            };
-
-            // Side effect of using dual mode sockets, the IPv4 addresses look like 0::ffff:127.0.0.1.
-            if (localEndPoint.Address.IsIPv4MappedToIPv6)
-            {
-                transportInfo.LocalIpAddress = localEndPoint.Address.MapToIPv4().ToString();
-            }
-            else
-            {
-                transportInfo.LocalIpAddress = localEndPoint.Address.ToString();
-            }
-
-            if (remoteEndPoint.Address.IsIPv4MappedToIPv6)
-            {
-                transportInfo.RemoteIpAddress = remoteEndPoint.Address.MapToIPv4().ToString();
-            }
-            else
-            {
-                transportInfo.RemoteIpAddress = remoteEndPoint.Address.ToString();
-            }
-
-            return transportInfo;
-        }
-
         public void Dispose()
         {
             if (_isDisposed)
                 return;
-
-            if (_cancelClientHandling != null)
-            {
-                _cancelClientHandling.Dispose();
-                _cancelClientHandling = null;
-            }
 
             _isDisposed = true;
         }

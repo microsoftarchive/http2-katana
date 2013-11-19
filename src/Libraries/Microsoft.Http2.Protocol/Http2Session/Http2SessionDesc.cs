@@ -4,7 +4,7 @@ using System.Threading;
 using Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression;
 using Microsoft.Http2.Protocol.EventArgs;
 using Microsoft.Http2.Protocol.Exceptions;
-using Org.Mentalis.Security.Ssl;
+using OpenSSL;
 using Microsoft.Http2.Protocol.Compression;
 using Microsoft.Http2.Protocol.Framing;
 using Microsoft.Http2.Protocol.IO;
@@ -13,6 +13,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Http2.Protocol.Utils;
+using OpenSSL.SSL;
 
 namespace Microsoft.Http2.Protocol
 {
@@ -126,6 +127,13 @@ namespace Microsoft.Http2.Protocol
             {
                 _remoteEnd = ConnectionEnd.Server;
                 _lastId = -1; // Streams opened by client are odd
+
+                //if we got unsecure connection then server will respond with id == 1. We cant initiate 
+                //new stream with id == 1.
+                if (!(stream is SslStream))
+                {
+                    _lastId = 3;
+                }
             }
             else
             {
@@ -295,9 +303,17 @@ namespace Microsoft.Http2.Protocol
                         _wasResponseReceived = true;
                     }
                 }
+                catch (IOException)
+                {
+                    //Connection was closed by the remote endpoint
+                    Http2Logger.LogInfo("Connection was closed by the remote endpoint");
+                    Dispose();
+                    break;
+                }
                 catch (Exception)
                 {
                     // Read failure, abort the connection/session.
+                    Http2Logger.LogInfo("Read failure, abort the connection/session");
                     Dispose();
                     break;
                 }
@@ -305,6 +321,12 @@ namespace Microsoft.Http2.Protocol
                 if (frame != null)
                 {
                     DispatchIncomingFrame(frame);
+                }
+                else
+                {
+                    //Looks like connection was lost
+                    Dispose();
+                    break;
                 }
             }
 
@@ -326,7 +348,7 @@ namespace Microsoft.Http2.Protocol
                     Http2Logger.LogError("Handling session was cancelled");
                     Dispose();
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
                     Http2Logger.LogError("Sending frame was cancelled because connection was lost");
                     Dispose();
@@ -678,9 +700,11 @@ namespace Microsoft.Http2.Protocol
             OnFrameReceived = null;
             OnFrameSent = null;
 
+            //Missing GoAway means connection was forcibly closed by the remote ep. This means that we can
+            //send nothing into this connection. No need trying to send GoAway.
             if (!_goAwayReceived)
             {
-                WriteGoAway(status);
+                //WriteGoAway(status);
             }
 
             if (_writeQueue != null)

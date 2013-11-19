@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -11,7 +12,8 @@ using Microsoft.Http2.Protocol.Utils;
 using Microsoft.Owin;
 using Microsoft.Http2.Protocol;
 using Microsoft.Http2.Protocol.IO;
-using Org.Mentalis.Security.Ssl;
+using OpenSSL;
+using OpenSSL.SSL;
 
 namespace Microsoft.Http2.Owin.Middleware
 {
@@ -46,15 +48,13 @@ namespace Microsoft.Http2.Owin.Middleware
                 var upgradeDelegate = environment[CommonOwinKeys.OpaqueUpgrade] as UpgradeDelegate;
                 Debug.Assert(upgradeDelegate != null, "upgradeDelegate is not null");
 
-                var trInfo = CreateTransportInfo(context.Request);
-
                 // save original request parameters; used to complete request after upaque upgrade is done
                 var requestCopy = GetInitialRequestParams(context.Request);
 
                 upgradeDelegate.Invoke(new Dictionary<string, object>(), async opaque =>
                     {
                         //use the same stream which was used during upgrade
-                        var opaqueStream = opaque[CommonOwinKeys.OpaqueStream] as DuplexStream;
+                        var opaqueStream = opaque[CommonOwinKeys.OpaqueStream] as Stream;
 
                         //TODO Provide cancellation token here
                         // Move to method
@@ -62,8 +62,8 @@ namespace Microsoft.Http2.Owin.Middleware
                         {
                             using (var http2MessageHandler = new Http2OwinMessageHandler(opaqueStream,
                                                                                             ConnectionEnd.Server,
-                                                                                            trInfo, _next,
-                                                                                            CancellationToken.None)
+                                                                                            opaqueStream is SslStream,
+                                                                                            _next, CancellationToken.None)
                                 )
                             {
                                 await http2MessageHandler.StartSessionAsync(requestCopy);
@@ -163,18 +163,6 @@ namespace Microsoft.Http2.Owin.Middleware
                     {CommonHeaders.Scheme, scheme},
                     {CommonHeaders.Host, host}
                 };
-        }
-        
-
-        private static TransportInformation CreateTransportInfo(IOwinRequest owinRequest)
-        {
-            return new TransportInformation
-            {
-                RemoteIpAddress = owinRequest.RemoteIpAddress,
-                RemotePort = owinRequest.RemotePort != null ? (int) owinRequest.RemotePort : 8080,
-                LocalIpAddress = owinRequest.LocalIpAddress,
-                LocalPort = owinRequest.LocalPort != null ? (int) owinRequest.LocalPort : 8080,
-            };
         }
     }
 }

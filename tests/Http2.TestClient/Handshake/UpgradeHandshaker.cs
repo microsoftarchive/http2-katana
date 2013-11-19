@@ -8,7 +8,7 @@ using System.Text.RegularExpressions;
 using Http2.TestClient.Adapters;
 using Microsoft.Http2.Protocol;
 using Microsoft.Http2.Protocol.Utils;
-using Org.Mentalis.Security.Ssl;
+using OpenSSL;
 
 namespace Http2.TestClient.Handshake
 {
@@ -44,8 +44,8 @@ namespace Http2.TestClient.Handshake
                             {CommonHeaders.Path, handshakeEnvironment[CommonHeaders.Path]},
                             {CommonHeaders.Host, handshakeEnvironment[CommonHeaders.Host]},
                             {CommonHeaders.Version, handshakeEnvironment[CommonHeaders.Version]},
-                            {CommonHeaders.MaxConcurrentStreams, 100},
-                            {CommonHeaders.InitialWindowSize, 2000000},
+                            {CommonHeaders.MaxConcurrentStreams, Constants.DefaultMaxConcurrentStreams},
+                            {CommonHeaders.InitialWindowSize, Constants.InitialFlowControlWindowSize},
                         };
                 }
                 else

@@ -18,13 +18,11 @@ namespace Microsoft.Http2.Owin.Server.Adapters
         private readonly Http2Stream _protocolStream;
         private IOwinContext _owinContext;
         private IHeaderDictionary _responseHeaders;
-        private readonly TransportInformation _transportInfo;
         private bool _responseStarted;
 
-        internal Http2OwinMessageContext(Http2Stream protocolStream, TransportInformation transportInfo)
+        internal Http2OwinMessageContext(Http2Stream protocolStream)
         {
             _protocolStream = protocolStream;
-            _transportInfo = transportInfo;
             PopulateEnvironment();
         }
 
@@ -58,10 +56,6 @@ namespace Microsoft.Http2.Owin.Server.Adapters
             owinRequest.Body = Stream.Null;
             owinRequest.Protocol = Protocols.Http2;
             owinRequest.Scheme = headers.GetValue(CommonHeaders.Scheme) == Uri.UriSchemeHttp ? Uri.UriSchemeHttp : Uri.UriSchemeHttps;
-            owinRequest.RemoteIpAddress = _transportInfo.RemoteIpAddress;
-            owinRequest.RemotePort = Convert.ToInt32(_transportInfo.RemotePort);
-            owinRequest.LocalIpAddress = _transportInfo.LocalIpAddress;
-            owinRequest.LocalPort = _transportInfo.LocalPort;
 
             owinResponse.Body = new ResponseStream(_protocolStream, StartResponse);
         }

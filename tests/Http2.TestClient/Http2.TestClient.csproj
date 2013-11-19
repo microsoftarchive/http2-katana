@@ -45,12 +45,6 @@
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Microsoft.Owin">
-      <HintPath>..\..\packages\Microsoft.Owin.2.0.0\lib\net45\Microsoft.Owin.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.Owin.Hosting">
-      <HintPath>..\..\packages\Microsoft.Owin.Hosting.2.0.0\lib\net45\Microsoft.Owin.Hosting.dll</HintPath>
-    </Reference>
     <Reference Include="System" />
     <Reference Include="System.configuration" />
     <Reference Include="System.Core" />
@@ -80,7 +74,6 @@
     <Compile Include="GlobalSuppressions.cs" />
     <Compile Include="Handshake\HandshakeFailureReason.cs" />
     <Compile Include="Handshake\HandshakeKeys.cs" />
-    <Compile Include="Handshake\HandshakeManager.cs" />
     <Compile Include="Handshake\HandshakeResponse.cs" />
     <Compile Include="Handshake\HandshakeResult.cs" />
     <Compile Include="Handshake\Http2HandshakeFailed.cs" />
@@ -93,13 +86,13 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Libraries\MentalisSecurityLibrary\Security Library.csproj">
-      <Project>{5bfa5a70-d384-4417-afcc-5c744485a85f}</Project>
-      <Name>Security Library</Name>
-    </ProjectReference>
     <ProjectReference Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Microsoft.Http2.Protocol.csproj">
       <Project>{e34ac310-324c-46bc-af9f-1a41df58e867}</Project>
       <Name>Microsoft.Http2.Protocol</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\src\Libraries\OpenSsl\ManagedOpenSsl\OpenSslWrapper.csproj">
+      <Project>{73dcc218-655b-485f-8eac-0ce5f2f7343d}</Project>
+      <Name>OpenSslWrapper</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
@@ -109,7 +102,8 @@
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>copy /y "$(TargetPath)" "$(SolutionDir)Drop\$(TargetFileName)"
-copy /y "$(SolutionDir)res\certificate.pfx" "$(TargetDir)certificate.pfx"
+copy /y "$(SolutionDir)res\client.pfx" "$(TargetDir)client.pfx"
+copy /y "$(SolutionDir)res\client.pfx" "$(SolutionDir)Drop\client.pfx"
 copy /y "$(TargetDir)Http2.TestClient.exe.config" "$(SolutionDir)Drop\Http2.TestClient.exe.config"</PostBuildEvent>
   </PropertyGroup>
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />

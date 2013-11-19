@@ -2,7 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using Org.Mentalis.Security.Ssl;
+using OpenSSL;
 
 namespace Microsoft.Http2.Protocol
 {

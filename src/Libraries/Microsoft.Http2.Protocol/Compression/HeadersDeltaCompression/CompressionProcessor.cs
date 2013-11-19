@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
-using Org.Mentalis.Security.Ssl;
 using Microsoft.Http2.Protocol.Exceptions;
 using Microsoft.Http2.Protocol.Extensions;
+using OpenSSL;
 
 namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
 {

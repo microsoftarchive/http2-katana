@@ -1,15 +1,12 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
-using System.Text;
 using System.Threading;
 using Client.IO;
 using Microsoft.Http2.Protocol;
 using Microsoft.Http2.Protocol.Framing;
-using Microsoft.Http2.Protocol.IO;
 using Microsoft.Http2.Protocol.Utils;
-using Org.Mentalis.Security.Ssl;
+using OpenSSL;
 
 namespace Http2.TestClient.Adapters
 {
@@ -21,11 +18,11 @@ namespace Http2.TestClient.Adapters
 
         public bool IsDisposed { get { return _isDisposed; } }
 
-        public Http2ClientMessageHandler(DuplexStream stream, ConnectionEnd end, TransportInformation transportInfo, CancellationToken cancel) 
-            : base(stream, end, stream.IsSecure, transportInfo, cancel)
+        public Http2ClientMessageHandler(Stream stream, ConnectionEnd end, bool isSecure, CancellationToken cancel)
+            : base(stream, end, isSecure, cancel)
         {
             _fileHelper = new FileHelper(ConnectionEnd.Client);
-            stream.OnClose += delegate { Dispose(); };
+            _session.OnSessionDisposed += delegate { Dispose(); };
         }
 
         private void SaveDataFrame(Http2Stream stream, DataFrame dataFrame)

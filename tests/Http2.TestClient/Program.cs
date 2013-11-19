@@ -40,7 +40,7 @@ using System.Threading.Tasks;
 using Http2.TestClient.CommandParser;
 using Http2.TestClient.Commands;
 using Microsoft.Http2.Protocol.Utils;
-using Org.Mentalis.Security.Ssl;
+using OpenSSL.SSL;
 
 namespace Http2.TestClient
 {
@@ -142,7 +142,7 @@ namespace Http2.TestClient
                                     waitForConnectionStart.WaitOne(500);
                                 }
 
-                                if (sessionHandler.Options.Protocol != SecureProtocol.None)
+                                if (sessionHandler.Protocol != SslProtocols.None)
                                     sessionHandler.SendRequestAsync(uriCmd.Uri, method, localPath, serverPostAct);
                             }
                             break;

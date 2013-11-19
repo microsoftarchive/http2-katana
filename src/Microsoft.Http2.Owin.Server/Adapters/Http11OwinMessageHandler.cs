@@ -6,9 +6,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Http1.Protocol;
 using Microsoft.Owin;
-using Org.Mentalis.Security.Ssl;
 using Microsoft.Http2.Protocol;
 using Microsoft.Http2.Protocol.Utils;
+using OpenSSL.SSL;
 using StatusCode = Microsoft.Http2.Protocol.StatusCode;
 
 namespace Microsoft.Http2.Owin.Server.Adapters
@@ -24,7 +24,7 @@ namespace Microsoft.Http2.Owin.Server.Adapters
     public class Http11ProtocolOwinAdapter
     {
         private readonly Stream _client;
-        private readonly SecureProtocol _protocol;
+        private readonly SslProtocols _protocol;
         private readonly AppFunc _next;
         private Environment _environment;
         private IOwinRequest _request;
@@ -37,7 +37,7 @@ namespace Microsoft.Http2.Owin.Server.Adapters
         /// <param name="client">The client connection.</param>
         /// <param name="protocol">Security protocol which is used for connection.</param>
         /// <param name="next">The next component in the OWIN pipeline.</param>
-        public Http11ProtocolOwinAdapter(Stream client, SecureProtocol protocol, AppFunc next)
+        public Http11ProtocolOwinAdapter(Stream client, SslProtocols protocol, AppFunc next)
         {
             // args checking
             if (client == null)
@@ -85,7 +85,7 @@ namespace Microsoft.Http2.Owin.Server.Adapters
                     throw new NotSupportedException(method + " method is not currently supported via HTTP/1.1");
                 }
 
-                var scheme = _protocol == SecureProtocol.None ? Uri.UriSchemeHttp : Uri.UriSchemeHttps;
+                var scheme = _protocol == SslProtocols.None ? Uri.UriSchemeHttp : Uri.UriSchemeHttps;
 
                 var path = splittedRequestString[1];
 

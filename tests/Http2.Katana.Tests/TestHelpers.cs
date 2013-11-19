@@ -1,27 +1,28 @@
 ﻿using System.Configuration;
-using System.Net;
 using Http2.TestClient.Handshake;
 using Microsoft.Http2.Owin.Server.Adapters;
-using Microsoft.Http2.Protocol.IO;
 using Microsoft.Owin;
 using Moq;
-using Org.Mentalis.Security;
-using Org.Mentalis.Security.Ssl;
 using System;
 using System.Collections.Generic;
 using System.Net.Sockets;
 using System.IO;
 using System.Text;
 using System.Threading.Tasks;
-using Org.Mentalis.Security.Ssl.Shared.Extensions;
-using Org.Mentalis;
+using OpenSSL;
+using OpenSSL.Core;
+using OpenSSL.SSL;
+using OpenSSL.X509;
+using Xunit;
 
 namespace Microsoft.Http2.Protocol.Tests
 {
     public static class TestHelpers
     {
         public static readonly byte[] ClientSessionHeader = Encoding.UTF8.GetBytes("PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n");
-        private static readonly bool UseSecurePort = ConfigurationManager.AppSettings["useSecurePort"] == "true";
+        public static readonly bool UseSecurePort = ConfigurationManager.AppSettings["useSecurePort"] == "true";
+
+        private static readonly int SecurePort = int.Parse(ConfigurationManager.AppSettings["securePort"]);
 
         public static readonly string FileContent5bTest = 
                                             new StreamReader(new FileStream(@"root\5mbTest.txt", FileMode.Open)).ReadToEnd(),
@@ -31,7 +32,7 @@ namespace Microsoft.Http2.Protocol.Tests
                                       FileContentAnyFile = "some text";
 
 
-        private static Dictionary<string, object> MakeHandshakeEnvironment(Uri uri, SecurityOptions options, DuplexStream stream)
+        private static Dictionary<string, object> MakeHandshakeEnvironment(Uri uri, Stream stream)
         {
             return new Dictionary<string, object>
 			{
@@ -39,15 +40,14 @@ namespace Microsoft.Http2.Protocol.Tests
 					{CommonHeaders.Version, Protocols.Http2},
                     {CommonHeaders.Scheme, Uri.UriSchemeHttp},
                     {CommonHeaders.Host, uri.Host},
-                    {HandshakeKeys.Options, options},
                     {HandshakeKeys.Stream, stream},
                     {HandshakeKeys.ConnectionEnd, ConnectionEnd.Client}
 			};
         }
 
-        private static void MakeUnsecureHandshake(Uri uri, SecurityOptions options, DuplexStream stream)
+        private static void MakeUnsecureHandshake(Uri uri, Stream stream)
         {
-            var env = MakeHandshakeEnvironment(uri, options, stream);
+            var env = MakeHandshakeEnvironment(uri, stream);
             var result = new UpgradeHandshaker(env).Handshake();
             var success = result[HandshakeKeys.Successful] as string == HandshakeKeys.True;
 
@@ -55,16 +55,26 @@ namespace Microsoft.Http2.Protocol.Tests
                 throw new Http2HandshakeFailed(HandshakeFailureReason.InternalError);
         }
 
-        public static DuplexStream CreateStream()
+        public static X509Certificate LoadPKCS12Certificate(string certFilename, string password)
         {
-            var options = new SecurityOptions(SecureProtocol.Tls1, null, new[] { Protocols.Http1 }, ConnectionEnd.Client);
-            var socket = new SecureSocket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp, options);
-            
-            return new Mock<DuplexStream>(socket, false).Object;
+            using (var certFile = BIO.File(certFilename, "r"))
+            {
+                return X509Certificate.FromPKCS12(certFile, password);
+            }
         }
 
-        public static Http11ProtocolOwinAdapter CreateHttp11Adapter(DuplexStream duplexStream, Func<IDictionary<string, object>, Task> appFunc)
+        public static Stream CreateStream(Uri uri, bool useMock = false)
         {
+            var tcpClnt = new TcpClient(uri.Host, uri.Port);
+
+            return tcpClnt.GetStream();
+        }
+
+        public static Http11ProtocolOwinAdapter CreateHttp11Adapter(Stream iostream, Func<IDictionary<string, object>, Task> appFunc)
+        {
+            if (iostream == null)
+                throw new ArgumentNullException("stream is null");
+
             var headers = "GET / HTTP/1.1\r\n" +
                           "Host: localhost\r\n" +
                           "Connection: Upgrade\r\n" +
@@ -73,7 +83,7 @@ namespace Microsoft.Http2.Protocol.Tests
                           "\r\n";
 
             var requestBytes = Encoding.UTF8.GetBytes(headers);
-            var mock = Mock.Get(duplexStream ?? CreateStream());
+            var mock = Mock.Get(iostream);
             int position = 0;
 
             var modifyBufferData = new Action<byte[], int, int>((buffer, offset, count) =>
@@ -89,7 +99,7 @@ namespace Microsoft.Http2.Protocol.Tests
                 .Returns<byte[], int, int>((buffer, offset, count) => count); // read our requestBytes
             mock.Setup(stream => stream.CanRead).Returns(true);
 
-            return new Http11ProtocolOwinAdapter(mock.Object, SecureProtocol.Tls1, appFunc);
+            return new Http11ProtocolOwinAdapter(mock.Object, SslProtocols.Tls, appFunc);
         }
 
         public async static Task AppFunction(IDictionary<string, object> environment)
@@ -119,58 +129,42 @@ namespace Microsoft.Http2.Protocol.Tests
             }
 
             await writer.FlushAsync();
-
-            
         }
 
-        public static DuplexStream GetHandshakedDuplexStream(string address, bool allowHttp2Communication = true, bool useMock = false)
+        public static Stream GetHandshakedStream(Uri uri, bool allowHttp2Communication = true, bool useMock = false)
         {
-            string selectedProtocol = null;
-
-            var extensions = new[] { ExtensionType.Renegotiation, ExtensionType.ALPN };
-            var useHandshake = ConfigurationManager.AppSettings["handshakeOptions"] != "no-handshake";
-
             var protocols = new List<string> { Protocols.Http1 };
             if (allowHttp2Communication)
             {
                 protocols.Add(Protocols.Http2);
             }
+            var clientStream = CreateStream(uri);
+            string selectedProtocol = Protocols.Http1;
+            bool gotException = false;
 
-            var options = UseSecurePort
-                              ? new SecurityOptions(SecureProtocol.Tls1, extensions, protocols,
-                                                    ConnectionEnd.Client)
-                              : new SecurityOptions(SecureProtocol.None, extensions, protocols,
-                                                    ConnectionEnd.Client);
-
-            options.VerificationType = CredentialVerification.None;
-            options.Certificate = Org.Mentalis.Security.Certificates.Certificate.CreateFromCerFile(@"certificate.pfx");
-            options.Flags = SecurityFlags.Default;
-            options.AllowedAlgorithms = SslAlgorithms.RSA_AES_256_SHA | SslAlgorithms.NULL_COMPRESSION;
-
-            var sessionSocket = new SecureSocket(AddressFamily.InterNetwork, SocketType.Stream,
-                                                ProtocolType.Tcp, options);
-
-            DuplexStream clientStream;
-            using (var monitor = new ALPNExtensionMonitor())
+            if (uri.Port == SecurePort)
             {
-                monitor.OnProtocolSelected += (sender, args) => { selectedProtocol = args.SelectedProtocol; };
+                clientStream = new SslStream(clientStream, false);
+  
+                (clientStream as SslStream).AuthenticateAsClient(uri.AbsoluteUri);
+                        
+                selectedProtocol = (clientStream as SslStream).AlpnSelectedProtocol;
+            }
 
-                var uri = new Uri(GetAddress() + address);
-
-                sessionSocket.Connect(new DnsEndPoint(uri.Host, uri.Port), monitor);
-
-                clientStream = new DuplexStream(sessionSocket, true);
-
-                if (useHandshake)
+            if (uri.Port != SecurePort || selectedProtocol == Protocols.Http1)
+            {
+                try
                 {
-                    if (UseSecurePort)
-                        sessionSocket.MakeSecureHandshake(options);
-                    else
-                        MakeUnsecureHandshake(uri, options, clientStream);
+                    MakeUnsecureHandshake(uri, clientStream);
+                }
+                catch (Exception ex)
+                {
+                    gotException = true;
                 }
             }
 
-            return useMock ? new Mock<DuplexStream>(sessionSocket, true).Object : clientStream;
+            Assert.Equal(gotException, false);
+            return useMock ? new Mock<Stream>(clientStream).Object : clientStream;
         }
 
         public static string GetAddress()
@@ -182,11 +176,6 @@ namespace Microsoft.Http2.Protocol.Tests
             }
 
             return ConfigurationManager.AppSettings["unsecureAddress"];
-        }
-
-        public static TransportInformation GetTransportInformation()
-        {
-            return new TransportInformation();
         }
     }
 }

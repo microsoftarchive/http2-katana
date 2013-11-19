@@ -23,6 +23,7 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <PlatformTarget>x86</PlatformTarget>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -79,7 +80,6 @@
     <Compile Include="HeadersList.cs" />
     <Compile Include="Http2MessageHandler.cs" />
     <Compile Include="Http2Session\Http2SessionFrameHandling.cs" />
-    <Compile Include="IO\DuplexStream.cs" />
     <Compile Include="Constants.cs" />
     <Compile Include="IO\IPriorityItem.cs" />
     <Compile Include="IO\IQueue.cs" />
@@ -123,9 +123,9 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\MentalisSecurityLibrary\Security Library.csproj">
-      <Project>{5bfa5a70-d384-4417-afcc-5c744485a85f}</Project>
-      <Name>Security Library</Name>
+    <ProjectReference Include="..\OpenSsl\ManagedOpenSsl\OpenSslWrapper.csproj">
+      <Project>{73dcc218-655b-485f-8eac-0ce5f2f7343d}</Project>
+      <Name>OpenSslWrapper</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup />
