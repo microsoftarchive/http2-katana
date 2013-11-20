@@ -12,6 +12,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using OpenSSL;
+using Owin;
 using Xunit;
 
 namespace Http2.Katana.Tests
@@ -60,6 +61,44 @@ namespace Http2.Katana.Tests
             {
                 Assert.Equal(MathEx.Min(new StringComparer(), tests[i]), results[i]);
             }
+        }
+
+        [StandardFact]
+        public void CheckGraphOnRecursion()
+        {
+         var recursiveGraph  = new Dictionary<string, IList<string>>()
+            {
+                { "/index.html", new List<string>
+                    {
+                        "/images/image1.jpg",
+                        "/scripts/sript.js",
+                    }
+                },
+                 { "/images/image1.jpg", new List<string>
+                    {
+                        "/index.html"
+                    }
+                }
+            };
+
+         var nonRecursiveGraph = new Dictionary<string, IList<string>>()
+            {
+                { "/index.html", new List<string>
+                    {
+                        "/images/image1.jpg",
+                        "/scripts/sript.js",
+                    }
+                },
+                 { "/images/image1.jpg", new List<string>
+                    {
+                        "/index11.html"
+                    }
+                }
+            };
+
+         Assert.True(recursiveGraph.HasRecursion());
+         Assert.False(nonRecursiveGraph.HasRecursion());
+            
         }
 
         [StandardFact]
