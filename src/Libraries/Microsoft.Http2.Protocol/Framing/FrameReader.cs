@@ -71,6 +71,10 @@ namespace Microsoft.Http2.Protocol.Framing
 
                 case FrameType.Data:
                     return new DataFrame(preamble);
+
+                case FrameType.PushPromise:
+                    return new PushPromiseFrame(preamble);
+
                 default:
                     throw new NotImplementedException("Frame type: " + preamble.FrameType);
             }

@@ -104,7 +104,11 @@
     <PostBuildEvent>copy /y "$(TargetPath)" "$(SolutionDir)Drop\$(TargetFileName)"
 copy /y "$(SolutionDir)res\client.pfx" "$(TargetDir)client.pfx"
 copy /y "$(SolutionDir)res\client.pfx" "$(SolutionDir)Drop\client.pfx"
-copy /y "$(TargetDir)Http2.TestClient.exe.config" "$(SolutionDir)Drop\Http2.TestClient.exe.config"</PostBuildEvent>
+copy /y "$(TargetDir)Http2.TestClient.exe.config" "$(SolutionDir)Drop\Http2.TestClient.exe.config"
+
+copy /y "$(SolutionDir)\Drop\ssleay32.dll" "$(TargetDir)\ssleay32.dll"
+
+copy /y "$(SolutionDir)\Drop\libeay32.dll" "$(TargetDir)\libeay32.dll"</PostBuildEvent>
   </PropertyGroup>
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
 </Project>
