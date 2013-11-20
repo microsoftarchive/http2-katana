@@ -6,22 +6,20 @@ using System.Threading.Tasks;
 
 namespace Microsoft.Http2.Push
 {
-    using PushPromiseFunc = Func<IDictionary<string, string[]>, Task>;
-
+    using PushFunc = Action<IDictionary<string, string[]>>;
     public class PushMiddleware : OwinMiddleware
     {
-        private readonly IDictionary<string, IList<string>> _references;
+        private readonly IDictionary<string, string[]> _references;
 
         public PushMiddleware(OwinMiddleware next)
             : base(next)
         {
             // TODO: Validate that this table never has cycles.  Push recursion would be bad!
-            _references = new Dictionary<string, IList<string>>(StringComparer.OrdinalIgnoreCase)
+            _references = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase)
             {
-                { "/index.html", new List<string>
+                { "/index.html", new []
                     {
-                        "/images/image1.jpg",
-                        "/scripts/sript.js",
+                        "/simpleTest.txt",
                     }
                 }
             };
@@ -29,29 +27,29 @@ namespace Microsoft.Http2.Push
 
         public override async Task Invoke(IOwinContext context)
         {
-            IList<string> pushReferences;
-            PushPromiseFunc pushPromise;
+            string[] pushReferences;
+            PushFunc pushPromise;
             if (_references.TryGetValue(context.Request.Path.Value, out pushReferences)
                 && TryGetPushPromise(context, out pushPromise))
             {
                 foreach (string pushReference in pushReferences)
                 {
-                    await Push(context.Request, pushPromise, pushReference);
+                    Push(context.Request, pushPromise, pushReference);
                 }
             }
 
             await Next.Invoke(context);
         }
 
-        private bool TryGetPushPromise(IOwinContext context, out PushPromiseFunc pushPromise)
+        private bool TryGetPushPromise(IOwinContext context, out PushFunc pushPromise)
         {
-            pushPromise = context.Get<PushPromiseFunc>("server.PushPromise");
+            pushPromise = context.Get<PushFunc>("server.push");
             return pushPromise != null;
         }
 
         // TODO: The spec does not specify how to derive the push promise request headers.
         // Fow now we are just going to copy the original request and change the path.
-        private Task Push(IOwinRequest request, PushPromiseFunc pushPromise, string pushReference)
+        private void Push(IOwinRequest request, PushFunc pushPromise, string pushReference)
         {
             // Copy the headers
             var headers = new HeaderDictionary(
@@ -72,7 +70,7 @@ namespace Microsoft.Http2.Push
             // Change the request path to the pushed resource
             headers[CommonHeaders.Path] = pushReference;
 
-            return pushPromise(headers);
+            pushPromise(headers);
         }
     }
 }

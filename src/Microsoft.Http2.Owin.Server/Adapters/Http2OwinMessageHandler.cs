@@ -13,6 +13,7 @@ using OpenSSL;
 namespace Microsoft.Http2.Owin.Server.Adapters
 {
     using AppFunc = Func<IOwinContext, Task>;
+    using PushFunc = Action<IDictionary<string, string[]> >;
 
     /// <summary>
     /// This class overrides http2 request/response processing logic as owin requires
@@ -87,6 +88,23 @@ namespace Microsoft.Http2.Owin.Server.Adapters
                 try
                 {
                     var context = new Http2OwinMessageContext(stream);
+
+                    PushFunc pushDelegate = null;
+                    pushDelegate = async pairs =>
+                        {
+                            var promisedStream = CreateStream();
+                            stream.WritePushPromise(pairs, promisedStream.Id);
+
+                            var headers = new HeadersList(pairs);
+                            promisedStream.Headers.AddRange(headers);
+
+                            var http2Ctx = new Http2OwinMessageContext(stream);
+                            http2Ctx.OwinContext.Set(CommonOwinKeys.ServerPushFunc, pushDelegate);
+                            await _next(context.OwinContext);
+                        };
+                    
+                    context.OwinContext.Set(CommonOwinKeys.ServerPushFunc, pushDelegate);
+                    
                     await _next(context.OwinContext);
                     context.FinishResponse();
                 }
@@ -137,6 +155,12 @@ namespace Microsoft.Http2.Owin.Server.Adapters
             headers.Add(new KeyValuePair<string, string>(CommonHeaders.Status, statusCode.ToString(CultureInfo.InvariantCulture)));
 
             stream.WriteHeadersFrame(headers, final, true);
+           
         }
+
+        //private void PushHeaders(IDictionary<string, string[]> pairs)
+        //{
+            
+        //}
     }
 }

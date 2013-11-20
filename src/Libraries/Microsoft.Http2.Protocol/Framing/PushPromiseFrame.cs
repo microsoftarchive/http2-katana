@@ -57,7 +57,8 @@ namespace Microsoft.Http2.Protocol.Framing
         }
 
         public PushPromiseFrame(Int32 streamId, Int32 promisedStreamId,
-                               bool isEndPushPromise, HeadersList headers = null)
+                                bool isEndPushPromise, HeadersList headers = null)
+            :base()
         {
             Contract.Assert(streamId > 0 && promisedStreamId > 0);
             StreamId = streamId;

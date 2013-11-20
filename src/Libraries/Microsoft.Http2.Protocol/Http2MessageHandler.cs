@@ -80,6 +80,11 @@ namespace Microsoft.Http2.Protocol
         /// <returns></returns>
         protected abstract void ProcessIncomingData(Http2Stream stream, Frame frame);
 
+        protected Http2Stream CreateStream(int priority = Constants.DefaultStreamPriority)
+        {
+            return _session.CreateStream(priority);
+        }
+
         /// <summary>
         /// Starts the session.
         /// </summary>

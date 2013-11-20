@@ -114,7 +114,7 @@ namespace Microsoft.Http2.Protocol.Framing
                 ? PreambleSizeWithPriority
                 : PreambleSizeWithoutPriority;
 
-            _buffer = new byte[/*headerBytes.Length + */preambleLength];
+            _buffer = new byte[preambleLength];
             HasPriority = hasPriority;
 
             StreamId = streamId;
@@ -124,9 +124,6 @@ namespace Microsoft.Http2.Protocol.Framing
             {
                 Priority = priority;
             }
-
-            // Copy in the headers
-            //System.Buffer.BlockCopy(headerBytes, 0, Buffer, preambleLength, headerBytes.Length);
         }
 
         /// <summary>

@@ -12,5 +12,7 @@
         public const string OpaqueStream = "opaque.Stream";
         public const string OpaqueVersion = "opaque.Version";
         public const string OpaqueCallCancelled = "opaque.CallCancelled";
+
+        public const string ServerPushFunc = "server.push";
     }
 }

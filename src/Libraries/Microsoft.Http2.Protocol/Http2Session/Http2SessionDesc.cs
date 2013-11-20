@@ -479,7 +479,7 @@ namespace Microsoft.Http2.Protocol
         /// <param name="streamId"></param>
         /// <param name="priority"></param>
         /// <returns></returns>
-        private Http2Stream CreateStream(HeadersList headers, int streamId, int priority = -1)
+        public Http2Stream CreateStream(HeadersList headers, int streamId, int priority = -1)
         {
 
             if (headers == null)
@@ -529,7 +529,7 @@ namespace Microsoft.Http2.Protocol
         /// <param name="priority">The stream priority.</param>
         /// <returns></returns>
         /// <exception cref="System.InvalidOperationException">Thrown when trying to create more streams than allowed by the remote side</exception>
-        private Http2Stream CreateStream(int priority)
+        public Http2Stream CreateStream(int priority)
         {
             if (priority < 0 || priority > Constants.MaxPriority)
                 throw new ArgumentOutOfRangeException("priority is not between 0 and MaxPriority");

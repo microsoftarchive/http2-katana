@@ -379,6 +379,23 @@ namespace Microsoft.Http2.Protocol
             }
         }
 
+        //TODO Think about: writing push_promise is available in any time now. Need to handle it.
+        public void WritePushPromise(IDictionary<string, string[]> pairs, Int32 promisedId)
+        {
+            if (Disposed)
+                return;
+
+            //TODO IsEndPushPromise should be computationable
+            var frame = new PushPromiseFrame(Id, promisedId, true, new HeadersList(pairs));
+
+            _writeQueue.WriteFrame(frame);
+
+            if (OnFrameSent != null)
+            {
+                OnFrameSent(this, new FrameSentEventArgs(frame));
+            }
+        }
+
         #endregion
 
         public void Dispose()
