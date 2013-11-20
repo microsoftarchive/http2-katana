@@ -70,7 +70,7 @@ namespace Microsoft.Http2.Protocol.Tests
             return tcpClnt.GetStream();
         }
 
-        public static Http11ProtocolOwinAdapter CreateHttp11Adapter(Stream iostream, Func<IDictionary<string, object>, Task> appFunc)
+        public static Http11ProtocolOwinAdapter CreateHttp11Adapter(Stream iostream, Func<IOwinContext, Task> appFunc)
         {
             if (iostream == null)
                 throw new ArgumentNullException("stream is null");
@@ -102,34 +102,8 @@ namespace Microsoft.Http2.Protocol.Tests
             return new Http11ProtocolOwinAdapter(mock.Object, SslProtocols.Tls, appFunc);
         }
 
-        public async static Task AppFunction(IDictionary<string, object> environment)
-        {
-            // process response
-            var owinResponse = new OwinResponse(environment) {ContentType = "text/plain"};
-            var owinRequest = new OwinRequest(environment);
-            var writer = new StreamWriter(owinResponse.Body);
-            switch (owinRequest.Path.Value)
-            {
-                case "/10mbTest.txt":
-                    writer.Write(FileContent5bTest);
-                    owinResponse.ContentLength = FileContent5bTest.Length;
-                    break;
-                case "/simpleTest.txt":
-                    writer.Write(FileContentSimpleTest);
-                    owinResponse.ContentLength = FileContentSimpleTest.Length;
-                    break;
-                case "/emptyFile.txt":
-                    writer.Write(FileContentEmptyFile);
-                    owinResponse.ContentLength = FileContentEmptyFile.Length;
-                    break;
-                default:
-                    writer.Write(FileContentAnyFile);
-                    owinResponse.ContentLength = FileContentAnyFile.Length;
-                    break;
-            }
-
-            await writer.FlushAsync();
-        }
+       
+      
 
         public static Stream GetHandshakedStream(Uri uri, bool allowHttp2Communication = true, bool useMock = false)
         {
@@ -176,6 +150,6 @@ namespace Microsoft.Http2.Protocol.Tests
             }
 
             return ConfigurationManager.AppSettings["unsecureAddress"];
-        }
+        } 
     }
 }

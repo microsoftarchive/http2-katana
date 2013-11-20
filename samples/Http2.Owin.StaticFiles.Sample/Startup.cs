@@ -1,5 +1,4 @@
-﻿using Microsoft.Http2.Owin.Middleware;
-using Owin;
+﻿using Owin;
 
 namespace Http2.Owin.StaticFiles.Sample
 {
@@ -12,6 +11,7 @@ namespace Http2.Owin.StaticFiles.Sample
         public void Configuration(IAppBuilder builder)
         {
             builder.UseHttp2();
+            builder.UsePush();
             builder.UseStaticFiles("root");
         }
     }

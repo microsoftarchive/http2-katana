@@ -58,8 +58,8 @@ namespace Http2.Katana.Tests
             var secureProperties = GetProperties(true);
             var unsecureProperties = GetProperties(false);
 
-            Http2SecureServer = new HttpSocketServer(new Http2Middleware(TestHelpers.AppFunction).Invoke, secureProperties);
-            Http2UnsecureServer = new HttpSocketServer(new Http2Middleware(TestHelpers.AppFunction).Invoke, unsecureProperties);
+            Http2SecureServer = new HttpSocketServer(new Http2Middleware(new ResponseMiddleware(null)).Invoke, secureProperties);
+            Http2UnsecureServer = new HttpSocketServer(new Http2Middleware(new ResponseMiddleware(null)).Invoke, unsecureProperties);
         }
 
         public void Dispose()

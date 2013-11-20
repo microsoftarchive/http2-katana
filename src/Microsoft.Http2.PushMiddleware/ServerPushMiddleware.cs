@@ -4,15 +4,15 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace Microsoft.Http2.PushMiddleware
+namespace Microsoft.Http2.Push
 {
     using PushPromiseFunc = Func<IDictionary<string, string[]>, Task>;
 
-    public class StaticPushMiddleware : OwinMiddleware
+    public class PushMiddleware : OwinMiddleware
     {
         private readonly IDictionary<string, IList<string>> _references;
 
-        public StaticPushMiddleware(OwinMiddleware next)
+        public PushMiddleware(OwinMiddleware next)
             : base(next)
         {
             // TODO: Validate that this table never has cycles.  Push recursion would be bad!

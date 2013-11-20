@@ -7,7 +7,7 @@
     <ProjectGuid>{C8C35828-4199-4A5B-8289-6F589BCC323E}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>Microsoft.Http2.PushMiddleware</RootNamespace>
+    <RootNamespace>Microsoft.Http2.Push</RootNamespace>
     <AssemblyName>Microsoft.Http2.PushMiddleware</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
@@ -34,6 +34,9 @@
     <Reference Include="Microsoft.Owin">
       <HintPath>..\..\packages\Microsoft.Owin.2.0.1\lib\net45\Microsoft.Owin.dll</HintPath>
     </Reference>
+    <Reference Include="Owin">
+      <HintPath>..\Microsoft.Http2.Owin.Server\bin\Debug\Owin.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
@@ -43,6 +46,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="PushExtensions.cs" />
     <Compile Include="ServerPushMiddleware.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

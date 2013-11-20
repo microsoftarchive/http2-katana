@@ -38,8 +38,8 @@ namespace Http2.Katana.Tests
 
         public Http2Setup()
         {
-            SecureServer = new HttpSocketServer(new Http2Middleware(TestHelpers.AppFunction).Invoke, GetProperties(true));
-            UnsecureServer = new HttpSocketServer(new Http2Middleware(TestHelpers.AppFunction).Invoke, GetProperties(false));
+            SecureServer = new HttpSocketServer(new Http2Middleware(new ResponseMiddleware(null)).Invoke, GetProperties(true));
+            UnsecureServer = new HttpSocketServer(new Http2Middleware(new ResponseMiddleware(null)).Invoke, GetProperties(false));
         }
 
         private Dictionary<string, object> GetProperties(bool useSecurePort)
