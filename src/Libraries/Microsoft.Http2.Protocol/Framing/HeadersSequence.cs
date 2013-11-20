@@ -29,15 +29,19 @@ namespace Microsoft.Http2.Protocol.Framing
             if (newFrame == null)
                 return;
 
-            if (!_wasFirstFrameReceived && !(newFrame is HeadersFrame))
+            if (!_wasFirstFrameReceived && !(newFrame is HeadersFrame) && !(newFrame is PushPromiseFrame))
                 throw new ProtocolError(ResetStatusCode.ProtocolError, "Continuation was not precessed by the headers");
 
             _wasFirstFrameReceived = true;
 
             headers.AddRange(newFrame.Headers);
 
-            if (newFrame.IsEndHeaders)
+            if ((newFrame is HeadersFrame && newFrame.IsEndHeaders)
+                || (newFrame is ContinuationFrame && newFrame.IsEndHeaders)
+                || newFrame is PushPromiseFrame && (newFrame as PushPromiseFrame).IsEndPushPromise)
+            {
                 IsComplete = true;
+            }
         }
     }
 }

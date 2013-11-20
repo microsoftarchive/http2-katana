@@ -100,7 +100,10 @@ namespace Microsoft.Http2.Owin.Server.Adapters
 
                             var http2Ctx = new Http2OwinMessageContext(promisedStream);
                             http2Ctx.OwinContext.Set(CommonOwinKeys.ServerPushFunc, pushDelegate);
+
                             await _next(http2Ctx.OwinContext);
+
+                            http2Ctx.FinishResponse();
                         };
                     
                     context.OwinContext.Set(CommonOwinKeys.ServerPushFunc, pushDelegate);

@@ -319,7 +319,7 @@ namespace Microsoft.Http2.Protocol
             foreach (var header in headers)
             {
                 Http2Logger.LogDebug("Stream {0} header: {1}={2}", frame.StreamId, header.Key, header.Value);
-                 frame.Headers.Add(header);
+                frame.Headers.Add(header);
             }
 
             var sequence = _headersSequences.Find(seq => seq.StreamId == frame.PromisedStreamId);

@@ -8,6 +8,7 @@ namespace Microsoft.Http2.Protocol.Framing
         // The number of bytes in the frame, not including the compressed headers.
         private const byte PreambleSize = 8;
         private const byte PromisedIdOffset = 8;
+        private const byte HeadersOffset = PreambleSize + sizeof (Int32);
 
         public HeadersList Headers { get; set; }
 
@@ -38,10 +39,10 @@ namespace Microsoft.Http2.Protocol.Framing
             get
             {
                 //preamble (8 bytes) -> promised Id (4 bytes) -> compressed headers
-                var compressedBytesPayload = Buffer.Length - PreambleSize - sizeof(Int32);
+                var compressedBytesPayload = Buffer.Length - HeadersOffset;
                 Contract.Assert(compressedBytesPayload >= 0);
 
-                return new ArraySegment<byte>(Buffer, PreambleSize, compressedBytesPayload);
+                return new ArraySegment<byte>(Buffer, HeadersOffset, compressedBytesPayload);
             }
         }
 
@@ -61,11 +62,12 @@ namespace Microsoft.Http2.Protocol.Framing
         public PushPromiseFrame(Frame preamble)
             : base(preamble)
         {
+            Headers = new HeadersList();
         }
 
         public PushPromiseFrame(Int32 streamId, Int32 promisedStreamId,
                                 bool isEndPushPromise, HeadersList headers = null)
-            :base(new byte[12])
+            : base(new byte[HeadersOffset])
         {
             Contract.Assert(streamId > 0 && promisedStreamId > 0);
             StreamId = streamId;
