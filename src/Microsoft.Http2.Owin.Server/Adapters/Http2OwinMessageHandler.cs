@@ -98,9 +98,9 @@ namespace Microsoft.Http2.Owin.Server.Adapters
                             var headers = new HeadersList(pairs);
                             promisedStream.Headers.AddRange(headers);
 
-                            var http2Ctx = new Http2OwinMessageContext(stream);
+                            var http2Ctx = new Http2OwinMessageContext(promisedStream);
                             http2Ctx.OwinContext.Set(CommonOwinKeys.ServerPushFunc, pushDelegate);
-                            await _next(context.OwinContext);
+                            await _next(http2Ctx.OwinContext);
                         };
                     
                     context.OwinContext.Set(CommonOwinKeys.ServerPushFunc, pushDelegate);
