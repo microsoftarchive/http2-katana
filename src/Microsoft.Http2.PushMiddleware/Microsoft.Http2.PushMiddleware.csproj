@@ -49,6 +49,7 @@
     <Compile Include="PushExtensions.cs" />
     <Compile Include="PushMiddleware.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="ReferenceCycleDetector.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Libraries\Microsoft.Http2.Protocol\Microsoft.Http2.Protocol.csproj">

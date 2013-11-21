@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 namespace Microsoft.Http2.Push
 {
     using PushFunc = Action<IDictionary<string, string[]>>;
+
     public class PushMiddleware : OwinMiddleware
     {
         private readonly IDictionary<string, string[]> _references;

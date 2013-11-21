@@ -11,6 +11,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using Microsoft.Http2.Push;
 using OpenSSL;
 using Owin;
 using Xunit;
@@ -61,44 +62,6 @@ namespace Http2.Katana.Tests
             {
                 Assert.Equal(MathEx.Min(new StringComparer(), tests[i]), results[i]);
             }
-        }
-
-        [StandardFact]
-        public void CheckGraphOnRecursion()
-        {
-         var recursiveGraph  = new Dictionary<string, IList<string>>()
-            {
-                { "/index.html", new List<string>
-                    {
-                        "/images/image1.jpg",
-                        "/scripts/sript.js",
-                    }
-                },
-                 { "/images/image1.jpg", new List<string>
-                    {
-                        "/index.html"
-                    }
-                }
-            };
-
-         var nonRecursiveGraph = new Dictionary<string, IList<string>>()
-            {
-                { "/index.html", new List<string>
-                    {
-                        "/images/image1.jpg",
-                        "/scripts/sript.js",
-                    }
-                },
-                 { "/images/image1.jpg", new List<string>
-                    {
-                        "/index11.html"
-                    }
-                }
-            };
-
-         Assert.True(recursiveGraph.HasRecursion());
-         Assert.False(nonRecursiveGraph.HasRecursion());
-            
         }
 
         [StandardFact]
@@ -321,6 +284,55 @@ namespace Http2.Katana.Tests
 
             Assert.Equal(testCollection.Count, 3);
             Assert.Equal(testCollection.ContainsKey(4), false);
+        }
+
+        [StandardFact]
+        public void ReferenceCycleSuccessful()
+        {
+            var recursiveGraph = new Dictionary<string, string[]>()
+            {
+                { "/index.html", new []
+                    {
+                        "/images/image1.jpg",
+                        "/scripts/script.js",
+                    }
+                },
+                { "/images/image1.jpg", new []
+                    {
+                        "/index.html"
+                    }
+                },
+                {
+                    "/scripts/script.js", new string[0]
+                }
+            };
+
+            var nonRecursiveGraph = new Dictionary<string, string[]>
+            {
+                { "/index.html", new []
+                    {
+                        "/images/image1.jpg",
+                        "/scripts/script.js",
+                    }
+                },
+                { "/images/image1.jpg", new []
+                    {
+                        "/index11.html"
+                    }
+                },
+                {
+                    "/scripts/script.js", new string[0]
+                },
+                {
+                    "/index11.html", new string[0]
+                }
+            };
+
+            bool isFirstHasCycle = ReferenceCycleDetector.HasCycle(recursiveGraph);
+            bool isSecondHasCycle = ReferenceCycleDetector.HasCycle(nonRecursiveGraph);
+
+            Assert.Equal(isFirstHasCycle, true);
+            Assert.Equal(isSecondHasCycle, false);
         }
     }
 }

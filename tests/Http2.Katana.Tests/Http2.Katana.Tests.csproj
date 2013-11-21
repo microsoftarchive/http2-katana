@@ -307,6 +307,15 @@
     <Compile Include="..\..\src\Microsoft.Http2.Owin.Server\Adapters\Http2OwinMessageHandler.cs">
       <Link>Sources\Microsoft.Http2.Owin.Server\Adapters\Http2OwinMessageHandler.cs</Link>
     </Compile>
+    <Compile Include="..\..\src\Microsoft.Http2.PushMiddleware\PushExtensions.cs">
+      <Link>Sources\Microsoft.Http2.PushMiddleware\PushExtensions.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Microsoft.Http2.PushMiddleware\PushMiddleware.cs">
+      <Link>Sources\Microsoft.Http2.PushMiddleware\PushMiddleware.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Microsoft.Http2.PushMiddleware\ReferenceCycleDetector.cs">
+      <Link>Sources\Microsoft.Http2.PushMiddleware\ReferenceCycleDetector.cs</Link>
+    </Compile>
     <Compile Include="..\Http2.TestClient\Adapters\Http11ClientMessageHandler.cs">
       <Link>Sources\Client\Adapters\Http11ClientMessageHandler.cs</Link>
     </Compile>
