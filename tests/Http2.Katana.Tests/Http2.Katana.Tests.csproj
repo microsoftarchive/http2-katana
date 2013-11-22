@@ -587,12 +587,6 @@
     </None>
     <None Include="packages.config" />
   </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\..\src\Microsoft.Http2.PushMiddleware\Microsoft.Http2.PushMiddleware.csproj">
-      <Project>{C8C35828-4199-4A5B-8289-6F589BCC323E}</Project>
-      <Name>Microsoft.Http2.PushMiddleware</Name>
-    </ProjectReference>
-  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>copy /y "$(SolutionDir)Drop\server.pfx"  "$(TargetDir)\server.pfx"

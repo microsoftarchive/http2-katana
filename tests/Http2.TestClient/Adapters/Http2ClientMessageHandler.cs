@@ -106,6 +106,19 @@ namespace Http2.TestClient.Adapters
             {
                 stream.WriteRst(ResetStatusCode.ProtocolError); 
             }
+
+            int code;
+            if (!int.TryParse(stream.Headers.GetValue(CommonHeaders.Status), out code))
+            {
+                stream.WriteRst(ResetStatusCode.ProtocolError);  //Got something strange in the status field
+            }
+
+            //got some king of error
+            if (code != StatusCode.Code200Ok)
+            {
+                //Close server's stream
+                stream.Dispose(ResetStatusCode.Cancel); //will dispose client's stream and close server's one.
+            }
             //Do nothing. Client may not process requests for now
         }
 

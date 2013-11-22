@@ -65,7 +65,7 @@ namespace Microsoft.Http2.Protocol
             }
             else
             {
-                stream.Headers.AddRange(sequence.Headers);
+                stream.Headers.AddRange(headersFrame.Headers); //Modify by the last accepted frame
             }
         }
 
@@ -325,7 +325,7 @@ namespace Microsoft.Http2.Protocol
             var sequence = _headersSequences.Find(seq => seq.StreamId == frame.PromisedStreamId);
             if (sequence == null)
             {
-                sequence = new HeadersSequence(frame.StreamId, frame);
+                sequence = new HeadersSequence(frame.PromisedStreamId, frame);
                 _headersSequences.Add(sequence);
             }
             else
