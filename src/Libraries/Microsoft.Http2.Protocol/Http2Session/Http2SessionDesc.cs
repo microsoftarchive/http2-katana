@@ -591,6 +591,9 @@ namespace Microsoft.Http2.Protocol
 
             stream.WriteHeadersFrame(pairs, isEndStream, true);
 
+            var streamSequence = new HeadersSequence(stream.Id, (new HeadersFrame(stream.Id, stream.Priority) { Headers = pairs }));
+            _headersSequences.Add(streamSequence);
+
             if (OnRequestSent != null)
             {
                 OnRequestSent(this, new RequestSentEventArgs(stream));

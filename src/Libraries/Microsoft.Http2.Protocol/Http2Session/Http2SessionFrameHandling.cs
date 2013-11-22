@@ -65,7 +65,7 @@ namespace Microsoft.Http2.Protocol
             }
             else
             {
-                stream.Headers.AddRange(headersFrame.Headers); //Modify by the last accepted frame
+                stream.Headers = sequence.Headers;//Modify by the last accepted frame
             }
         }
 

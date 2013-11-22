@@ -142,7 +142,7 @@ namespace Microsoft.Http2.Protocol
             set { Contract.Assert(value); _state |= StreamState.Disposed; }
         }
 
-        public HeadersList Headers { get; private set; }
+        public HeadersList Headers { get; internal set; }
 
         #endregion
 
