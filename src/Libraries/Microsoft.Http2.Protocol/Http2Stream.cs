@@ -382,7 +382,7 @@ namespace Microsoft.Http2.Protocol
         //TODO Think about: writing push_promise is available in any time now. Need to handle it.
         public void WritePushPromise(IDictionary<string, string[]> pairs, Int32 promisedId)
         {
-            if (Id % 2 != 0)
+            if (Id % 2 != 0 && promisedId % 2 != 0)
                 throw new InvalidOperationException("Client cant send push_promise frames");
 
             if (Disposed)
