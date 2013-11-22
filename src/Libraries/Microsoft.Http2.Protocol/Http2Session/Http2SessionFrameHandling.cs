@@ -352,11 +352,29 @@ namespace Microsoft.Http2.Protocol
                 stream = null;
                 return;
             }
+            
+            //06
+            //The server MUST include a method in the ":method"
+            //header field that is safe (see [HTTP-p2], Section 4.2.1).  If a
+            //client receives a PUSH_PROMISE that does not include a complete and
+            // valid set of header fields, or the ":method" header field identifies
+            //a method that is not safe, it MUST respond with a stream error
+            //(Section 5.4.2) of type PROTOCOL_ERROR.
+
+            //Lets think that only GET method is safe for now
+            var method = sequence.Headers.GetValue(CommonHeaders.Method);
+            if (method == null || method != Verbs.Get)
+            {
+                var frameReceiveStream = GetStream(frame.StreamId);
+                frameReceiveStream.WriteRst(ResetStatusCode.ProtocolError);
+                frameReceiveStream.Dispose(ResetStatusCode.None);
+            }
 
             stream = GetStream(frame.PromisedStreamId);
             if (stream == null)
             {
                 stream = CreateStream(sequence.Headers, frame.PromisedStreamId, sequence.Priority);
+                stream.EndStreamSent = true;
             }
             else
             {
