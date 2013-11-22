@@ -363,7 +363,7 @@ namespace Microsoft.Http2.Protocol
 
             //Lets think that only GET method is safe for now
             var method = sequence.Headers.GetValue(CommonHeaders.Method);
-            if (method == null || method != Verbs.Get)
+            if (method == null || !method.Equals(Verbs.Get, StringComparison.OrdinalIgnoreCase))
             {
                 var frameReceiveStream = GetStream(frame.StreamId);
                 frameReceiveStream.WriteRst(ResetStatusCode.ProtocolError);
