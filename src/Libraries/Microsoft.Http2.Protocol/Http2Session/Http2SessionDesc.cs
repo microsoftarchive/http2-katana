@@ -196,7 +196,13 @@ namespace Microsoft.Http2.Protocol
                 initialRequest.Add(CommonHeaders.Path, "/");
             }
 
+            var pairs = new HeadersList(initialRequest);
+
             var initialStream = CreateStream(new HeadersList(initialRequest), 1);
+
+            var streamSequence = new HeadersSequence(initialStream.Id, (new HeadersFrame(initialStream.Id, initialStream.Priority) 
+                                                        { Headers = pairs }));
+            _headersSequences.Add(streamSequence);
 
             //spec 06:
             //A stream identifier of one (0x1) is used to respond to the HTTP/1.1
