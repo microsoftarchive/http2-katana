@@ -1,3 +1,4 @@
+using System.IO;
 using System.Linq;
 using Http2.TestClient.Adapters;
 using Microsoft.Http1.Protocol;
@@ -6,6 +7,7 @@ using Microsoft.Http2.Owin.Server;
 using Microsoft.Http2.Protocol;
 using Microsoft.Http2.Protocol.Framing;
 using Microsoft.Http2.Protocol.Tests;
+using Microsoft.Http2.Push;
 using Moq;
 using Moq.Protected;
 using System;
@@ -22,30 +24,12 @@ using Xunit.Extensions;
 
 namespace Http2.Katana.Tests
 {
-    //This class is a server setup for a future interaction
-    //No handshake can be switched on by changing config file handshakeOptions to no-handshake
-    //If this setting was set to no-handshake then server and incoming client created by test methods
-    //will work in the no handshake mode.
-    //No priority and no flow control modes can be switched on in the .config file
-    //ONLY for server. Clients and server can interact even if these modes are different 
-    //for client and server.
-    public class Http2Setup : IDisposable
+
+    public class PropertiesProvider
     {
-        public HttpSocketServer SecureServer { get; private set; }
-        public HttpSocketServer UnsecureServer { get; private set; }
-        public bool UseSecurePort { get; private set; }
-        public bool UseHandshake { get; private set; }
-
-        public Http2Setup()
-        {
-            SecureServer = new HttpSocketServer(new Http2Middleware(new ResponseMiddleware(null)).Invoke, GetProperties(true));
-            UnsecureServer = new HttpSocketServer(new Http2Middleware(new ResponseMiddleware(null)).Invoke, GetProperties(false));
-        }
-
-        private Dictionary<string, object> GetProperties(bool useSecurePort)
+        public static Dictionary<string, object> GetProperties(bool useSecurePort)
         {
             var appSettings = ConfigurationManager.AppSettings;
-            UseHandshake = appSettings["handshakeOptions"] != "no-handshake";
 
             string address = useSecurePort ? appSettings["secureAddress"] : appSettings["unsecureAddress"];
 
@@ -77,13 +61,46 @@ namespace Http2.Katana.Tests
             return properties;
         }
 
+        public static bool UseHandshake()
+        {
+            return ConfigurationManager.AppSettings["handshakeOptions"] != "no-handshake";
+        }
+
+    }
+    //This class is a server setup for a future interaction
+    //No handshake can be switched on by changing config file handshakeOptions to no-handshake
+    //If this setting was set to no-handshake then server and incoming client created by test methods
+    //will work in the no handshake mode.
+    //No priority and no flow control modes can be switched on in the .config file
+    //ONLY for server. Clients and server can interact even if these modes are different 
+    //for client and server.
+    public class Http2Setup : IDisposable
+    {
+        public HttpSocketServer SecureServer { get; protected set; }
+        public HttpSocketServer UnsecureServer { get; protected set; }
+        public bool UseSecurePort { get; protected set; }
+        public bool UseHandshake { get; protected set; }
+
+        public Http2Setup()
+        {
+            UseHandshake = PropertiesProvider.UseHandshake();
+            SecureServer = new HttpSocketServer(new Http2Middleware(new ResponseMiddleware(null)).Invoke,PropertiesProvider.GetProperties(true));
+            UnsecureServer = new HttpSocketServer(new Http2Middleware(new ResponseMiddleware(null)).Invoke, PropertiesProvider.GetProperties(false));
+        }
+
+       
+
         public void Dispose()
         {
             SecureServer.Dispose();
             UnsecureServer.Dispose();
         }
     }
-    
+
+   
+
+
+
     public class Http2Tests : IUseFixture<Http2Setup>, IDisposable
     {
         private static bool _useSecurePort;
@@ -93,7 +110,7 @@ namespace Http2.Katana.Tests
             _useSecurePort = setupInstance.UseSecurePort;
         }
 
-        protected void SendRequest(Http2ClientMessageHandler adapter, Uri uri)
+        public static void SendRequest(Http2ClientMessageHandler adapter, Uri uri)
         {
             const string method = "get";
             var path = uri.PathAndQuery;
@@ -472,4 +489,137 @@ namespace Http2.Katana.Tests
             
         }
     }
+
+    public class Http2PushSetup
+    {
+        public HttpSocketServer SecureServer { get; protected set; }
+        public HttpSocketServer UnsecureServer { get; protected set; }
+        public bool UseSecurePort { get; protected set; }
+        public bool UseHandshake { get; protected set; }
+
+        public Http2PushSetup()
+        {
+            
+            UseHandshake = PropertiesProvider.UseHandshake();
+            SecureServer = new HttpSocketServer(new Http2Middleware(new PushMiddleware(new ResponseMiddleware(null))).Invoke, PropertiesProvider.GetProperties(true));
+            UnsecureServer = new HttpSocketServer(new Http2Middleware(new PushMiddleware(new ResponseMiddleware(null))).Invoke, PropertiesProvider.GetProperties(false));
+        }
+
+    }
+
+    public class Http2PushTests : IUseFixture<Http2PushSetup>, IDisposable
+    {
+        private static bool _useSecurePort;
+
+        void IUseFixture<Http2PushSetup>.SetFixture(Http2PushSetup setupInstance)
+        {
+            _useSecurePort = setupInstance.UseSecurePort;
+        }
+
+
+        [StandardFact]
+        public void StartSessionAndSendRequestSuccessfulPush()
+        {
+            var requestStr = ConfigurationManager.AppSettings["smallTestFile"];
+            Uri uri;
+            Uri.TryCreate(TestHelpers.GetAddress() + requestStr, UriKind.Absolute, out uri);
+
+            var wasFinalFrameReceived = false;
+            var response = new StringBuilder();
+
+            var finalFrameReceivedRaisedEvent = new ManualResetEvent(false);
+
+            var iostream = TestHelpers.GetHandshakedStream(uri);
+
+            var mockedAdapter = new Mock<Http2ClientMessageHandler>(iostream, ConnectionEnd.Client, TestHelpers.UseSecurePort,
+                new CancellationToken()) { CallBase = true };
+            
+            var adapter = mockedAdapter.Object;
+
+            var streamIdsWithResponses = new Dictionary<int, StringBuilder>();
+            mockedAdapter.Protected().Setup("ProcessIncomingData", ItExpr.IsAny<Http2Stream>(), ItExpr.IsAny<Frame>())
+                .Callback<Http2Stream, Frame>((stream, frame) =>
+                {
+                    if (frame is DataFrame)
+                    {
+                        var dataFrame = frame as DataFrame;
+                        
+                        if (!streamIdsWithResponses.ContainsKey(dataFrame.StreamId))
+                        {
+                            streamIdsWithResponses.Add(frame.StreamId, new StringBuilder());
+                        }
+                        else
+                        {
+                            streamIdsWithResponses[frame.StreamId].Append(Encoding.UTF8.GetString(
+                            dataFrame.Payload.Array.Skip(dataFrame.Payload.Offset)
+                                     .Take(dataFrame.Payload.Count)
+                                     .ToArray()));
+                        }
+
+                        Assert.True(streamIdsWithResponses.Keys.Count()==2);
+
+                        //using (Stream s = TestHelpers.GenerateStreamFromString(TestHelpers.FileContentPushTest))
+                        //{
+                        //    s.r
+                        //}
+
+                        if (dataFrame.IsEndStream)
+                        {
+                            finalFrameReceivedRaisedEvent.Set();
+                        }
+                    }
+                });
+
+
+            mockedAdapter.Protected().Setup("ProcessRequest", ItExpr.IsAny<Http2Stream>(), ItExpr.IsAny<Frame>())
+              .Callback<Http2Stream, Frame>((stream, frame) =>
+              {
+                  if (frame is HeadersFrame)
+                  {
+                      var headersFrame = frame as HeadersFrame;
+                      if (headersFrame.IsEndStream)
+                      {
+                          finalFrameReceivedRaisedEvent.Set();
+                      }
+                  }
+              });
+
+
+       
+
+
+            try
+            {
+                adapter.StartSessionAsync();
+
+                 //Server will answer on unsecure connection without request.
+                   Http2Tests.SendRequest(adapter, uri);
+
+                finalFrameReceivedRaisedEvent.WaitOne(1200000);
+                
+                //Assert.Equal(true, wasFinalFrameReceived);
+               // Assert.Equal(TestHelpers.FileContent10MbTest, response.ToString());
+            }
+            finally
+            {
+               // finalFrameReceivedRaisedEvent.Dispose();
+               // finalFrameReceivedRaisedEvent = null;
+
+                iostream.Dispose();
+                iostream = null;
+
+                adapter.Dispose();
+                adapter = null;
+
+                GC.Collect();
+            }
+        }
+
+
+        public void Dispose()
+        {
+
+        }
+    }
+
 }

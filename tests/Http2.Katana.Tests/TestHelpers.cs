@@ -24,25 +24,40 @@ namespace Microsoft.Http2.Protocol.Tests
 
         private static readonly int SecurePort = int.Parse(ConfigurationManager.AppSettings["securePort"]);
 
-        public static readonly string FileContent5bTest = 
-                                            new StreamReader(new FileStream(@"root\5mbTest.txt", FileMode.Open)).ReadToEnd(),
-                                      FileContentSimpleTest = 
-                                            new StreamReader(new FileStream(@"root\simpleTest.txt", FileMode.Open)).ReadToEnd(),
+        public static readonly string FileContent5bTest =
+            new StreamReader(new FileStream(@"root\5mbTest.txt", FileMode.Open)).ReadToEnd(),
+                                      FileContentSimpleTest =
+                                          new StreamReader(new FileStream(@"root\simpleTest.txt", FileMode.Open))
+                                              .ReadToEnd(),
+                                      FileContentPushTest =
+                                          new StreamReader(new FileStream(@"root\pushTest.txt", FileMode.Open))
+                                              .ReadToEnd(),
                                       FileContentEmptyFile = string.Empty,
                                       FileContentAnyFile = "some text";
 
+        public static readonly byte[] PushFileBytes = ReadAllFile(@"root\pushTest.txt");
 
         private static Dictionary<string, object> MakeHandshakeEnvironment(Uri uri, Stream stream)
         {
             return new Dictionary<string, object>
-			{
+                {
                     {CommonHeaders.Path, uri.PathAndQuery},
-					{CommonHeaders.Version, Protocols.Http2},
+                    {CommonHeaders.Version, Protocols.Http2},
                     {CommonHeaders.Scheme, Uri.UriSchemeHttp},
                     {CommonHeaders.Host, uri.Host},
                     {HandshakeKeys.Stream, stream},
                     {HandshakeKeys.ConnectionEnd, ConnectionEnd.Client}
-			};
+                };
+        }
+
+        public static Stream GenerateStreamFromString(string s)
+        {
+            MemoryStream stream = new MemoryStream();
+            StreamWriter writer = new StreamWriter(stream);
+            writer.Write(s);
+            writer.Flush();
+            stream.Position = 0;
+            return stream;
         }
 
         private static void MakeUnsecureHandshake(Uri uri, Stream stream)
@@ -87,27 +102,26 @@ namespace Microsoft.Http2.Protocol.Tests
             int position = 0;
 
             var modifyBufferData = new Action<byte[], int, int>((buffer, offset, count) =>
-            {
-                for (int i = offset; count > 0; --count, ++i)
                 {
-                    buffer[i] = requestBytes[position];
-                    ++position;
-                }
-            });
+                    for (int i = offset; count > 0; --count, ++i)
+                    {
+                        buffer[i] = requestBytes[position];
+                        ++position;
+                    }
+                });
 
-            mock.Setup(stream => stream.Read(It.IsAny<byte[]>(), It.IsAny<int>(), It.IsAny<int>())).Callback(modifyBufferData)
+            mock.Setup(stream => stream.Read(It.IsAny<byte[]>(), It.IsAny<int>(), It.IsAny<int>()))
+                .Callback(modifyBufferData)
                 .Returns<byte[], int, int>((buffer, offset, count) => count); // read our requestBytes
             mock.Setup(stream => stream.CanRead).Returns(true);
 
             return new Http11ProtocolOwinAdapter(mock.Object, SslProtocols.Tls, appFunc);
         }
 
-       
-      
 
         public static Stream GetHandshakedStream(Uri uri, bool allowHttp2Communication = true, bool useMock = false)
         {
-            var protocols = new List<string> { Protocols.Http1 };
+            var protocols = new List<string> {Protocols.Http1};
             if (allowHttp2Communication)
             {
                 protocols.Add(Protocols.Http2);
@@ -119,9 +133,9 @@ namespace Microsoft.Http2.Protocol.Tests
             if (uri.Port == SecurePort)
             {
                 clientStream = new SslStream(clientStream, false);
-  
+
                 (clientStream as SslStream).AuthenticateAsClient(uri.AbsoluteUri);
-                        
+
                 selectedProtocol = (clientStream as SslStream).AlpnSelectedProtocol;
             }
 
@@ -143,13 +157,12 @@ namespace Microsoft.Http2.Protocol.Tests
 
         public static string GetAddress()
         {
-
             if (UseSecurePort)
             {
                 return ConfigurationManager.AppSettings["secureAddress"];
             }
 
             return ConfigurationManager.AppSettings["unsecureAddress"];
-        } 
+        }
     }
 }
