@@ -29,9 +29,9 @@ namespace Http2.Katana.Tests
                     writer.Write(TestHelpers.FileContentSimpleTest);
                     owinResponse.ContentLength = TestHelpers.FileContentSimpleTest.Length;
                     break;
-                case "/pushtest.txt":
-                    writer.Write(TestHelpers.FileContentPushTest);
-                    owinResponse.ContentLength = TestHelpers.FileContentPushTest.Length;
+                case "/index.html":
+                    writer.Write(TestHelpers.FileContentIndex);
+                    owinResponse.ContentLength = TestHelpers.FileContentIndex.Length;
                     break;
                 case "/emptyFile.txt":
                     writer.Write(TestHelpers.FileContentEmptyFile);

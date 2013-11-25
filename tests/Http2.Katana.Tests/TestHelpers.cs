@@ -24,18 +24,20 @@ namespace Microsoft.Http2.Protocol.Tests
 
         private static readonly int SecurePort = int.Parse(ConfigurationManager.AppSettings["securePort"]);
 
+        public static readonly string IndexFileName = "index.html";
+        public static readonly string SimpleTestFileName = "simpleTest.txt";
+
         public static readonly string FileContent5bTest =
             new StreamReader(new FileStream(@"root\5mbTest.txt", FileMode.Open)).ReadToEnd(),
                                       FileContentSimpleTest =
-                                          new StreamReader(new FileStream(@"root\simpleTest.txt", FileMode.Open))
+                                          new StreamReader(new FileStream(@"root\"+SimpleTestFileName, FileMode.Open))
                                               .ReadToEnd(),
-                                      FileContentPushTest =
-                                          new StreamReader(new FileStream(@"root\pushTest.txt", FileMode.Open))
+                                      FileContentIndex =
+                                          new StreamReader(new FileStream(@"root\"+IndexFileName, FileMode.Open))
                                               .ReadToEnd(),
                                       FileContentEmptyFile = string.Empty,
                                       FileContentAnyFile = "some text";
 
-        public static readonly byte[] PushFileBytes = ReadAllFile(@"root\pushTest.txt");
 
         private static Dictionary<string, object> MakeHandshakeEnvironment(Uri uri, Stream stream)
         {

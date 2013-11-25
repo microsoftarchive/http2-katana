@@ -24,7 +24,6 @@ using Xunit.Extensions;
 
 namespace Http2.Katana.Tests
 {
-
     public class PropertiesProvider
     {
         public static Dictionary<string, object> GetProperties(bool useSecurePort)
@@ -65,8 +64,8 @@ namespace Http2.Katana.Tests
         {
             return ConfigurationManager.AppSettings["handshakeOptions"] != "no-handshake";
         }
-
     }
+
     //This class is a server setup for a future interaction
     //No handshake can be switched on by changing config file handshakeOptions to no-handshake
     //If this setting was set to no-handshake then server and incoming client created by test methods
@@ -84,11 +83,12 @@ namespace Http2.Katana.Tests
         public Http2Setup()
         {
             UseHandshake = PropertiesProvider.UseHandshake();
-            SecureServer = new HttpSocketServer(new Http2Middleware(new ResponseMiddleware(null)).Invoke,PropertiesProvider.GetProperties(true));
-            UnsecureServer = new HttpSocketServer(new Http2Middleware(new ResponseMiddleware(null)).Invoke, PropertiesProvider.GetProperties(false));
+            SecureServer = new HttpSocketServer(new Http2Middleware(new ResponseMiddleware(null)).Invoke,
+                                                PropertiesProvider.GetProperties(true));
+            UnsecureServer = new HttpSocketServer(new Http2Middleware(new ResponseMiddleware(null)).Invoke,
+                                                  PropertiesProvider.GetProperties(false));
         }
 
-       
 
         public void Dispose()
         {
@@ -96,9 +96,6 @@ namespace Http2.Katana.Tests
             UnsecureServer.Dispose();
         }
     }
-
-   
-
 
 
     public class Http2Tests : IUseFixture<Http2Setup>, IDisposable
@@ -143,20 +140,21 @@ namespace Http2.Katana.Tests
 
             var iostream = TestHelpers.GetHandshakedStream(uri);
 
-            var mockedAdapter = new Mock<Http2ClientMessageHandler>(iostream, ConnectionEnd.Client, TestHelpers.UseSecurePort,
-                new CancellationToken()) { CallBase = true };
+            var mockedAdapter = new Mock<Http2ClientMessageHandler>(iostream, ConnectionEnd.Client,
+                                                                    TestHelpers.UseSecurePort,
+                                                                    new CancellationToken()) {CallBase = true};
 
             var adapter = mockedAdapter.Object;
 
             mockedAdapter.Protected().Setup("ProcessRequest", ItExpr.IsAny<Http2Stream>(), ItExpr.IsAny<Frame>())
-                .Callback<Http2Stream, Frame>((stream, frame) =>
-                {
-                    if (frame is HeadersFrame)
-                    {
-                        wasHeadersReceived = true;
-                        headersReceivedEvent.Set();
-                    }
-                });
+                         .Callback<Http2Stream, Frame>((stream, frame) =>
+                             {
+                                 if (frame is HeadersFrame)
+                                 {
+                                     wasHeadersReceived = true;
+                                     headersReceivedEvent.Set();
+                                 }
+                             });
 
             try
             {
@@ -184,10 +182,12 @@ namespace Http2.Katana.Tests
 
             bool gotException = false;
             var stream = TestHelpers.GetHandshakedStream(uri);
-            
+
             try
             {
-                using (var adapter = new Http2ClientMessageHandler(stream, ConnectionEnd.Client, TestHelpers.UseSecurePort, new CancellationToken()))
+                using (
+                    var adapter = new Http2ClientMessageHandler(stream, ConnectionEnd.Client, TestHelpers.UseSecurePort,
+                                                                new CancellationToken()))
                 {
                     adapter.StartSessionAsync();
                 }
@@ -223,24 +223,25 @@ namespace Http2.Katana.Tests
 
             var iostream = TestHelpers.GetHandshakedStream(uri);
 
-            var mockedAdapter = new Mock<Http2ClientMessageHandler>(iostream, ConnectionEnd.Client, TestHelpers.UseSecurePort,
-                new CancellationToken()) { CallBase = true };
-            
+            var mockedAdapter = new Mock<Http2ClientMessageHandler>(iostream, ConnectionEnd.Client,
+                                                                    TestHelpers.UseSecurePort,
+                                                                    new CancellationToken()) {CallBase = true};
+
             var adapter = mockedAdapter.Object;
-            
+
             mockedAdapter.Protected().Setup("ProcessIncomingData", ItExpr.IsAny<Http2Stream>(), ItExpr.IsAny<Frame>())
-                .Callback<Http2Stream, Frame>((stream, frame) =>
-                {
-                    var dataFrame = frame as DataFrame;
-                    //response.Append(Encoding.UTF8.GetString(
-                     //   dataFrame.Payload.Array.Skip(dataFrame.Payload.Offset).Take(dataFrame.Payload.Count).ToArray()));
+                         .Callback<Http2Stream, Frame>((stream, frame) =>
+                             {
+                                 var dataFrame = frame as DataFrame;
+                                 //response.Append(Encoding.UTF8.GetString(
+                                 //   dataFrame.Payload.Array.Skip(dataFrame.Payload.Offset).Take(dataFrame.Payload.Count).ToArray()));
 
-                    if (!dataFrame.IsEndStream) 
-                        return;
+                                 if (!dataFrame.IsEndStream)
+                                     return;
 
-                    wasFinalFrameReceived = true;
-                    finalFrameReceivedRaisedEvent.Set();
-                });
+                                 wasFinalFrameReceived = true;
+                                 finalFrameReceivedRaisedEvent.Set();
+                             });
 
             try
             {
@@ -252,7 +253,7 @@ namespace Http2.Katana.Tests
                 finalFrameReceivedRaisedEvent.WaitOne(120000);
 
                 //Assert.Equal(true, wasFinalFrameReceived);
-               // Assert.Equal(TestHelpers.FileContent10MbTest, response.ToString());
+                // Assert.Equal(TestHelpers.FileContent10MbTest, response.ToString());
             }
             finally
             {
@@ -282,28 +283,31 @@ namespace Http2.Katana.Tests
 
             var clientStream = TestHelpers.GetHandshakedStream(uri);
 
-            var mockedAdapter = new Mock<Http2ClientMessageHandler>(clientStream, ConnectionEnd.Client, clientStream is SslStream,
-                new CancellationToken()) {CallBase = true};
+            var mockedAdapter = new Mock<Http2ClientMessageHandler>(clientStream, ConnectionEnd.Client,
+                                                                    clientStream is SslStream,
+                                                                    new CancellationToken()) {CallBase = true};
 
             var adapter = mockedAdapter.Object;
 
             mockedAdapter.Protected().Setup("ProcessIncomingData", ItExpr.IsAny<Http2Stream>(), ItExpr.IsAny<Frame>())
-                .Callback<Http2Stream, Frame>((stream, frame) =>
-                {
-                    bool isFin;
-                    do
-                    {
-                        var dataFrame = frame as DataFrame;
-                        responseBody.Append(Encoding.UTF8.GetString(
-                            dataFrame.Payload.Array.Skip(dataFrame.Payload.Offset).Take(dataFrame.Payload.Count).ToArray()));
-                        isFin = dataFrame.IsEndStream;
-                    } while (!isFin && stream.ReceivedDataAmount > 0);
-                    if (isFin)
-                    {
-                        finalFrameReceived = true;
-                        finalFrameReceivedRaisedEvent.Set();
-                    }
-                });
+                         .Callback<Http2Stream, Frame>((stream, frame) =>
+                             {
+                                 bool isFin;
+                                 do
+                                 {
+                                     var dataFrame = frame as DataFrame;
+                                     responseBody.Append(Encoding.UTF8.GetString(
+                                         dataFrame.Payload.Array.Skip(dataFrame.Payload.Offset)
+                                                  .Take(dataFrame.Payload.Count)
+                                                  .ToArray()));
+                                     isFin = dataFrame.IsEndStream;
+                                 } while (!isFin && stream.ReceivedDataAmount > 0);
+                                 if (isFin)
+                                 {
+                                     finalFrameReceived = true;
+                                     finalFrameReceivedRaisedEvent.Set();
+                                 }
+                             });
 
             // process http/1.1 headers manually
             var http11Headers = "GET " + uri.AbsolutePath + " HTTP/1.1\r\n" +
@@ -349,7 +353,8 @@ namespace Http2.Katana.Tests
         [InlineData(true, true)] //We are going to use priorities and flow control
         public void StartMultipleStreamsInOneSessionSuccessful(bool usePriorities, bool useFlowControl)
         {
-            string requestStr = string.Empty; // do not request file, test only request sending, do not test if response correct
+            string requestStr = string.Empty;
+            // do not request file, test only request sending, do not test if response correct
             Uri uri;
             Uri.TryCreate(TestHelpers.GetAddress() + requestStr, UriKind.Absolute, out uri);
             int finalFramesCounter = 0;
@@ -361,24 +366,25 @@ namespace Http2.Katana.Tests
 
             var iostream = TestHelpers.GetHandshakedStream(uri);
 
-            var mockedAdapter = new Mock<Http2ClientMessageHandler>(iostream, ConnectionEnd.Client, TestHelpers.UseSecurePort,
-                new CancellationToken()) { CallBase = true };
+            var mockedAdapter = new Mock<Http2ClientMessageHandler>(iostream, ConnectionEnd.Client,
+                                                                    TestHelpers.UseSecurePort,
+                                                                    new CancellationToken()) {CallBase = true};
 
             var adapter = mockedAdapter.Object;
 
             mockedAdapter.Protected().Setup("ProcessIncomingData", ItExpr.IsAny<Http2Stream>(), ItExpr.IsAny<Frame>())
-                .Callback<Http2Stream, Frame>((stream, frame) =>
-                {
-                    var dataFrame = frame as DataFrame;
-                    if (dataFrame.IsEndStream)
-                    {
-                        if (++finalFramesCounter == streamsQuantity)
-                        {
-                            wasAllResourcesDownloaded = true;
-                            allResourcesDowloadedRaisedEvent.Set();
-                        }
-                    }
-                });
+                         .Callback<Http2Stream, Frame>((stream, frame) =>
+                             {
+                                 var dataFrame = frame as DataFrame;
+                                 if (dataFrame.IsEndStream)
+                                 {
+                                     if (++finalFramesCounter == streamsQuantity)
+                                     {
+                                         wasAllResourcesDownloaded = true;
+                                         allResourcesDowloadedRaisedEvent.Set();
+                                     }
+                                 }
+                             });
 
             try
             {
@@ -393,7 +399,7 @@ namespace Http2.Katana.Tests
                     {
                         SendRequest(adapter, uri);
                         delay.WaitOne(200); //Send requests with little delay
-                    } 
+                    }
                 }
 
                 allResourcesDowloadedRaisedEvent.WaitOne(60000);
@@ -410,7 +416,6 @@ namespace Http2.Katana.Tests
                 iostream.Dispose();
                 iostream = null;
             }
-
         }
 
         [StandardFact]
@@ -426,19 +431,20 @@ namespace Http2.Katana.Tests
 
             var iostream = TestHelpers.GetHandshakedStream(uri);
 
-            var mockedAdapter = new Mock<Http2ClientMessageHandler>(iostream, ConnectionEnd.Client, TestHelpers.UseSecurePort,
-                new CancellationToken()) { CallBase = true };
+            var mockedAdapter = new Mock<Http2ClientMessageHandler>(iostream, ConnectionEnd.Client,
+                                                                    TestHelpers.UseSecurePort,
+                                                                    new CancellationToken()) {CallBase = true};
 
             var adapter = mockedAdapter.Object;
 
             mockedAdapter.Protected().Setup("ProcessRequest", ItExpr.IsAny<Http2Stream>(), ItExpr.IsAny<Frame>())
-                .Callback<Http2Stream, Frame>((stream, frame) =>
-                {
-                    // TODO discuss whether we should expect empty data or just header with zero content-length
-                    wasFinalFrameReceived = true;
-                    if (frame is IEndStreamFrame && (frame as IEndStreamFrame).IsEndStream)
-                        finalFrameReceivedRaisedEvent.Set();
-                });
+                         .Callback<Http2Stream, Frame>((stream, frame) =>
+                             {
+                                 // TODO discuss whether we should expect empty data or just header with zero content-length
+                                 wasFinalFrameReceived = true;
+                                 if (frame is IEndStreamFrame && (frame as IEndStreamFrame).IsEndStream)
+                                     finalFrameReceivedRaisedEvent.Set();
+                             });
 
             try
             {
@@ -461,32 +467,31 @@ namespace Http2.Katana.Tests
         {
             //Assert.DoesNotThrow(delegate
             //{
-                const int tasksCount = 2;
-                var tasks = new Task[tasksCount];
-                for (int i = 0; i < tasksCount; ++i)
-                {
-                    tasks[i] = Task.Run(() =>
+            const int tasksCount = 2;
+            var tasks = new Task[tasksCount];
+            for (int i = 0; i < tasksCount; ++i)
+            {
+                tasks[i] = Task.Run(() =>
+                    {
+                        try
                         {
-                            try
-                            {
-                                StartSessionAndGet5MbDataSuccessful();
-                            }
-                            catch (Exception ex)
-                            {
-                                Console.WriteLine(ex.Message);
-                                Console.WriteLine(ex.StackTrace);
-                                Assert.Equal(ex, null);
-                            }
-                        });
-                }
+                            StartSessionAndGet5MbDataSuccessful();
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine(ex.Message);
+                            Console.WriteLine(ex.StackTrace);
+                            Assert.Equal(ex, null);
+                        }
+                    });
+            }
 
-                Task.WhenAll(tasks).Wait();
+            Task.WhenAll(tasks).Wait();
             //});
         }
 
         public void Dispose()
         {
-            
         }
     }
 
@@ -499,12 +504,14 @@ namespace Http2.Katana.Tests
 
         public Http2PushSetup()
         {
-            
             UseHandshake = PropertiesProvider.UseHandshake();
-            SecureServer = new HttpSocketServer(new Http2Middleware(new PushMiddleware(new ResponseMiddleware(null))).Invoke, PropertiesProvider.GetProperties(true));
-            UnsecureServer = new HttpSocketServer(new Http2Middleware(new PushMiddleware(new ResponseMiddleware(null))).Invoke, PropertiesProvider.GetProperties(false));
+            SecureServer =
+                new HttpSocketServer(new Http2Middleware(new PushMiddleware(new ResponseMiddleware(null))).Invoke,
+                                     PropertiesProvider.GetProperties(true));
+            UnsecureServer =
+                new HttpSocketServer(new Http2Middleware(new PushMiddleware(new ResponseMiddleware(null))).Invoke,
+                                     PropertiesProvider.GetProperties(false));
         }
-
     }
 
     public class Http2PushTests : IUseFixture<Http2PushSetup>, IDisposable
@@ -517,10 +524,10 @@ namespace Http2.Katana.Tests
         }
 
 
-        [StandardFact]
+        [Fact]
         public void StartSessionAndSendRequestSuccessfulPush()
         {
-            var requestStr = ConfigurationManager.AppSettings["smallTestFile"];
+            var requestStr = TestHelpers.IndexFileName;
             Uri uri;
             Uri.TryCreate(TestHelpers.GetAddress() + requestStr, UriKind.Absolute, out uri);
 
@@ -531,79 +538,50 @@ namespace Http2.Katana.Tests
 
             var iostream = TestHelpers.GetHandshakedStream(uri);
 
-            var mockedAdapter = new Mock<Http2ClientMessageHandler>(iostream, ConnectionEnd.Client, TestHelpers.UseSecurePort,
-                new CancellationToken()) { CallBase = true };
-            
+            var mockedAdapter = new Mock<Http2ClientMessageHandler>(iostream, ConnectionEnd.Client,
+                                                                    TestHelpers.UseSecurePort,
+                                                                    new CancellationToken()) {CallBase = true};
+
             var adapter = mockedAdapter.Object;
 
-            var streamIdsWithResponses = new Dictionary<int, StringBuilder>();
+            var streamIds = new List<int>();
             mockedAdapter.Protected().Setup("ProcessIncomingData", ItExpr.IsAny<Http2Stream>(), ItExpr.IsAny<Frame>())
-                .Callback<Http2Stream, Frame>((stream, frame) =>
-                {
-                    if (frame is DataFrame)
-                    {
-                        var dataFrame = frame as DataFrame;
-                        
-                        if (!streamIdsWithResponses.ContainsKey(dataFrame.StreamId))
-                        {
-                            streamIdsWithResponses.Add(frame.StreamId, new StringBuilder());
-                        }
-                        else
-                        {
-                            streamIdsWithResponses[frame.StreamId].Append(Encoding.UTF8.GetString(
-                            dataFrame.Payload.Array.Skip(dataFrame.Payload.Offset)
-                                     .Take(dataFrame.Payload.Count)
-                                     .ToArray()));
-                        }
+                         .Callback<Http2Stream, Frame>((stream, frame) =>
+                             {
+                                 if (frame is DataFrame)
+                                 {
+                                     var dataFrame = frame as DataFrame;
 
-                        Assert.True(streamIdsWithResponses.Keys.Count()==2);
+                                     if (!streamIds.Contains(dataFrame.StreamId))
+                                     {
+                                         streamIds.Add(frame.StreamId);
+                                         CheckReceivedDataAuth(stream, dataFrame);
+                                     }
 
-                        //using (Stream s = TestHelpers.GenerateStreamFromString(TestHelpers.FileContentPushTest))
-                        //{
-                        //    s.r
-                        //}
-
-                        if (dataFrame.IsEndStream)
-                        {
-                            finalFrameReceivedRaisedEvent.Set();
-                        }
-                    }
-                });
-
-
-            mockedAdapter.Protected().Setup("ProcessRequest", ItExpr.IsAny<Http2Stream>(), ItExpr.IsAny<Frame>())
-              .Callback<Http2Stream, Frame>((stream, frame) =>
-              {
-                  if (frame is HeadersFrame)
-                  {
-                      var headersFrame = frame as HeadersFrame;
-                      if (headersFrame.IsEndStream)
-                      {
-                          finalFrameReceivedRaisedEvent.Set();
-                      }
-                  }
-              });
-
-
-       
-
+                                     if (dataFrame.IsEndStream
+                                         &&
+                                         stream.Headers.GetValue(CommonHeaders.Path)
+                                               .Equals("/" + TestHelpers.SimpleTestFileName))
+                                     {
+                                         finalFrameReceivedRaisedEvent.Set();
+                                     }
+                                 }
+                             });
 
             try
             {
                 adapter.StartSessionAsync();
 
-                 //Server will answer on unsecure connection without request.
-                   Http2Tests.SendRequest(adapter, uri);
+                Http2Tests.SendRequest(adapter, uri);
 
-                finalFrameReceivedRaisedEvent.WaitOne(1200000);
-                
-                //Assert.Equal(true, wasFinalFrameReceived);
-               // Assert.Equal(TestHelpers.FileContent10MbTest, response.ToString());
+                finalFrameReceivedRaisedEvent.WaitOne(120000);
+
+                Assert.True(streamIds.Count() == 2);
             }
             finally
             {
-               // finalFrameReceivedRaisedEvent.Dispose();
-               // finalFrameReceivedRaisedEvent = null;
+                finalFrameReceivedRaisedEvent.Dispose();
+                finalFrameReceivedRaisedEvent = null;
 
                 iostream.Dispose();
                 iostream = null;
@@ -616,10 +594,31 @@ namespace Http2.Katana.Tests
         }
 
 
+        public void CheckReceivedDataAuth(Http2Stream stream, DataFrame dataFrame)
+        {
+            if (stream.Headers.GetValue(CommonHeaders.Path).Equals("/" + TestHelpers.IndexFileName))
+                CheckArraysEquality(TestHelpers.FileContentIndex, dataFrame);
+
+            if (stream.Headers.GetValue(CommonHeaders.Path).Equals("/" + TestHelpers.SimpleTestFileName))
+                CheckArraysEquality(TestHelpers.FileContentSimpleTest, dataFrame);
+        }
+
+        public void CheckArraysEquality(String fileContent, DataFrame dataFrame)
+        {
+            using (Stream s = TestHelpers.GenerateStreamFromString(fileContent))
+            {
+                var etalonBytes = new byte[dataFrame.FrameLength];
+                s.Read(etalonBytes, 0, dataFrame.FrameLength);
+
+                Assert.Equal(etalonBytes,
+                             dataFrame.Payload.Array.Skip(8)
+                                      .Take(dataFrame.FrameLength)
+                                      .ToArray());
+            }
+        }
+
         public void Dispose()
         {
-
         }
     }
-
 }
