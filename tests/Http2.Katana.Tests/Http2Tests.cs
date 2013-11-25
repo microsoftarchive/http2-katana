@@ -44,7 +44,7 @@ namespace Http2.Katana.Tests
 
         public Http2Setup()
         {
-            UseHandshake = getHandshakeNeed();
+            UseHandshake = GetHandshakeNeed();
             SecureServer =
                 new HttpSocketServer(new Http2Middleware(new PushMiddleware(new ResponseMiddleware(null))).Invoke,
                                      GetProperties(true));
@@ -87,7 +87,7 @@ namespace Http2.Katana.Tests
             return properties;
         }
 
-        private static bool getHandshakeNeed()
+        private static bool GetHandshakeNeed()
         {
             return ConfigurationManager.AppSettings["handshakeOptions"] != "no-handshake";
         }
@@ -111,7 +111,7 @@ namespace Http2.Katana.Tests
 
         public static void SendRequest(Http2ClientMessageHandler adapter, Uri uri)
         {
-            var pairs = getHeadersList(uri);
+            var pairs = GetHeadersList(uri);
 
             adapter.SendRequest(pairs, Constants.DefaultStreamPriority, true);
         }
@@ -529,10 +529,7 @@ namespace Http2.Katana.Tests
                 Dictionary<string, string> initialRequest = null;
                 if (!(iostream is SslStream))
                 {
-                    initialRequest = new Dictionary<string, string>
-                        {
-                            {CommonHeaders.Path, uri.PathAndQuery},
-                        };
+                    initialRequest = GetHeadersList(uri).ToDictionary(p => p.Key, p => p.Value);
                 }
 
                 adapter.StartSessionAsync(initialRequest);
@@ -558,7 +555,7 @@ namespace Http2.Katana.Tests
             }
         }
 
-        private static HeadersList getHeadersList(Uri uri)
+        private static HeadersList GetHeadersList(Uri uri)
         {
             const string method = "get";
             var path = uri.PathAndQuery;
