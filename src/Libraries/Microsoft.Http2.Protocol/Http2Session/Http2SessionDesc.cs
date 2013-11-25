@@ -514,6 +514,11 @@ namespace Microsoft.Http2.Protocol
                     {
                         throw new ArgumentException("Cant remove stream from ActiveStreams");
                     }
+
+                    var streamSequence = _headersSequences.Find(seq => seq.StreamId == args.Id);
+
+                    if (streamSequence != null)
+                        _headersSequences.Remove(streamSequence);
                 };
 
             return stream;
