@@ -26,7 +26,34 @@ namespace Http2.Katana.Tests
 {
     public class PropertiesProvider
     {
-        public static Dictionary<string, object> GetProperties(bool useSecurePort)
+    }
+
+    //This class is a server setup for a future interaction
+    //No handshake can be switched on by changing config file handshakeOptions to no-handshake
+    //If this setting was set to no-handshake then server and incoming client created by test methods
+    //will work in the no handshake mode.
+    //No priority and no flow control modes can be switched on in the .config file
+    //ONLY for server. Clients and server can interact even if these modes are different 
+    //for client and server.
+    public class Http2Setup : IDisposable
+    {
+        public HttpSocketServer SecureServer { get; protected set; }
+        public HttpSocketServer UnsecureServer { get; protected set; }
+        public bool UseSecurePort { get; protected set; }
+        public bool UseHandshake { get; protected set; }
+
+        public Http2Setup()
+        {
+            UseHandshake = getHandshakeNeed();
+            SecureServer =
+                new HttpSocketServer(new Http2Middleware(new PushMiddleware(new ResponseMiddleware(null))).Invoke,
+                                     GetProperties(true));
+            UnsecureServer =
+                new HttpSocketServer(new Http2Middleware(new PushMiddleware(new ResponseMiddleware(null))).Invoke,
+                                     GetProperties(false));
+        }
+
+        private static Dictionary<string, object> GetProperties(bool useSecurePort)
         {
             var appSettings = ConfigurationManager.AppSettings;
 
@@ -60,35 +87,10 @@ namespace Http2.Katana.Tests
             return properties;
         }
 
-        public static bool UseHandshake()
+        private static bool getHandshakeNeed()
         {
             return ConfigurationManager.AppSettings["handshakeOptions"] != "no-handshake";
         }
-    }
-
-    //This class is a server setup for a future interaction
-    //No handshake can be switched on by changing config file handshakeOptions to no-handshake
-    //If this setting was set to no-handshake then server and incoming client created by test methods
-    //will work in the no handshake mode.
-    //No priority and no flow control modes can be switched on in the .config file
-    //ONLY for server. Clients and server can interact even if these modes are different 
-    //for client and server.
-    public class Http2Setup : IDisposable
-    {
-        public HttpSocketServer SecureServer { get; protected set; }
-        public HttpSocketServer UnsecureServer { get; protected set; }
-        public bool UseSecurePort { get; protected set; }
-        public bool UseHandshake { get; protected set; }
-
-        public Http2Setup()
-        {
-            UseHandshake = PropertiesProvider.UseHandshake();
-            SecureServer = new HttpSocketServer(new Http2Middleware(new ResponseMiddleware(null)).Invoke,
-                                                PropertiesProvider.GetProperties(true));
-            UnsecureServer = new HttpSocketServer(new Http2Middleware(new ResponseMiddleware(null)).Invoke,
-                                                  PropertiesProvider.GetProperties(false));
-        }
-
 
         public void Dispose()
         {
@@ -109,20 +111,7 @@ namespace Http2.Katana.Tests
 
         public static void SendRequest(Http2ClientMessageHandler adapter, Uri uri)
         {
-            const string method = "get";
-            var path = uri.PathAndQuery;
-            var version = Protocols.Http2;
-            var scheme = uri.Scheme;
-            var host = uri.Host;
-
-            var pairs = new HeadersList
-                {
-                    new KeyValuePair<string, string>(":method", method),
-                    new KeyValuePair<string, string>(":path", path),
-                    new KeyValuePair<string, string>(":version", version),
-                    new KeyValuePair<string, string>(":host", host + ":" + uri.Port),
-                    new KeyValuePair<string, string>(":scheme", scheme),
-                };
+            var pairs = getHeadersList(uri);
 
             adapter.SendRequest(pairs, Constants.DefaultStreamPriority, true);
         }
@@ -490,39 +479,6 @@ namespace Http2.Katana.Tests
             //});
         }
 
-        public void Dispose()
-        {
-        }
-    }
-
-    public class Http2PushSetup
-    {
-        public HttpSocketServer SecureServer { get; protected set; }
-        public HttpSocketServer UnsecureServer { get; protected set; }
-        public bool UseSecurePort { get; protected set; }
-        public bool UseHandshake { get; protected set; }
-
-        public Http2PushSetup()
-        {
-            UseHandshake = PropertiesProvider.UseHandshake();
-            SecureServer =
-                new HttpSocketServer(new Http2Middleware(new PushMiddleware(new ResponseMiddleware(null))).Invoke,
-                                     PropertiesProvider.GetProperties(true));
-            UnsecureServer =
-                new HttpSocketServer(new Http2Middleware(new PushMiddleware(new ResponseMiddleware(null))).Invoke,
-                                     PropertiesProvider.GetProperties(false));
-        }
-    }
-
-    public class Http2PushTests : IUseFixture<Http2PushSetup>, IDisposable
-    {
-        private static bool _useSecurePort;
-
-        void IUseFixture<Http2PushSetup>.SetFixture(Http2PushSetup setupInstance)
-        {
-            _useSecurePort = setupInstance.UseSecurePort;
-        }
-
 
         [Fact]
         public void StartSessionAndSendRequestSuccessfulPush()
@@ -570,7 +526,7 @@ namespace Http2.Katana.Tests
 
             try
             {
-                adapter.StartSessionAsync();
+                adapter.StartSessionAsync(getHeadersList(uri).ToDictionary(p => p.Key, p => p.Value));
 
                 Http2Tests.SendRequest(adapter, uri);
 
@@ -593,8 +549,26 @@ namespace Http2.Katana.Tests
             }
         }
 
+        private static HeadersList getHeadersList(Uri uri)
+        {
+            const string method = "get";
+            var path = uri.PathAndQuery;
+            var version = Protocols.Http2;
+            var scheme = uri.Scheme;
+            var host = uri.Host;
 
-        public void CheckReceivedDataAuth(Http2Stream stream, DataFrame dataFrame)
+            var pairs = new HeadersList
+                {
+                    new KeyValuePair<string, string>(":method", method),
+                    new KeyValuePair<string, string>(":path", path),
+                    new KeyValuePair<string, string>(":version", version),
+                    new KeyValuePair<string, string>(":host", host + ":" + uri.Port),
+                    new KeyValuePair<string, string>(":scheme", scheme),
+                };
+            return pairs;
+        }
+
+        private void CheckReceivedDataAuth(Http2Stream stream, DataFrame dataFrame)
         {
             if (stream.Headers.GetValue(CommonHeaders.Path).Equals("/" + TestHelpers.IndexFileName))
                 CheckArraysEquality(TestHelpers.FileContentIndex, dataFrame);
@@ -603,7 +577,7 @@ namespace Http2.Katana.Tests
                 CheckArraysEquality(TestHelpers.FileContentSimpleTest, dataFrame);
         }
 
-        public void CheckArraysEquality(String fileContent, DataFrame dataFrame)
+        private void CheckArraysEquality(String fileContent, DataFrame dataFrame)
         {
             using (Stream s = TestHelpers.GenerateStreamFromString(fileContent))
             {
