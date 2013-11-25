@@ -135,7 +135,12 @@ namespace Http2.TestClient.Adapters
             }
             else
             {
-                OnFirstSettingsSent += (o, args) => _session.SendRequest(pairs, priority, isEndStream);
+                OnFirstSettingsSent += (o, args) =>
+                    {
+                        //unsec handled via upgrade handshake
+                        if (_isSecure)
+                            _session.SendRequest(pairs, priority, isEndStream);
+                    };
             }
         }
 

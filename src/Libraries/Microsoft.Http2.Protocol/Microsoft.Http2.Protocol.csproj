@@ -115,7 +115,6 @@
     <Compile Include="IO\WriteQueue.cs" />
     <Compile Include="StatusCode.cs" />
     <Compile Include="StreamState.cs" />
-    <Compile Include="TransportInformation.cs" />
     <Compile Include="Utils\Http2Logger.cs" />
     <Compile Include="Utils\Http2LoggerState.cs" />
     <Compile Include="Verbs.cs" />

@@ -223,11 +223,9 @@ namespace Microsoft.Http2.Protocol
             if (Disposed)
                 return;
 
-            Headers.AddRange(headers);
+            //Headers.AddRange(headers);
 
-            //byte[] headerBytes = _compressionProc.Compress(headers);
-
-            var frame = new HeadersFrame(_id, /*headerBytes,*/ Priority)
+            var frame = new HeadersFrame(_id, Priority)
                 {
                     IsEndHeaders = isEndHeaders,
                     IsEndStream = isEndStream,

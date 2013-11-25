@@ -61,7 +61,7 @@ namespace Microsoft.Http2.Protocol
             stream = GetStream(headersFrame.StreamId);
             if (stream == null)
             {
-                stream = CreateStream(sequence.Headers, headersFrame.StreamId, sequence.Priority);
+                stream = CreateStream(sequence);
             }
             else
             {
@@ -116,11 +116,11 @@ namespace Microsoft.Http2.Protocol
             stream = GetStream(contFrame.StreamId);
             if (stream == null)
             {
-                stream = CreateStream(sequence.Headers, contFrame.StreamId, sequence.Priority);
+                stream = CreateStream(sequence);
             }
             else
             {
-                stream.Headers.AddRange(sequence.Headers);
+                stream.Headers = sequence.Headers;
             }
         }
 
@@ -373,7 +373,7 @@ namespace Microsoft.Http2.Protocol
             stream = GetStream(frame.PromisedStreamId);
             if (stream == null)
             {
-                stream = CreateStream(sequence.Headers, frame.PromisedStreamId, sequence.Priority);
+                stream = CreateStream(sequence);
                 stream.EndStreamSent = true;
             }
             else

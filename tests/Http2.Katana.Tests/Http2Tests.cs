@@ -526,13 +526,22 @@ namespace Http2.Katana.Tests
 
             try
             {
-                adapter.StartSessionAsync(getHeadersList(uri).ToDictionary(p => p.Key, p => p.Value));
+                Dictionary<string, string> initialRequest = null;
+                if (!(iostream is SslStream))
+                {
+                    initialRequest = new Dictionary<string, string>
+                        {
+                            {CommonHeaders.Path, uri.PathAndQuery},
+                        };
+                }
+
+                adapter.StartSessionAsync(initialRequest);
 
                 Http2Tests.SendRequest(adapter, uri);
 
                 finalFrameReceivedRaisedEvent.WaitOne(120000);
 
-                Assert.True(streamIds.Count() == 2);
+                Assert.True(streamIds.Count == 2);
             }
             finally
             {

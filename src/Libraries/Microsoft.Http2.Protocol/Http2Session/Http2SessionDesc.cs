@@ -196,13 +196,7 @@ namespace Microsoft.Http2.Protocol
                 initialRequest.Add(CommonHeaders.Path, "/");
             }
 
-            var pairs = new HeadersList(initialRequest);
-
             var initialStream = CreateStream(new HeadersList(initialRequest), 1);
-
-            var streamSequence = new HeadersSequence(initialStream.Id, (new HeadersFrame(initialStream.Id, initialStream.Priority) 
-                                                        { Headers = pairs }));
-            _headersSequences.Add(streamSequence);
 
             //spec 06:
             //A stream identifier of one (0x1) is used to respond to the HTTP/1.1
@@ -506,6 +500,9 @@ namespace Microsoft.Http2.Protocol
                                          _writeQueue, _flowControlManager,
                                          _comprProc, priority);
 
+            var streamSequence = new HeadersSequence(streamId, (new HeadersFrame(streamId, priority){Headers = headers}));
+            _headersSequences.Add(streamSequence);
+
             ActiveStreams[stream.Id] = stream;
 
             stream.OnClose += (o, args) =>
@@ -515,11 +512,57 @@ namespace Microsoft.Http2.Protocol
                         throw new ArgumentException("Cant remove stream from ActiveStreams");
                     }
 
-                    var streamSequence = _headersSequences.Find(seq => seq.StreamId == args.Id);
+                    var streamSeq = _headersSequences.Find(seq => seq.StreamId == args.Id);
 
-                    if (streamSequence != null)
-                        _headersSequences.Remove(streamSequence);
+                    if (streamSeq != null)
+                        _headersSequences.Remove(streamSeq);
                 };
+
+            return stream;
+        }
+
+        /// <summary>
+        /// Creates stream.
+        /// </summary>
+        /// <param name="headers"></param>
+        /// <param name="streamId"></param>
+        /// <param name="priority"></param>
+        /// <returns></returns>
+        internal Http2Stream CreateStream(HeadersSequence sequence)
+        {
+
+            if (sequence == null)
+                throw new ArgumentNullException("sequence is null");
+
+            if (sequence.Priority < 0 || sequence.Priority > Constants.MaxPriority)
+                throw new ArgumentOutOfRangeException("priority is not between 0 and MaxPriority");
+
+            if (ActiveStreams.GetOpenedStreamsBy(_remoteEnd) + 1 > OurMaxConcurrentStreams)
+            {
+                throw new MaxConcurrentStreamsLimitException();
+            }
+
+            int id = sequence.StreamId;
+            int priority = sequence.Priority;
+            var headers = sequence.Headers;
+            var stream = new Http2Stream(headers, id,
+                                         _writeQueue, _flowControlManager,
+                                         _comprProc, priority);
+
+            ActiveStreams[stream.Id] = stream;
+
+            stream.OnClose += (o, args) =>
+            {
+                if (!ActiveStreams.Remove(ActiveStreams[args.Id]))
+                {
+                    throw new ArgumentException("Cant remove stream from ActiveStreams");
+                }
+
+                var streamSeq = _headersSequences.Find(seq => seq.StreamId == args.Id);
+
+                if (streamSeq != null)
+                    _headersSequences.Remove(streamSeq);
+            };
 
             return stream;
         }
@@ -560,6 +603,9 @@ namespace Microsoft.Http2.Protocol
                 ActiveStreams[id] = new Http2Stream(id, _writeQueue, _flowControlManager, _comprProc);
             }
 
+            var streamSequence = new HeadersSequence(id, (new HeadersFrame(id, priority)));
+            _headersSequences.Add(streamSequence);
+
             ActiveStreams[id].OnClose += (o, args) =>
                 {
                     if (!ActiveStreams.Remove(ActiveStreams[args.Id]))
@@ -567,10 +613,10 @@ namespace Microsoft.Http2.Protocol
                         throw new ArgumentException("Can't remove stream from ActiveStreams.");
                     }
 
-                    var streamSequence = _headersSequences.Find(seq => seq.StreamId == args.Id);
+                    var streamSeq = _headersSequences.Find(seq => seq.StreamId == args.Id);
 
-                    if (streamSequence != null)
-                        _headersSequences.Remove(streamSequence);
+                    if (streamSeq != null)
+                        _headersSequences.Remove(streamSeq);
                 };
 
             ActiveStreams[id].OnFrameSent += (o, args) =>
@@ -602,8 +648,10 @@ namespace Microsoft.Http2.Protocol
 
             stream.WriteHeadersFrame(pairs, isEndStream, true);
 
-            var streamSequence = new HeadersSequence(stream.Id, (new HeadersFrame(stream.Id, stream.Priority) { Headers = pairs }));
-            _headersSequences.Add(streamSequence);
+            var streamSequence = _headersSequences.Find(seq => seq.StreamId == stream.Id);
+            streamSequence.AddHeaders(new HeadersFrame(stream.Id, stream.Priority) { Headers = pairs });
+                //new HeadersSequence(stream.Id, (new HeadersFrame(stream.Id, stream.Priority) { Headers = pairs }));
+            //_headersSequences.Add(streamSequence);
 
             if (OnRequestSent != null)
             {
