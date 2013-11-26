@@ -9,6 +9,7 @@ using Microsoft.Owin;
 using Microsoft.Http2.Protocol;
 using Microsoft.Http2.Protocol.Utils;
 using OpenSSL.SSL;
+using Owin;
 using StatusCode = Microsoft.Http2.Protocol.StatusCode;
 
 namespace Microsoft.Http2.Owin.Server.Adapters

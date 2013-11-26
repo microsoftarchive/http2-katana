@@ -51,7 +51,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Adapters\CommonOwinKeys.cs" />
+    <Compile Include="CommonOwinKeys.cs" />
     <Compile Include="Adapters\Http2OwinMessageContext.cs" />
     <Compile Include="DictionaryExtensions.cs" />
     <Compile Include="GlobalSuppressions.cs" />

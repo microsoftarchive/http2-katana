@@ -292,9 +292,6 @@
     <Compile Include="..\..\src\Libraries\OpenSsl\ManagedOpenSsl\X509\X509StoreContext.cs">
       <Link>Sources\Libraries\OpenSsl\X509\X509StoreContext.cs</Link>
     </Compile>
-    <Compile Include="..\..\src\Microsoft.Http2.Owin.Server\Adapters\CommonOwinKeys.cs">
-      <Link>Sources\Microsoft.Http2.Owin.Server\Adapters\CommonOwinKeys.cs</Link>
-    </Compile>
     <Compile Include="..\..\src\Microsoft.Http2.Owin.Server\Adapters\Http11Helper.cs">
       <Link>Sources\Microsoft.Http2.Owin.Server\Adapters\Http11Helper.cs</Link>
     </Compile>
@@ -306,6 +303,9 @@
     </Compile>
     <Compile Include="..\..\src\Microsoft.Http2.Owin.Server\Adapters\Http2OwinMessageHandler.cs">
       <Link>Sources\Microsoft.Http2.Owin.Server\Adapters\Http2OwinMessageHandler.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Microsoft.Http2.Owin.Server\CommonOwinKeys.cs">
+      <Link>Sources\Microsoft.Http2.Owin.Server\Adapters\CommonOwinKeys.cs</Link>
     </Compile>
     <Compile Include="..\..\src\Microsoft.Http2.PushMiddleware\PushExtensions.cs">
       <Link>Sources\Microsoft.Http2.PushMiddleware\PushExtensions.cs</Link>

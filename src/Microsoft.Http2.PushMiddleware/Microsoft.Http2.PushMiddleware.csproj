@@ -56,6 +56,10 @@
       <Project>{e34ac310-324c-46bc-af9f-1a41df58e867}</Project>
       <Name>Microsoft.Http2.Protocol</Name>
     </ProjectReference>
+    <ProjectReference Include="..\Microsoft.Http2.Owin.Server\Microsoft.Http2.Owin.Server.csproj">
+      <Project>{658c0a0d-a624-4532-aff0-180ec5ed7887}</Project>
+      <Name>Microsoft.Http2.Owin.Server</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>

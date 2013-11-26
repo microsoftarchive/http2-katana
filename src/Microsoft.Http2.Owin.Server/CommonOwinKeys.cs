@@ -1,4 +1,4 @@
-﻿namespace Microsoft.Http2.Owin.Server.Adapters
+﻿namespace Owin
 {
     public static class CommonOwinKeys
     {

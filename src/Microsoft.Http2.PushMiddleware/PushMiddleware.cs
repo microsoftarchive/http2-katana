@@ -3,6 +3,7 @@ using Microsoft.Owin;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Owin;
 
 namespace Microsoft.Http2.Push
 {
@@ -44,7 +45,7 @@ namespace Microsoft.Http2.Push
 
         private bool TryGetPushPromise(IOwinContext context, out PushFunc pushPromise)
         {
-            pushPromise = context.Get<PushFunc>("server.push");
+            pushPromise = context.Get<PushFunc>(CommonOwinKeys.ServerPushFunc);
             return pushPromise != null;
         }
 

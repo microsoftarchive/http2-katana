@@ -9,6 +9,7 @@ using Microsoft.Http2.Protocol.Framing;
 using Microsoft.Http2.Protocol.Utils;
 using Microsoft.Owin;
 using OpenSSL;
+using Owin;
 
 namespace Microsoft.Http2.Owin.Server.Adapters
 {

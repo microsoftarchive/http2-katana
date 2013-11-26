@@ -13,6 +13,7 @@ using Microsoft.Owin;
 using Microsoft.Http2.Protocol;
 using OpenSSL;
 using OpenSSL.SSL;
+using Owin;
 
 namespace Microsoft.Http2.Owin.Middleware
 {
