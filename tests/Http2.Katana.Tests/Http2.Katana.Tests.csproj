@@ -307,6 +307,9 @@
     <Compile Include="..\..\src\Microsoft.Http2.Owin.Server\CommonOwinKeys.cs">
       <Link>Sources\Microsoft.Http2.Owin.Server\Adapters\CommonOwinKeys.cs</Link>
     </Compile>
+    <Compile Include="..\..\src\Microsoft.Http2.PushMiddleware\Exceptions\ReferenceTableHasCycleException.cs">
+      <Link>Sources\Microsoft.Http2.PushMiddleware\Exceptions\ReferenceTableHasCycleException.cs</Link>
+    </Compile>
     <Compile Include="..\..\src\Microsoft.Http2.PushMiddleware\PushExtensions.cs">
       <Link>Sources\Microsoft.Http2.PushMiddleware\PushExtensions.cs</Link>
     </Compile>

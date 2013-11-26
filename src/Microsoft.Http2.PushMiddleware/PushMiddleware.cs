@@ -1,4 +1,5 @@
 ﻿using Microsoft.Http2.Protocol;
+using Microsoft.Http2.Push.Exceptions;
 using Microsoft.Owin;
 using System;
 using System.Collections.Generic;
@@ -11,20 +12,27 @@ namespace Microsoft.Http2.Push
 
     public class PushMiddleware : OwinMiddleware
     {
-        private readonly IDictionary<string, string[]> _references;
+        private readonly Dictionary<string, string[]> _references;
 
         public PushMiddleware(OwinMiddleware next)
             : base(next)
         {
-            // TODO: Validate that this table never has cycles.  Push recursion would be bad!
             _references = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase)
             {
                 { "/index.html", new []
                     {
                         "/simpleTest.txt",
                     }
-                }
+                },
+                {
+                    "/simpleTest.txt", new string[0] //simpleTest does not reference any files.
+                },
             };
+
+            if (ReferenceCycleDetector.HasCycle(_references))
+            {
+                //TODO Handle this situation. 
+            }
         }
 
         public override async Task Invoke(IOwinContext context)

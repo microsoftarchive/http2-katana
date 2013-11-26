@@ -46,6 +46,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Exceptions\ReferenceTableHasCycleException.cs" />
     <Compile Include="PushExtensions.cs" />
     <Compile Include="PushMiddleware.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
