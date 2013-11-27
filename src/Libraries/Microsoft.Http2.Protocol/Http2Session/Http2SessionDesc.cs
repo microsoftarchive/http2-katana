@@ -650,7 +650,7 @@ namespace Microsoft.Http2.Protocol
         public void SendRequest(HeadersList pairs, int priority, bool isEndStream)
         {
             if (_ourEnd == ConnectionEnd.Server)
-                throw new Exception("Server should not initiate request");//TODO Add exception type
+                throw new ProtocolError(ResetStatusCode.ProtocolError, "Server should not initiate request");
 
             if (pairs == null)
                 throw new ArgumentNullException("pairs is null");
@@ -661,13 +661,13 @@ namespace Microsoft.Http2.Protocol
             var path = pairs.GetValue(CommonHeaders.Path);
 
             if (path == null)
-                throw new Exception("Invalid request ex");//TODO Add exception type
+                throw new ProtocolError(ResetStatusCode.ProtocolError, "Invalid request ex");
             //06
             //Once a client receives a PUSH_PROMISE frame and chooses to accept the
             //pushed resource, the client SHOULD NOT issue any requests for the
             //promised resource until after the promised stream has closed.
             if (_promisedResources.ContainsValue(path))
-                throw new Exception("Resource has been promised. Client should not request it.");//TODO Add exception type
+                throw new ProtocolError(ResetStatusCode.ProtocolError, "Resource has been promised. Client should not request it.");
 
             var stream = CreateStream(priority);
 

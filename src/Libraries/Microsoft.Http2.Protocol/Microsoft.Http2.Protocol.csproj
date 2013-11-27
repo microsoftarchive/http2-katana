@@ -71,6 +71,7 @@
     <Compile Include="Extensions\Int32Extensions.cs" />
     <Compile Include="FlowControl\FlowControlManager.cs" />
     <Compile Include="FlowControl\FlowControlOptions.cs" />
+    <Compile Include="ForbiddenHeaders.cs" />
     <Compile Include="Framing\ContinuationFrame.cs" />
     <Compile Include="Framing\HeadersSequence.cs" />
     <Compile Include="Framing\IEndStreamFrames.cs" />

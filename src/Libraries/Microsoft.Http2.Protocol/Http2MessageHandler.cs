@@ -56,6 +56,11 @@ namespace Microsoft.Http2.Protocol
             switch (frame.FrameType)
             {
                 case FrameType.Headers:
+                    if (ForbiddenHeaders.HasForbiddenHeader(stream.Headers))
+                    {
+                        stream.WriteRst(ResetStatusCode.ProtocolError);
+                        return;
+                    }
                     ProcessRequest(stream, frame);
                     break;
                 case FrameType.Data:
