@@ -368,6 +368,9 @@ namespace Microsoft.Http2.Protocol
                 var frameReceiveStream = GetStream(frame.StreamId);
                 frameReceiveStream.WriteRst(ResetStatusCode.ProtocolError);
                 frameReceiveStream.Dispose(ResetStatusCode.None);
+
+                stream = null;
+                return;
             }
 
             stream = GetStream(frame.PromisedStreamId);

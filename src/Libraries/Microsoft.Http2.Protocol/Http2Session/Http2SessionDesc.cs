@@ -43,7 +43,7 @@ namespace Microsoft.Http2.Protocol
         private readonly CancellationToken _cancelSessionToken;
         private readonly List<HeadersSequence> _headersSequences; 
         private const string ClientSessionHeader = "PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n";
- 
+        private Dictionary<int, string> _promisedResources; 
         /// <summary>
         /// Occurs when settings frame was sent.
         /// </summary>
@@ -163,6 +163,7 @@ namespace Microsoft.Http2.Protocol
 
             SessionWindowSize = 0;
             _headersSequences = new List<HeadersSequence>();
+            _promisedResources = new Dictionary<int, string>();
         }
 
         private void SendSessionHeader()
@@ -416,6 +417,12 @@ namespace Microsoft.Http2.Protocol
                         break;
                     case FrameType.PushPromise:
                         HandlePushPromiseFrame(frame as PushPromiseFrame, out stream);
+
+                        if (stream != null) //This means that sequence is complete
+                        {
+                            _promisedResources.Add(stream.Id, stream.Headers.GetValue(CommonHeaders.Path));
+                        }
+
                         break;
                     default:
                         //Item 4.1 in 06 spec: Implementations MUST ignore frames of unsupported or unrecognized types
@@ -430,6 +437,10 @@ namespace Microsoft.Http2.Protocol
                     //Tell the stream that it was the last frame
                     Http2Logger.LogDebug("Final frame received for stream with id = " + stream.Id);
                     stream.EndStreamReceived = true;
+
+                    //Promised resource has been pushed
+                    if (_promisedResources.ContainsKey(stream.Id))
+                        _promisedResources.Remove(stream.Id);
                 }
 
                 if (stream == null || OnFrameReceived == null) 
@@ -638,11 +649,25 @@ namespace Microsoft.Http2.Protocol
         /// <param name="isEndStream">True if initial headers+priority is also the final frame from endpoint.</param>
         public void SendRequest(HeadersList pairs, int priority, bool isEndStream)
         {
+            if (_ourEnd == ConnectionEnd.Server)
+                throw new Exception("Server should not initiate request");//TODO Add exception type
+
             if (pairs == null)
                 throw new ArgumentNullException("pairs is null");
 
             if (priority < 0 || priority > Constants.MaxPriority)
                 throw new ArgumentOutOfRangeException("priority is not between 0 and MaxPriority");
+
+            var path = pairs.GetValue(CommonHeaders.Path);
+
+            if (path == null)
+                throw new Exception("Invalid request ex");//TODO Add exception type
+            //06
+            //Once a client receives a PUSH_PROMISE frame and chooses to accept the
+            //pushed resource, the client SHOULD NOT issue any requests for the
+            //promised resource until after the promised stream has closed.
+            if (_promisedResources.ContainsValue(path))
+                throw new Exception("Resource has been promised. Client should not request it.");//TODO Add exception type
 
             var stream = CreateStream(priority);
 
