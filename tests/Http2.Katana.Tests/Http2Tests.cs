@@ -5,6 +5,7 @@ using Microsoft.Http1.Protocol;
 using Microsoft.Http2.Owin.Middleware;
 using Microsoft.Http2.Owin.Server;
 using Microsoft.Http2.Protocol;
+using Microsoft.Http2.Protocol.Exceptions;
 using Microsoft.Http2.Protocol.Framing;
 using Microsoft.Http2.Protocol.Tests;
 using Microsoft.Http2.Push;
@@ -544,6 +545,75 @@ namespace Http2.Katana.Tests
             {
                 finalFrameReceivedRaisedEvent.Dispose();
                 finalFrameReceivedRaisedEvent = null;
+
+                iostream.Dispose();
+                iostream = null;
+
+                adapter.Dispose();
+                adapter = null;
+
+                GC.Collect();
+            }
+        }
+
+        [Fact]
+        public void SendRequestOnAlreadyPushedResource()
+        {
+            var requestStr = TestHelpers.IndexFileName;
+            Uri uri;
+            Uri.TryCreate(TestHelpers.GetAddress() + requestStr, UriKind.Absolute, out uri);
+
+            var wasFinalFrameReceived = false;
+            var response = new StringBuilder();
+
+            var protocolErrorRaisedEvent = new ManualResetEvent(false);
+
+            var iostream = TestHelpers.GetHandshakedStream(uri);
+
+            var mockedAdapter = new Mock<Http2ClientMessageHandler>(iostream, ConnectionEnd.Client,
+                                                                    TestHelpers.UseSecurePort,
+                                                                    new CancellationToken()) {CallBase = true};
+
+            var adapter = mockedAdapter.Object;
+
+            mockedAdapter.Protected().Setup("ProcessRequest", ItExpr.IsAny<Http2Stream>(), ItExpr.IsAny<Frame>())
+                         .Callback<Http2Stream, Frame>((stream, frame) =>
+                             {
+                                 if (frame is HeadersFrame && stream.Id.Equals(2))
+                                 {
+                                     Uri pushUri;
+                                     Uri.TryCreate(
+                                         TestHelpers.GetAddress() +
+                                         stream.Headers.GetValue(CommonHeaders.Path).Replace("/", ""), UriKind.Absolute,
+                                         out pushUri);
+
+                                     try
+                                     {
+                                         Http2Tests.SendRequest(adapter, pushUri);
+                                     }
+                                     catch (ProtocolError e)
+                                     {
+                                         protocolErrorRaisedEvent.Set();
+                                     }
+                                 }
+                             });
+
+            try
+            {
+                Dictionary<string, string> initialRequest = null;
+                if (!(iostream is SslStream))
+                {
+                    initialRequest = GetHeadersList(uri).ToDictionary(p => p.Key, p => p.Value);
+                }
+
+                adapter.StartSessionAsync(initialRequest);
+                Http2Tests.SendRequest(adapter, uri);
+                protocolErrorRaisedEvent.WaitOne(10000);
+            }
+            finally
+            {
+                protocolErrorRaisedEvent.Dispose();
+                protocolErrorRaisedEvent = null;
 
                 iostream.Dispose();
                 iostream = null;
