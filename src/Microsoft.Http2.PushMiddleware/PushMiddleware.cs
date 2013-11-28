@@ -1,65 +1,23 @@
 ﻿using Microsoft.Http2.Protocol;
-using Microsoft.Http2.Push.Exceptions;
 using Microsoft.Owin;
 using System;
 using System.Collections.Generic;
-using System.Threading.Tasks;
-using Owin;
 
 namespace Microsoft.Http2.Push
 {
-    using PushFunc = Action<IDictionary<string, string[]>>;
+   using PushFunc = Action<IDictionary<string, string[]>>;
 
-    public class PushMiddleware : OwinMiddleware
+    public class PushMiddleware : PushMiddlewareBase
     {
-        private readonly Dictionary<string, string[]> _references;
-
         public PushMiddleware(OwinMiddleware next)
             : base(next)
         {
-            _references = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase)
-            {
-                { "/index.html", new []
-                    {
-                        "/simpleTest.txt",
-                    }
-                },
-                {
-                    "/simpleTest.txt", new string[0] //simpleTest does not reference any files.
-                },
-            };
-
-            if (ReferenceCycleDetector.HasCycle(_references))
-            {
-                //TODO Handle this situation. 
-            }
+            
         }
-
-        public override async Task Invoke(IOwinContext context)
-        {
-            string[] pushReferences;
-            PushFunc pushPromise;
-            if (_references.TryGetValue(context.Request.Path.Value, out pushReferences)
-                && TryGetPushPromise(context, out pushPromise))
-            {
-                foreach (string pushReference in pushReferences)
-                {
-                    Push(context.Request, pushPromise, pushReference);
-                }
-            }
-
-            await Next.Invoke(context);
-        }
-
-        private bool TryGetPushPromise(IOwinContext context, out PushFunc pushPromise)
-        {
-            pushPromise = context.Get<PushFunc>(CommonOwinKeys.ServerPushFunc);
-            return pushPromise != null;
-        }
-
+     
         // TODO: The spec does not specify how to derive the push promise request headers.
         // Fow now we are just going to copy the original request and change the path.
-        private void Push(IOwinRequest request, PushFunc pushPromise, string pushReference)
+        protected override void Push(IOwinRequest request,PushFunc pushPromise, string pushReference)
         {
             // Copy the headers
             var headers = new HeaderDictionary(

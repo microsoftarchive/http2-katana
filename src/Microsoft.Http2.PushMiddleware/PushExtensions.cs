@@ -6,7 +6,7 @@ namespace Owin
     {
         public static IAppBuilder UsePush(this IAppBuilder builder)
         {
-            return builder.Use(typeof(PushMiddleware));
+            return builder.Use(typeof(PushMiddlewareBase));
         }
     }
 }

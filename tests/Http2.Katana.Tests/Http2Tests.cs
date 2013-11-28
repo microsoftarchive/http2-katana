@@ -517,8 +517,8 @@ namespace Http2.Katana.Tests
 
                                      if (dataFrame.IsEndStream
                                          &&
-                                         stream.Headers.GetValue(CommonHeaders.Path)
-                                               .Equals("/" + TestHelpers.SimpleTestFileName))
+                                         stream.Headers.GetValue(CommonHeaders.Path.ToLower())
+                                               .Equals("/" + TestHelpers.IndexFileName.ToLower()))
                                      {
                                          finalFrameReceivedRaisedEvent.Set();
                                      }
@@ -537,7 +537,7 @@ namespace Http2.Katana.Tests
 
                 Http2Tests.SendRequest(adapter, uri);
 
-                finalFrameReceivedRaisedEvent.WaitOne(120000);
+                finalFrameReceivedRaisedEvent.WaitOne(80000);
 
                 Assert.True(streamIds.Count == 2);
             }

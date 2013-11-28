@@ -562,14 +562,10 @@ namespace Microsoft.Http2.Protocol
                     throw new ArgumentException("Cant remove stream from ActiveStreams");
                 }
 
-                ActiveStreams[args.Id] = null;
-
                 var streamSeq = _headersSequences.Find(seq => seq.StreamId == args.Id);
 
                 if (streamSeq != null)
                     _headersSequences.Remove(streamSeq);
-
-                streamSeq = null;
             };
 
             return stream;
@@ -621,14 +617,10 @@ namespace Microsoft.Http2.Protocol
                         throw new ArgumentException("Can't remove stream from ActiveStreams.");
                     }
 
-                    ActiveStreams[args.Id] = null;
-
                     var streamSeq = _headersSequences.Find(seq => seq.StreamId == args.Id);
 
                     if (streamSeq != null)
                         _headersSequences.Remove(streamSeq);
-
-                    streamSeq = null;
                 };
 
             ActiveStreams[id].OnFrameSent += (o, args) =>

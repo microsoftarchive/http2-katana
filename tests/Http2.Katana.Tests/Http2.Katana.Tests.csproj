@@ -319,6 +319,9 @@
     <Compile Include="..\..\src\Microsoft.Http2.PushMiddleware\PushMiddleware.cs">
       <Link>Sources\Microsoft.Http2.PushMiddleware\PushMiddleware.cs</Link>
     </Compile>
+    <Compile Include="..\..\src\Microsoft.Http2.PushMiddleware\PushMiddlewareBase.cs">
+      <Link>Sources\Microsoft.Http2.PushMiddleware\PushMiddlewareBase.cs</Link>
+    </Compile>
     <Compile Include="..\..\src\Microsoft.Http2.PushMiddleware\ReferenceCycleDetector.cs">
       <Link>Sources\Microsoft.Http2.PushMiddleware\ReferenceCycleDetector.cs</Link>
     </Compile>
