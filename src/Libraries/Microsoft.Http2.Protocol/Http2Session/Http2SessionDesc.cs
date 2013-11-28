@@ -24,12 +24,12 @@ namespace Microsoft.Http2.Protocol
     public partial class Http2Session : IDisposable
     {
         private bool _goAwayReceived;
-        private readonly FrameReader _frameReader;
-        private readonly WriteQueue _writeQueue;
-        private readonly Stream _ioStream;
+        private FrameReader _frameReader;
+        private WriteQueue _writeQueue;
+        private Stream _ioStream;
         private ManualResetEvent _pingReceived = new ManualResetEvent(false);
         private bool _disposed;
-        private readonly ICompressionProcessor _comprProc;
+        private ICompressionProcessor _comprProc;
         private readonly FlowControlManager _flowControlManager;
         private readonly ConnectionEnd _ourEnd;
         private readonly ConnectionEnd _remoteEnd;
@@ -532,13 +532,6 @@ namespace Microsoft.Http2.Protocol
             return stream;
         }
 
-        /// <summary>
-        /// Creates stream.
-        /// </summary>
-        /// <param name="headers"></param>
-        /// <param name="streamId"></param>
-        /// <param name="priority"></param>
-        /// <returns></returns>
         internal Http2Stream CreateStream(HeadersSequence sequence)
         {
 
@@ -569,10 +562,14 @@ namespace Microsoft.Http2.Protocol
                     throw new ArgumentException("Cant remove stream from ActiveStreams");
                 }
 
+                ActiveStreams[args.Id] = null;
+
                 var streamSeq = _headersSequences.Find(seq => seq.StreamId == args.Id);
 
                 if (streamSeq != null)
                     _headersSequences.Remove(streamSeq);
+
+                streamSeq = null;
             };
 
             return stream;
@@ -624,10 +621,14 @@ namespace Microsoft.Http2.Protocol
                         throw new ArgumentException("Can't remove stream from ActiveStreams.");
                     }
 
+                    ActiveStreams[args.Id] = null;
+
                     var streamSeq = _headersSequences.Find(seq => seq.StreamId == args.Id);
 
                     if (streamSeq != null)
                         _headersSequences.Remove(streamSeq);
+
+                    streamSeq = null;
                 };
 
             ActiveStreams[id].OnFrameSent += (o, args) =>
@@ -675,8 +676,6 @@ namespace Microsoft.Http2.Protocol
 
             var streamSequence = _headersSequences.Find(seq => seq.StreamId == stream.Id);
             streamSequence.AddHeaders(new HeadersFrame(stream.Id, stream.Priority) { Headers = pairs });
-                //new HeadersSequence(stream.Id, (new HeadersFrame(stream.Id, stream.Priority) { Headers = pairs }));
-            //_headersSequences.Add(streamSequence);
 
             if (OnRequestSent != null)
             {
@@ -782,7 +781,6 @@ namespace Microsoft.Http2.Protocol
             foreach (var stream in ActiveStreams.Values)
             {
                 //Cancel all opened streams
-                //stream.WriteRst(ResetStatusCode.Cancel);
                 stream.Dispose(ResetStatusCode.Cancel);
             }
 
@@ -792,30 +790,31 @@ namespace Microsoft.Http2.Protocol
 
             //Missing GoAway means connection was forcibly closed by the remote ep. This means that we can
             //send nothing into this connection. No need trying to send GoAway.
-            if (!_goAwayReceived)
-            {
-                //WriteGoAway(status);
-            }
+            //Hence we may not check for !_goAwayReceived
 
             if (_writeQueue != null)
             {
                 _writeQueue.Flush();
                 _writeQueue.Dispose();
+                _writeQueue = null;
             }
 
             if (_frameReader != null)
             {
                 _frameReader.Dispose();
+                _frameReader = null;
             }
 
             if (_comprProc != null)
             {
                 _comprProc.Dispose();
+                _comprProc = null;
             }
 
             if (_ioStream != null)
             {
                 _ioStream.Close();
+                _ioStream = null;
             }
 
             if (_pingReceived != null)
