@@ -89,6 +89,7 @@ namespace Microsoft.Http2.Owin.Server.Adapters
                 try
                 {
                     var context = new Http2OwinMessageContext(stream);
+                    var contextEnv = context.OwinContext.Environment;
 
                     PushFunc pushDelegate = null;
                     pushDelegate = async pairs =>
@@ -100,9 +101,16 @@ namespace Microsoft.Http2.Owin.Server.Adapters
                             promisedStream.Headers.AddRange(headers);
 
                             var http2Ctx = new Http2OwinMessageContext(promisedStream);
-                            http2Ctx.OwinContext.Set(CommonOwinKeys.ServerPushFunc, pushDelegate);
+                            var owinHttp2Ctx = http2Ctx.OwinContext;
 
-                            await _next(http2Ctx.OwinContext);
+                            owinHttp2Ctx.Set(CommonOwinKeys.ServerPushFunc, pushDelegate);
+
+                            if (contextEnv.ContainsKey(CommonOwinKeys.RefTable))
+                                owinHttp2Ctx.Set(CommonOwinKeys.RefTable, contextEnv[CommonOwinKeys.RefTable]);
+                            else
+                                ;// TODO we cant pass tree for some reason.
+
+                            await _next(owinHttp2Ctx);
 
                             http2Ctx.FinishResponse();
                         };

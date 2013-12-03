@@ -12,6 +12,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using Microsoft.Http2.Push;
+using Microsoft.Owin;
 using OpenSSL;
 using Owin;
 using Xunit;

@@ -14,5 +14,6 @@
         public const string OpaqueCallCancelled = "opaque.CallCancelled";
 
         public const string ServerPushFunc = "server.push";
+        public const string RefTable = "reference.table";
     }
 }
