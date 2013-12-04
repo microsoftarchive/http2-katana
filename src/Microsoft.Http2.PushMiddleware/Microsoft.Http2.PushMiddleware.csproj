@@ -50,7 +50,7 @@
     <Compile Include="PushMiddleware.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="PushMiddlewareBase.cs" />
-    <Compile Include="ReferenceCycleDetector.cs" />
+    <Compile Include="GraphHelper.cs" />
     <Compile Include="ReferenceTable.cs" />
   </ItemGroup>
   <ItemGroup>

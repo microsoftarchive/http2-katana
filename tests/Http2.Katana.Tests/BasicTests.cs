@@ -329,8 +329,8 @@ namespace Http2.Katana.Tests
                 }
             };
 
-            bool isFirstHasCycle = ReferenceCycleDetector.HasCycle(recursiveGraph);
-            bool isSecondHasCycle = ReferenceCycleDetector.HasCycle(nonRecursiveGraph);
+            bool isFirstHasCycle = new GraphHelper().HasCycle(recursiveGraph);
+            bool isSecondHasCycle = new GraphHelper().HasCycle(nonRecursiveGraph);
 
             Assert.Equal(isFirstHasCycle, true);
             Assert.Equal(isSecondHasCycle, false);

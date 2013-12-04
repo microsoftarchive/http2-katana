@@ -100,19 +100,20 @@ namespace Microsoft.Http2.Owin.Server.Adapters
                             var headers = new HeadersList(pairs);
                             promisedStream.Headers.AddRange(headers);
 
-                            var http2Ctx = new Http2OwinMessageContext(promisedStream);
-                            var owinHttp2Ctx = http2Ctx.OwinContext;
+                            var http2MsgCtx = new Http2OwinMessageContext(promisedStream);
+                            var http2PushCtx = http2MsgCtx.OwinContext;
 
-                            owinHttp2Ctx.Set(CommonOwinKeys.ServerPushFunc, pushDelegate);
+                            http2PushCtx.Set(CommonOwinKeys.ServerPushFunc, pushDelegate);
 
-                            if (contextEnv.ContainsKey(CommonOwinKeys.RefTable))
-                                owinHttp2Ctx.Set(CommonOwinKeys.RefTable, contextEnv[CommonOwinKeys.RefTable]);
-                            else
-                                ;// TODO we cant pass tree for some reason.
+                            //pass add info from parent to child context. This info can store 
+                            //reference table for example or something els that should be passed from
+                            //client request into child push requests.
+                            if (contextEnv.ContainsKey(CommonOwinKeys.AdditionalInfo))
+                                http2PushCtx.Set(CommonOwinKeys.AdditionalInfo, contextEnv[CommonOwinKeys.AdditionalInfo]);
 
-                            await _next(owinHttp2Ctx);
+                            await _next(http2PushCtx);
 
-                            http2Ctx.FinishResponse();
+                            http2MsgCtx.FinishResponse();
                         };
                     
                     context.OwinContext.Set(CommonOwinKeys.ServerPushFunc, pushDelegate);
