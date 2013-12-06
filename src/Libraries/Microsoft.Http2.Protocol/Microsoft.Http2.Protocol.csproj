@@ -51,12 +51,9 @@
     <Compile Include="Compression\ICompressionProcessor.cs" />
     <Compile Include="Compression\HeadersDeltaCompression\Indexation.cs" />
     <Compile Include="Compression\HeadersDeltaCompression\IndexationType.cs" />
-    <Compile Include="EventArgs\DataAvailableEventArgs.cs" />
     <Compile Include="EventArgs\DataFrameSentEventArgs.cs" />
-    <Compile Include="EventArgs\DataIsWrittenEventArgs.cs" />
     <Compile Include="EventArgs\FrameReceivedEventArgs.cs" />
     <Compile Include="EventArgs\FrameSentEventArgs.cs" />
-    <Compile Include="EventArgs\Http11ResourceDownloadedEventArgs.cs" />
     <Compile Include="EventArgs\RequestSentEventArgs.cs" />
     <Compile Include="EventArgs\SettingsSentEventArgs.cs" />
     <Compile Include="EventArgs\StreamClosedEventArgs.cs" />
@@ -79,6 +76,7 @@
     <Compile Include="Framing\PriorityFrame.cs" />
     <Compile Include="Framing\PushPromiseFrame.cs" />
     <Compile Include="GlobalSuppressions.cs" />
+    <Compile Include="HeadersSequenceList.cs" />
     <Compile Include="HeadersList.cs" />
     <Compile Include="Http2MessageHandler.cs" />
     <Compile Include="Http2Session\Http2SessionFrameHandling.cs" />

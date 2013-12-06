@@ -21,7 +21,6 @@ namespace Microsoft.Http2.Protocol
         private readonly int _id;
         private StreamState _state;
         private readonly WriteQueue _writeQueue;
-        private readonly ICompressionProcessor _compressionProc;
         private readonly FlowControlManager _flowCrtlManager;
 
         private readonly Queue<DataFrame> _unshippedFrames;
@@ -40,23 +39,20 @@ namespace Microsoft.Http2.Protocol
         /// Occurs when stream closes.
         /// </summary>
         public event EventHandler<StreamClosedEventArgs> OnClose;
-
         #endregion
 
         #region Constructors
 
         //Incoming
         internal Http2Stream(HeadersList headers, int id,
-                           WriteQueue writeQueue, FlowControlManager flowCrtlManager, 
-                           ICompressionProcessor comprProc, int priority = Constants.DefaultStreamPriority)
-            : this(id, writeQueue, flowCrtlManager, comprProc, priority)
+                           WriteQueue writeQueue, FlowControlManager flowCrtlManager, int priority = Constants.DefaultStreamPriority)
+            : this(id, writeQueue, flowCrtlManager, priority)
         {
             Headers = headers;
         }
 
         //Outgoing
-        internal Http2Stream(int id, WriteQueue writeQueue, FlowControlManager flowCrtlManager,
-                           ICompressionProcessor comprProc, int priority = Constants.DefaultStreamPriority)
+        internal Http2Stream(int id, WriteQueue writeQueue, FlowControlManager flowCrtlManager, int priority = Constants.DefaultStreamPriority)
         {
             if (id <= 0)
                 throw new ArgumentOutOfRangeException("invalid id for stream");
@@ -67,7 +63,6 @@ namespace Microsoft.Http2.Protocol
             _id = id;
             Priority = priority;
             _writeQueue = writeQueue;
-            _compressionProc = comprProc;
             _flowCrtlManager = flowCrtlManager;
 
             _unshippedFrames = new Queue<DataFrame>(16);
@@ -223,15 +218,13 @@ namespace Microsoft.Http2.Protocol
             if (Disposed)
                 return;
 
-            //Headers.AddRange(headers);
-
             var frame = new HeadersFrame(_id, Priority)
                 {
                     IsEndHeaders = isEndHeaders,
                     IsEndStream = isEndStream,
                     Headers = headers,
                 };
-
+            //wed, 23 oct 2013 21:32:06 gmt
             _writeQueue.WriteFrame(frame);
 
             if (frame.IsEndStream)
@@ -386,8 +379,10 @@ namespace Microsoft.Http2.Protocol
             if (Disposed)
                 return;
 
+            var headers = new HeadersList(pairs);
+
             //TODO IsEndPushPromise should be computationable
-            var frame = new PushPromiseFrame(Id, promisedId, true, new HeadersList(pairs));
+            var frame = new PushPromiseFrame(Id, promisedId, true, headers);
 
             _writeQueue.WriteFrame(frame);
 

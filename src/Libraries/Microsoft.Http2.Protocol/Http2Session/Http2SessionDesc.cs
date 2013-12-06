@@ -41,18 +41,13 @@ namespace Microsoft.Http2.Protocol
         private bool _wasResponseReceived;
         private Frame _lastFrame;
         private readonly CancellationToken _cancelSessionToken;
-        private readonly List<HeadersSequence> _headersSequences; 
+        private readonly HeadersSequenceList _headersSequences; 
         private const string ClientSessionHeader = "PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n";
         private Dictionary<int, string> _promisedResources; 
         /// <summary>
         /// Occurs when settings frame was sent.
         /// </summary>
         public event EventHandler<SettingsSentEventArgs> OnSettingsSent;
-
-        /// <summary>
-        /// Occurs when frame was sent.
-        /// </summary>
-        public event EventHandler<FrameSentEventArgs> OnFrameSent;
 
         /// <summary>
         /// Occurs when frame was received.
@@ -162,7 +157,7 @@ namespace Microsoft.Http2.Protocol
             }
 
             SessionWindowSize = 0;
-            _headersSequences = new List<HeadersSequence>();
+            _headersSequences = new HeadersSequenceList();
             _promisedResources = new Dictionary<int, string>();
         }
 
@@ -508,13 +503,21 @@ namespace Microsoft.Http2.Protocol
             }
 
             var stream = new Http2Stream(headers, streamId,
-                                         _writeQueue, _flowControlManager,
-                                         _comprProc, priority);
+                                         _writeQueue, _flowControlManager, priority);
 
             var streamSequence = new HeadersSequence(streamId, (new HeadersFrame(streamId, priority){Headers = headers}));
             _headersSequences.Add(streamSequence);
 
             ActiveStreams[stream.Id] = stream;
+
+            stream.OnFrameSent += (o, args) =>
+                {
+                    if (!(args.Frame is IHeadersFrame))
+                        return;
+
+                    var streamSeq = _headersSequences.Find(stream.Id);
+                    streamSeq.AddHeaders(args.Frame as IHeadersFrame);
+                };
 
             stream.OnClose += (o, args) =>
                 {
@@ -523,7 +526,7 @@ namespace Microsoft.Http2.Protocol
                         throw new ArgumentException("Cant remove stream from ActiveStreams");
                     }
 
-                    var streamSeq = _headersSequences.Find(seq => seq.StreamId == args.Id);
+                    var streamSeq = _headersSequences.Find(stream.Id);
 
                     if (streamSeq != null)
                         _headersSequences.Remove(streamSeq);
@@ -550,10 +553,18 @@ namespace Microsoft.Http2.Protocol
             int priority = sequence.Priority;
             var headers = sequence.Headers;
             var stream = new Http2Stream(headers, id,
-                                         _writeQueue, _flowControlManager,
-                                         _comprProc, priority);
+                                         _writeQueue, _flowControlManager, priority);
 
             ActiveStreams[stream.Id] = stream;
+
+            stream.OnFrameSent += (o, args) =>
+            {
+                if (!(args.Frame is IHeadersFrame))
+                    return;
+
+                var streamSeq = _headersSequences.Find(stream.Id);
+                streamSeq.AddHeaders(args.Frame as IHeadersFrame);
+            };
 
             stream.OnClose += (o, args) =>
             {
@@ -562,7 +573,7 @@ namespace Microsoft.Http2.Protocol
                     throw new ArgumentException("Cant remove stream from ActiveStreams");
                 }
 
-                var streamSeq = _headersSequences.Find(seq => seq.StreamId == args.Id);
+                var streamSeq = _headersSequences.Find(stream.Id);
 
                 if (streamSeq != null)
                     _headersSequences.Remove(streamSeq);
@@ -600,15 +611,24 @@ namespace Microsoft.Http2.Protocol
             var id = GetNextId();
             if (_usePriorities)
             {
-                ActiveStreams[id] = new Http2Stream(id, _writeQueue, _flowControlManager, _comprProc, priority);
+                ActiveStreams[id] = new Http2Stream(id, _writeQueue, _flowControlManager, priority);
             }
             else
             {
-                ActiveStreams[id] = new Http2Stream(id, _writeQueue, _flowControlManager, _comprProc);
+                ActiveStreams[id] = new Http2Stream(id, _writeQueue, _flowControlManager);
             }
 
             var streamSequence = new HeadersSequence(id, (new HeadersFrame(id, priority)));
             _headersSequences.Add(streamSequence);
+
+            ActiveStreams[id].OnFrameSent += (o, args) =>
+            {
+                if (!(args.Frame is IHeadersFrame))
+                    return;
+
+                var streamSeq = _headersSequences.Find(id);
+                streamSeq.AddHeaders(args.Frame as IHeadersFrame);
+            };
 
             ActiveStreams[id].OnClose += (o, args) =>
                 {
@@ -617,18 +637,10 @@ namespace Microsoft.Http2.Protocol
                         throw new ArgumentException("Can't remove stream from ActiveStreams.");
                     }
 
-                    var streamSeq = _headersSequences.Find(seq => seq.StreamId == args.Id);
+                    var streamSeq = _headersSequences.Find(id);
 
                     if (streamSeq != null)
                         _headersSequences.Remove(streamSeq);
-                };
-
-            ActiveStreams[id].OnFrameSent += (o, args) =>
-                {
-                    if (OnFrameSent != null)
-                    {
-                        OnFrameSent(o, args);
-                    }
                 };
 
             return ActiveStreams[id];
@@ -666,7 +678,7 @@ namespace Microsoft.Http2.Protocol
 
             stream.WriteHeadersFrame(pairs, isEndStream, true);
 
-            var streamSequence = _headersSequences.Find(seq => seq.StreamId == stream.Id);
+            var streamSequence = _headersSequences.Find(stream.Id);
             streamSequence.AddHeaders(new HeadersFrame(stream.Id, stream.Priority) { Headers = pairs });
 
             if (OnRequestSent != null)
@@ -778,7 +790,6 @@ namespace Microsoft.Http2.Protocol
 
             OnSettingsSent = null;
             OnFrameReceived = null;
-            OnFrameSent = null;
 
             //Missing GoAway means connection was forcibly closed by the remote ep. This means that we can
             //send nothing into this connection. No need trying to send GoAway.

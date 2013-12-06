@@ -36,7 +36,7 @@ namespace Microsoft.Http2.Protocol
             }
             headersFrame.Headers.AddRange(headers);
 
-            var sequence = _headersSequences.Find(seq => seq.StreamId == headersFrame.StreamId);
+            var sequence = _headersSequences.Find(headersFrame.StreamId);
             if (sequence == null)
             {
                 sequence = new HeadersSequence(headersFrame.StreamId, headersFrame);
@@ -96,7 +96,7 @@ namespace Microsoft.Http2.Protocol
                 Http2Logger.LogDebug("Stream {0} header: {1}={2}", contFrame.StreamId, header.Key, header.Value);
             }
             contFrame.Headers.AddRange(contHeaders);
-            var sequence = _headersSequences.Find(seq => seq.StreamId == contFrame.StreamId);
+            var sequence = _headersSequences.Find(contFrame.StreamId);
             if (sequence == null)
             {
                 sequence = new HeadersSequence(contFrame.StreamId, contFrame);
@@ -322,7 +322,7 @@ namespace Microsoft.Http2.Protocol
                 frame.Headers.Add(header);
             }
 
-            var sequence = _headersSequences.Find(seq => seq.StreamId == frame.PromisedStreamId);
+            var sequence = _headersSequences.Find(frame.PromisedStreamId);
             if (sequence == null)
             {
                 sequence = new HeadersSequence(frame.PromisedStreamId, frame);

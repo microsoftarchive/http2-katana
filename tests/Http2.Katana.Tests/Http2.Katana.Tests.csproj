@@ -79,9 +79,6 @@
     <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\CommonHeaders.cs">
       <Link>Sources\Libraries\Microsoft.Http2.Protocol\CommonHeaders.cs</Link>
     </Compile>
-    <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\EventArgs\DataIsWrittenEventArgs.cs">
-      <Link>Sources\Libraries\Microsoft.Http2.Protocol\EventArgs\DataIsWrittenEventArgs.cs</Link>
-    </Compile>
     <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\EventArgs\FrameSentEventArgs.cs">
       <Link>Sources\Libraries\Microsoft.Http2.Protocol\EventArgs\FrameSentEventArgs.cs</Link>
     </Compile>
@@ -102,6 +99,9 @@
     </Compile>
     <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Framing\PushPromiseFrame.cs">
       <Link>Sources\Libraries\Microsoft.Http2.Protocol\Framing\PushPromiseFrame.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\HeadersSequenceList.cs">
+      <Link>Sources\Libraries\Microsoft.Http2.Protocol\HeadersSequenceList.cs</Link>
     </Compile>
     <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Http2MessageHandler.cs">
       <Link>Sources\Libraries\Microsoft.Http2.Protocol\Http2MessageHandler.cs</Link>
@@ -385,17 +385,11 @@
     <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Constants.cs">
       <Link>Sources\Libraries\Microsoft.Http2.Protocol\Constants</Link>
     </Compile>
-    <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\EventArgs\DataAvailableEventArgs.cs">
-      <Link>Sources\Libraries\Microsoft.Http2.Protocol\EventArgs\DataAvailableEventArgs</Link>
-    </Compile>
     <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\EventArgs\DataFrameSentEventArgs.cs">
       <Link>Sources\Libraries\Microsoft.Http2.Protocol\EventArgs\DataFrameSentEventArgs</Link>
     </Compile>
     <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\EventArgs\FrameReceivedEventArgs.cs">
       <Link>Sources\Libraries\Microsoft.Http2.Protocol\EventArgs\FrameReceivedEventArgs</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\EventArgs\Http11ResourceDownloadedEventArgs.cs">
-      <Link>Sources\Libraries\Microsoft.Http2.Protocol\EventArgs\Http11ResourceDownloadedEventArgs</Link>
     </Compile>
     <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\EventArgs\RequestSentEventArgs.cs">
       <Link>Sources\Libraries\Microsoft.Http2.Protocol\EventArgs\RequestSentEventArgs</Link>

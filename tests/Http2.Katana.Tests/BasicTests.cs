@@ -258,10 +258,10 @@ namespace Http2.Katana.Tests
             var testCollection = session.ActiveStreams;
             var fm = new FlowControlManager(session);
 
-            testCollection[1] = new Http2Stream(null, 1, null, fm, null);
-            testCollection[2] = new Http2Stream(null, 2, null, fm, null);
-            testCollection[3] = new Http2Stream(null, 3, null, fm, null);
-            testCollection[4] = new Http2Stream(null, 4, null, fm, null);
+            testCollection[1] = new Http2Stream(null, 1, null, fm);
+            testCollection[2] = new Http2Stream(null, 2, null, fm);
+            testCollection[3] = new Http2Stream(null, 3, null, fm);
+            testCollection[4] = new Http2Stream(null, 4, null, fm);
 
             fm.DisableStreamFlowControl(testCollection[2]);
             fm.DisableStreamFlowControl(testCollection[4]);
@@ -272,7 +272,7 @@ namespace Http2.Katana.Tests
             bool gotException = false;
             try
             {
-                testCollection[4] = new Http2Stream(null, 3, null, fm, null);
+                testCollection[4] = new Http2Stream(null, 3, null, fm);
             }
             catch (ArgumentException)
             {
