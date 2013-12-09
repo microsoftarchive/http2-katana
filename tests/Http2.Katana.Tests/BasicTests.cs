@@ -14,9 +14,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using Microsoft.Http2.Push;
-using Microsoft.Owin;
 using OpenSSL;
-using Owin;
 using Xunit;
 
 namespace Http2.Katana.Tests
@@ -109,8 +107,8 @@ namespace Http2.Katana.Tests
                     new KeyValuePair<string, string>(":host", "localhost"),
                     new KeyValuePair<string, string>(":scheme", "http"),
                 };
-            var clientCompressor = new CompressionProcessor(ConnectionEnd.Client);
-            var serverDecompressor = new CompressionProcessor(ConnectionEnd.Server);
+            var clientCompressor = new CompressionProcessor();
+            var serverDecompressor = new CompressionProcessor();
 
             var serializedHeaders = clientCompressor.Compress(clientHeaders);
             var decompressedHeaders = new HeadersList(serverDecompressor.Decompress(serializedHeaders));
@@ -124,8 +122,8 @@ namespace Http2.Katana.Tests
                 {
                     new KeyValuePair<string, string>(":status", StatusCode.Code200Ok.ToString(CultureInfo.InvariantCulture)),
                 };
-            var serverCompressor = new CompressionProcessor(ConnectionEnd.Server);
-            var clientDecompressor = new CompressionProcessor(ConnectionEnd.Client);
+            var serverCompressor = new CompressionProcessor();
+            var clientDecompressor = new CompressionProcessor();
 
             serializedHeaders = serverCompressor.Compress(serverHeaders);
             decompressedHeaders = new HeadersList(clientDecompressor.Decompress(serializedHeaders));

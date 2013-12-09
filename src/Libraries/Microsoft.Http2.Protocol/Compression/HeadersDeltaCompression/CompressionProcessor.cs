@@ -9,7 +9,7 @@ using OpenSSL;
 namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
 {
     //This headers compression algorithm is described in
-    // http://tools.ietf.org/html/draft-ietf-httpbis-header-compression-01
+    // http://tools.ietf.org/html/draft-ietf-httpbis-header-compression-05
     /// <summary>
     /// This class implement header compression.
     /// </summary>
@@ -21,21 +21,15 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
         private readonly HeadersList _remoteHeaderTable;
         private HeadersList _localRefSet;
         private readonly HeadersList _remoteRefSet;
+        private readonly HeadersList _staticTable;
 
         private MemoryStream _serializerStream;
 
-        public CompressionProcessor(ConnectionEnd end)
+        public CompressionProcessor()
         {
-            if (end == ConnectionEnd.Client)
-            {
-                _localHeaderTable = CompressionInitialHeaders.ResponseInitialHeaders;
-                _remoteHeaderTable = CompressionInitialHeaders.RequestInitialHeaders;
-            }
-            else
-            {
-                _localHeaderTable = CompressionInitialHeaders.RequestInitialHeaders;
-                _remoteHeaderTable = CompressionInitialHeaders.ResponseInitialHeaders;
-            }
+            _staticTable = CompressionInitialHeaders.StaticTable;
+            _localHeaderTable = new HeadersList();
+            _remoteHeaderTable = new HeadersList();
             _localRefSet = new HeadersList();
             _remoteRefSet = new HeadersList();
 
