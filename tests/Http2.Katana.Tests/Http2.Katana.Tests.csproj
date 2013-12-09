@@ -79,6 +79,18 @@
     <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\CommonHeaders.cs">
       <Link>Sources\Libraries\Microsoft.Http2.Protocol\CommonHeaders.cs</Link>
     </Compile>
+    <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Compression\HuffmanCompression\BinaryConverter.cs">
+      <Link>Sources\Libraries\Microsoft.Http2.Protocol\Compression\Huffman\BinaryConverter.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Compression\HuffmanCompression\BitTree.cs">
+      <Link>Sources\Libraries\Microsoft.Http2.Protocol\Compression\Huffman\BitTree.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Compression\HuffmanCompression\HuffmanCodesTable.cs">
+      <Link>Sources\Libraries\Microsoft.Http2.Protocol\Compression\Huffman\HuffmanCodesTable.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Compression\HuffmanCompression\HuffmanCompressor.cs">
+      <Link>Sources\Libraries\Microsoft.Http2.Protocol\Compression\Huffman\HuffmanCompressor.cs</Link>
+    </Compile>
     <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\EventArgs\FrameSentEventArgs.cs">
       <Link>Sources\Libraries\Microsoft.Http2.Protocol\EventArgs\FrameSentEventArgs.cs</Link>
     </Compile>
@@ -590,6 +602,7 @@
     </None>
     <None Include="packages.config" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>copy /y "$(SolutionDir)Drop\server.pfx"  "$(TargetDir)\server.pfx"

@@ -1,7 +1,9 @@
 ﻿using System.Globalization;
 using System.IO;
+using System.Text;
 using Microsoft.Http2.Protocol;
 using Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression;
+using Microsoft.Http2.Protocol.Compression.Huffman;
 using Microsoft.Http2.Protocol.Extensions;
 using Microsoft.Http2.Protocol.FlowControl;
 using Microsoft.Http2.Protocol.Framing;
@@ -132,6 +134,45 @@ namespace Http2.Katana.Tests
             {
                 Assert.Equal(decompressedHeaders.GetValue(t.Key), t.Value);
             }
+        }
+
+        [StandardFact]
+        public void BitConverterBitsToBytesSuccessful()
+        {
+            const bool T = true;
+            const bool F = false;
+            var testInput = new[] { T, T, T, F, F, F, T, F, T, F, T, F, F };
+            var bytes = BinaryConverter.ToBytes(testInput);
+
+            Assert.Equal(bytes[0], 0xe2);
+            Assert.Equal(bytes[1], 0xa0);
+        }
+
+        [StandardFact]
+        public void HuffmanCompressionSuccessful()
+        {
+            var compressor = new HuffmanCompressionProcessor();
+
+            const string input = "abacabacabacabaababbababcacacacacacacaacabcabcabcabcbacbabcbabcbabbcabbcbab"
+                                 + "Adsasd131221453!~[]{}{}~~`\'\\!@#$%^&*()_+=90klasdmnvzxcciuhakdkasdfioads"
+                                 + "ADBSADLGUCJNZCXNJSLKDGYSADHIASDMNKJLDBOCXBVCXJIMSAD<NSKLDBHCBIUXHCXZNCMSN"
+                                 + ",<>?|";
+
+            var inputBytes = Encoding.UTF8.GetBytes(input);
+
+            var now = DateTime.Now.Millisecond;
+
+            var compressed = compressor.Compress(inputBytes);
+            var decompressed = compressor.Decompress(compressed);
+
+            var newNow = DateTime.Now.Millisecond;
+
+            var output = Encoding.UTF8.GetString(decompressed);
+
+            Assert.Equal(input, output);
+
+            Console.WriteLine("Compress/decompress time: " + (newNow - now));
+            Console.WriteLine("Input length: " + input.Length);
         }
 
         [StandardFact]
