@@ -112,7 +112,7 @@ namespace Microsoft.Http2.Protocol.Compression.Huffman
             {new []{T,T,T,T,T,T,T,T, T,T,T,T,T,T,T,T, T,T,F,T,T,T,F,T}, Eos}        //EOS (256) |11111111|11111111|11011101|
         };
 
-        public const byte Eos = (byte)'e';
+        public const byte Eos = (byte)255; // TODO this is Incorrect! Eos code is 256. Think how to handle it.
 
         public bool this[int index]
         {
