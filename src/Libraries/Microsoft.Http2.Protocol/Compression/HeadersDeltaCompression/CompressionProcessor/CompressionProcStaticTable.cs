@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
 {
-    internal static class CompressionInitialHeaders
+    internal partial class CompressionProcessor
     {
         /*+-------+-----------------------------+--------------+
           | Index | Header Name                 | Header Value |
@@ -70,7 +70,7 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
           | 60    | www-authenticate            |              |
           +-------+-----------------------------+--------------+*/
 
-        private static readonly KeyValuePair<string, string>[] staticTable =
+        private readonly KeyValuePair<string, string>[] _staticTable =
         {
             new KeyValuePair<string, string>(":authority", String.Empty),                               //1
             new KeyValuePair<string, string>(":method", Verbs.Get.ToUpper()),                           //2
@@ -133,13 +133,5 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
             new KeyValuePair<string, string>("via", String.Empty),                                      //59
             new KeyValuePair<string, string>("www-authenticate", String.Empty),                         //60
         };
-
-        public static HeadersList StaticTable
-        {
-            get 
-            {
-                return new HeadersList(staticTable);
-            }
-        }
     }
 }

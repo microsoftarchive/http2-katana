@@ -45,8 +45,8 @@
   <ItemGroup>
     <Compile Include="ActiveStreams.cs" />
     <Compile Include="CommonHeaders.cs" />
-    <Compile Include="Compression\HeadersDeltaCompression\CompressionInitialHeaders.cs" />
-    <Compile Include="Compression\HeadersDeltaCompression\CompressionProcessor.cs" />
+    <Compile Include="Compression\HeadersDeltaCompression\CompressionProcessor\CompressionProcessor.cs" />
+    <Compile Include="Compression\HeadersDeltaCompression\CompressionProcessor\CompressionProcStaticTable.cs" />
     <Compile Include="Compression\HuffmanCompression\BinaryConverter.cs" />
     <Compile Include="Compression\HuffmanCompression\BitTree.cs" />
     <Compile Include="Compression\HuffmanCompression\HuffmanCodesTable.cs" />
