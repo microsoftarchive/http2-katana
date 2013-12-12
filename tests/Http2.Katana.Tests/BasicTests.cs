@@ -96,22 +96,22 @@ namespace Http2.Katana.Tests
             Assert.Equal(collection.StoredHeadersSize, headersSize);
         }
 
-        [StandardFact]
+        [Fact]
         public void CompressionSuccessful()
         {
             var clientHeaders = new HeadersList
                 {
-                    new KeyValuePair<string, string>(":path", "http"),
                     new KeyValuePair<string, string>(":method", "get"),
+                    new KeyValuePair<string, string>(":path", "/simpleTest.txt"),
                     new KeyValuePair<string, string>(":version", Protocols.Http2),
                     new KeyValuePair<string, string>(":host", "localhost"),
-                    new KeyValuePair<string, string>(":scheme", "http"),
+                    new KeyValuePair<string, string>(":scheme", "https"),
                 };
-            var clientCompressor = new CompressionProcessor();
-            var serverDecompressor = new CompressionProcessor();
+            var clientCompressProc = new CompressionProcessor();
+            var serverCompressorProc = new CompressionProcessor();
 
-            var serializedHeaders = clientCompressor.Compress(clientHeaders);
-            var decompressedHeaders = new HeadersList(serverDecompressor.Decompress(serializedHeaders));
+            var serializedHeaders = clientCompressProc.Compress(clientHeaders);
+            var decompressedHeaders = new HeadersList(serverCompressorProc.Decompress(serializedHeaders));
 
             foreach (var t in clientHeaders)
             {
@@ -120,13 +120,15 @@ namespace Http2.Katana.Tests
 
             var serverHeaders = new HeadersList
                 {
+                    new KeyValuePair<string, string>(":method", "get"),
+                    new KeyValuePair<string, string>(":path", "/index.html"),
+                    new KeyValuePair<string, string>(":host", "localhost"),
+                    new KeyValuePair<string, string>(":scheme", "https"),
                     new KeyValuePair<string, string>(":status", StatusCode.Code200Ok.ToString(CultureInfo.InvariantCulture)),
                 };
-            var serverCompressor = new CompressionProcessor();
-            var clientDecompressor = new CompressionProcessor();
 
-            serializedHeaders = serverCompressor.Compress(serverHeaders);
-            decompressedHeaders = new HeadersList(clientDecompressor.Decompress(serializedHeaders));
+            serializedHeaders = serverCompressorProc.Compress(serverHeaders);
+            decompressedHeaders = new HeadersList(clientCompressProc.Decompress(serializedHeaders));
 
             foreach (var t in serverHeaders)
             {

@@ -14,8 +14,6 @@ namespace Microsoft.Http2.Push
         {
         }
 
-        // TODO: The spec does not specify how to derive the push promise request headers.
-        // Fow now we are just going to copy the original request and change the path.
         protected bool TryGetPushPromise(IOwinContext context, out PushFunc pushPromise)
         {
             pushPromise = context.Get<PushFunc>(CommonOwinKeys.ServerPushFunc);

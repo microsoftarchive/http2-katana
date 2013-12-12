@@ -73,15 +73,6 @@ namespace Microsoft.Http2.Push
                     return;
                 
                 _collection.Remove(key);
-
-                var egdesToDel = _collection.Where(item => item.Value.Contains(key)).ToArray();
-
-                for (int i = 0; i < egdesToDel.Length; i++)
-                {
-                    egdesToDel[i] = 
-                        new KeyValuePair<string, string[]>
-                            (egdesToDel[i].Key, egdesToDel[i].Value.Where(val => !val.Equals(key)).ToArray());
-                }
             }
         }
 

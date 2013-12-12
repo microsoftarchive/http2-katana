@@ -164,7 +164,7 @@ namespace Microsoft.Http2.Protocol
         {
             lock (_modificationLock)
             {
-                Contract.Assert(index >= 0 && index < Count);
+                Contract.Assert(index >= 0 && (index == 0 || index < Count));
                 StoredHeadersSize += header.Key.Length + header.Value.Length + 32;
                 _collection.Insert(index, header);
             }
