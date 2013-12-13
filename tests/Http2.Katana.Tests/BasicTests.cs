@@ -102,7 +102,7 @@ namespace Http2.Katana.Tests
             var clientHeaders = new HeadersList
                 {
                     new KeyValuePair<string, string>(":method", "get"),
-                    new KeyValuePair<string, string>(":path", "/simpleTest.txt"),
+                    new KeyValuePair<string, string>(":path", "/index.html"),
                     new KeyValuePair<string, string>(":version", Protocols.Http2),
                     new KeyValuePair<string, string>(":host", "localhost"),
                     new KeyValuePair<string, string>(":scheme", "https"),
@@ -121,9 +121,39 @@ namespace Http2.Katana.Tests
             var serverHeaders = new HeadersList
                 {
                     new KeyValuePair<string, string>(":method", "get"),
-                    new KeyValuePair<string, string>(":path", "/index.html"),
+                    new KeyValuePair<string, string>(":path", "/simpleTest.txt"),
+                    new KeyValuePair<string, string>(":version", Protocols.Http2),
                     new KeyValuePair<string, string>(":host", "localhost"),
                     new KeyValuePair<string, string>(":scheme", "https"),
+                };
+
+            serializedHeaders = serverCompressorProc.Compress(serverHeaders);
+            decompressedHeaders = new HeadersList(clientCompressProc.Decompress(serializedHeaders));
+
+            foreach (var t in serverHeaders)
+            {
+                Assert.Equal(decompressedHeaders.GetValue(t.Key), t.Value);
+            }
+
+            serverHeaders = new HeadersList
+                {
+                    new KeyValuePair<string, string>(":status", StatusCode.Code404NotFound.ToString(CultureInfo.InvariantCulture)),
+                };
+
+            serializedHeaders = serverCompressorProc.Compress(serverHeaders);
+            decompressedHeaders = new HeadersList(clientCompressProc.Decompress(serializedHeaders));
+
+            foreach (var t in serverHeaders)
+            {
+                Assert.Equal(decompressedHeaders.GetValue(t.Key), t.Value);
+            }
+            
+            serverHeaders = new HeadersList
+                {
+                    new KeyValuePair<string, string>("content-type", "text/plain"),
+                    new KeyValuePair<string, string>("last-modified", "Wed, 23 Oct 2013 21:32:06 GMT"),
+                    new KeyValuePair<string, string>("etag", "1cedo15cb041fc1"),
+                    new KeyValuePair<string, string>("content-length", "749761"),
                     new KeyValuePair<string, string>(":status", StatusCode.Code200Ok.ToString(CultureInfo.InvariantCulture)),
                 };
 

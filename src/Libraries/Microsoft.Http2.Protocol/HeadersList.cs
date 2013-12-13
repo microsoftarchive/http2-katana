@@ -209,6 +209,11 @@ namespace Microsoft.Http2.Protocol
             }
         }
 
+        public bool ContainsName(string name)
+        {
+            return _collection.FindIndex(kv => kv.Key.Equals(name)) != -1;
+        }
+
         public KeyValuePair<string, string> this[int index]
         {
             get
