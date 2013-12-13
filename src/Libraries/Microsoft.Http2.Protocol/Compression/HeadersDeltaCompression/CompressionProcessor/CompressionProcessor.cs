@@ -222,17 +222,9 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
         private void CompressIndexed(KeyValuePair<string, string> header)
         {
 
-            //An _indexed representation_ corresponding to an entry _present_ in
-            //the reference set entails the following actions:
-            //o  The entry is removed from the reference set.
             int index = _refSet.FindIndex(kv => kv.Key.Equals(header.Key) && kv.Value.Equals(header.Value));
             bool isFound = index != -1;
-
-            if (isFound)
-            {
-                _refSet.Remove(header);
-            }
-            else
+            if (!isFound)
             {
                 //An _indexed representation_ corresponding to an entry _not present_
                 //in the reference set entails the following actions:
@@ -290,7 +282,15 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
                 bytes[0] |= (byte)IndexationType.Indexed;
 
                 WriteToOutput(bytes, 0, bytes.Length);
+
+                return;
             }
+
+            //An _indexed representation_ corresponding to an entry _present_ in
+            //the reference set entails the following actions:
+            //o  The entry is removed from the reference set.
+
+            _refSet.Remove(header);
         }
 
         public byte[] Compress(HeadersList headers)
@@ -554,7 +554,7 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
         {
             try
             {
-                var unindexedHeadersList = new HeadersList();
+                var workingSet = new HeadersList();
                 _currentOffset = 0;
 
                 while (_currentOffset != serializedHeaders.Length)
@@ -568,11 +568,10 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
 
                     var header = new KeyValuePair<string, string>(entry.Item1, entry.Item2);
 
-                    if (entry.Item3 == IndexationType.WithoutIndexation)
-                    {
-                        unindexedHeadersList.Add(header);
-                    }
+                    workingSet.Add(header);
                 }
+
+                //_refSet = new HeadersList(workingSet);
 
                 for (int i = _refSet.Count - 1; i >= 0; --i)
                 {
@@ -581,9 +580,8 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
                         _refSet.RemoveAll(h => h.Equals(header));
                 }
 
-                var result = new HeadersList(_refSet);
-                result.AddRange(unindexedHeadersList);
-                return result;
+                //var result = new HeadersList(_refSet);
+                return workingSet;
             }
             catch (Exception e)
             {
