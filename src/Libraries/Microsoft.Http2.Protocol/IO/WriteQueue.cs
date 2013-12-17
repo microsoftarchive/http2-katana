@@ -133,7 +133,7 @@ namespace Microsoft.Http2.Protocol.IO
                     {
                         _stream.Write(entry.Buffer, 0, entry.Buffer.Length);
                     }
-                    catch (ObjectDisposedException)
+                    catch (IOException)
                     {
                         Dispose();
                     }

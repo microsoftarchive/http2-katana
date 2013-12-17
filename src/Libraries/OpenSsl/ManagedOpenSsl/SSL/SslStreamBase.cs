@@ -859,7 +859,6 @@ namespace OpenSSL.SSL
 			        return;
 
 				innerStream.BeginWrite(buf.Array, 0, buf.Count, new AsyncCallback(InternalWriteCallback), asyncResult);
-				//!!bytesPending = write_bio.BytesPending;
 			}
 		}
 

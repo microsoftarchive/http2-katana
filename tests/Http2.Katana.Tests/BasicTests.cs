@@ -107,11 +107,11 @@ namespace Http2.Katana.Tests
                     new KeyValuePair<string, string>(":host", "localhost"),
                     new KeyValuePair<string, string>(":scheme", "https"),
                 };
-            var clientCompressProc = new CompressionProcessor();
-            var serverCompressorProc = new CompressionProcessor();
+            var clientCompressionProc = new CompressionProcessor();
+            var serverCompressionProc = new CompressionProcessor();
 
-            var serializedHeaders = clientCompressProc.Compress(clientHeaders);
-            var decompressedHeaders = new HeadersList(serverCompressorProc.Decompress(serializedHeaders));
+            var serializedHeaders = clientCompressionProc.Compress(clientHeaders);
+            var decompressedHeaders = new HeadersList(serverCompressionProc.Decompress(serializedHeaders));
 
             foreach (var t in clientHeaders)
             {
@@ -127,8 +127,8 @@ namespace Http2.Katana.Tests
                     new KeyValuePair<string, string>(":scheme", "https"),
                 };
 
-            serializedHeaders = serverCompressorProc.Compress(serverHeaders);
-            decompressedHeaders = new HeadersList(clientCompressProc.Decompress(serializedHeaders));
+            serializedHeaders = serverCompressionProc.Compress(serverHeaders);
+            decompressedHeaders = new HeadersList(clientCompressionProc.Decompress(serializedHeaders));
 
             foreach (var t in serverHeaders)
             {
@@ -140,8 +140,8 @@ namespace Http2.Katana.Tests
                     new KeyValuePair<string, string>(":status", StatusCode.Code404NotFound.ToString(CultureInfo.InvariantCulture)),
                 };
 
-            serializedHeaders = serverCompressorProc.Compress(serverHeaders);
-            decompressedHeaders = new HeadersList(clientCompressProc.Decompress(serializedHeaders));
+            serializedHeaders = serverCompressionProc.Compress(serverHeaders);
+            decompressedHeaders = new HeadersList(clientCompressionProc.Decompress(serializedHeaders));
 
             foreach (var t in serverHeaders)
             {
@@ -157,10 +157,27 @@ namespace Http2.Katana.Tests
                     new KeyValuePair<string, string>(":status", StatusCode.Code200Ok.ToString(CultureInfo.InvariantCulture)),
                 };
 
-            serializedHeaders = serverCompressorProc.Compress(serverHeaders);
-            decompressedHeaders = new HeadersList(clientCompressProc.Decompress(serializedHeaders));
+            serializedHeaders = serverCompressionProc.Compress(serverHeaders);
+            decompressedHeaders = new HeadersList(clientCompressionProc.Decompress(serializedHeaders));
 
             foreach (var t in serverHeaders)
+            {
+                Assert.Equal(decompressedHeaders.GetValue(t.Key), t.Value);
+            }
+
+            clientHeaders = new HeadersList
+                {
+                    new KeyValuePair<string, string>(":method", "get"),
+                    new KeyValuePair<string, string>(":path", "/index.html"),
+                    new KeyValuePair<string, string>(":version", Protocols.Http2),
+                    new KeyValuePair<string, string>(":host", "localhost"),
+                    new KeyValuePair<string, string>(":scheme", "https"),
+                };
+
+            serializedHeaders = clientCompressionProc.Compress(clientHeaders);
+            decompressedHeaders = new HeadersList(serverCompressionProc.Decompress(serializedHeaders));
+
+            foreach (var t in clientHeaders)
             {
                 Assert.Equal(decompressedHeaders.GetValue(t.Key), t.Value);
             }

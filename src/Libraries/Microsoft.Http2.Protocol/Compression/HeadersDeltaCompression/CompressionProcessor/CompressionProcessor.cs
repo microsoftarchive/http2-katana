@@ -24,8 +24,10 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
     {
         private const int MaxHeaderByteSize = 4096;
 
-        private HeadersList _headersTable;
-        private HeadersList _refSet;
+        private HeadersList _remoteHeadersTable;
+        private HeadersList _remoteRefSet;
+        private HeadersList _localHeadersTable;
+        private HeadersList _localRefSet;
 
         private bool _isDisposed;
 
@@ -34,10 +36,12 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
         public CompressionProcessor()
         {
             //05 The header table is initially empty.
-            _headersTable = new HeadersList();
+            _remoteHeadersTable = new HeadersList();
+            _localHeadersTable = new HeadersList();
 
             //05 The reference set is initially empty.
-            _refSet = new HeadersList();
+            _remoteRefSet = new HeadersList();
+            _localRefSet = new HeadersList();
 
             InitCompressor();
             InitDecompressor();
@@ -91,25 +95,21 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
                     //SETTINGS_HEADER_TABLE_SIZE.
 
                     var header = new KeyValuePair<string, string>(headerName, headerValue);
-                    while (_headersTable.StoredHeadersSize + headerLen >= MaxHeaderByteSize && _headersTable.Count > 0)
+                    while (headersTable.StoredHeadersSize + headerLen >= MaxHeaderByteSize && headersTable.Count > 0)
                     {
-                        _headersTable.RemoveAt(_headersTable.Count - 1);
+                        headersTable.RemoveAt(headersTable.Count - 1);
 
                         //spec 05
                         //3.3.2. Entry Eviction When Header Table Size Changes
                         //Whenever an entry is evicted from the header table, any reference to
                         //that entry contained by the reference set is removed.
 
-                        if (_refSet.Contains(header))
-                            _refSet.Remove(header);
+                        if (refSet.Contains(header))
+                            refSet.Remove(header);
                     }
 
                     //o  The header field is inserted at the beginning of the header table.
-                    _headersTable.Insert(0, header);
-
-                    //o  A reference to the new entry is added to the reference set (except
-                    //if this new entry didn't fit in the header table).
-                    _refSet.Add(header);
+                    headersTable.Insert(0, header);
                     break;
                 default:
                     return;
@@ -165,7 +165,7 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
         {
             //spec 05
             //05 does not tell anything about case_sensitive | insensitive
-            int index = _headersTable.FindIndex(kv => kv.Key.Equals(headerName));
+            int index = _remoteHeadersTable.FindIndex(kv => kv.Key.Equals(headerName));
             bool isFound = index != -1;
 
             /* 05 spec:
@@ -184,7 +184,7 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
 
                 if (isFound)
                 {
-                    index += _headersTable.Count;
+                    index += _remoteHeadersTable.Count;
 
                     //3.2.1. Header Field Representation Processing
                     //The referenced static entry is inserted at the beginning of the
@@ -224,16 +224,16 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
                 WriteToOutput(stream.GetBuffer(), 0, (int)stream.Position);
             }
 
-            ModifyTable(headerName, headerValue, headerType, _headersTable, _refSet);
+            ModifyTable(headerName, headerValue, headerType, _remoteRefSet, _remoteHeadersTable);
         }
 
         private void CompressIndexed(KeyValuePair<string, string> header)
         {
 
-            int index = _refSet.FindIndex(kv => kv.Key.Equals(header.Key) && kv.Value.Equals(header.Value));
-            bool isFound = index != -1;
-            if (!isFound)
-            {
+            //int index = _remoteRefSet.FindIndex(kv => kv.Key.Equals(header.Key) && kv.Value.Equals(header.Value));
+            //bool isFound = index != -1;
+            //if (!isFound)
+            //{
                 //An _indexed representation_ corresponding to an entry _not present_
                 //in the reference set entails the following actions:
 
@@ -249,8 +249,8 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
 
                 //spec 05
                 //nothing told about case_sensitive | _insensitive comparsion
-                index = _headersTable.FindIndex(kv => kv.Key.Equals(header.Key) && kv.Value.Equals(header.Value));
-                isFound = index != -1;
+                int index = _remoteHeadersTable.FindIndex(kv => kv.Key.Equals(header.Key) && kv.Value.Equals(header.Value));
+                bool isFound = index != -1;
 
                 /* 05 spec:
                 <-- Header  Table -->  <-- Static  Table -->
@@ -268,11 +268,11 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
 
                     if (isFound)
                     {
-                        index += _headersTable.Count;
+                        index += _remoteHeadersTable.Count;
                         //3.2.1. Header Field Representation Processing
                         //The referenced static entry is inserted at the beginning of the
                         //header table.
-                        _headersTable.Insert(0, header);
+                        _remoteHeadersTable.Insert(0, header);
                     }
                 }
 
@@ -280,31 +280,28 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
                 {
                     throw new CompressionError(new Exception("cant compress indexed header. Index not found."));
                 }
+            //}
+            //else
+            //{            
+                //An _indexed representation_ corresponding to an entry _present_ in
+                //the reference set entails the following actions:
+                //o  The entry is removed from the reference set.
+                //_remoteRefSet.Remove(header);
+            //}
 
-                _refSet.Add(header);
+            const byte prefix = 7;
+            var bytes = (index + 1).ToUVarInt(prefix);
 
-                const byte prefix = 7;
-                var bytes = (index + 1).ToUVarInt(prefix);
+            //Set indexed type
+            bytes[0] |= (byte)IndexationType.Indexed;
 
-                //Set indexed type
-                bytes[0] |= (byte)IndexationType.Indexed;
-
-                WriteToOutput(bytes, 0, bytes.Length);
-
-                return;
-            }
-
-            //An _indexed representation_ corresponding to an entry _present_ in
-            //the reference set entails the following actions:
-            //o  The entry is removed from the reference set.
-
-            _refSet.Remove(header);
+            WriteToOutput(bytes, 0, bytes.Length);
         }
 
         public byte[] Compress(HeadersList headers)
         {
             var toSend = new HeadersList();
-            var toDelete = new HeadersList(_refSet);
+            var toDelete = new HeadersList(_remoteRefSet);
 
             ClearStream(_serializerStream, (int) _serializerStream.Position);
 
@@ -314,7 +311,7 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
                 {
                     throw new InvalidHeaderException(header);
                 }
-                if (!_refSet.Contains(header))
+                if (!_remoteRefSet.Contains(header))
                 {
                     //Not there, Will send
                     toSend.Add(header);
@@ -329,12 +326,12 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
             {
                 //Anything left in toDelete, should send, so it is deleted from ref set.
                 CompressIndexed(header);
-                //_refSet.Remove(header); //Update our copy
+                _remoteRefSet.Remove(header); //Update our copy
             }
             foreach (var header in toSend)
             {
                 //Send whatever was left in headersCopy
-                if (_headersTable.Contains(header) || _staticTable.Contains(header))
+                if (_remoteHeadersTable.Contains(header) || _staticTable.Contains(header))
                 {
                     CompressIndexed(header);
                 }
@@ -342,6 +339,10 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
                 {
                     CompressHeader(header, new Indexation(IndexationType.Incremental));
                 }
+
+                //o  A reference to the new entry is added to the reference set (except
+                //if this new entry didn't fit in the header table).
+                _remoteRefSet.Add(header);
             }
 
             _serializerStream.Flush();
@@ -367,43 +368,41 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
             //o  The reference set is emptied.
             if (index == 0)
             {
-                _refSet.Clear();
+                _localRefSet.Clear();
                 return default(Tuple<string, string, IndexationType>);
             }
 
             var header = default(KeyValuePair<string, string>);
-            //o  If referencing an element of the static table:
-            if (index > _headersTable.Count)
-            {
-                if (index <= _headersTable.Count + _staticTable.Count)
-                {
-                    header = _staticTable[index - _headersTable.Count - 1];
+            bool isInStatic = index > _localHeadersTable.Count & index <= _localHeadersTable.Count + _staticTable.Count;
+            bool isInHeaders = index <= _localHeadersTable.Count;
 
-                    if (_refSet.Contains(header))
-                    {
-                        _refSet.Remove(header);
-                    }
-                    else
-                    {
-                        _headersTable.Insert(0, header);
-                        _refSet.Add(header);
-                    }
-                }
+            //o  If referencing an element of the static table:
+            if (isInStatic)
+            {
+                header = _staticTable[index - _localHeadersTable.Count - 1];
+            }
+            else if (isInHeaders)
+            {
+                //o  If referencing an element of the header table:
+                header = _localHeadersTable[index - 1];           
             }
             else
             {
-                //o  If referencing an element of the header table:
-                header = _headersTable[index - 1];           
-                
-                if (_refSet.Contains(header))
-                {
-                    _refSet.Remove(header);
-                }
-                else
-                {
-                    _refSet.Add(header);
-                }
+                throw new IndexOutOfRangeException("no such index nor in static neither in headers tables");
             }
+
+            if (_localRefSet.Contains(header))
+            {
+                _localRefSet.Remove(header);
+                return null;
+            }
+
+            if (isInStatic)
+            {
+                _localHeadersTable.Insert(0, header);
+            }
+
+            _localRefSet.Add(header);
 
             //*  The header field corresponding to the referenced entry is
             //emitted.
@@ -425,7 +424,7 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
             else
             {
                 //Index increased by 1 was sent
-                name = index < _headersTable.Count ? _headersTable[index - 1].Key : _staticTable[index - 1].Key;
+                name = index < _localHeadersTable.Count ? _localHeadersTable[index - 1].Key : _staticTable[index - 1].Key;
             }
 
             //header cant be more than 255 chars len
@@ -454,7 +453,9 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
             else
             {
                 //Index increased by 1 was sent
-                name = index - 1 < _headersTable.Count ? _headersTable[index - 1].Key : _staticTable[index - _headersTable.Count - 1].Key;
+                name = index - 1 < _localHeadersTable.Count ? 
+                                _localHeadersTable[index - 1].Key :
+                                _staticTable[index - _localHeadersTable.Count - 1].Key;
             }
 
             //header cant be more than 255 chars len
@@ -471,7 +472,7 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
 
             //o  A reference to the new entry is added to the reference set (except
             //if this new entry didn't fit in the header table).
-            //_refSet.Add(kv);
+            _localRefSet.Add(new KeyValuePair<string, string>(name, value));
 
             //o  The header field is emitted.
             return new Tuple<string, string, IndexationType>(name, value, IndexationType.Incremental);
@@ -486,14 +487,13 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
             {
                 case IndexationType.Indexed:
                     return ProcessIndexed(index);
-
                 case IndexationType.Incremental:
                     return ProcessIncremental(bytes, index);
                 case IndexationType.WithoutIndexation:
                     return ProcessWithoutIndexing(bytes, index);
             }
 
-            return default(Tuple<string, string, IndexationType>);
+            throw new CompressionError(new Exception("Unknown header type"));
         }
         
         private int GetIndex(byte[] bytes, IndexationType type)
@@ -562,34 +562,32 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
         {
             try
             {
-                var workingSet = new HeadersList();
                 _currentOffset = 0;
+                var unindexedHeadersList = new HeadersList();
 
                 while (_currentOffset != serializedHeaders.Length)
                 {
                     var entry = ParseHeader(serializedHeaders);
 
-                    if (entry.Equals(default(Tuple<string, string, IndexationType>)) && entry.Item3 == IndexationType.Indexed)
+                    if (entry == null) //parsed indexed header which was in the refSet already.
                         continue;
-                    
-                    ModifyTable(entry.Item1, entry.Item2, entry.Item3, _refSet, _headersTable);
 
-                    var header = new KeyValuePair<string, string>(entry.Item1, entry.Item2);
-
-                    workingSet.Add(header);
+                    ModifyTable(entry.Item1, entry.Item2, entry.Item3, _localRefSet, _localHeadersTable);
                 }
 
-                //_refSet = new HeadersList(workingSet);
 
-                for (int i = _refSet.Count - 1; i >= 0; --i)
+                for (int i = _localRefSet.Count - 1; i >= 0; --i)
                 {
-                    var header = _refSet[i];
-                    if (!_headersTable.Contains(header))
-                        _refSet.RemoveAll(h => h.Equals(header));
+                    var header = _localRefSet[i];
+                    if (!_localHeadersTable.Contains(header))
+                    {
+                        _localRefSet.RemoveAll(h => h.Equals(header));
+                    }
                 }
 
-                //var result = new HeadersList(_refSet);
-                return workingSet;
+                var result = new HeadersList(_localRefSet);
+                result.AddRange(unindexedHeadersList);
+                return result;
             }
             catch (Exception e)
             {
