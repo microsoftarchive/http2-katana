@@ -7,7 +7,9 @@
 
 // See the Apache 2 License for the specific language governing permissions and limitations under the License.
 using System;
+using System.Diagnostics.Contracts;
 using System.Linq;
+using Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression;
 using Microsoft.Http2.Protocol.Exceptions;
 using Microsoft.Http2.Protocol.Framing;
 using Microsoft.Http2.Protocol.Utils;
@@ -234,6 +236,13 @@ namespace Microsoft.Http2.Protocol
 
                 switch (settingsFrame[i].Id)
                 {
+                    case SettingsIds.SettingsHeadersTableSize:
+                        if (_comprProc is CompressionProcessor)
+                            (_comprProc as CompressionProcessor).NotifySettingsChanges(settingsFrame[i].Value);
+                        break;
+                    case SettingsIds.SettingsEnableServerPush:
+                        IsPushEnabled = settingsFrame[i].Value != 0;
+                        break;
                     case SettingsIds.MaxConcurrentStreams:
                         RemoteMaxConcurrentStreams = settingsFrame[i].Value;
                         break;

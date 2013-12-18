@@ -117,7 +117,8 @@ namespace Microsoft.Http2.Owin.Server.Adapters
                         };
                     
                     context.OwinContext.Set(CommonOwinKeys.ServerPushFunc, pushDelegate);
-                    
+                    context.OwinContext.Set(CommonOwinKeys.EnableServerPush, _isPushEnabled);
+
                     await _next(context.OwinContext);
                     context.FinishResponse();
                 }

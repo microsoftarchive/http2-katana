@@ -31,6 +31,7 @@ namespace Microsoft.Http2.Protocol
         protected readonly bool _isSecure;
         protected event EventHandler<SettingsSentEventArgs> OnFirstSettingsSent;
         protected bool _wereFirstSettingsSent;
+        protected bool _isPushEnabled;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Http2MessageHandler"/> class.
@@ -42,6 +43,14 @@ namespace Microsoft.Http2.Protocol
         protected Http2MessageHandler(Stream stream, ConnectionEnd end, bool isSecure, CancellationToken cancel)
         {
             _isSecure = isSecure;
+
+            //09 spec:
+            //SETTINGS_ENABLE_PUSH (2):  This setting can be use to disable server
+            //push (Section 8.2).  An endpoint MUST NOT send a PUSH_PROMISE
+            //frame if it receives this setting set to a value of 0.  The
+            //initial value is 1, which indicates that push is permitted.
+
+            _isPushEnabled = true;
             _isDisposed = false;
             _cancToken = cancel;
             _stream = stream;
@@ -74,7 +83,15 @@ namespace Microsoft.Http2.Protocol
                 case FrameType.Data:
                     ProcessIncomingData(stream, frame);
                     break;
+                case FrameType.Settings:
+                    ProcessSettings(frame as SettingsFrame);
+                    break;
             }
+        }
+
+        protected virtual void ProcessSettings(SettingsFrame frame)
+        {
+            _isPushEnabled = _session.IsPushEnabled;
         }
 
         /// <summary>

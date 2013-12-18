@@ -52,6 +52,7 @@ namespace Microsoft.Http2.Protocol
         private readonly HeadersSequenceList _headersSequences; 
         private const string ClientSessionHeader = "PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n";
         private Dictionary<int, string> _promisedResources; 
+
         /// <summary>
         /// Occurs when settings frame was sent.
         /// </summary>
@@ -99,7 +100,8 @@ namespace Microsoft.Http2.Protocol
         internal Int32 RemoteMaxConcurrentStreams { get; set; }
         internal Int32 InitialWindowSize { get; set; }
         internal Int32 SessionWindowSize { get; set; }
- 
+        internal bool IsPushEnabled { get; private set; }
+
         public Http2Session(Stream stream, ConnectionEnd end, 
                             bool usePriorities, bool useFlowControl, bool isSecure,
                             CancellationToken cancel,

@@ -11,6 +11,8 @@ namespace Microsoft.Http2.Protocol.Framing
     public enum SettingsIds : int
     {
         None = 0,
+        SettingsHeadersTableSize = 1,
+        SettingsEnableServerPush = 2,
         MaxConcurrentStreams = 4,
         InitialWindowSize = 7,
         FlowControlOptions = 10

@@ -46,6 +46,15 @@ namespace Microsoft.Http2.Push
 
         public override async Task Invoke(IOwinContext context)
         {
+            var isPushEnabled = context.Get<bool>(CommonOwinKeys.EnableServerPush);
+
+            //If push is not allowed then pass to then next layer
+            if (!isPushEnabled)
+            {
+                await Next.Invoke(context);
+                return;
+            }
+
             bool gotError = false;
             var refTree = context.Get<Dictionary<string, string[]>>(CommonOwinKeys.AdditionalInfo);
             //original request from client
@@ -68,6 +77,7 @@ namespace Microsoft.Http2.Push
             {
                 PushFunc pushPromise;
                 string[] pushReferences;
+
                 if (refTree.TryGetValue(context.Request.Path.Value, out pushReferences)
                     && TryGetPushPromise(context, out pushPromise))
                 {
@@ -82,13 +92,6 @@ namespace Microsoft.Http2.Push
             context.Set(CommonOwinKeys.RemoveVertex, new RemoveVertFunc(RemoveVertex));
 
             await Next.Invoke(context);
-        }
-
-        protected override string[] GetPushResources(IOwinContext context)
-        {
-            var refTree = context.Get<Dictionary<string, string[]>>(CommonOwinKeys.AdditionalInfo);
-
-            return refTree != null ? refTree.Keys.ToArray() : null;
         }
 
         protected override void Push(IOwinRequest request, PushFunc pushPromise, string pushReference)

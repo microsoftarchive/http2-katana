@@ -23,20 +23,24 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
     /// </summary>
     internal partial class CompressionProcessor : ICompressionProcessor
     {
-        private const int MaxHeaderByteSize = 4096;
-
         private HeadersList _remoteHeadersTable;
         private HeadersList _remoteRefSet;
         private HeadersList _localHeadersTable;
         private HeadersList _localRefSet;
+
         private HuffmanCompressionProcessor _hufProc;
 
         private bool _isDisposed;
 
         private MemoryStream _serializerStream;
 
+        private int _maxHeaderByteSize;
+
         public CompressionProcessor()
         {
+            //default max headers table size
+            _maxHeaderByteSize = 4096;
+
             //05 The header table is initially empty.
             _remoteHeadersTable = new HeadersList();
             _localHeadersTable = new HeadersList();
@@ -49,6 +53,35 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
 
             InitCompressor();
             InitDecompressor();
+        }
+
+        private void MakeHeadersTableBeUpToDate(HeadersList headersTable, HeadersList refTable)
+        {
+            while (headersTable.StoredHeadersSize >= _maxHeaderByteSize && headersTable.Count > 0)
+            {
+
+                var header = headersTable[headersTable.Count - 1];
+                headersTable.RemoveAt(headersTable.Count - 1);
+
+                //spec 05
+                //3.3.2. Entry Eviction When Header Table Size Changes
+                //Whenever an entry is evicted from the header table, any reference to
+                //that entry contained by the reference set is removed.
+
+                if (refTable.Contains(header))
+                    refTable.Remove(header);
+            }
+        }
+
+        public void NotifySettingsChanges(int newMaxVal)
+        {
+            if (newMaxVal <= 0)
+                throw new CompressionError(new Exception("incorrect MaxHeadersTable size!"));
+
+            _maxHeaderByteSize = newMaxVal;
+
+            MakeHeadersTableBeUpToDate(_remoteHeadersTable, _remoteRefSet);
+            MakeHeadersTableBeUpToDate(_localHeadersTable, _localRefSet);
         }
 
         private void InitCompressor()
@@ -84,7 +117,7 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
             //not an error to attempt to add an entry that is larger than
             //SETTINGS_HEADER_TABLE_SIZE.
 
-            while (headersTable.StoredHeadersSize + headerLen >= MaxHeaderByteSize && headersTable.Count > 0)
+            while (headersTable.StoredHeadersSize + headerLen >= _maxHeaderByteSize && headersTable.Count > 0)
             {
                 headersTable.RemoveAt(headersTable.Count - 1);
 
@@ -745,9 +778,9 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
             if (_isDisposed)
                 return;
 
-            _serializerStream.Dispose(); 
+            _serializerStream.Dispose();
+
             _isDisposed = true;
         }
-
     }
 }

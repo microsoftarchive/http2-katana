@@ -28,8 +28,6 @@ namespace Microsoft.Http2.Push
             return pushPromise != null;
         }
 
-        protected abstract string[] GetPushResources(IOwinContext context);
-
         protected abstract void Push(IOwinRequest request, PushFunc pushPromise, string pushReference);
    }
 }

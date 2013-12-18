@@ -22,6 +22,7 @@ namespace Owin
         public const string OpaqueCallCancelled = "opaque.CallCancelled";
 
         public const string ServerPushFunc = "server.Push";
+        public const string EnableServerPush = "enable.push";
 
         public const string AdditionalInfo = "push.add.info";
         public const string AddVertex = "push.add.vertex";
