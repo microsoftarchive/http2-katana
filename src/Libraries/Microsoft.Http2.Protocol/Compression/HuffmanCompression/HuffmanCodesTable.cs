@@ -117,10 +117,10 @@ namespace Microsoft.Http2.Protocol.Compression.Huffman
             {new []{T,T,T,T,T,T,T,T, T,T,T,T,F,T}, (byte) '|'},                     //'|' (124) |11111111|111101
             {new []{T,T,T,T,T,T,T,T, T,T,T,T,T,T,F,T}, (byte) '}'},                 //'}' (125) |11111111|11111101|
             {new []{T,T,T,T,T,T,T,T, T,T,T,T,T,T,T,F}, (byte) '~'},                 //'~' (126) |11111111|11111110|
-            {new []{T,T,T,T,T,T,T,T, T,T,T,T,T,T,T,T, T,T,F,T,T,T,F,T}, Eos}        //EOS (256) |11111111|11111111|11011101|
+            //{new []{T,T,T,T,T,T,T,T, T,T,T,T,T,T,T,T, T,T,F,T,T,T,F,T}, Eos}      //EOS (256) |11111111|11111111|11011101|
         };
 
-        public const byte Eos = (byte)255; // TODO this is Incorrect! Eos code is 256. Think how to handle it.
+        public static readonly bool[] Eos = new[] {T,T,T,T,T,T,T,T, T,T,T,T,T,T,T,T, T,T,F,T,T,T,F,T}; 
 
         public bool this[int index]
         {

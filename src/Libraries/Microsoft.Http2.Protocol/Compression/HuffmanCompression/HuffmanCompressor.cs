@@ -30,7 +30,7 @@ namespace Microsoft.Http2.Protocol.Compression.Huffman
             }
 
             //add finish symbol
-            huffmanEncodedMessage.AddRange(_table.GetBits(HuffmanCodesTable.Eos));
+            huffmanEncodedMessage.AddRange(HuffmanCodesTable.Eos);
 
             return BinaryConverter.ToBytes(huffmanEncodedMessage);
         }

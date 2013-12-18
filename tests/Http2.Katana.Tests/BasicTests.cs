@@ -195,15 +195,15 @@ namespace Http2.Katana.Tests
             Assert.Equal(bytes[1], 0xa0);
         }
 
-        [StandardFact]
+        [Fact]
         public void HuffmanCompressionSuccessful()
         {
             var compressor = new HuffmanCompressionProcessor();
 
             const string input = "abacabacabacabaababbababcacacacacacacaacabcabcabcabcbacbabcbabcbabbcabbcbab"
-                                 + "Adsasd131221453!~[]{}{}~~`\'\\!@#$%^&*()_+=90klasdmnvzxcciuhakdkasdfioads"
-                                 + "ADBSADLGUCJNZCXNJSLKDGYSADHIASDMNKJLDBOCXBVCXJIMSAD<NSKLDBHCBIUXHCXZNCMSN"
-                                 + ",<>?|";
+                                   + "Adsasd131221453!~[]{}{}~~`\'\\!@#$%^&*()_+=90klasdmnvzxcciuhakdkasdfioads"
+                                   + "ADBSADLGUCJNZCXNJSLKDGYSADHIASDMNKJLDBOCXBVCXJIMSAD<NSKLDBHCBIUXHCXZNCMSN"
+                                   + ",<>?|";
 
             var inputBytes = Encoding.UTF8.GetBytes(input);
 

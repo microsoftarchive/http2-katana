@@ -104,14 +104,14 @@
 
       xcopy "$(ProjectDir)\root"  "$(SolutionDir)Drop\root" /S /F /R /Y /I
 
-      copy /y "$(SolutionDir)\packages\Microsoft.Owin.2.0.1\lib\net45\Microsoft.Owin.dll" "$(SolutionDir)Drop\Microsoft.Owin.dll"
+      copy /y "$(SolutionDir)\packages\Microsoft.Owin.2.1.0-rc1\lib\net45\Microsoft.Owin.dll" "$(SolutionDir)Drop\Microsoft.Owin.dll"
 
-      copy /y "$(SolutionDir)\packages\Microsoft.Owin.FileSystems.0.25.0-pre-21017-669-rel\lib\net40\Microsoft.Owin.FileSystems.dll" "$(SolutionDir)Drop\Microsoft.Owin.FileSystems.dll"
+      copy /y "$(SolutionDir)\packages\Microsoft.Owin.FileSystems.2.1.0-rc1\lib\net40\Microsoft.Owin.FileSystems.dll" "$(SolutionDir)Drop\Microsoft.Owin.FileSystems.dll"
 
 
       copy /y "$(SolutionDir)\packages\Microsoft.Owin.Hosting.2.0.1\lib\net45\Microsoft.Owin.Hosting.dll" "$(SolutionDir)Drop\Microsoft.Owin.Hosting.dll"
 
-      copy /y "$(SolutionDir)\packages\Microsoft.Owin.StaticFiles.0.25.0-pre-21017-669-rel\lib\net40\Microsoft.Owin.StaticFiles.dll" "$(SolutionDir)Drop\Microsoft.Owin.StaticFiles.dll"
+      copy /y "$(SolutionDir)\packages\Microsoft.Owin.StaticFiles.2.1.0-rc1\lib\net40\Microsoft.Owin.StaticFiles.dll" "$(SolutionDir)Drop\Microsoft.Owin.StaticFiles.dll"
 
       copy /y "$(SolutionDir)\packages\Owin.1.0\lib\net40\Owin.dll" "$(SolutionDir)Drop\Owin.dll"
 

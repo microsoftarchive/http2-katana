@@ -30,6 +30,8 @@ namespace Microsoft.Http2.Protocol.Compression.Huffman
             {
                 Add(bits);
             }
+            
+            Add(HuffmanCodesTable.Eos); //Add eos into codes table
         }
 
         private void Add(bool[] bits)
@@ -74,29 +76,36 @@ namespace Microsoft.Http2.Protocol.Compression.Huffman
                     Node temp = _root;
                     var symbolBits = new List<bool>();
 
+                    bool isEos = true;
+
+                    int j = 0;
                     while (temp != null)
                     {
+                        
                         temp = !bits[i] ? temp.Left : temp.Right;
 
                         if (temp == null) 
                             continue;
 
                         symbolBits.Add(temp.Value);
+                        isEos &= temp.Value == HuffmanCodesTable.Eos[j];
+
+                        if (isEos && ++j == HuffmanCodesTable.Eos.Length)
+                        {
+                            result = new byte[stream.Position];
+                            Buffer.BlockCopy(stream.GetBuffer(), 0, result, 0, result.Length);
+                            return result;
+                        }
+
                         i++;
                     }
+
                     var symbol = _table.GetByte(symbolBits);
-
-                    if (symbol == HuffmanCodesTable.Eos)
-                    {
-                        result = new byte[stream.Position];
-                        Buffer.BlockCopy(stream.GetBuffer(), 0, result, 0, result.Length);
-                        break;
-                    }
-
                     stream.WriteByte(symbol);
                 }
             }
-            return result;
+
+            throw new Exception("End of message is not recognized!");
         }
 
         private class Node

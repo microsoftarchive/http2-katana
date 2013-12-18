@@ -12,6 +12,7 @@ using System.IO;
 using System.Text;
 using Microsoft.Http2.Protocol.Exceptions;
 using Microsoft.Http2.Protocol.Extensions;
+using Microsoft.Http2.Protocol.Compression.Huffman;
 
 namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
 {
@@ -28,6 +29,7 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
         private HeadersList _remoteRefSet;
         private HeadersList _localHeadersTable;
         private HeadersList _localRefSet;
+        private HuffmanCompressionProcessor _hufProc;
 
         private bool _isDisposed;
 
@@ -42,6 +44,8 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
             //05 The reference set is initially empty.
             _remoteRefSet = new HeadersList();
             _localRefSet = new HeadersList();
+
+            _hufProc = new HuffmanCompressionProcessor();
 
             InitCompressor();
             InitDecompressor();
@@ -101,11 +105,13 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
         
         #region Compression
 
-        private byte[] EncodeString(string item, bool useHuffman = false)
+        private byte[] EncodeString(string item, bool useHuffman)
         {
-            byte[] itemBts = null;
+            byte[] itemBts;
             int len = item.Length;
-            const int prefix = 7;
+
+            const byte prefix = 7;
+
             byte[] lenBts = len.ToUVarInt(prefix); //05: String representation | H |  Value Length Prefix (7)  |
 
             if (!useHuffman)
@@ -114,11 +120,13 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
             }
             else
             {
-                //TODO compr with huffman
+                itemBts = Encoding.UTF8.GetBytes(item);
+                itemBts = _hufProc.Compress(itemBts);
                 lenBts[0] |= 0x80; //05: Set huffman to true | 1 |  Value Length Prefix (7)  |
             }
 
             byte[] result = new byte[lenBts.Length + itemBts.Length];
+
             Buffer.BlockCopy(lenBts, 0, result, 0, lenBts.Length);
             Buffer.BlockCopy(itemBts, 0, result, lenBts.Length, itemBts.Length);
 
@@ -169,14 +177,14 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
                 {
                     //Header key was found in the header table. Hence we should encode only value
                     indexBinary = (index + 1).ToUVarInt(prefix);
-                    valueBinary = EncodeString(header.Value, false);
+                    valueBinary = EncodeString(header.Value, true);
                 }
                 else
                 {
                     //Header key was not found in the header table. Hence we should encode name and value
                     indexBinary = 0.ToUVarInt(prefix);
-                    nameBinary = EncodeString(header.Key, false);
-                    valueBinary = EncodeString(header.Value, false);
+                    nameBinary = EncodeString(header.Key, true);
+                    valueBinary = EncodeString(header.Value, true);
                 }
 
                 //Set without index type
@@ -393,6 +401,62 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
 
         private int _currentOffset;
 
+        //spec 05:
+        //string prefix is always 7. 
+        //See 4.1.2.  String Literal Representation
+        private const byte stringPrefix = 7;
+
+        private string DecodeString(byte[] bytes, byte prefix)
+        {
+            int maxPrefixVal = (1 << prefix) - 1;
+
+            bool isHuffman = (bytes[_currentOffset] & 0x80) != 0; //Get first bit. If true => huffman used
+
+            int len = bytes[_currentOffset];
+
+            if (len < maxPrefixVal)
+            {
+                _currentOffset++;
+            }
+            else
+            {
+                int i = 1;
+                while (true)
+                {
+                    if ((bytes[_currentOffset + i] & 0x80) == 0)
+                    {
+                        break;
+                    }
+                    i++;
+                }
+
+                var numberBytes = new byte[++i];
+                Buffer.BlockCopy(bytes, _currentOffset, numberBytes, 0, i);
+                _currentOffset += i;
+
+                numberBytes[0] &= 0x7f; //throw away huffman's mask
+
+                len = Int32Extensions.FromUVarInt(numberBytes);
+            }
+
+            string result = String.Empty;
+
+            if (isHuffman)
+            {
+                var compressedBytes = new byte[len - _currentOffset - 1];
+                Buffer.BlockCopy(bytes, _currentOffset, compressedBytes, 0, len);
+                var decodedBytes = _hufProc.Decompress(compressedBytes);
+                result = Encoding.UTF8.GetString(decodedBytes);
+
+                return result;
+            }
+
+            result = Encoding.UTF8.GetString(bytes, _currentOffset, len);
+            _currentOffset += len;
+
+            return result;
+        }
+
         private Tuple<string, string, IndexationType> ProcessIndexed(int index)
         {
             //An _indexed representation_ with an index value of 0 entails the
@@ -473,10 +537,7 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
 
             if (index == 0)
             {
-                //header cant be more than 255 chars len
-                byte nameLen = bytes[_currentOffset++];
-                name = Encoding.UTF8.GetString(bytes, _currentOffset, nameLen);
-                _currentOffset += nameLen;
+                name = DecodeString(bytes, stringPrefix); 
             }
             else
             {
@@ -484,10 +545,7 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
                 name = index < _localHeadersTable.Count ? _localHeadersTable[index - 1].Key : _staticTable[index - 1].Key;
             }
 
-            //header cant be more than 255 chars len
-            byte valueLen = bytes[_currentOffset++];
-            value = Encoding.UTF8.GetString(bytes, _currentOffset, valueLen);
-            _currentOffset += valueLen;
+            value = DecodeString(bytes, stringPrefix); 
 
             //A _literal representation_ that is _not added_ to the header table
             //entails the following action:
@@ -500,13 +558,10 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
         {
             string name;
             string value;
-
+            
             if (index == 0)
             {
-                //header cant be more than 255 chars len
-                byte nameLen = bytes[_currentOffset++];
-                name = Encoding.UTF8.GetString(bytes, _currentOffset, nameLen);
-                _currentOffset += nameLen;
+                name = DecodeString(bytes, stringPrefix); 
             }
             else
             {
@@ -516,10 +571,7 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
                                 _staticTable[index - _localHeadersTable.Count - 1].Key;
             }
 
-            //header cant be more than 255 chars len
-            byte valueLen = bytes[_currentOffset++];
-            value = Encoding.UTF8.GetString(bytes, _currentOffset, valueLen);
-            _currentOffset += valueLen;
+            value = DecodeString(bytes, stringPrefix);
 
             //A _literal representation_ that is _added_ to the header table
             //entails the following actions:
