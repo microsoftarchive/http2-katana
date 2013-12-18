@@ -249,20 +249,26 @@ namespace Microsoft.Http2.Protocol
             }
 
             //Write settings. Settings must be the first frame in session.
-            if (_useFlowControl)
+            if (_ourEnd == ConnectionEnd.Client)
             {
-                WriteSettings(new[]
-                    {
-                        new SettingsPair(SettingsFlags.None, SettingsIds.InitialWindowSize, Constants.MaxFrameContentSize)
-                    });
-            }
-            else
-            {
-                WriteSettings(new[]
-                    {
-                        new SettingsPair(SettingsFlags.None, SettingsIds.InitialWindowSize, Constants.MaxFrameContentSize),
-                        new SettingsPair(SettingsFlags.None, SettingsIds.FlowControlOptions, (byte) FlowControlOptions.DontUseFlowControl)
-                    });
+                if (_useFlowControl)
+                {
+                    WriteSettings(new[]
+                        {
+                            new SettingsPair(SettingsFlags.None, SettingsIds.InitialWindowSize,
+                                             Constants.MaxFrameContentSize)
+                        }, false);
+                }
+                else
+                {
+                    WriteSettings(new[]
+                        {
+                            new SettingsPair(SettingsFlags.None, SettingsIds.InitialWindowSize,
+                                             Constants.MaxFrameContentSize),
+                            new SettingsPair(SettingsFlags.None, SettingsIds.FlowControlOptions,
+                                             (byte) FlowControlOptions.DontUseFlowControl)
+                        }, false);
+                }
             }
             // Listen for incoming Http/2.0 frames
             var incomingTask = new Task(() =>
@@ -413,6 +419,9 @@ namespace Microsoft.Http2.Protocol
                         break;
                     case FrameType.Settings:
                         HandleSettingsFrame(frame as SettingsFrame);
+
+                        //Send ack
+                        WriteSettings(new SettingsPair[0], true);
                         break;
                     case FrameType.WindowUpdate:
                         HandleWindowUpdateFrame(frame as WindowUpdateFrame, out stream);
@@ -716,12 +725,12 @@ namespace Microsoft.Http2.Protocol
         /// Writes the settings frame.
         /// </summary>
         /// <param name="settings">The settings.</param>
-        public void WriteSettings(SettingsPair[] settings)
+        public void WriteSettings(SettingsPair[] settings, bool isAck)
         {
             if (settings == null)
                 throw new ArgumentNullException("settings array is null");
 
-            var frame = new SettingsFrame(new List<SettingsPair>(settings));
+            var frame = new SettingsFrame(new List<SettingsPair>(settings), isAck);
 
             _writeQueue.WriteFrame(frame);
 

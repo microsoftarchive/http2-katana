@@ -14,6 +14,7 @@ namespace Microsoft.Http2.Protocol.Framing
     public enum FrameFlags
     {
         None = 0x00,
+        Ack = 0x01,
         EndStream = 0x01,
         Pong = 0x01,
         EndHeaders = 0x04,

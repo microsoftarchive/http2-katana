@@ -231,6 +231,17 @@ namespace Microsoft.Http2.Protocol
             Http2Logger.LogDebug("Settings frame. Entry count: {0} StreamId: {1}", settingsFrame.EntryCount,
                                  settingsFrame.StreamId);
 
+            //Receipt of a SETTINGS frame with the ACK flag set and a length
+            //field value other than 0 MUST be treated as a connection error
+            //(Section 5.4.1) of type FRAME_SIZE_ERROR.
+            if (settingsFrame.IsAck)
+            {
+                if (settingsFrame.FrameLength != 0)
+                    throw new ProtocolError(ResetStatusCode.FrameTooLarge, "ack settings frame is not 0");
+                
+                return;
+            }
+
             for (int i = 0; i < settingsFrame.EntryCount; i++)
             {
 

@@ -29,13 +29,16 @@ namespace Microsoft.Http2.Protocol.Framing
         }
 
         // Outgoing
-        public SettingsFrame(IList<SettingsPair> settings)
+        public SettingsFrame(IList<SettingsPair> settings, bool isAck)
             : base(new byte[InitialFrameSize + settings.Count * SettingsPair.PairSize])
         {
             FrameType = FrameType.Settings;
             FrameLength = (settings.Count * SettingsPair.PairSize) + InitialFrameSize - Constants.FramePreambleSize;
             StreamId = 0;
 
+            if (isAck)
+                Flags |= FrameFlags.Ack;
+            
             for (int i = 0; i < settings.Count; i++)
             {
                 ArraySegment<byte> segment = settings[i].BufferSegment;
@@ -48,6 +51,11 @@ namespace Microsoft.Http2.Protocol.Framing
         public int EntryCount
         {
             get { return (Buffer.Length - InitialFrameSize) / SettingsPair.PairSize; }
+        }
+
+        public bool IsAck
+        {
+            get { return (Flags & FrameFlags.Ack) == FrameFlags.Ack; }
         }
 
         public SettingsPair this[int index]
