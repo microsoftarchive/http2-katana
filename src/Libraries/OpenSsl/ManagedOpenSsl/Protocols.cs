@@ -133,7 +133,7 @@ namespace OpenSsl.Protocols
     /// </summary>
     public static class Protocols
     {
-        public static string Http2 = "HTTP-draft-06/2.0";
+        public static string Http2 = "HTTP-draft-09/2.0";
         public static string Http1 = "http/1.1";
     }
 }

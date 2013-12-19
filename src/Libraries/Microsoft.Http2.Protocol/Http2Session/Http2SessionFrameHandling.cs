@@ -170,7 +170,7 @@ namespace Microsoft.Http2.Protocol
 
         private void HandlePriority(PriorityFrame priorityFrame, out Http2Stream stream)
         {
-            //spec 06:
+            //09 -> 6.3.  PRIORITY
             //The PRIORITY frame is associated with an existing stream.  If a
             //PRIORITY frame is received with a stream identifier of 0x0, the
             //recipient MUST respond with a connection error (Section 5.4.1) of
@@ -188,34 +188,48 @@ namespace Microsoft.Http2.Protocol
             if (!_usePriorities) 
                 return;
 
-            //06
+            //09 -> 5.1.  Stream States
             //A receiver can ignore WINDOW_UPDATE [WINDOW_UPDATE] or PRIORITY
             //[PRIORITY] frames in this state.
             if (stream != null && !stream.EndStreamReceived)
             {
                 stream.Priority = priorityFrame.Priority;
             }
-            //Do not signal an error because (06)
-            //WINDOW_UPDATE [WINDOW_UPDATE], PRIORITY [PRIORITY], or RST_STREAM
-            //[RST_STREAM] frames can be received in this state for a short
-            //period after a frame containing an END_STREAM flag is sent.
+            //09 -> 5.1.  Stream States
+            //WINDOW_UPDATE, PRIORITY, or RST_STREAM frames can be received in
+            //this state for a short period after a DATA or HEADERS frame
+            //containing an END_STREAM flag is sent.  Until the remote peer
+            //receives and processes the frame bearing the END_STREAM flag, it
+            //might send frame of any of these types.  Endpoints MUST ignore
+            //WINDOW_UPDATE, PRIORITY, or RST_STREAM frames received in this
+            //state, though endpoints MAY choose to treat frames that arrive a
+            //significant time after sending END_STREAM as a connection error
+            //(Section 5.4.1) of type PROTOCOL_ERROR.
         }
 
         private void HandleRstFrame(RstStreamFrame resetFrame, out Http2Stream stream)
         {
             stream = GetStream(resetFrame.StreamId);
 
-            //Spec 06 tells that impl MUST not answer with rst on rst to avoid loop.
+            //09 -> 5.4.2.  Stream Error Handling
+            //An endpoint MUST NOT send a RST_STREAM in response to an RST_STREAM
+            //frame, to avoid looping.
             if (stream != null)
             {
                 Http2Logger.LogDebug("RST frame with code {0} for id {1}", resetFrame.StatusCode,
                                         resetFrame.StreamId);
                 stream.Dispose(ResetStatusCode.None);
             }
-            //Do not signal an error because (06)
-            //WINDOW_UPDATE [WINDOW_UPDATE], PRIORITY [PRIORITY], or RST_STREAM
-            //[RST_STREAM] frames can be received in this state for a short
-            //period after a frame containing an END_STREAM flag is sent.
+            //09 -> 5.1.  Stream States
+            //WINDOW_UPDATE, PRIORITY, or RST_STREAM frames can be received in
+            //this state for a short period after a DATA or HEADERS frame
+            //containing an END_STREAM flag is sent.  Until the remote peer
+            //receives and processes the frame bearing the END_STREAM flag, it
+            //might send frame of any of these types.  Endpoints MUST ignore
+            //WINDOW_UPDATE, PRIORITY, or RST_STREAM frames received in this
+            //state, though endpoints MAY choose to treat frames that arrive a
+            //significant time after sending END_STREAM as a connection error
+            //(Section 5.4.1) of type PROTOCOL_ERROR.
         }
 
         private void HandleDataFrame(DataFrame dataFrame, out Http2Stream stream)
@@ -343,7 +357,10 @@ namespace Microsoft.Http2.Protocol
                                      windowUpdateFrame.StreamId);
                 stream = GetStream(windowUpdateFrame.StreamId);
 
-                //06
+                //09 -> 6.9.  WINDOW_UPDATE
+                //The payload of a WINDOW_UPDATE frame is one reserved bit, plus an
+                //unsigned 31-bit integer indicating the number of bytes that the
+                //sender can transmit in addition to the existing flow control window.
                 //The legal range for the increment to the flow control window is 1 to
                 //2^31 - 1 (0x7fffffff) bytes.
                 if (!(0 < windowUpdateFrame.Delta && windowUpdateFrame.Delta <= Constants.MaxPriority))
@@ -352,7 +369,7 @@ namespace Microsoft.Http2.Protocol
                     throw new ProtocolError(ResetStatusCode.FlowControlError, String.Format("Incorrect window update delta : {0}", windowUpdateFrame.Delta));
                 }
 
-                //06
+                //09 -> 5.1.  Stream States
                 //A receiver can ignore WINDOW_UPDATE [WINDOW_UPDATE] or PRIORITY
                 //[PRIORITY] frames in this state.
                 if (stream != null)
@@ -360,10 +377,16 @@ namespace Microsoft.Http2.Protocol
                     stream.UpdateWindowSize(windowUpdateFrame.Delta);
                     stream.PumpUnshippedFrames();
                 }
-                //Do not signal an error because (06)
-                //WINDOW_UPDATE [WINDOW_UPDATE], PRIORITY [PRIORITY], or RST_STREAM
-                //[RST_STREAM] frames can be received in this state for a short
-                //period after a frame containing an END_STREAM flag is sent.
+                //09 -> 5.1.  Stream States
+                //WINDOW_UPDATE, PRIORITY, or RST_STREAM frames can be received in
+                //this state for a short period after a DATA or HEADERS frame
+                //containing an END_STREAM flag is sent.  Until the remote peer
+                //receives and processes the frame bearing the END_STREAM flag, it
+                //might send frame of any of these types.  Endpoints MUST ignore
+                //WINDOW_UPDATE, PRIORITY, or RST_STREAM frames received in this
+                //state, though endpoints MAY choose to treat frames that arrive a
+                //significant time after sending END_STREAM as a connection error
+                //(Section 5.4.1) of type PROTOCOL_ERROR.
             }
             else
             {

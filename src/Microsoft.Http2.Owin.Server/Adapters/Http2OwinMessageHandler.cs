@@ -98,6 +98,7 @@ namespace Microsoft.Http2.Owin.Server.Adapters
                 || stream.Headers.GetValue(CommonHeaders.Authority) == null)
             {
                 stream.WriteRst(ResetStatusCode.ProtocolError);
+                stream.Dispose(ResetStatusCode.ProtocolError);
                 return;
             }
 

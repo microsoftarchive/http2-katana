@@ -23,5 +23,6 @@ namespace Microsoft.Http2.Protocol
         public const string Connection = "Connection";
         public const string Upgrade = "Upgrade";
         public const string ContentLength = "content-length";
+        public const string Cookie = "cookie";
     }
 }

@@ -205,7 +205,7 @@ namespace Microsoft.Http2.Protocol
 
             var initialStream = CreateStream(new HeadersList(initialRequest), 1);
 
-            //spec 06:
+            //09 -> 5.1.1.  Stream Identifiers
             //A stream identifier of one (0x1) is used to respond to the HTTP/1.1
             //request which was specified during Upgrade (see Section 3.2).  After
             //the upgrade completes, stream 0x1 is "half closed (local)" to the
@@ -440,7 +440,8 @@ namespace Microsoft.Http2.Protocol
 
                         break;
                     default:
-                        //Item 4.1 in 06 spec: Implementations MUST ignore frames of unsupported or unrecognized types
+                        //09 -> 4.1.  Frame Format
+                        //Implementations MUST ignore frames of unsupported or unrecognized types.
                         Http2Logger.LogDebug("Unknown frame received. Ignoring it");
                         break;
                 }
@@ -692,7 +693,8 @@ namespace Microsoft.Http2.Protocol
 
             if (path == null)
                 throw new ProtocolError(ResetStatusCode.ProtocolError, "Invalid request ex");
-            //06
+
+            //09 -> 8.2.2.  Push Responses
             //Once a client receives a PUSH_PROMISE frame and chooses to accept the
             //pushed resource, the client SHOULD NOT issue any requests for the
             //promised resource until after the promised stream has closed.

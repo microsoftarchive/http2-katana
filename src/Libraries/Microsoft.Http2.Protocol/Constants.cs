@@ -6,8 +6,6 @@
 // THIS CODE IS PROVIDED ON AN *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION ANY IMPLIED WARRANTIES OR CONDITIONS OF TITLE, FITNESS FOR A PARTICULAR PURPOSE, MERCHANTABLITY OR NON-INFRINGEMENT.
 
 // See the Apache 2 License for the specific language governing permissions and limitations under the License.
-using Microsoft.Http2.Protocol.Framing;
-
 namespace Microsoft.Http2.Protocol
 {
     /// <summary>
@@ -25,11 +23,13 @@ namespace Microsoft.Http2.Protocol
         public const string DefaultHost = "localhost";
 
         public const int DefaultMaxConcurrentStreams = 100;
-        //06
+
+        //09 -> 6.9.1.  The Flow Control Window
         //A sender MUST NOT allow a flow control window to exceed 2^31 - 1 bytes.
         public const int MaxWindowSize = 0x7FFFFFFF;
         public const int MaxPriority = 0x7fffffff;
-        //06
+
+        //09 -> 6.9.2.  Initial Flow Control Window Size
         //When a HTTP/2.0 connection is first established, new streams are
         //created with an initial flow control window size of 65535 bytes.  The
         //connection flow control window is 65535 bytes.  

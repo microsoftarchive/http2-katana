@@ -104,21 +104,22 @@ namespace Http2.TestClient.Adapters
 
         protected override void ProcessRequest(Http2Stream stream, Frame frame)
         {
-            //spec 06
-            //A client
-            //MUST treat the absence of the ":status" header field, the presence of
-            //multiple values, or an invalid value as a stream error
-            //(Section 5.4.2) of type PROTOCOL_ERROR [PROTOCOL_ERROR].
-
+            //spec 09 -> 8.1.3.2.  Response Header Fields
+            //A single ":status" header field is defined that carries the HTTP
+            //status code field (see [HTTP-p2], Section 6).  This header field MUST
+            //be included in all responses, otherwise the response is malformed
             if (stream.Headers.GetValue(CommonHeaders.Status) == null)
             {
-                stream.WriteRst(ResetStatusCode.ProtocolError); 
+                stream.WriteRst(ResetStatusCode.ProtocolError);
+                stream.Dispose(ResetStatusCode.ProtocolError);
+                return;
             }
 
             int code;
             if (!int.TryParse(stream.Headers.GetValue(CommonHeaders.Status), out code))
             {
                 stream.WriteRst(ResetStatusCode.ProtocolError);  //Got something strange in the status field
+                stream.Dispose(ResetStatusCode.ProtocolError);
             }
 
             //got some king of error

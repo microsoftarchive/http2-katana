@@ -78,7 +78,7 @@ namespace Microsoft.Http2.Protocol.FlowControl
             if (flowControlledSession == null)
                 throw new ArgumentNullException("flowControlledSession is null");
 
-            //06
+            //09 -> 6.9.2.  Initial Flow Control Window Size
             //When a HTTP/2.0 connection is first established, new streams are
             //created with an initial flow control window size of 65535 bytes.  The
             //connection flow control window is 65535 bytes.  

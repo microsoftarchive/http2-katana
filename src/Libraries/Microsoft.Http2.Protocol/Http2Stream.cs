@@ -155,7 +155,7 @@ namespace Microsoft.Http2.Protocol
         {
             if (IsFlowControlEnabled)
             {
-                //06
+                //09 -> 6.9.1.  The Flow Control Window
                 //A sender MUST NOT allow a flow control window to exceed 2^31 - 1
                 //bytes.  If a sender receives a WINDOW_UPDATE that causes a flow
                 //control window to exceed this maximum it MUST terminate either the
@@ -266,7 +266,7 @@ namespace Microsoft.Http2.Protocol
             //We cant let lesser frame that were passed through flow control window
             //be sent before greater frames that were not passed through flow control window
 
-            //06
+            //09 -> 6.9.1.  The Flow Control Window
             //The sender MUST NOT
             //send a flow controlled frame with a length that exceeds the space
             //available in either of the flow control windows advertised by the receiver.
@@ -346,7 +346,7 @@ namespace Microsoft.Http2.Protocol
             if (windowSize > Constants.MaxWindowSize)
                 throw new ProtocolError(ResetStatusCode.FlowControlError, "window size is too large");
 
-            //Spec 06
+            //09 -> 6.9.4.  Ending Flow Control
             //After a receiver reads in a frame that marks the end of a stream (for
             //example, a data stream with a END_STREAM flag set), it MUST cease
 	        //transmission of WINDOW_UPDATE frames for that stream.

@@ -9,6 +9,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using Microsoft.Http2.Protocol.Exceptions;
 using Microsoft.Http2.Protocol.Extensions;
@@ -191,12 +192,6 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
                 if (isFound)
                 {
                     index += _remoteHeadersTable.Count;
-
-                    //3.2.1. Header Field Representation Processing
-                    //The referenced static entry is inserted at the beginning of the
-                    //header table.
-
-                    //This will be done when Modify Table will be called
                 }
             }
             //It's necessary to form result array because partial writeToOutput stream can cause problems because of multithreading
@@ -258,12 +253,6 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
                 if (isFound)
                 {
                     index += _remoteHeadersTable.Count;
-
-                    //3.2.1. Header Field Representation Processing
-                    //The referenced static entry is inserted at the beginning of the
-                    //header table.
-
-                    //This will be done when Modify Table will be called
                 }
             }
             //It's necessary to form result array because partial writeToOutput stream can cause problems because of multithreading
@@ -353,14 +342,6 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
                 {
                     throw new CompressionError(new Exception("cant compress indexed header. Index not found."));
                 }
-            //}
-            //else
-            //{            
-                //An _indexed representation_ corresponding to an entry _present_ in
-                //the reference set entails the following actions:
-                //o  The entry is removed from the reference set.
-                //_remoteRefSet.Remove(header);
-            //}
 
             const byte prefix = 7;
             var bytes = (index + 1).ToUVarInt(prefix);
@@ -488,6 +469,42 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
             _currentOffset += len;
 
             return result;
+        }
+
+        //09 -> 8.1.3.4.  Compressing the Cookie Header Field
+        private void ProcessCookie(HeadersList toProcess)
+        {
+            //The Cookie header field [COOKIE] can carry a significant amount of
+            //redundant data.
+
+            //The Cookie header field uses a semi-colon (";") to delimit cookie-
+            //pairs (or "crumbs").  This header field doesn't follow the list
+            //construction rules in HTTP (see [HTTP-p1], Section 3.2.2), which
+            //prevents cookie-pairs from being separated into different name-value
+            //pairs.  This can significantly reduce compression efficiency as
+            //individual cookie-pairs are updated.
+
+            //To allow for better compression efficiency, the Cookie header field
+            //MAY be split into separate header fields, each with one or more
+            //cookie-pairs.  If there are multiple Cookie header fields after
+            //decompression, these MUST be concatenated into a single octet string
+            //using the two octet delimiter of 0x3B, 0x20 (the ASCII string "; ").
+
+            const string delimiter = "; ";
+            var cookie = new StringBuilder(String.Empty);
+
+            for (int i = 0; i < toProcess.Count; i++)
+            {
+                if (!toProcess[i].Key.Equals(CommonHeaders.Cookie)) 
+                    continue;
+
+                cookie.Append(toProcess[i].Value);
+                cookie.Append(delimiter);
+                toProcess.RemoveAt(i--);
+            }
+
+            //Add without last delimeter
+            toProcess.Add(new KeyValuePair<string, string>(CommonHeaders.Cookie, cookie.ToString(cookie.Length - 2, 2)));
         }
 
         private Tuple<string, string, IndexationType> ProcessIndexed(int index)
@@ -748,6 +765,8 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
 
                 //Add to result Without indexation. They were not added into reference set.
                 result.AddRange(unindexedHeadersList);
+
+                ProcessCookie(result);
 
                 //Return result
                 return result;
