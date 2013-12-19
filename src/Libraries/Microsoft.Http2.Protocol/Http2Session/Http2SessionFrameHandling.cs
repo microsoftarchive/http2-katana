@@ -7,8 +7,8 @@
 
 // See the Apache 2 License for the specific language governing permissions and limitations under the License.
 using System;
-using System.Diagnostics.Contracts;
 using System.Linq;
+using System.Text.RegularExpressions;
 using Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression;
 using Microsoft.Http2.Protocol.Exceptions;
 using Microsoft.Http2.Protocol.Framing;
@@ -18,11 +18,32 @@ namespace Microsoft.Http2.Protocol
 {
     public partial class Http2Session
     {
+        private const string lowerCasePattern = "^((?![A-Z]).)*$";
+        private readonly Regex _matcher = new Regex(lowerCasePattern);
+
+        private void ValidateHeaders(Http2Stream stream)
+        {
+            //spec 09 -> 8.1.3.  HTTP Header Fields
+            //Header field names MUST be
+            //converted to lowercase prior to their encoding in HTTP/2.0.  A
+            //request or response containing uppercase header field names MUST be
+            //treated as malformed (Section 8.1.3.5).
+            foreach (var header in stream.Headers)
+            {
+                if (!_matcher.IsMatch(header.Key) || !_matcher.IsMatch(header.Value))
+                {
+                    stream.WriteRst(ResetStatusCode.RefusedStream);
+                    stream.Dispose(ResetStatusCode.RefusedStream);
+                    break;
+                }
+            }
+        }
+
         private void HandleHeaders(HeadersFrame headersFrame, out Http2Stream stream)
         {
             Http2Logger.LogDebug("New headers with id = " + headersFrame.StreamId);
 
-            //spec 06:
+            //09 -> 6.2.  HEADERS
             //If a HEADERS frame
             //is received whose stream identifier field is 0x0, the recipient MUST
             //respond with a connection error (Section 5.4.1) of type
@@ -72,10 +93,14 @@ namespace Microsoft.Http2.Protocol
             if (stream == null)
             {
                 stream = CreateStream(sequence);
+
+                ValidateHeaders(stream);
             }
             else
             {
                 stream.Headers = sequence.Headers;//Modify by the last accepted frame
+
+                ValidateHeaders(stream);
             }
         }
 
@@ -87,6 +112,11 @@ namespace Microsoft.Http2.Protocol
 
             Http2Logger.LogDebug("New continuation with id = " + contFrame.StreamId);
 
+            //09 -> 6.10.  CONTINUATION
+            //CONTINUATION frames MUST be associated with a stream.  If a
+            //CONTINUATION frame is received whose stream identifier field is 0x0,
+            //the recipient MUST respond with a connection error (Section 5.4.1) of
+            //type PROTOCOL_ERROR.
             if (contFrame.StreamId == 0)
             {
                 throw new ProtocolError(ResetStatusCode.ProtocolError,
@@ -127,10 +157,14 @@ namespace Microsoft.Http2.Protocol
             if (stream == null)
             {
                 stream = CreateStream(sequence);
+
+                ValidateHeaders(stream);
             }
             else
             {
                 stream.Headers = sequence.Headers;
+
+                ValidateHeaders(stream);
             }
         }
 
@@ -186,6 +220,17 @@ namespace Microsoft.Http2.Protocol
 
         private void HandleDataFrame(DataFrame dataFrame, out Http2Stream stream)
         {
+            //09 -> 6.1.  DATA
+            //DATA frames MUST be associated with a stream.  If a DATA frame is
+            //received whose stream identifier field is 0x0, the recipient MUST
+            //respond with a connection error (Section 5.4.1) of type
+            //PROTOCOL_ERROR.
+            if (dataFrame.StreamId == 0)
+            {
+                throw new ProtocolError(ResetStatusCode.ProtocolError,
+                                        "Incoming continuation frame with id = 0");
+            }
+
             stream = GetStream(dataFrame.StreamId);
 
             //Aggressive window update
@@ -206,6 +251,18 @@ namespace Microsoft.Http2.Protocol
 
         private void HandlePingFrame(PingFrame pingFrame)
         {
+            //09 -> 6.7.  PING
+            //PING frames are not associated with any individual stream.  If a PING
+            //frame is received with a stream identifier field value other than
+            //0x0, the recipient MUST respond with a connection error
+            //(Section 5.4.1) of type PROTOCOL_ERROR.
+
+            if (pingFrame.StreamId != 0)
+            {
+                throw new ProtocolError(ResetStatusCode.ProtocolError,
+                                        "Incoming continuation frame with id = 0");
+            }
+
             Http2Logger.LogDebug("Ping frame with StreamId:{0} Payload:{1}", pingFrame.StreamId,
                                              pingFrame.Payload.Count);
 
@@ -214,14 +271,14 @@ namespace Microsoft.Http2.Protocol
                 throw new ProtocolError(ResetStatusCode.ProtocolError, "Ping payload size is not equal to 8");
             }
 
-            if (pingFrame.IsPong)
+            if (pingFrame.IsAck)
             {
                 _pingReceived.Set();
             }
             else
             {
-                var pongFrame = new PingFrame(true, pingFrame.Payload.ToArray());
-                _writeQueue.WriteFrame(pongFrame);
+                var pingAckFrame = new PingFrame(true, pingFrame.Payload.ToArray());
+                _writeQueue.WriteFrame(pingAckFrame);
             }
         }
 
@@ -236,8 +293,10 @@ namespace Microsoft.Http2.Protocol
             //(Section 5.4.1) of type FRAME_SIZE_ERROR.
             if (settingsFrame.IsAck)
             {
+                _settingsAckReceived.Set();
+
                 if (settingsFrame.FrameLength != 0)
-                    throw new ProtocolError(ResetStatusCode.FrameTooLarge, "ack settings frame is not 0");
+                    throw new ProtocolError(ResetStatusCode.FrameSizeError, "ack settings frame is not 0");
                 
                 return;
             }
@@ -317,7 +376,7 @@ namespace Microsoft.Http2.Protocol
             //TODO handle additional debug info
             _goAwayReceived = true;
             
-            Http2Logger.LogDebug("GoAway frame received");
+            Http2Logger.LogDebug("GoAway frame received with code {0}", goAwayFrame.StatusCode);
             Dispose();
         }
 
@@ -326,7 +385,7 @@ namespace Microsoft.Http2.Protocol
             Http2Logger.LogDebug("New push_promise with id = " + frame.StreamId);
             Http2Logger.LogDebug("Promised id = " + frame.PromisedStreamId);
 
-            //spec 06:
+            //09 -> 6.6.  PUSH_PROMISE
             //PUSH_PROMISE frames MUST be associated with an existing, peer-
             //initiated stream.  If the stream identifier field specifies the value
             //0x0, a recipient MUST respond with a connection error (Section 5.4.1)
@@ -347,6 +406,7 @@ namespace Microsoft.Http2.Protocol
             foreach (var header in headers)
             {
                 Http2Logger.LogDebug("Stream {0} header: {1}={2}", frame.StreamId, header.Key, header.Value);
+
                 frame.Headers.Add(header);
             }
 
@@ -358,7 +418,7 @@ namespace Microsoft.Http2.Protocol
             }
             else
             {
-                //06
+                //09 -> 6.6.  PUSH_PROMISE
                 //A receiver MUST
                 //treat the receipt of a PUSH_PROMISE on a stream that is neither
                 //"open" nor "half-closed (local)" as a connection error
@@ -369,7 +429,7 @@ namespace Microsoft.Http2.Protocol
                 throw new ProtocolError(ResetStatusCode.ProtocolError, "Got multiple push_promises with same Promised id's");
             }
 
-            //06
+            //09 -> 6.6.  PUSH_PROMISE
             //A PUSH_PROMISE frame without the END_PUSH_PROMISE flag set MUST be
             //followed by a CONTINUATION frame for the same stream.  A receiver
             //MUST treat the receipt of any other type of frame or a frame on a
@@ -380,8 +440,8 @@ namespace Microsoft.Http2.Protocol
                 stream = null;
                 return;
             }
-            
-            //06
+
+            //09 -> 8.2.1.  Push Requests
             //The server MUST include a method in the ":method"
             //header field that is safe (see [HTTP-p2], Section 4.2.1).  If a
             //client receives a PUSH_PROMISE that does not include a complete and
@@ -406,9 +466,12 @@ namespace Microsoft.Http2.Protocol
             {
                 stream = CreateStream(sequence);
                 stream.EndStreamSent = true;
+
+                ValidateHeaders(stream);
             }
             else
             {
+                //09 -> 6.6.  PUSH_PROMISE
                 //Similarly, a receiver MUST
                 //treat the receipt of a PUSH_PROMISE that promises an illegal stream
                 //identifier (Section 5.1.1) (that is, an identifier for a stream that

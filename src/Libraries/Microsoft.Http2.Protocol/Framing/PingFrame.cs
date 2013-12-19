@@ -24,17 +24,17 @@ namespace Microsoft.Http2.Protocol.Framing
         /// </summary>
         public const int FrameSize = PayloadLength + Constants.FramePreambleSize;
 
-        public bool IsPong 
+        public bool IsAck 
         {
             get
             {
-                return (Flags & FrameFlags.Pong) == FrameFlags.Pong;
+                return (Flags & FrameFlags.PingAck) == FrameFlags.PingAck;
             }
             set
             {
                 if (value)
                 {
-                    Flags |= FrameFlags.Pong;
+                    Flags |= FrameFlags.PingAck;
                 }
             }
         }
@@ -46,13 +46,13 @@ namespace Microsoft.Http2.Protocol.Framing
         }
 
         // Outgoing
-        public PingFrame(bool isPong, byte[] payload = null)
+        public PingFrame(bool isAck, byte[] payload = null)
             : base(new byte[FrameSize])
         {
             FrameType = FrameType.Ping;
             FrameLength = FrameSize - Constants.FramePreambleSize; // 4
 
-            IsPong = isPong;
+            IsAck = isAck;
             StreamId = 0;
 
             if (payload != null)

@@ -16,7 +16,7 @@ namespace Microsoft.Http2.Protocol.Framing
         None = 0x00,
         Ack = 0x01,
         EndStream = 0x01,
-        Pong = 0x01,
+        PingAck = 0x01,
         EndHeaders = 0x04,
         EndPushPromise = 0x04,
         Priority = 0x08,

@@ -14,11 +14,13 @@ namespace Microsoft.Http2.Protocol.Framing
         ProtocolError = 1,
         InternalError = 2,
         FlowControlError = 3,
-        UnsupportedVersion = 4,
+        SettingsTimeout = 4,
         StreamClosed = 5,
-        FrameTooLarge = 6,
+        FrameSizeError = 6,
         RefusedStream = 7,
         Cancel = 8,
-        CompressionError = 9
+        CompressionError = 9,
+        ConnectError = 10,
+        EnhanceYourCalm = 420,
     }
 }

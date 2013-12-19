@@ -51,7 +51,7 @@ namespace Microsoft.Http2.Owin.Server.Adapters
             owinRequest.Path = new PathString(headers.GetValue(CommonHeaders.Path));
             owinRequest.CallCancelled = CancellationToken.None;
 
-            owinRequest.Host = new HostString(headers.GetValue(CommonHeaders.Host));
+            owinRequest.Host = new HostString(headers.GetValue(CommonHeaders.Authority));
             owinRequest.PathBase = PathString.Empty;
             owinRequest.QueryString = QueryString.Empty;
             owinRequest.Body = Stream.Null;

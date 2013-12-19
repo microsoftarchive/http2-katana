@@ -36,6 +36,7 @@ namespace Microsoft.Http2.Protocol
         private WriteQueue _writeQueue;
         private Stream _ioStream;
         private ManualResetEvent _pingReceived = new ManualResetEvent(false);
+        private ManualResetEvent _settingsAckReceived = new ManualResetEvent(false);
         private bool _disposed;
         private ICompressionProcessor _comprProc;
         private readonly FlowControlManager _flowControlManager;
@@ -382,7 +383,7 @@ namespace Microsoft.Http2.Protocol
             {
                 if (frame.FrameLength > Constants.MaxFrameContentSize)
                 {
-                    throw new ProtocolError(ResetStatusCode.FrameTooLarge,
+                    throw new ProtocolError(ResetStatusCode.FrameSizeError,
                                             String.Format("Frame too large: Type: {0} {1}", frame.FrameType,
                                                           frame.FrameLength));
                 }
@@ -483,6 +484,7 @@ namespace Microsoft.Http2.Protocol
             catch (ProtocolError pEx)
             {
                 Http2Logger.LogError("Protocol error occurred: " + pEx.Message);
+                WriteGoAway(ResetStatusCode.ProtocolError);
                 Close(pEx.Code);
             }
             catch (MaxConcurrentStreamsLimitException)
@@ -571,8 +573,12 @@ namespace Microsoft.Http2.Protocol
             int id = sequence.StreamId;
             int priority = sequence.Priority;
             var headers = sequence.Headers;
+
             var stream = new Http2Stream(headers, id,
-                                         _writeQueue, _flowControlManager, priority);
+                                         _writeQueue, _flowControlManager, priority)
+                {
+                    EndStreamReceived = sequence.WasEndStreamReceived
+                };
 
             ActiveStreams[stream.Id] = stream;
 
@@ -734,6 +740,13 @@ namespace Microsoft.Http2.Protocol
 
             _writeQueue.WriteFrame(frame);
 
+            if (!_settingsAckReceived.WaitOne(60000))
+            {
+                Dispose();
+            }
+
+            _settingsAckReceived.Reset();
+
             if (OnSettingsSent != null)
             {
                 OnSettingsSent(this, new SettingsSentEventArgs(frame));
@@ -843,6 +856,12 @@ namespace Microsoft.Http2.Protocol
             {
                 _pingReceived.Dispose();
                 _pingReceived = null;
+            }
+
+            if (_settingsAckReceived != null)
+            {
+                _settingsAckReceived.Dispose();
+                _settingsAckReceived = null;
             }
 
             if (OnSessionDisposed != null)

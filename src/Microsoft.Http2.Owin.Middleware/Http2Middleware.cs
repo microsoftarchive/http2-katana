@@ -159,7 +159,7 @@ namespace Microsoft.Http2.Owin.Middleware
                     {CommonHeaders.InitialWindowSize, windowSize},
                     {CommonHeaders.MaxConcurrentStreams, maxStreams},
                     {CommonHeaders.Scheme, scheme},
-                    {CommonHeaders.Host, host}
+                    {CommonHeaders.Authority, host}
                 };
         }
     }

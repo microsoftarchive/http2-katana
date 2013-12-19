@@ -10,7 +10,7 @@ using System;
 
 namespace Microsoft.Http2.Protocol.Framing
 {
-    internal class ContinuationFrame : Frame, IEndStreamFrame, IHeadersFrame
+    internal class ContinuationFrame : Frame, IHeadersFrame
     {
 
         private const int PreambleSizeWithoutPriority = 8;
@@ -42,22 +42,6 @@ namespace Microsoft.Http2.Protocol.Framing
                 if (value)
                 {
                     Flags |= FrameFlags.EndHeaders;
-                }
-            }
-        }
-
-        // 8 bits, 24-31
-        public bool IsEndStream
-        {
-            get
-            {
-                return (Flags & FrameFlags.EndStream) == FrameFlags.EndStream;
-            }
-            set
-            {
-                if (value)
-                {
-                    Flags |= FrameFlags.EndStream;
                 }
             }
         }

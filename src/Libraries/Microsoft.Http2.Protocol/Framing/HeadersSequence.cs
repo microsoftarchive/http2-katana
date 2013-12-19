@@ -17,6 +17,7 @@ namespace Microsoft.Http2.Protocol.Framing
         public int StreamId { get; private set; }
         public bool IsComplete { get; private set; }
         public int Priority { get; set; }
+        public bool WasEndStreamReceived { get; private set; }
 
         public HeadersList Headers
         {
@@ -29,6 +30,7 @@ namespace Microsoft.Http2.Protocol.Framing
             StreamId = streamId;
             IsComplete = false;
             _wasFirstFrameReceived = false;
+            WasEndStreamReceived = false;
             AddHeaders(initialFrame);
         }
 
@@ -41,6 +43,9 @@ namespace Microsoft.Http2.Protocol.Framing
                 throw new ProtocolError(ResetStatusCode.ProtocolError, "Continuation was not precessed by the headers");
 
             _wasFirstFrameReceived = true;
+
+            if (newFrame is IEndStreamFrame && !WasEndStreamReceived)
+                WasEndStreamReceived = (newFrame as IEndStreamFrame).IsEndStream;
 
             headers.AddRange(newFrame.Headers);
 

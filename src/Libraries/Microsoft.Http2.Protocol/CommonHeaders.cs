@@ -17,7 +17,8 @@ namespace Microsoft.Http2.Protocol
         public const string MaxConcurrentStreams = ":max_concurrent_streams";
         public const string Scheme = ":scheme";
         public const string InitialWindowSize = ":initial_window_size";
-        public const string Host = ":host";
+        public const string Authority = ":authority";
+        public const string Host = "Host";
         public const string Http2Settings = "Http2-Settings";
         public const string Connection = "Connection";
         public const string Upgrade = "Upgrade";
