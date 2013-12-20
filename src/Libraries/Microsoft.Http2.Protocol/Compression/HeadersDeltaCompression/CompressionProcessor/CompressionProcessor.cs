@@ -9,7 +9,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Text;
 using Microsoft.Http2.Protocol.Exceptions;
 using Microsoft.Http2.Protocol.Extensions;
@@ -142,20 +141,26 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
         private byte[] EncodeString(string item, bool useHuffman)
         {
             byte[] itemBts;
-            int len = item.Length;
+            int len = 0;
 
             const byte prefix = 7;
 
-            byte[] lenBts = len.ToUVarInt(prefix); //05: String representation | H |  Value Length Prefix (7)  |
+            byte[] lenBts; //05: String representation | H |  Value Length Prefix (7)  |
 
             if (!useHuffman)
             {
                 itemBts = Encoding.UTF8.GetBytes(item);
+                len = item.Length;
+                lenBts = len.ToUVarInt(prefix);
             }
             else
             {
                 itemBts = Encoding.UTF8.GetBytes(item);
                 itemBts = _hufProc.Compress(itemBts);
+
+                len = itemBts.Length;
+                lenBts = len.ToUVarInt(prefix);
+
                 lenBts[0] |= 0x80; //05: Set huffman to true | 1 |  Value Length Prefix (7)  |
             }
 
@@ -266,14 +271,14 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
                 {
                     //Header key was found in the header table. Hence we should encode only value
                     indexBinary = (index + 1).ToUVarInt(prefix);
-                    valueBinary = EncodeString(header.Value, false); 
+                    valueBinary = EncodeString(header.Value, true); 
                 }
                 else
                 {
                     //Header key was not found in the header table. Hence we should encode name and value
                     indexBinary = 0.ToUVarInt(prefix);
-                    nameBinary = EncodeString(header.Key, false);
-                    valueBinary = EncodeString(header.Value, false);
+                    nameBinary = EncodeString(header.Key, true);
+                    valueBinary = EncodeString(header.Value, true);
                 }
                 
                 //Set without index type
@@ -426,11 +431,13 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
 
             bool isHuffman = (bytes[_currentOffset] & 0x80) != 0; //Get first bit. If true => huffman used
 
-            int len = bytes[_currentOffset];
-
-            if (len < maxPrefixVal)
+            int len = 0;
+            
+            //throw away huffman's mask
+            bytes[_currentOffset] &= 0x7f;
+            if ((bytes[_currentOffset]) < maxPrefixVal)
             {
-                _currentOffset++;
+                len = bytes[_currentOffset++]; 
             }
             else
             {
@@ -448,8 +455,6 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
                 Buffer.BlockCopy(bytes, _currentOffset, numberBytes, 0, i);
                 _currentOffset += i;
 
-                numberBytes[0] &= 0x7f; //throw away huffman's mask
-
                 len = Int32Extensions.FromUVarInt(numberBytes);
             }
 
@@ -457,10 +462,12 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
 
             if (isHuffman)
             {
-                var compressedBytes = new byte[len - _currentOffset - 1];
+                var compressedBytes = new byte[len];
                 Buffer.BlockCopy(bytes, _currentOffset, compressedBytes, 0, len);
                 var decodedBytes = _hufProc.Decompress(compressedBytes);
                 result = Encoding.UTF8.GetString(decodedBytes);
+
+                _currentOffset += len;
 
                 return result;
             }
@@ -495,7 +502,7 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
 
             for (int i = 0; i < toProcess.Count; i++)
             {
-                if (!toProcess[i].Key.Equals(CommonHeaders.Cookie)) 
+                if (!toProcess[i].Key.Equals(CommonHeaders.Cookie))
                     continue;
 
                 cookie.Append(toProcess[i].Value);
@@ -503,8 +510,12 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
                 toProcess.RemoveAt(i--);
             }
 
-            //Add without last delimeter
-            toProcess.Add(new KeyValuePair<string, string>(CommonHeaders.Cookie, cookie.ToString(cookie.Length - 2, 2)));
+            if (cookie.Length > 0)
+            {
+                //Add without last delimeter
+                toProcess.Add(new KeyValuePair<string, string>(CommonHeaders.Cookie,
+                                                               cookie.ToString(cookie.Length - 2, 2)));
+            }
         }
 
         private Tuple<string, string, IndexationType> ProcessIndexed(int index)

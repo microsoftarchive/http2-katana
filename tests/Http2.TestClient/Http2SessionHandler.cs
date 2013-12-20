@@ -263,32 +263,21 @@ namespace Http2.TestClient
 
         //localPath should be provided only for post and put cmds
         //serverPostAct should be provided only for post cmd
-        private void SubmitRequest(Uri request, string method, string localPath = null, string serverPostAct = null)
+        private void SubmitRequest(Uri request, string method)
         {
             var headers = new HeadersList
                 {
                     new KeyValuePair<string, string>(CommonHeaders.Method, method),
                     new KeyValuePair<string, string>(CommonHeaders.Path, request.PathAndQuery),
-                    new KeyValuePair<string, string>(CommonHeaders.Version, _version),
-                    new KeyValuePair<string, string>(CommonHeaders.Host, _host),
+                    new KeyValuePair<string, string>(CommonHeaders.Authority, _host),
                     new KeyValuePair<string, string>(CommonHeaders.Scheme, _scheme),
                 };
 
-            //Put and post handling
-            /*if (!String.IsNullOrEmpty(localPath))
-            {
-                headers.Add(new KeyValuePair<string, string>(":localPath".ToLower(), localPath));
-            }
-
-            if (!String.IsNullOrEmpty(serverPostAct))
-            {
-                headers.Add(new KeyValuePair<string, string>(":serverPostAct".ToLower(), serverPostAct));
-            }*/
-                //Sending request with default  priority
+            //Sending request with default  priority
             _sessionAdapter.SendRequest(headers, Constants.DefaultStreamPriority, false);
         }
 
-        public void SendRequestAsync(Uri request, string method, string localPath = null, string serverPostAct = null)
+        public void SendRequestAsync(Uri request, string method)
         {
             if (!_sessionAdapter.IsDisposed)
             {
@@ -306,7 +295,7 @@ namespace Http2.TestClient
                 Http2Logger.LogConsole("Submitting request");
 
                 //Submit request in the current thread, response will be handled in the session thread.
-                SubmitRequest(request, method, localPath, serverPostAct);
+                SubmitRequest(request, method);
             }
         }
 

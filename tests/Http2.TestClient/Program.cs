@@ -108,23 +108,11 @@ namespace Http2.TestClient
                             var uriCmd = (IUriCommand)cmd;
 
                             string method = uriCmd.Method;
-                            string localPath = null;
-                            string serverPostAct = null;
-
-                            if (cmd is PostCommand)
-                            {
-                                localPath = (cmd as PostCommand).LocalPath;
-                                serverPostAct = (cmd as PostCommand).ServerPostAct;
-                            }
-                            else if (cmd is PutCommand)
-                            {
-                                localPath = (cmd as PutCommand).LocalPath;
-                            }
 
                             //Only unique sessions can be opened
                             if (_sessions.ContainsKey(uriCmd.Uri.Authority))
                             {
-                                _sessions[uriCmd.Uri.Authority].SendRequestAsync(uriCmd.Uri, method, localPath, serverPostAct);
+                                _sessions[uriCmd.Uri.Authority].SendRequestAsync(uriCmd.Uri, method);
                                 break;
                             }
 
@@ -152,7 +140,7 @@ namespace Http2.TestClient
                                 }
 
                                 if (sessionHandler.Protocol != SslProtocols.None)
-                                    sessionHandler.SendRequestAsync(uriCmd.Uri, method, localPath, serverPostAct);
+                                    sessionHandler.SendRequestAsync(uriCmd.Uri, method);
                             }
                             break;
                         case CommandType.Help:

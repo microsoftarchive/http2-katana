@@ -248,6 +248,22 @@ namespace Microsoft.Http2.Protocol
             {
                 SendSessionHeader();
             }
+            // Listen for incoming Http/2.0 frames
+            var incomingTask = new Task(() =>
+                {
+                    Thread.CurrentThread.Name = "Frame listening thread started";
+                    PumpIncommingData();
+                });
+
+            // Send outgoing Http/2.0 frames
+            var outgoingTask = new Task(() =>
+                {
+                    Thread.CurrentThread.Name = "Frame writing thread started";
+                    PumpOutgoingData();
+                });
+
+            outgoingTask.Start();
+            incomingTask.Start();
 
             //Write settings. Settings must be the first frame in session.
             if (_ourEnd == ConnectionEnd.Client)
@@ -271,28 +287,11 @@ namespace Microsoft.Http2.Protocol
                         }, false);
                 }
             }
-            // Listen for incoming Http/2.0 frames
-            var incomingTask = new Task(() =>
-                {
-                    Thread.CurrentThread.Name = "Frame listening thread";
-                    PumpIncommingData();
-                });
-
-            // Send outgoing Http/2.0 frames
-            var outgoingTask = new Task(() =>
-                {
-                    Thread.CurrentThread.Name = "Frame writing thread";
-                    PumpOutgoingData();
-                });
-
-            outgoingTask.Start();
 
             //Handle upgrade handshake headers.
             if (initialRequest != null && !_isSecure)
                 DispatchInitialRequest(initialRequest);
             
-            incomingTask.Start();
-
             var endPumpsTask = Task.WhenAll(incomingTask, outgoingTask);
 
             //Cancellation token
@@ -421,8 +420,11 @@ namespace Microsoft.Http2.Protocol
                     case FrameType.Settings:
                         HandleSettingsFrame(frame as SettingsFrame);
 
-                        //Send ack
-                        WriteSettings(new SettingsPair[0], true);
+                        if (!(frame as SettingsFrame).IsAck)
+                        {
+                            //Send ack
+                            WriteSettings(new SettingsPair[0], true);
+                        }
                         break;
                     case FrameType.WindowUpdate:
                         HandleWindowUpdateFrame(frame as WindowUpdateFrame, out stream);
@@ -576,10 +578,10 @@ namespace Microsoft.Http2.Protocol
             var headers = sequence.Headers;
 
             var stream = new Http2Stream(headers, id,
-                                         _writeQueue, _flowControlManager, priority)
-                {
-                    EndStreamReceived = sequence.WasEndStreamReceived
-                };
+                                         _writeQueue, _flowControlManager, priority);
+
+            if (sequence.WasEndStreamReceived)
+                stream.EndStreamReceived = sequence.WasEndStreamReceived;
 
             ActiveStreams[stream.Id] = stream;
 
@@ -742,7 +744,8 @@ namespace Microsoft.Http2.Protocol
 
             _writeQueue.WriteFrame(frame);
 
-            if (!_settingsAckReceived.WaitOne(60000))
+
+            if (!isAck && !_settingsAckReceived.WaitOne(60000))
             {
                 Dispose();
             }
