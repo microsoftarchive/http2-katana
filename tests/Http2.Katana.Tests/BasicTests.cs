@@ -200,7 +200,7 @@ namespace Http2.Katana.Tests
         {
             var compressor = new HuffmanCompressionProcessor();
 
-            const string input = "abacabacabacabaababbababcacacacacacacaacabcabcabcabcbacbabcbabcbabbcabbcbab"
+            const string input = "abacabacabacabaababbababcacacacaedfghijklmnopqrstuvwxyz"
                                    + "Adsasd131221453!~[]{}{}~~`\'\\!@#$%^&*()_+=90klasdmnvzxcciuhakdkasdfioads"
                                    + "ADBSADLGUCJNZCXNJSLKDGYSADHIASDMNKJLDBOCXBVCXJIMSAD<NSKLDBHCBIUXHCXZNCMSN"
                                    + ",<>?|";
