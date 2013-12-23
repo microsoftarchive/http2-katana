@@ -13,6 +13,7 @@ using System.Text;
 using Microsoft.Http2.Protocol.Exceptions;
 using Microsoft.Http2.Protocol.Extensions;
 using Microsoft.Http2.Protocol.Compression.Huffman;
+using OpenSSL;
 
 namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
 {
@@ -28,7 +29,9 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
         private HeadersList _localHeadersTable;
         private HeadersList _localRefSet;
 
-        private HuffmanCompressionProcessor _hufProc;
+        private ConnectionEnd _localEnd;
+
+        private HuffmanCompressionProcessor _huffmanProc;
 
         private bool _isDisposed;
 
@@ -36,7 +39,7 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
 
         private int _maxHeaderByteSize;
 
-        public CompressionProcessor()
+        public CompressionProcessor(ConnectionEnd end)
         {
             //default max headers table size
             _maxHeaderByteSize = 4096;
@@ -49,7 +52,9 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
             _remoteRefSet = new HeadersList();
             _localRefSet = new HeadersList();
 
-            _hufProc = new HuffmanCompressionProcessor();
+            _huffmanProc = new HuffmanCompressionProcessor();
+
+            _localEnd = end;
 
             InitCompressor();
             InitDecompressor();
@@ -156,7 +161,7 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
             else
             {
                 itemBts = Encoding.UTF8.GetBytes(item);
-                itemBts = _hufProc.Compress(itemBts);
+                itemBts = _huffmanProc.Compress(itemBts, _localEnd == ConnectionEnd.Client);
 
                 len = itemBts.Length;
                 lenBts = len.ToUVarInt(prefix);
@@ -464,7 +469,7 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
             {
                 var compressedBytes = new byte[len];
                 Buffer.BlockCopy(bytes, _currentOffset, compressedBytes, 0, len);
-                var decodedBytes = _hufProc.Decompress(compressedBytes);
+                var decodedBytes = _huffmanProc.Decompress(compressedBytes, _localEnd == ConnectionEnd.Server);
                 result = Encoding.UTF8.GetString(decodedBytes);
 
                 _currentOffset += len;

@@ -16,10 +16,14 @@ namespace Microsoft.Http2.Protocol.Compression.Huffman
     {
         private Node _root;
         private HuffmanCodesTable _table;
+        private bool _isRequest;
+        private readonly bool[] _eos;
 
-        public BitTree(HuffmanCodesTable table)
+        public BitTree(HuffmanCodesTable table, bool isRequest)
         {
             _table = table;
+            _isRequest = isRequest;
+            _eos = _isRequest ? HuffmanCodesTable.ReqEos : HuffmanCodesTable.RespEos;
             _root = new Node(false, null);
             BuildTree(table);
         }
@@ -30,8 +34,8 @@ namespace Microsoft.Http2.Protocol.Compression.Huffman
             {
                 Add(bits);
             }
-            
-            Add(HuffmanCodesTable.Eos); //Add eos into codes table
+
+            Add(_isRequest ? HuffmanCodesTable.ReqEos : HuffmanCodesTable.RespEos);
         }
 
         private void Add(bool[] bits)
@@ -79,7 +83,7 @@ namespace Microsoft.Http2.Protocol.Compression.Huffman
                     bool isEos = true;
 
                     int j = 0;
-                    while (temp != null)
+                    while (temp != null && i < bits.Length)
                     {
                         
                         temp = !bits[i] ? temp.Left : temp.Right;
@@ -88,9 +92,9 @@ namespace Microsoft.Http2.Protocol.Compression.Huffman
                             continue;
 
                         symbolBits.Add(temp.Value);
-                        isEos &= temp.Value == HuffmanCodesTable.Eos[j];
+                        isEos &= temp.Value == _eos[j];
 
-                        if (isEos && ++j == HuffmanCodesTable.Eos.Length)
+                        if (isEos && ++j == _eos.Length)
                         {
                             result = new byte[stream.Position];
                             Buffer.BlockCopy(stream.GetBuffer(), 0, result, 0, result.Length);
@@ -100,12 +104,18 @@ namespace Microsoft.Http2.Protocol.Compression.Huffman
                         i++;
                     }
 
-                    var symbol = _table.GetByte(symbolBits);
-                    stream.WriteByte(symbol);
-                }
+                    if (i < bits.Length)
+                    {
+                        var symbol = _table.GetByte(symbolBits);
+                        stream.WriteByte(symbol);
+                    }
+                }         
+                
+                result = new byte[stream.Position];
+                Buffer.BlockCopy(stream.GetBuffer(), 0, result, 0, result.Length);
+                return result;
             }
-
-            throw new Exception("End of message is not recognized!");
+            //throw new Exception("End of message is not recognized!");
         }
 
         private class Node

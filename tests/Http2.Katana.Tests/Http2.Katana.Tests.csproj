@@ -91,8 +91,11 @@
     <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Compression\HuffmanCompression\BitTree.cs">
       <Link>Sources\Libraries\Microsoft.Http2.Protocol\Compression\Huffman\BitTree.cs</Link>
     </Compile>
-    <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Compression\HuffmanCompression\HuffmanCodesTable.cs">
-      <Link>Sources\Libraries\Microsoft.Http2.Protocol\Compression\Huffman\HuffmanCodesTable.cs</Link>
+    <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Compression\HuffmanCompression\HuffmanCodesTable\HuffmanCodes.cs">
+      <Link>Sources\Libraries\Microsoft.Http2.Protocol\Compression\Huffman\HuffmanCodesTable\HuffmanCodes.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Compression\HuffmanCompression\HuffmanCodesTable\HuffmanCodesTable.cs">
+      <Link>Sources\Libraries\Microsoft.Http2.Protocol\Compression\Huffman\HuffmanCodesTable\HuffmanCodesTable.cs</Link>
     </Compile>
     <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Compression\HuffmanCompression\HuffmanCompressor.cs">
       <Link>Sources\Libraries\Microsoft.Http2.Protocol\Compression\Huffman\HuffmanCompressor.cs</Link>

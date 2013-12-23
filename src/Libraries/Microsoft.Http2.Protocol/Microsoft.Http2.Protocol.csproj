@@ -49,7 +49,8 @@
     <Compile Include="Compression\HeadersDeltaCompression\CompressionProcessor\CompressionProcStaticTable.cs" />
     <Compile Include="Compression\HuffmanCompression\BinaryConverter.cs" />
     <Compile Include="Compression\HuffmanCompression\BitTree.cs" />
-    <Compile Include="Compression\HuffmanCompression\HuffmanCodesTable.cs" />
+    <Compile Include="Compression\HuffmanCompression\HuffmanCodesTable\HuffmanCodes.cs" />
+    <Compile Include="Compression\HuffmanCompression\HuffmanCodesTable\HuffmanCodesTable.cs" />
     <Compile Include="Compression\HuffmanCompression\HuffmanCompressor.cs" />
     <Compile Include="Compression\IAdditionalHeaderInfo.cs" />
     <Compile Include="Compression\ICompressionProcessor.cs" />

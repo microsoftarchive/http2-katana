@@ -148,7 +148,7 @@ namespace Microsoft.Http2.Protocol
             }
 
             _goAwayReceived = false;
-            _comprProc = new CompressionProcessor();
+            _comprProc = new CompressionProcessor(_ourEnd);
             _ioStream = stream;
 
             _frameReader = new FrameReader(_ioStream);
