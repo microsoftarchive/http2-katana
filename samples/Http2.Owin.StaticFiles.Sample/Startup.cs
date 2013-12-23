@@ -7,6 +7,8 @@
 
 // See the Apache 2 License for the specific language governing permissions and limitations under the License.
 
+using Microsoft.Owin;
+using Microsoft.Owin.StaticFiles;
 using Owin;
 
 namespace Http2.Owin.StaticFiles.Sample
@@ -21,7 +23,8 @@ namespace Http2.Owin.StaticFiles.Sample
         {
             builder.UseHttp2();
             builder.UsePush();
-            builder.UseStaticFiles("/root");
+            var a = new StaticFileOptions {RequestPath = new PathString("/root")};
+            builder.UseDefaultFiles("/root");
         }
     }
 }

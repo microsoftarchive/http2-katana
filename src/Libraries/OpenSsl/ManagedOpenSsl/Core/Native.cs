@@ -2415,13 +2415,13 @@ namespace OpenSSL.Core
 		public extern static IntPtr SSLv23_client_method();
 
 		[DllImport(SSLDLLNAME, CallingConvention=CallingConvention.Cdecl)]
-		public extern static IntPtr TLSv1_method();
+        public extern static IntPtr TLSv1_1_method();
 
 		[DllImport(SSLDLLNAME, CallingConvention=CallingConvention.Cdecl)]
-		public extern static IntPtr TLSv1_client_method();
+        public extern static IntPtr TLSv1_1_client_method();
 
 		[DllImport(SSLDLLNAME, CallingConvention=CallingConvention.Cdecl)]
-		public extern static IntPtr TLSv1_server_method();
+        public extern static IntPtr TLSv1_1_server_method();
 
 		[DllImport(SSLDLLNAME, CallingConvention=CallingConvention.Cdecl)]
 		public extern static IntPtr DTLSv1_method();

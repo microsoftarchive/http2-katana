@@ -575,10 +575,9 @@ namespace OpenSSL.SSL
 				throw new ArgumentOutOfRangeException("count", "count is greater than buffer length - offset");
 			}
 
-			bool proceedAfterHandshake = true;
-			if (count == 0) proceedAfterHandshake = false;
+		    bool proceedAfterHandshake = count != 0;
 
-			InternalAsyncResult internalAsyncResult = new InternalAsyncResult(asyncCallback, asyncState, buffer, offset, count, false, proceedAfterHandshake);
+		    InternalAsyncResult internalAsyncResult = new InternalAsyncResult(asyncCallback, asyncState, buffer, offset, count, false, proceedAfterHandshake);
 
 			if (NeedHandshake)
 			{
@@ -804,10 +803,9 @@ namespace OpenSSL.SSL
 				throw new ArgumentOutOfRangeException("count", "count is greater than buffer length - offset");
 			}
 
-			bool proceedAfterHandshake = true;
-			if (count == 0) proceedAfterHandshake = false;
+		    bool proceedAfterHandshake = count != 0;
 
-			InternalAsyncResult asyncResult = new InternalAsyncResult(asyncCallback, asyncState, buffer, offset, count, true, proceedAfterHandshake);
+		    InternalAsyncResult asyncResult = new InternalAsyncResult(asyncCallback, asyncState, buffer, offset, count, true, proceedAfterHandshake);
 
 			if (NeedHandshake)
 			{

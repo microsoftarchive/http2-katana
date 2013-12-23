@@ -145,7 +145,7 @@ namespace Microsoft.Http2.Owin.Server
                 {
                     await messageHandler.StartSessionAsync();
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
                     Http2Logger.LogError("Client was disconnected");
                 }

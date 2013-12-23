@@ -266,8 +266,8 @@ namespace Microsoft.Http2.Protocol
             incomingTask.Start();
 
             //Write settings. Settings must be the first frame in session.
-            if (_ourEnd == ConnectionEnd.Client)
-            {
+            //if (_ourEnd == ConnectionEnd.Client)
+            //{
                 if (_useFlowControl)
                 {
                     WriteSettings(new[]
@@ -286,7 +286,7 @@ namespace Microsoft.Http2.Protocol
                                              (byte) FlowControlOptions.DontUseFlowControl)
                         }, false);
                 }
-            }
+           // }
 
             //Handle upgrade handshake headers.
             if (initialRequest != null && !_isSecure)

@@ -222,17 +222,17 @@ namespace OpenSSL.SSL
         /// <summary>
         /// TLSv1_method()
         /// </summary>
-        public static SslMethod TLSv1_method = new SslMethod(Native.TLSv1_method(), false);
+        public static SslMethod TLSv1_method = new SslMethod(Native.TLSv1_1_method(), false);
 
         /// <summary>
         /// TLSv1_server_method()
         /// </summary>
-        public static SslMethod TLSv1_server_method = new SslMethod(Native.TLSv1_server_method(), false);
+        public static SslMethod TLSv1_server_method = new SslMethod(Native.TLSv1_1_server_method(), false);
 
         /// <summary>
         /// TLSv1_client_method()
         /// </summary>
-        public static SslMethod TLSv1_client_method = new SslMethod(Native.TLSv1_client_method(), false);
+        public static SslMethod TLSv1_client_method = new SslMethod(Native.TLSv1_1_client_method(), false);
 
         /// <summary>
         /// DTLSv1_method()
