@@ -23,8 +23,7 @@ namespace Http2.Owin.StaticFiles.Sample
         {
             builder.UseHttp2();
             builder.UsePush();
-            var a = new StaticFileOptions {RequestPath = new PathString("/root")};
-            builder.UseDefaultFiles("/root");
+            //builder.UseDefaultFiles("/root");
         }
     }
 }
