@@ -30,15 +30,15 @@ namespace Microsoft.Http2.Push
             _references = new ReferenceTable(new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase)
                 {
                     {
-                        "/index.html", new[]
+                        "/root/index.html", new[]
                             {
-                                "/simpleTest.txt",
+                                "/root/simpleTest.txt",
                             }
                     },
                     {
-                        "/simpleTest.txt", new[]
+                        "/root/simpleTest.txt", new[]
                             {
-                                "/index.html",
+                                "/root/index.html",
                             }
                     },
                 });
@@ -104,7 +104,7 @@ namespace Microsoft.Http2.Push
             headers[CommonHeaders.Method] = request.Method; // TODO: Not all methods are allowed for push.  Don't push, or change to GET?
             headers[CommonHeaders.Scheme] = request.Scheme;
             headers.Remove("Host");
-            headers[CommonHeaders.Host] = request.Headers["Host"];
+            headers[CommonHeaders.Authority] = request.Headers["Host"];
 
             headers.Remove(CommonHeaders.ContentLength); // Push promises cannot emulate requests with bodies.
 

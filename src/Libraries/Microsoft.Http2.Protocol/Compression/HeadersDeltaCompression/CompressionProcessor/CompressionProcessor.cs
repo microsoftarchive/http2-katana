@@ -215,14 +215,14 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
                 {
                     //Header key was found in the header table. Hence we should encode only value
                     indexBinary = (index + 1).ToUVarInt(prefix);
-                    valueBinary = EncodeString(header.Value, true);
+                    valueBinary = EncodeString(header.Value, false);
                 }
                 else
                 {
                     //Header key was not found in the header table. Hence we should encode name and value
                     indexBinary = 0.ToUVarInt(prefix);
-                    nameBinary = EncodeString(header.Key, true);
-                    valueBinary = EncodeString(header.Value, true);
+                    nameBinary = EncodeString(header.Key, false);
+                    valueBinary = EncodeString(header.Value, false);
                 }
 
                 //Set without index type
@@ -276,14 +276,14 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
                 {
                     //Header key was found in the header table. Hence we should encode only value
                     indexBinary = (index + 1).ToUVarInt(prefix);
-                    valueBinary = EncodeString(header.Value, true); 
+                    valueBinary = EncodeString(header.Value, false); 
                 }
                 else
                 {
                     //Header key was not found in the header table. Hence we should encode name and value
                     indexBinary = 0.ToUVarInt(prefix);
-                    nameBinary = EncodeString(header.Key, true);
-                    valueBinary = EncodeString(header.Value, true);
+                    nameBinary = EncodeString(header.Key, false);
+                    valueBinary = EncodeString(header.Value, false);
                 }
                 
                 //Set without index type

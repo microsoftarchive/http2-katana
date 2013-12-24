@@ -39,7 +39,7 @@ namespace Microsoft.Http2.Protocol.Compression.Huffman
             }
 
             //add finish symbol
-           // huffmanEncodedMessage.AddRange(isRequest ? HuffmanCodesTable.ReqEos : HuffmanCodesTable.RespEos);
+            huffmanEncodedMessage.AddRange(isRequest ? HuffmanCodesTable.ReqEos : HuffmanCodesTable.RespEos);
 
             return BinaryConverter.ToBytes(huffmanEncodedMessage);
         }
