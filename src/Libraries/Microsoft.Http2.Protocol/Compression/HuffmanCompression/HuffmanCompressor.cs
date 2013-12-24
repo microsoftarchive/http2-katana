@@ -24,7 +24,7 @@ namespace Microsoft.Http2.Protocol.Compression.Huffman
             _requestTree = new BitTree(_requestTable, true);
 
             _responseTable = new HuffmanCodesTable(isRequest: false);
-            _responseTree = new BitTree(_requestTable, false);
+            _responseTree = new BitTree(_responseTable, false);
         }
 
         public byte[] Compress(byte[] data, bool isRequest)
@@ -39,7 +39,7 @@ namespace Microsoft.Http2.Protocol.Compression.Huffman
             }
 
             //add finish symbol
-            huffmanEncodedMessage.AddRange(isRequest ? HuffmanCodesTable.ReqEos : HuffmanCodesTable.RespEos);
+           // huffmanEncodedMessage.AddRange(isRequest ? HuffmanCodesTable.ReqEos : HuffmanCodesTable.RespEos);
 
             return BinaryConverter.ToBytes(huffmanEncodedMessage);
         }

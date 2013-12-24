@@ -30,7 +30,7 @@ namespace Microsoft.Http2.Protocol
             //treated as malformed (Section 8.1.3.5).
             foreach (var header in stream.Headers)
             {
-                if (!_matcher.IsMatch(header.Key) || !_matcher.IsMatch(header.Value))
+                if (!_matcher.IsMatch(header.Key))
                 {
                     stream.WriteRst(ResetStatusCode.RefusedStream);
                     stream.Dispose(ResetStatusCode.RefusedStream);
