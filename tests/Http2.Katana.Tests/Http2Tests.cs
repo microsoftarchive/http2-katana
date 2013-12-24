@@ -518,7 +518,7 @@ namespace Http2.Katana.Tests
                                      if (dataFrame.IsEndStream
                                          &&
                                          stream.Headers.GetValue(CommonHeaders.Path.ToLower())
-                                               .Equals("/" + TestHelpers.IndexFileName.ToLower()))
+                                               .Equals("/root/" + TestHelpers.IndexFileName.ToLower()))
                                      {
                                          finalFrameReceivedRaisedEvent.Set();
                                      }
@@ -638,7 +638,7 @@ namespace Http2.Katana.Tests
                     new KeyValuePair<string, string>(":method", method),
                     new KeyValuePair<string, string>(":path", path),
                     new KeyValuePair<string, string>(":version", version),
-                    new KeyValuePair<string, string>(":host", host + ":" + uri.Port),
+                    new KeyValuePair<string, string>(":authority", host + ":" + uri.Port),
                     new KeyValuePair<string, string>(":scheme", scheme),
                 };
             return pairs;
