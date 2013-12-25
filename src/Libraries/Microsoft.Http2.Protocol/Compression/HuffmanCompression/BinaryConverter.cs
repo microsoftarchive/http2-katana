@@ -29,7 +29,7 @@ namespace Microsoft.Http2.Protocol.Compression.Huffman
 
         public static byte[] ToBytes(bool[] bools)
         {
-            var result = new byte[bools.Length / 8 + 1];
+            var result = new byte[bools.Length % 8 == 0 ? bools.Length / 8 : bools.Length / 8 + 1];
             int offset = 0;
             byte count = 8;
             int resIndex = 0;
@@ -47,7 +47,7 @@ namespace Microsoft.Http2.Protocol.Compression.Huffman
 
         public static byte[] ToBytes(List<bool> bools)
         {
-            var result = new byte[bools.Count / 8];
+            var result = new byte[bools.Count % 8 == 0 ? bools.Count / 8 : bools.Count / 8 + 1];
             int offset = 0;
             byte count = 8;
             int resIndex = 0;

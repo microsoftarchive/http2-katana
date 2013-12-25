@@ -75,7 +75,7 @@ namespace Microsoft.Http2.Protocol.Compression.Huffman
                 {new[] {T,T,T,T,T,T,T,T, T,T,T,T,F,T}, (byte) '^'},                             //'^' ( 94) |11111111|111101
                 {new[] {T,F,T,T,T,F}, (byte) '_'},                                              //'_' ( 95) |101110
                 {new[] {T,T,T,T,T,T,T,T, T,T,T,T,T,T,T,T, T,T,F}, (byte) '`'},                  //'`' ( 96) |11111111|11111111|110
-                {new[] {F,T,F,F,F}, (byte) 'a'},                                              //'a' ( 97) |01000
+                {new[] {F,T,F,F,F}, (byte) 'a'},                                                //'a' ( 97) |01000
                 {new[] {T,F,T,T,T,T}, (byte) 'b'},                                              //'b' ( 98) |101111
                 {new[] {F,T,F,F,T}, (byte) 'c'},                                                //'c' ( 99) |01001
                 {new[] {T,T,F,F,F,F}, (byte) 'd'},                                              //'d' (100) |110000
@@ -206,7 +206,6 @@ namespace Microsoft.Http2.Protocol.Compression.Huffman
             {new []{T,T,T,T,T,T,T,T, T,T,T,T,F,T}, (byte) '|'},                     //'|' (124) |11111111|111101
             {new []{T,T,T,T,T,T,T,T, T,T,T,T,T,T,F,T}, (byte) '}'},                 //'}' (125) |11111111|11111101|
             {new []{T,T,T,T,T,T,T,T, T,T,T,T,T,T,T,F}, (byte) '~'},                 //'~' (126) |11111111|11111110|
-            //{new []{T,T,T,T,T,T,T,T, T,T,T,T,T,T,T,T, T,T,F,T,T,T,F,T}, Eos}      //EOS (256) |11111111|11111111|11011101|
         };
         #endregion
 
