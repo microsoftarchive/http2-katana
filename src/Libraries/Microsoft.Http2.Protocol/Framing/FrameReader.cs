@@ -84,6 +84,9 @@ namespace Microsoft.Http2.Protocol.Framing
                 case FrameType.PushPromise:
                     return new PushPromiseFrame(preamble);
 
+                case FrameType.Priority:
+                    return new PriorityFrame(preamble);
+
                 default:
                     throw new NotImplementedException("Frame type: " + preamble.FrameType);
             }

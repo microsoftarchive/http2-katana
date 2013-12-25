@@ -46,7 +46,7 @@ namespace Microsoft.Http2.Protocol
             //Send only first value?
             foreach (var header in headers)
             {
-                _collection.Add(new KeyValuePair<string, string>(header.Key.ToLower(), header.Value[0].ToLower()));
+                _collection.Add(new KeyValuePair<string, string>(header.Key.ToLower(), header.Value[0]));
             }
         }
 

@@ -101,7 +101,7 @@ namespace Microsoft.Http2.Push
                 new Dictionary<string, string[]>(request.Headers, StringComparer.OrdinalIgnoreCase));
 
             // Populate special HTTP2 headers
-            headers[CommonHeaders.Method] = request.Method; // TODO: Not all methods are allowed for push.  Don't push, or change to GET?
+            headers[CommonHeaders.Method] = request.Method.ToUpper(); // TODO: Not all methods are allowed for push.  Don't push, or change to GET?
             headers[CommonHeaders.Scheme] = request.Scheme;
             headers.Remove("Host");
             headers[CommonHeaders.Authority] = request.Headers["Host"];

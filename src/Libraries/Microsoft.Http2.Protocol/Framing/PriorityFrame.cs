@@ -22,6 +22,15 @@ namespace Microsoft.Http2.Protocol.Framing
             set { FrameHelpers.Set31BitsAt(Buffer, 8, value); }
         }
 
+        /// <summary>
+        /// Create an incoming frame
+        /// </summary>
+        /// <param name="preamble">Frame preamble</param>
+        public PriorityFrame(Frame preamble)
+            : base(preamble)
+        {
+        }
+
         public PriorityFrame(int priority, int streamId)
         {
             Contract.Assert(streamId != 0);
