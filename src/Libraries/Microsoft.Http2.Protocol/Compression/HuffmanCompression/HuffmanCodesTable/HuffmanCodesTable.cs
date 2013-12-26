@@ -10,6 +10,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using Microsoft.Http2.Protocol.Exceptions;
 
 namespace Microsoft.Http2.Protocol.Compression.Huffman
 {
@@ -97,8 +98,7 @@ namespace Microsoft.Http2.Protocol.Compression.Huffman
                 }
             }
 
-            //TODO Add exception type
-            throw new Exception("symbol does not present in the alphabeth");
+            throw new CompressionError(new Exception("symbol does not present in the alphabeth"));
         }
 
         public byte GetByte(List<bool> bits)
@@ -125,17 +125,16 @@ namespace Microsoft.Http2.Protocol.Compression.Huffman
                 }
             }
 
-            //TODO Add exception type
-            throw new Exception("symbol does not present in the alphabeth");
+            throw new CompressionError(new Exception("symbol does not present in the alphabeth"));
         }
 
         public bool[] GetBits(byte c)
         {
-            Map bitsMap = _isRequest ? _reqSymbolBitsMap : _respSymbolBitsMap;
+            var bitsMap = _isRequest ? _reqSymbolBitsMap : _respSymbolBitsMap;
             var val = bitsMap.FirstOrDefault(pair => pair.Value == c).Key;
 
             if (val == null)
-                throw new Exception("No such symbol in the alphabeth");
+                throw new CompressionError(new Exception("symbol does not present in the alphabeth"));
 
             return val;
         }

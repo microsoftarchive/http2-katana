@@ -48,10 +48,7 @@ namespace Http2.TestClient.Adapters
             catch (IOException)
             {
                 Http2Logger.LogError("File is still downloading. Repeat request later");
-                //stream.WriteDataFrame(new byte[0], true);
-
-                //RST always has endstream flag
-                //_fileHelper.RemoveStream(path);
+               
                 stream.Dispose(ResetStatusCode.InternalError);
                 return;
             }

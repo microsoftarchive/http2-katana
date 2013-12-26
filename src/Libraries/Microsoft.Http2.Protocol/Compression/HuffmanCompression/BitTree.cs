@@ -115,7 +115,6 @@ namespace Microsoft.Http2.Protocol.Compression.Huffman
                 Buffer.BlockCopy(stream.GetBuffer(), 0, result, 0, result.Length);
                 return result;
             }
-            //throw new Exception("End of message is not recognized!");
         }
 
         private class Node

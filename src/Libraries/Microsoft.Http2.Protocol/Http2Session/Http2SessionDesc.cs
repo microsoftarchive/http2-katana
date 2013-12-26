@@ -747,9 +747,10 @@ namespace Microsoft.Http2.Protocol
 
             if (!isAck && !_settingsAckReceived.WaitOne(60000))
             {
+                WriteGoAway(ResetStatusCode.SettingsTimeout);
                 Dispose();
             }
-
+            
             _settingsAckReceived.Reset();
 
             if (OnSettingsSent != null)

@@ -329,10 +329,6 @@ namespace Http2.Katana.Tests
                 Assert.True(finalFrameReceived);
                 Assert.Equal(TestHelpers.FileContentSimpleTest, responseBody.ToString());
             }
-            catch (Exception)
-            {
-                int a = 1;
-            }
             finally
             {
                 adapter.Dispose();

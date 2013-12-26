@@ -766,16 +766,6 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
                     }
                 }
 
-                //TODO Check if this necessary
-                /*for (int i = _localRefSet.Count - 1; i >= 0; --i)
-                {
-                    var header = _localRefSet[i];
-                    if (!_localHeadersTable.Contains(header))
-                    {
-                        _localRefSet.RemoveAll(h => h.Equals(header));
-                    }
-                }*/
-
                 //Base result on already modified reference set
                 var result = new HeadersList(_localRefSet);
 
