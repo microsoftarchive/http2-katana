@@ -20,9 +20,7 @@ namespace BingHelper
             OriginalReq = originalReq;
         }
 
-        // ReSharper disable UnusedParameter.Local
-        public IEnumerable<String> Process(Stream output)
-            // ReSharper restore UnusedParameter.Local
+        public IEnumerable<String> Process()
         {
             var parameters = ExtractParametersFromBase64(OriginalReq);
 

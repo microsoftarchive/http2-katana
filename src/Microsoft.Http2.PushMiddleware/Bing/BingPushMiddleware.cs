@@ -35,7 +35,7 @@ namespace Microsoft.Http2.BingPushMiddleware
                     new BingRequestProcessor("Aq9ZXVjENT-rbUAS4KTwU_cfDzUYRbepjQzTyghvDPEEvuawmmxFrYhoS2o9gqfO",
                                              "Y3A9NTcuNjE2NjY1fjM5Ljg2NjY2NSZsdmw9NCZzdHk9ciZxPXlhcm9zbGF2bA==");
 
-                var images = bingProcessor.Process(context.Response.Body);
+                var images = bingProcessor.Process();
                 context.Set(CommonOwinKeys.AdditionalInfo, images);
 
                 var enumerable = images as string[] ?? images.ToArray();
