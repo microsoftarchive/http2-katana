@@ -1,4 +1,4 @@
-﻿namespace BingHelper
+﻿namespace Microsoft.Http2.Push.Bing.BingHelpers
 {
     class Tile
     {

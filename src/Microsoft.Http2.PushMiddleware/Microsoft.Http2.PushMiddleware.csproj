@@ -53,6 +53,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Bing\BingHelpers\BingHelper.cs" />
+    <Compile Include="Bing\BingHelpers\CommonNames.cs" />
     <Compile Include="Bing\BingHelpers\Tile.cs" />
     <Compile Include="Bing\BingHelpers\TileSystem.cs" />
     <Compile Include="Bing\BingPushMiddleware.cs" />

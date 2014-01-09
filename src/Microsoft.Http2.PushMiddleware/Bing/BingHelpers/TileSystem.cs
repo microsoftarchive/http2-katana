@@ -1,15 +1,15 @@
 ﻿using System;
 using System.Text;
 
-namespace BingHelper
+namespace Microsoft.Http2.Push.Bing.BingHelpers
 {
    internal class TileSystem
     {
-        private const double EarthRadius = 6378137;
-        private const double MinLatitude = -85.05112878;
-        private const double MaxLatitude = 85.05112878;
-        private const double MinLongitude = -180;
-        private const double MaxLongitude = 180;
+        internal const double EarthRadius = 6378137;
+        internal const double MinLatitude = -85.05112878;
+        internal const double MaxLatitude = 85.05112878;
+        internal const double MinLongitude = -180;
+        internal const double MaxLongitude = 180;
 
         /// <summary>
         /// Clips a number to the specified minimum and maximum values.

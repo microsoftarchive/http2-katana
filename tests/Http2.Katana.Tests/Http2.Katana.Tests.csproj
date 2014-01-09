@@ -336,6 +336,9 @@
     <Compile Include="..\..\src\Microsoft.Http2.PushMiddleware\Bing\BingHelpers\BingHelper.cs">
       <Link>Sources\Microsoft.Http2.PushMiddleware\Bing\BingHelpers\BingHelper.cs</Link>
     </Compile>
+    <Compile Include="..\..\src\Microsoft.Http2.PushMiddleware\Bing\BingHelpers\CommonNames.cs">
+      <Link>Sources\Microsoft.Http2.PushMiddleware\Bing\BingHelpers\CommonNames.cs</Link>
+    </Compile>
     <Compile Include="..\..\src\Microsoft.Http2.PushMiddleware\Bing\BingHelpers\Tile.cs">
       <Link>Sources\Microsoft.Http2.PushMiddleware\Bing\BingHelpers\Tile.cs</Link>
     </Compile>

@@ -1,75 +1,75 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.ServiceModel;
 using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.Http2.Push.ImageryService;
 
-namespace BingHelper
+namespace Microsoft.Http2.Push.Bing.BingHelpers
 {
     public class BingRequestProcessor
     {
-        private readonly string BingKey = "Aq9ZXVjENT-rbUAS4KTwU_cfDzUYRbepjQzTyghvDPEEvuawmmxFrYhoS2o9gqfO";
-        private readonly string OriginalReq = "Y3A9NTcuNjE2NjY1fjM5Ljg2NjY2NSZsdmw9NCZzdHk9ciZxPXlhcm9zbGF2bA==";
+        private readonly string _bingKey = "Aq9ZXVjENT-rbUAS4KTwU_cfDzUYRbepjQzTyghvDPEEvuawmmxFrYhoS2o9gqfO";
+        private readonly string _originalReq = "Y3A9NTcuNjE2NjY1fjM5Ljg2NjY2NSZsdmw9NCZzdHk9ciZxPXlhcm9zbGF2bA==";
+        private const string Base64ParamsRegex = @"([^&]*=[^&]*)";
+
+        private const int TileWidth = 256;
+        private const int TileHeight = 256;
+        private const int MaxReceivedDataSizeFromSoap = 10240000; //That's big enough
 
         public BingRequestProcessor(string bingKey, string originalReq)
         {
-            BingKey = bingKey;
-            OriginalReq = originalReq;
+            _bingKey = bingKey;
+            _originalReq = originalReq;
         }
 
-        public IEnumerable<String> Process()
+        public IEnumerable<string> Process()
         {
-            var parameters = ExtractParametersFromBase64(OriginalReq);
+            var parameters = ExtractParametersFromBase64(_originalReq);
 
-            BasicHttpBinding binding = new BasicHttpBinding(BasicHttpSecurityMode.None);
-            EndpointAddress addr =
-                new EndpointAddress(
-                    new Uri("http://dev.virtualearth.net/webservices/v1/imageryservice/imageryservice.svc"));
+            var binding = new BasicHttpBinding(BasicHttpSecurityMode.None)
+                {
+                    MaxReceivedMessageSize = MaxReceivedDataSizeFromSoap
+                };
+
+            var addr = new EndpointAddress(new Uri(CommonNames.ImageryServiceAddr));
+
             var client = new ImageryServiceClient(binding, addr);
 
             var requests = GetAroundTilesRequests(parameters);
-            var imageUrls = new List<String>();
 
-            foreach (var imageryMetadataRequest in requests)
-            {
-                var resp = client.GetImageryMetadata(imageryMetadataRequest);
-
-                imageUrls.Add(resp.Results[0].ImageUri);
-            }
-
-            return imageUrls;
+            return requests.Select(client.GetImageryMetadata).Select(resp => resp.Results[0].ImageUri).ToList();
         }
 
-        private Dictionary<string, string> ExtractParametersFromBase64(String base64Params)
+        private static Dictionary<string, string> ExtractParametersFromBase64(String base64Params)
         {
             var parameters = new Dictionary<string, string>();
-            string decodedString = Encoding.UTF8.GetString(Convert.FromBase64String(base64Params));
+            var decodedString = Encoding.UTF8.GetString(Convert.FromBase64String(base64Params));
 
-            Match match = Regex.Match(decodedString, @"([^&]*=[^&]*)");
+            var match = Regex.Match(decodedString, Base64ParamsRegex);
             while (match.Success)
             {
-                string[] parVal = match.Value.Split('=');
+                var parVal = match.Value.Split(new[]{'='}, StringSplitOptions.RemoveEmptyEntries);
                 parameters.Add(parVal[0], parVal[1]);
 
                 match = match.NextMatch();
             }
-            string[] latLon = parameters["cp"].Split('~');
-            parameters.Add("latitude", latLon[0]);
-            parameters.Add("longitude", latLon[1]);
-            parameters.Remove("cp");
+            string[] latLon = parameters[CommonNames.Cp].Split(new []{'~'}, StringSplitOptions.RemoveEmptyEntries);
+            parameters.Add(CommonNames.Latitude, latLon[0]);
+            parameters.Add(CommonNames.Longtitude, latLon[1]);
+            parameters.Remove(CommonNames.Cp);
+
             return parameters;
         }
 
-        private IEnumerable<ImageryMetadataRequest> GetAroundTilesRequests(Dictionary<String, String> parameters)
+        private IEnumerable<ImageryMetadataRequest> GetAroundTilesRequests(IDictionary<string, string> parameters)
         {
             var requests = new List<ImageryMetadataRequest>();
 
-            Double originalLat = Double.Parse(parameters["latitude"]);
-            Double originalLon = Double.Parse(parameters["longitude"]);
-            int level = int.Parse(parameters["lvl"]);
+            var originalLat = Double.Parse(parameters[CommonNames.Latitude]);
+            var originalLon = Double.Parse(parameters[CommonNames.Longtitude]);
+            var level = int.Parse(parameters[CommonNames.Level]);
 
             int originalPixelx;
             int originalPixely;
@@ -78,8 +78,7 @@ namespace BingHelper
 
             var originalTile = new Tile(originalLat, originalLon, originalPixelx, originalPixely, level);
 
-            IEnumerable<Tile> aroundTiles = GetAroundTilesClockwise(originalTile);
-
+            var aroundTiles = GetAroundTilesClockwise(originalTile);
 
             foreach (var tile in aroundTiles)
             {
@@ -94,9 +93,9 @@ namespace BingHelper
                 options.UriScheme = UriScheme.Http;
 
                 options.ZoomLevel = tile.Level;
-                request.Culture = "en-US";
+                request.Culture = CommonNames.CultureEnUs;
                 request.Style = MapStyle.Aerial;
-                var cred = new Credentials {ApplicationId = BingKey};
+                var cred = new Credentials {ApplicationId = _bingKey};
 
                 request.Credentials = cred;
                 request.Options = options;
@@ -109,33 +108,29 @@ namespace BingHelper
 
         private IEnumerable<Tile> GetAroundTilesClockwise(Tile tile)
         {
-            var aroundTiles = new List<Tile>();
+            var aroundTiles = new Tile[8];
 
-            Tile plusXTile = GetTileFromPixels(tile.XStartPixel + 256, tile.YStartPixel, tile.Level);
-            Tile plusXyTile = GetTileFromPixels(tile.XStartPixel + 256, tile.YStartPixel + 256, tile.Level);
-            Tile plusYTile = GetTileFromPixels(tile.XStartPixel, tile.YStartPixel + 256, tile.Level);
-            Tile minusXplusYTile = GetTileFromPixels(tile.XStartPixel - 256, tile.YStartPixel + 256, tile.Level);
-            Tile minusXTile = GetTileFromPixels(tile.XStartPixel - 256, tile.YStartPixel, tile.Level);
-            Tile minusXminusYTile = GetTileFromPixels(tile.XStartPixel - 256, tile.YStartPixel - 256, tile.Level);
-            Tile minusYTile = GetTileFromPixels(tile.XStartPixel, tile.YStartPixel - 256, tile.Level);
-            Tile plusXminusYTile = GetTileFromPixels(tile.XStartPixel + 256, tile.YStartPixel - 256, tile.Level);
-            aroundTiles.Add(plusXTile);
-            aroundTiles.Add(plusXyTile);
-            aroundTiles.Add(plusYTile);
-            aroundTiles.Add(minusXplusYTile);
-            aroundTiles.Add(minusXTile);
-            aroundTiles.Add(minusXminusYTile);
-            aroundTiles.Add(minusYTile);
-            aroundTiles.Add(plusXminusYTile);
+            aroundTiles[0] = GetTileFromPixels(tile.XStartPixel + TileWidth, tile.YStartPixel, tile.Level);               //plusXTile
+            aroundTiles[1] = GetTileFromPixels(tile.XStartPixel + TileWidth, tile.YStartPixel + TileHeight, tile.Level);  //plusXplusYTile
+            aroundTiles[2] = GetTileFromPixels(tile.XStartPixel, tile.YStartPixel + TileHeight, tile.Level);              //plusYTile
+            aroundTiles[3] = GetTileFromPixels(tile.XStartPixel + TileWidth, tile.YStartPixel - TileHeight, tile.Level);  //plusXminusYTile
 
-            return aroundTiles.Where(t => t.Latitude > -85 && t.Latitude < 85 && t.Longitude > -85 && t.Longitude < 85);
+            aroundTiles[4] = GetTileFromPixels(tile.XStartPixel - TileWidth, tile.YStartPixel + TileHeight, tile.Level);  //minusXplusYTile
+            aroundTiles[5] = GetTileFromPixels(tile.XStartPixel - TileWidth, tile.YStartPixel, tile.Level);               //minusXTile
+            aroundTiles[6] = GetTileFromPixels(tile.XStartPixel - TileWidth, tile.YStartPixel - TileHeight, tile.Level);  //minusXminusYTile
+            aroundTiles[7] = GetTileFromPixels(tile.XStartPixel, tile.YStartPixel - TileHeight, tile.Level);              //minusYTile
+
+            return aroundTiles.Where(t => t.Latitude > TileSystem.MinLatitude
+                                    && t.Latitude < TileSystem.MaxLatitude
+                                    && t.Longitude > TileSystem.MinLongitude
+                                    && t.Longitude < TileSystem.MaxLongitude);
         }
 
         private Tile GetTileFromPixels(int x, int y, int zoomLevel)
         {
-            Double lat;
-            Double lon;
-            TileSystem.PixelXyToLatLong(x + 256, y + 256, zoomLevel, out lat, out lon);
+            double lat;
+            double lon;
+            TileSystem.PixelXyToLatLong(x + TileWidth, y + TileHeight, zoomLevel, out lat, out lon);
             return new Tile(lat, lon, x, y, zoomLevel);
         }
     }

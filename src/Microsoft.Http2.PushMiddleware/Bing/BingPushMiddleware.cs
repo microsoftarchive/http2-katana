@@ -2,9 +2,9 @@
 using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
-using BingHelper;
 using Microsoft.Http2.Protocol;
 using Microsoft.Http2.Push;
+using Microsoft.Http2.Push.Bing.BingHelpers;
 using Microsoft.Owin;
 using System;
 using System.Collections.Generic;
