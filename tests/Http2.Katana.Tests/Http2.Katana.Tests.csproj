@@ -58,6 +58,8 @@
       <HintPath>..\Shared\SharedProtocol\packages\System.Net.Http.Formatting.dll</HintPath>
     </Reference>
     <Reference Include="System.Net.Http.WebRequest" />
+    <Reference Include="System.Runtime.Serialization" />
+    <Reference Include="System.ServiceModel" />
     <Reference Include="System.Web.Extensions" />
     <Reference Include="System.Web.Http, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
@@ -331,20 +333,35 @@
     <Compile Include="..\..\src\Microsoft.Http2.Owin.Server\CommonOwinKeys.cs">
       <Link>Sources\Microsoft.Http2.Owin.Server\Adapters\CommonOwinKeys.cs</Link>
     </Compile>
-    <Compile Include="..\..\src\Microsoft.Http2.PushMiddleware\GraphHelper.cs">
-      <Link>Sources\Microsoft.Http2.PushMiddleware\GraphHelper.cs</Link>
+    <Compile Include="..\..\src\Microsoft.Http2.PushMiddleware\Bing\BingHelpers\BingHelper.cs">
+      <Link>Sources\Microsoft.Http2.PushMiddleware\Bing\BingHelpers\BingHelper.cs</Link>
     </Compile>
-    <Compile Include="..\..\src\Microsoft.Http2.PushMiddleware\PushExtensions.cs">
-      <Link>Sources\Microsoft.Http2.PushMiddleware\PushExtensions.cs</Link>
+    <Compile Include="..\..\src\Microsoft.Http2.PushMiddleware\Bing\BingHelpers\Tile.cs">
+      <Link>Sources\Microsoft.Http2.PushMiddleware\Bing\BingHelpers\Tile.cs</Link>
     </Compile>
-    <Compile Include="..\..\src\Microsoft.Http2.PushMiddleware\PushMiddleware.cs">
-      <Link>Sources\Microsoft.Http2.PushMiddleware\PushMiddleware.cs</Link>
+    <Compile Include="..\..\src\Microsoft.Http2.PushMiddleware\Bing\BingHelpers\TileSystem.cs">
+      <Link>Sources\Microsoft.Http2.PushMiddleware\Bing\BingHelpers\TileSystem.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Microsoft.Http2.PushMiddleware\Bing\BingPushMiddleware.cs">
+      <Link>Sources\Microsoft.Http2.PushMiddleware\Bing\BingPushMiddleware.cs</Link>
     </Compile>
     <Compile Include="..\..\src\Microsoft.Http2.PushMiddleware\PushMiddlewareBase.cs">
       <Link>Sources\Microsoft.Http2.PushMiddleware\PushMiddlewareBase.cs</Link>
     </Compile>
-    <Compile Include="..\..\src\Microsoft.Http2.PushMiddleware\ReferenceTable.cs">
-      <Link>Sources\Microsoft.Http2.PushMiddleware\ReferenceTable.cs</Link>
+    <Compile Include="..\..\src\Microsoft.Http2.PushMiddleware\Service References\ImageryService\Reference.cs">
+      <Link>Sources\Microsoft.Http2.PushMiddleware\Bing\Reference.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Microsoft.Http2.PushMiddleware\StaticFiles\GraphHelper.cs">
+      <Link>Sources\Microsoft.Http2.PushMiddleware\StaticFiles\GraphHelper.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Microsoft.Http2.PushMiddleware\StaticFiles\PushExtensions.cs">
+      <Link>Sources\Microsoft.Http2.PushMiddleware\StaticFiles\PushExtensions.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Microsoft.Http2.PushMiddleware\StaticFiles\PushMiddleware.cs">
+      <Link>Sources\Microsoft.Http2.PushMiddleware\StaticFiles\PushMiddleware.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Microsoft.Http2.PushMiddleware\StaticFiles\ReferenceTable.cs">
+      <Link>Sources\Microsoft.Http2.PushMiddleware\StaticFiles\ReferenceTable.cs</Link>
     </Compile>
     <Compile Include="..\Http2.TestClient\Adapters\Http11ClientMessageHandler.cs">
       <Link>Sources\Client\Adapters\Http11ClientMessageHandler.cs</Link>
@@ -381,6 +398,11 @@
     <Compile Include="Facts.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ResponseMiddleware.cs" />
+    <Compile Include="Service References\ImageryService\Reference.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Reference.svcmap</DependentUpon>
+    </Compile>
     <Compile Include="TestHelpers.cs" />
     <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\ActiveStreams.cs">
       <Link>Sources\Libraries\Microsoft.Http2.Protocol\ActiveStreams</Link>
@@ -601,8 +623,51 @@
       <SubType>Designer</SubType>
     </None>
     <None Include="packages.config" />
+    <None Include="Service References\ImageryService\Arrays.xsd">
+      <SubType>Designer</SubType>
+    </None>
+    <None Include="Service References\ImageryService\common.xsd">
+      <SubType>Designer</SubType>
+    </None>
+    <None Include="Service References\ImageryService\contracts.wsdl" />
+    <None Include="Service References\ImageryService\contracts.xsd">
+      <SubType>Designer</SubType>
+    </None>
+    <None Include="Service References\ImageryService\Http2.Katana.Tests.ImageryService.ImageryMetadataResponse.datasource">
+      <DependentUpon>Reference.svcmap</DependentUpon>
+    </None>
+    <None Include="Service References\ImageryService\Http2.Katana.Tests.ImageryService.MapUriResponse.datasource">
+      <DependentUpon>Reference.svcmap</DependentUpon>
+    </None>
+    <None Include="Service References\ImageryService\imagery.wsdl" />
+    <None Include="Service References\ImageryService\imagery.xsd">
+      <SubType>Designer</SubType>
+    </None>
+    <None Include="Service References\ImageryService\search.xsd">
+      <SubType>Designer</SubType>
+    </None>
+    <None Include="Service References\ImageryService\service.xsd">
+      <SubType>Designer</SubType>
+    </None>
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <WCFMetadata Include="Service References\" />
+  </ItemGroup>
+  <ItemGroup>
+    <WCFMetadataStorage Include="Service References\ImageryService\" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Service References\ImageryService\configuration91.svcinfo" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Service References\ImageryService\configuration.svcinfo" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Service References\ImageryService\Reference.svcmap">
+      <Generator>WCF Proxy Generator</Generator>
+      <LastGenOutput>Reference.cs</LastGenOutput>
+    </None>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>copy /y "$(SolutionDir)Drop\server.pfx"  "$(TargetDir)\server.pfx"
