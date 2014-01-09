@@ -27,28 +27,6 @@ namespace Microsoft.Http2.Protocol.Compression.Huffman
             _isRequest = isRequest;
         }
 
-        public bool this[int index]
-        {
-            get
-            {
-                Map bitsMap = _isRequest ? _reqSymbolBitsMap : _respSymbolBitsMap;
-
-                int curIndex = 0;
-                foreach (var bits in bitsMap.Keys)
-                {
-                    curIndex += bits.Length;
-                    if (curIndex > index)
-                    {
-                        curIndex -= bits.Length;
-
-                        return bits[index % curIndex];
-                    }
-                }
-
-                throw new ArgumentOutOfRangeException("index was out of symbol table range");
-            }
-        }
-
         public int Size 
         {
             get

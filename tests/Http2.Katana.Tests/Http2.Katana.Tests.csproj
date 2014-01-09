@@ -424,9 +424,6 @@
     <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Exceptions\InvalidHeaderException.cs">
       <Link>Sources\Libraries\Microsoft.Http2.Protocol\Exceptions\InvalidHeaderException</Link>
     </Compile>
-    <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Exceptions\MonitorIsBusyException.cs">
-      <Link>Sources\Libraries\Microsoft.Http2.Protocol\Exceptions\MonitorIsBusyException</Link>
-    </Compile>
     <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Exceptions\ProtocolError.cs">
       <Link>Sources\Libraries\Microsoft.Http2.Protocol\Exceptions\ProtocolError</Link>
     </Compile>

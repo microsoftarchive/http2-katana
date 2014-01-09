@@ -27,24 +27,6 @@ namespace Microsoft.Http2.Protocol.Compression.Huffman
             return result;
         }
 
-        public static byte[] ToBytes(bool[] bools)
-        {
-            var result = new byte[bools.Length % 8 == 0 ? bools.Length / 8 : bools.Length / 8 + 1];
-            int offset = 0;
-            byte count = 8;
-            int resIndex = 0;
-
-            while (count != 0)
-            {
-                result[resIndex++] = GetByte(bools, offset, count);
-                offset += count;
-                int roffset = bools.Length - offset;
-                count = roffset >= 8 ? (byte)8 : (byte) roffset;
-            }
-
-            return result;
-        }
-
         public static byte[] ToBytes(List<bool> bools)
         {
             var result = new byte[bools.Count % 8 == 0 ? bools.Count / 8 : bools.Count / 8 + 1];
@@ -77,25 +59,6 @@ namespace Microsoft.Http2.Protocol.Compression.Huffman
             {
                 if (bits[i])
                     result |= (byte)(1 << bitIndex);
-            }
-
-            return result;
-        }
-
-        private static byte GetByte(bool[] bits, int offset, byte count)
-        {
-           if (count == 0)
-               throw new ArgumentException("count is 0");
-           if (count > 8)
-                throw new ArgumentException("byte is 8 bits");
-
-            byte result = 0;
-            int endIndex = offset + count;
-            byte bitIndex = 7;
-            for (int i = offset; i < endIndex; i++, bitIndex--)
-            {
-                if (bits[i])
-                    result |= (byte) (1 << bitIndex);
             }
 
             return result;

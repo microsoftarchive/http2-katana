@@ -188,7 +188,7 @@ namespace Http2.Katana.Tests
         {
             const bool T = true;
             const bool F = false;
-            var testInput = new[] { T, T, T, F, F, F, T, F, T, F, T, F, F };
+            var testInput = new List<bool>(new[] {T, T, T, F, F, F, T, F, T, F, T, F, F});
             var bytes = BinaryConverter.ToBytes(testInput);
 
             Assert.Equal(bytes[0], 0xe2);

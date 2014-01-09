@@ -360,7 +360,7 @@ namespace Microsoft.Http2.Protocol
                     Http2Logger.LogError("Handling session was cancelled");
                     Dispose();
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
                     Http2Logger.LogError("Sending frame was cancelled because connection was lost");
                     Dispose();
