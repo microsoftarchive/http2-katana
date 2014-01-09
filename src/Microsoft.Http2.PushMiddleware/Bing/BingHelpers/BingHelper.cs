@@ -10,8 +10,8 @@ namespace Microsoft.Http2.Push.Bing.BingHelpers
 {
     public class BingRequestProcessor
     {
-        private readonly string _bingKey = "Aq9ZXVjENT-rbUAS4KTwU_cfDzUYRbepjQzTyghvDPEEvuawmmxFrYhoS2o9gqfO";
-        private readonly string _originalReq = "Y3A9NTcuNjE2NjY1fjM5Ljg2NjY2NSZsdmw9NCZzdHk9ciZxPXlhcm9zbGF2bA==";
+        private readonly string _bingKey;
+        private readonly string _originalReq;
         private const string Base64ParamsRegex = @"([^&]*=[^&]*)";
 
         private const int TileWidth = 256;
@@ -24,7 +24,7 @@ namespace Microsoft.Http2.Push.Bing.BingHelpers
             _originalReq = originalReq;
         }
 
-        public IEnumerable<string> Process()
+        public List<string> Process()
         {
             var parameters = ExtractParametersFromBase64(_originalReq);
 
@@ -39,7 +39,19 @@ namespace Microsoft.Http2.Push.Bing.BingHelpers
 
             var requests = GetAroundTilesRequests(parameters);
 
-            return requests.Select(client.GetImageryMetadata).Select(resp => resp.Results[0].ImageUri).ToList();
+            var imageUrls = new List<string>();
+
+            //do not convert to linq! It will call ToList method and copy strings!
+            // ReSharper disable LoopCanBeConvertedToQuery
+            foreach (var imageryMetadataRequest in requests)
+            // ReSharper restore LoopCanBeConvertedToQuery
+             {
+                var resp = client.GetImageryMetadata(imageryMetadataRequest);
+
+                imageUrls.Add(resp.Results[0].ImageUri);
+            }
+
+            return imageUrls;
         }
 
         private static Dictionary<string, string> ExtractParametersFromBase64(String base64Params)
@@ -55,7 +67,7 @@ namespace Microsoft.Http2.Push.Bing.BingHelpers
 
                 match = match.NextMatch();
             }
-            string[] latLon = parameters[CommonNames.Cp].Split(new []{'~'}, StringSplitOptions.RemoveEmptyEntries);
+            var latLon = parameters[CommonNames.Cp].Split(new []{'~'}, StringSplitOptions.RemoveEmptyEntries);
             parameters.Add(CommonNames.Latitude, latLon[0]);
             parameters.Add(CommonNames.Longtitude, latLon[1]);
             parameters.Remove(CommonNames.Cp);
@@ -63,7 +75,7 @@ namespace Microsoft.Http2.Push.Bing.BingHelpers
             return parameters;
         }
 
-        private IEnumerable<ImageryMetadataRequest> GetAroundTilesRequests(IDictionary<string, string> parameters)
+        private List<ImageryMetadataRequest> GetAroundTilesRequests(IDictionary<string, string> parameters)
         {
             var requests = new List<ImageryMetadataRequest>();
 

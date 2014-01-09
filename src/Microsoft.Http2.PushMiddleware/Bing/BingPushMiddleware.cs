@@ -18,6 +18,9 @@ namespace Microsoft.Http2.BingPushMiddleware
 
     public class BingPushMiddleware : PushMiddlewareBase
     {
+        private const string BingKey = "Aq9ZXVjENT-rbUAS4KTwU_cfDzUYRbepjQzTyghvDPEEvuawmmxFrYhoS2o9gqfO";
+        private const string OriginalReq = "Y3A9NTcuNjE2NjY1fjM5Ljg2NjY2NSZsdmw9NCZzdHk9ciZxPXlhcm9zbGF2bA==";
+
         public BingPushMiddleware(OwinMiddleware next)
             : base(next)
         {
@@ -31,16 +34,12 @@ namespace Microsoft.Http2.BingPushMiddleware
             {
                 PushFunc pushPromise = null;
 
-                var bingProcessor =
-                    new BingRequestProcessor("Aq9ZXVjENT-rbUAS4KTwU_cfDzUYRbepjQzTyghvDPEEvuawmmxFrYhoS2o9gqfO",
-                                             "Y3A9NTcuNjE2NjY1fjM5Ljg2NjY2NSZsdmw9NCZzdHk9ciZxPXlhcm9zbGF2bA==");
+                var bingProcessor = new BingRequestProcessor(BingKey, OriginalReq);
 
                 var images = bingProcessor.Process();
                 context.Set(CommonOwinKeys.AdditionalInfo, images);
 
-                var enumerable = images as string[] ?? images.ToArray();
-          
-                foreach (var image in enumerable.ToList().Where(image => TryGetPushPromise(context, out pushPromise)))
+                foreach (var image in images.Where(image => TryGetPushPromise(context, out pushPromise)))
                 {
                     Push(context.Request, pushPromise, image);
                 }
