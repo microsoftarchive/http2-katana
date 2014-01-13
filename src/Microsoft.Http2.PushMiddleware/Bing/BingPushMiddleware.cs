@@ -1,5 +1,4 @@
-﻿using System.IO;
-using System.Linq;
+﻿using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 using Microsoft.Http2.Protocol;
@@ -19,7 +18,8 @@ namespace Microsoft.Http2.BingPushMiddleware
     public class BingPushMiddleware : PushMiddlewareBase
     {
         private const string BingKey = "Aq9ZXVjENT-rbUAS4KTwU_cfDzUYRbepjQzTyghvDPEEvuawmmxFrYhoS2o9gqfO";
-        private const string OriginalReq = "Y3A9NTcuNjE2NjY1fjM5Ljg2NjY2NSZsdmw9NCZzdHk9ciZxPXlhcm9zbGF2bA==";
+        private const string BingRequestsUrl = "http://www.bing.com/maps/#";
+        private const string OriginalReq = "Y3A9NTcuNjE2NjY1fjM5Ljg2NjY2NSZsdmw9MyZzdHk9ciZxPVlhcm9zbGF2bA==";
 
         public BingPushMiddleware(OwinMiddleware next)
             : base(next)
@@ -34,38 +34,32 @@ namespace Microsoft.Http2.BingPushMiddleware
             {
                 PushFunc pushPromise = null;
 
-                var bingProcessor = new BingRequestProcessor(BingKey, OriginalReq);
+                var bingProcessor = new BingRequestProcessor(OriginalReq);
 
-                var images = bingProcessor.Process();
-                context.Set(CommonOwinKeys.AdditionalInfo, images);
+                var images = bingProcessor.GetTilesSoapRequestsUrls();
 
                 foreach (var image in images.Where(image => TryGetPushPromise(context, out pushPromise)))
                 {
                     Push(context.Request, pushPromise, image);
                 }
-            }
 
+                const string fullOrigReq = BingRequestsUrl + OriginalReq;
+
+                var request = (HttpWebRequest)WebRequest.Create(fullOrigReq);
+                var responseStream = request.GetResponse().GetResponseStream();
+
+                if (responseStream != null)
+                    responseStream.CopyTo(context.Response.Body);
+            }
             else
             {
-                var refList = context.Get<List<string>>(CommonOwinKeys.AdditionalInfo);
-                var writer = new StreamWriter(context.Response.Body);
-                
-                var tile11Request =
-                    (HttpWebRequest)
-                    WebRequest.Create(refList[0]
-                        );
-                
-                var responseStream = tile11Request.GetResponse().GetResponseStream();
-                
-                using (var ms = new MemoryStream())
-                {
-                    if (responseStream != null) responseStream.CopyTo(ms);
-                     context.Response.ContentLength = ms.Length;
-                    writer.Write(ms.ToArray());
-                    writer.Flush();
-                }
+                var url = context.Get<string>(CommonOwinKeys.AdditionalInfo);
+                var tile11Request = (HttpWebRequest)WebRequest.Create(url);
 
-                refList.RemoveAt(0);
+                var responseStream = tile11Request.GetResponse().GetResponseStream();
+
+                if (responseStream != null) 
+                    responseStream.CopyTo(context.Response.Body);
             }
 
             await Next.Invoke(context);
@@ -73,6 +67,7 @@ namespace Microsoft.Http2.BingPushMiddleware
 
         protected override void Push(IOwinRequest request, PushFunc pushPromise, string pushReference)
         {
+            request.Set(CommonOwinKeys.AdditionalInfo, pushReference);
             // Copy the headers
             var headers = new HeaderDictionary(
                 new Dictionary<string, string[]>(request.Headers, StringComparer.OrdinalIgnoreCase));
@@ -83,7 +78,7 @@ namespace Microsoft.Http2.BingPushMiddleware
             headers[CommonHeaders.Scheme] = request.Scheme;
             headers.Remove("Host");
             headers[CommonHeaders.Host] = request.Headers["Host"];
-
+            headers[CommonHeaders.Path] = BingRequestProcessor.GetTileQuadFromSoapUrl(pushReference);
             headers.Remove(CommonHeaders.ContentLength); // Push promises cannot emulate requests with bodies.
 
             // TODO: What about cache headers? If-Match, If-None-Match, If-Modified-Since, If-Unmodified-Since.

@@ -10,6 +10,8 @@ namespace Microsoft.Http2.Push.Bing.BingHelpers
         internal const double MaxLatitude = 85.05112878;
         internal const double MinLongitude = -180;
         internal const double MaxLongitude = 180;
+        internal const int TileWidth = 256;
+        internal const int TileHeight = 256;
 
         /// <summary>
         /// Clips a number to the specified minimum and maximum values.
@@ -23,8 +25,6 @@ namespace Microsoft.Http2.Push.Bing.BingHelpers
             return Math.Min(Math.Max(n, minValue), maxValue);
         }
 
-
-
         /// <summary>
         /// Determines the map width and height (in pixels) at a specified level
         /// of detail.
@@ -36,8 +36,6 @@ namespace Microsoft.Http2.Push.Bing.BingHelpers
         {
             return (uint)256 << levelOfDetail;
         }
-
-
 
         /// <summary>
         /// Determines the ground resolution (in meters per pixel) at a specified
@@ -54,8 +52,6 @@ namespace Microsoft.Http2.Push.Bing.BingHelpers
             return Math.Cos(latitude * Math.PI / 180) * 2 * Math.PI * EarthRadius / MapSize(levelOfDetail);
         }
 
-
-
         /// <summary>
         /// Determines the map scale at a specified latitude, level of detail,
         /// and screen resolution.
@@ -70,8 +66,6 @@ namespace Microsoft.Http2.Push.Bing.BingHelpers
         {
             return GroundResolution(latitude, levelOfDetail) * screenDpi / 0.0254;
         }
-
-
 
         /// <summary>
         /// Converts a point from latitude/longitude WGS-84 coordinates (in degrees)
@@ -97,8 +91,6 @@ namespace Microsoft.Http2.Push.Bing.BingHelpers
             pixelY = (int)Clip(y * mapSize + 0.5, 0, mapSize - 1);
         }
 
-
-
         /// <summary>
         /// Converts a pixel from pixel XY coordinates at a specified level of detail
         /// into latitude/longitude WGS-84 coordinates (in degrees).
@@ -119,8 +111,6 @@ namespace Microsoft.Http2.Push.Bing.BingHelpers
             longitude = 360 * x;
         }
 
-
-
         /// <summary>
         /// Converts pixel XY coordinates into tile XY coordinates of the tile containing
         /// the specified pixel.
@@ -131,11 +121,9 @@ namespace Microsoft.Http2.Push.Bing.BingHelpers
         /// <param name="tileY">Output parameter receiving the tile Y coordinate.</param>
         public static void PixelXyToTileXy(int pixelX, int pixelY, out int tileX, out int tileY)
         {
-            tileX = pixelX / 256;
-            tileY = pixelY / 256;
+            tileX = pixelX / TileWidth;
+            tileY = pixelY / TileHeight;
         }
-
-
 
         /// <summary>
         /// Converts tile XY coordinates into pixel XY coordinates of the upper-left pixel
@@ -147,11 +135,9 @@ namespace Microsoft.Http2.Push.Bing.BingHelpers
         /// <param name="pixelY">Output parameter receiving the pixel Y coordinate.</param>
         public static void TileXyToPixelXy(int tileX, int tileY, out int pixelX, out int pixelY)
         {
-            pixelX = tileX * 256;
-            pixelY = tileY * 256;
+            pixelX = tileX * TileWidth;
+            pixelY = tileY * TileHeight;
         }
-
-
 
         /// <summary>
         /// Converts tile XY coordinates into a QuadKey at a specified level of detail.
@@ -181,8 +167,6 @@ namespace Microsoft.Http2.Push.Bing.BingHelpers
             }
             return quadKey.ToString();
         }
-
-
 
         /// <summary>
         /// Converts a QuadKey into tile XY coordinates.
@@ -221,5 +205,18 @@ namespace Microsoft.Http2.Push.Bing.BingHelpers
                 }
             }
         }
+
+       public static string LatLongToQuadKey(double latitude, double longitude, int levelOfDetail)
+       {
+           int pixelX;
+           int pixelY;
+           LatLongToPixelXy(latitude, longitude, levelOfDetail, out pixelX,out pixelY);
+
+           int tileX;
+           int tileY;
+           PixelXyToTileXy(pixelX, pixelY, out tileX, out tileY);
+
+           return TileXyToQuadKey(tileX, tileY, levelOfDetail);
+       }
     }
 }

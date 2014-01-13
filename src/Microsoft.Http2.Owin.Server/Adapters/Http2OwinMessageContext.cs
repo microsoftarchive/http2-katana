@@ -48,7 +48,10 @@ namespace Microsoft.Http2.Owin.Server.Adapters
             var owinResponse = _owinContext.Response;
 
             owinRequest.Method = headers.GetValue(CommonHeaders.Method);
-            owinRequest.Path = new PathString(headers.GetValue(CommonHeaders.Path));
+
+            var path = headers.GetValue(CommonHeaders.Path);
+            owinRequest.Path = path.StartsWith(@"/") ? new PathString(path) : new PathString(@"/" + path);
+
             owinRequest.CallCancelled = CancellationToken.None;
 
             owinRequest.Host = new HostString(headers.GetValue(CommonHeaders.Authority));
