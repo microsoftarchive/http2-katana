@@ -374,54 +374,5 @@ namespace Http2.Katana.Tests
             Assert.Equal(testCollection.Count, 3);
             Assert.Equal(testCollection.ContainsKey(4), false);
         }
-
-        [StandardFact]
-        public void ReferenceCycleSuccessful()
-        {
-            var recursiveGraph = new Dictionary<string, string[]>()
-            {
-                { "/index.html", new []
-                    {
-                        "/images/image1.jpg",
-                        "/scripts/script.js",
-                    }
-                },
-                { "/images/image1.jpg", new []
-                    {
-                        "/index.html"
-                    }
-                },
-                {
-                    "/scripts/script.js", new string[0]
-                }
-            };
-
-            var nonRecursiveGraph = new Dictionary<string, string[]>
-            {
-                { "/index.html", new []
-                    {
-                        "/images/image1.jpg",
-                        "/scripts/script.js",
-                    }
-                },
-                { "/images/image1.jpg", new []
-                    {
-                        "/index11.html"
-                    }
-                },
-                {
-                    "/scripts/script.js", new string[0]
-                },
-                {
-                    "/index11.html", new string[0]
-                }
-            };
-
-            bool isFirstHasCycle = new GraphHelper().HasCycle(recursiveGraph);
-            bool isSecondHasCycle = new GraphHelper().HasCycle(nonRecursiveGraph);
-
-            Assert.Equal(isFirstHasCycle, true);
-            Assert.Equal(isSecondHasCycle, false);
-        }
     }
 }

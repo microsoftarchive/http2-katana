@@ -29,7 +29,7 @@ namespace Microsoft.Http2.Push.Bing.BingHelpers
 
         public static string GetTileQuadFromSoapUrl(string soapUrl)
         {
-            const string prefix = @"tiles/";
+            const string prefix = @"ch/";
             int prefixIndex = soapUrl.IndexOf(prefix, StringComparison.Ordinal);
 
             if (prefixIndex == -1)
@@ -84,7 +84,7 @@ namespace Microsoft.Http2.Push.Bing.BingHelpers
             var tileQuad = TileSystem.LatLongToQuadKey(tile.Latitude, tile.Longitude, tile.Level);
             int origQuad = int.Parse(tileQuad);
 
-            return String.Format("http://t{0}.tiles.virtualearth.net/tiles/a{1}.jpeg?g=2213&mkt={{culture}}&token={{token}}",
+            return String.Format("http://ak.dynamic.t{0}.tiles.virtualearth.net/comp/ch/{1}?mkt=ru-ru&it=G,VE,BX,L,LA&shading=hill&og=33&n=z",
                                 origQuad % 10, origQuad);
         }
 

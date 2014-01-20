@@ -77,9 +77,10 @@ namespace Microsoft.Http2.BingPushMiddleware
                 // TODO: Not all methods are allowed for push.  Don't push, or change to GET?
             headers[CommonHeaders.Scheme] = request.Scheme;
             headers.Remove("Host");
-            headers[CommonHeaders.Host] = request.Headers["Host"];
-            headers[CommonHeaders.Path] = BingRequestProcessor.GetTileQuadFromSoapUrl(pushReference);
+            headers[CommonHeaders.Authority] = request.Headers["Host"];
+            headers[CommonHeaders.Path] = pushReference;//BingRequestProcessor.GetTileQuadFromSoapUrl(pushReference);
             headers.Remove(CommonHeaders.ContentLength); // Push promises cannot emulate requests with bodies.
+            headers["Expires"] = "Thu, 01 Dec 2014 20:00:00 GMT";
 
             // TODO: What about cache headers? If-Match, If-None-Match, If-Modified-Since, If-Unmodified-Since.
             // If-Match & If-None-Match are multi-value so the client could send e-tags for the primary resource and referenced resources.

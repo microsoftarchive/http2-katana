@@ -181,8 +181,10 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
         {
             const byte prefix = 6;
             //spec 05
-            //05 does not tell anything about case_sensitive | insensitive
-            int index = _remoteHeadersTable.FindIndex(kv => kv.Key.Equals(header.Key));
+            //http://tools.ietf.org/html/draft-ietf-httpbis-http2-09#section-8.1.3
+            // HTTP header field names are strings of ASCII characters that are
+            //compared in a case-insensitive fashion.
+            int index = _remoteHeadersTable.FindIndex(kv => kv.Key.Equals(header.Key, StringComparison.OrdinalIgnoreCase));
             bool isFound = index != -1;
 
             /* 05 spec:
@@ -242,8 +244,10 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
         {
             const byte prefix = 6;
             //spec 05
-            //05 does not tell anything about case_sensitive | insensitive
-            int index = _remoteHeadersTable.FindIndex(kv => kv.Key.Equals(header.Key));
+            //http://tools.ietf.org/html/draft-ietf-httpbis-http2-09#section-8.1.3
+            // HTTP header field names are strings of ASCII characters that are
+            //compared in a case-insensitive fashion.
+            int index = _remoteHeadersTable.FindIndex(kv => kv.Key.Equals(header.Key, StringComparison.OrdinalIgnoreCase));
             bool isFound = index != -1;
 
             /* 05 spec:

@@ -16,7 +16,6 @@ namespace Microsoft.Http2.Protocol
         // There are always at least 8 bytes in a control frame or data frame
         public const int FramePreambleSize = 8;
         public const int DefaultClientCertVectorSize = 8;
-        public const int CurrentProtocolVersion = 6;
         public const int MaxFrameContentSize = 0x3fff; // Spec 09 defines max frame size to be 16383 bytes.
         public const int InitialFlowControlOptionsValue = 0;
         public const string DefaultMethod = Verbs.Get;

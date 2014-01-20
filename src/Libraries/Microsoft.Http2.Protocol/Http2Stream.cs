@@ -232,7 +232,7 @@ namespace Microsoft.Http2.Protocol
                     IsEndStream = isEndStream,
                     Headers = headers,
                 };
-            //wed, 23 oct 2013 21:32:06 gmt
+
             _writeQueue.WriteFrame(frame);
 
             if (frame.IsEndStream)

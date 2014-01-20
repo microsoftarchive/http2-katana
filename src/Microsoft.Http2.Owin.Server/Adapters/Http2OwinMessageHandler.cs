@@ -113,6 +113,8 @@ namespace Microsoft.Http2.Owin.Server.Adapters
                     pushDelegate = async pairs =>
                         {
                             var promisedStream = CreateStream();
+                            //assume that we have already received endStream
+                            promisedStream.EndStreamReceived = true;
                             stream.WritePushPromise(pairs, promisedStream.Id);
 
                             var headers = new HeadersList(pairs);
