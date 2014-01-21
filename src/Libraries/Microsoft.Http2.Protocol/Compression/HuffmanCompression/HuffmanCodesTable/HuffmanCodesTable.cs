@@ -103,7 +103,7 @@ namespace Microsoft.Http2.Protocol.Compression.Huffman
                 }
             }
 
-            throw new CompressionError(new Exception("symbol does not present in the alphabeth"));
+            throw new CompressionError(new Exception("symbol is not present in the alphabeth"));
         }
 
         public bool[] GetBits(byte c)

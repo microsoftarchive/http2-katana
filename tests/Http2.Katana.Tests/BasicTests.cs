@@ -102,7 +102,7 @@ namespace Http2.Katana.Tests
             var clientHeaders = new HeadersList
                 {
                     new KeyValuePair<string, string>(":method", "get"),
-                    new KeyValuePair<string, string>(":path", "/index.html"),
+                    new KeyValuePair<string, string>(":path", "/Y3A9NTcuNjE2NjY1fjM5Ljg2NjY2NSZsdmw9NyZzdHk9ciZxPVlhcm9zbGF2bA=="),
                     new KeyValuePair<string, string>(":version", Protocols.Http2),
                     new KeyValuePair<string, string>(":host", "localhost"),
                     new KeyValuePair<string, string>(":scheme", "https"),

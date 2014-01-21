@@ -102,9 +102,6 @@ namespace Microsoft.Http2.Push
             headers.Remove("Host");
             headers[CommonHeaders.Authority] = request.Headers["Host"];
             headers.Remove(CommonHeaders.ContentLength); // Push promises cannot emulate requests with bodies.
-
-            headers["last-modified"] = "Mon, 16 Dec 2013 10:35:46 GMT";
-            headers["cache-control"] = "max-age=31556926";
             // TODO: What about cache headers? If-Match, If-None-Match, If-Modified-Since, If-Unmodified-Since.
             // If-Match & If-None-Match are multi-value so the client could send e-tags for the primary resource and referenced resources.
             // If-Modified-Since and If-Unmodified-Since are single value, so it may not make sense to apply them for secondary resources.

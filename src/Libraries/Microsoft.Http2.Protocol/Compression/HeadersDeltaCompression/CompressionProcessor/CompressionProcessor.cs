@@ -146,7 +146,7 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
         private byte[] EncodeString(string item, bool useHuffman)
         {
             byte[] itemBts;
-            int len = 0;
+            int len;
 
             const byte prefix = 7;
 
@@ -196,16 +196,6 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
             |                   V
             Insertion Point       Drop Point
              */
-            if (!isFound)
-            {
-                index = _staticTable.FindIndex(kv => kv.Key.Equals(header.Value));
-                isFound = index != -1;
-
-                if (isFound)
-                {
-                    index += _remoteHeadersTable.Count;
-                }
-            }
             //It's necessary to form result array because partial writeToOutput stream can cause problems because of multithreading
             using (var stream = new MemoryStream(64))
             {
@@ -217,14 +207,14 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
                 {
                     //Header key was found in the header table. Hence we should encode only value
                     indexBinary = (index + 1).ToUVarInt(prefix);
-                    valueBinary = EncodeString(header.Value, false);
+                    valueBinary = EncodeString(header.Value, true);
                 }
                 else
                 {
                     //Header key was not found in the header table. Hence we should encode name and value
                     indexBinary = 0.ToUVarInt(prefix);
-                    nameBinary = EncodeString(header.Key, false);
-                    valueBinary = EncodeString(header.Value, false);
+                    nameBinary = EncodeString(header.Key, true);
+                    valueBinary = EncodeString(header.Value, true);
                 }
 
                 //Set without index type
@@ -240,14 +230,24 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
             InsertToHeadersTable(header, _remoteRefSet, _remoteHeadersTable);
         }
 
-        private void CompressWithoutIndexation(KeyValuePair<string, string> header)
+        private void CompressIndexed(KeyValuePair<string, string> header)
         {
-            const byte prefix = 6;
+            //An _indexed representation_ corresponding to an entry _not present_
+            //in the reference set entails the following actions:
+
+            //*  The header field corresponding to the referenced entry is
+            //emitted.
+
+            //*  The referenced static entry is inserted at the beginning of the
+            //header table.
+
+            //*  A reference to this new header table entry is added to the
+            //reference set (except if this new entry didn't fit in the
+            //header table).
+
             //spec 05
-            //http://tools.ietf.org/html/draft-ietf-httpbis-http2-09#section-8.1.3
-            // HTTP header field names are strings of ASCII characters that are
-            //compared in a case-insensitive fashion.
-            int index = _remoteHeadersTable.FindIndex(kv => kv.Key.Equals(header.Key, StringComparison.OrdinalIgnoreCase));
+            //nothing told about case_sensitive | _insensitive comparsion
+            int index = _remoteHeadersTable.FindIndex(kv => kv.Key.Equals(header.Key) && kv.Value.Equals(header.Value));
             bool isFound = index != -1;
 
             /* 05 spec:
@@ -258,104 +258,27 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
             ^                   |
             |                   V
             Insertion Point       Drop Point
-             */
+                */
             if (!isFound)
             {
-                index = _staticTable.FindIndex(kv => kv.Key.Equals(header.Value));
+                index = _staticTable.FindIndex(kv => kv.Key.Equals(header.Key,StringComparison.OrdinalIgnoreCase) 
+                                                    && kv.Value.Equals(header.Value, StringComparison.OrdinalIgnoreCase));
                 isFound = index != -1;
 
                 if (isFound)
                 {
                     index += _remoteHeadersTable.Count;
+                    //3.2.1. Header Field Representation Processing
+                    //The referenced static entry is inserted at the beginning of the
+                    //header table.
+                    _remoteHeadersTable.Insert(0, header);
                 }
             }
-            //It's necessary to form result array because partial writeToOutput stream can cause problems because of multithreading
-            using (var stream = new MemoryStream(64))
+
+            if (!isFound)
             {
-                byte[] indexBinary;
-                byte[] nameBinary = new byte[0];
-                byte[] valueBinary;
-
-                if (isFound)
-                {
-                    //Header key was found in the header table. Hence we should encode only value
-                    indexBinary = (index + 1).ToUVarInt(prefix);
-                    valueBinary = EncodeString(header.Value, false); 
-                }
-                else
-                {
-                    //Header key was not found in the header table. Hence we should encode name and value
-                    indexBinary = 0.ToUVarInt(prefix);
-                    nameBinary = EncodeString(header.Key, false);
-                    valueBinary = EncodeString(header.Value, false);
-                }
-                
-                //Set without index type
-                indexBinary[0] |= (byte)IndexationType.WithoutIndexation;
-
-                stream.Write(indexBinary, 0, indexBinary.Length);
-                stream.Write(nameBinary, 0, nameBinary.Length);
-                stream.Write(valueBinary, 0, valueBinary.Length);
-
-                WriteToOutput(stream.GetBuffer(), 0, (int)stream.Position);
+                throw new CompressionError(new Exception("cant compress indexed header. Index not found."));
             }
-
-            InsertToHeadersTable(header, _remoteRefSet, _remoteHeadersTable);
-        }
-
-        private void CompressIndexed(KeyValuePair<string, string> header)
-        {
-
-            //int index = _remoteRefSet.FindIndex(kv => kv.Key.Equals(header.Key) && kv.Value.Equals(header.Value));
-            //bool isFound = index != -1;
-            //if (!isFound)
-            //{
-                //An _indexed representation_ corresponding to an entry _not present_
-                //in the reference set entails the following actions:
-
-                //*  The header field corresponding to the referenced entry is
-                //emitted.
-
-                //*  The referenced static entry is inserted at the beginning of the
-                //header table.
-
-                //*  A reference to this new header table entry is added to the
-                //reference set (except if this new entry didn't fit in the
-                //header table).
-
-                //spec 05
-                //nothing told about case_sensitive | _insensitive comparsion
-                int index = _remoteHeadersTable.FindIndex(kv => kv.Key.Equals(header.Key) && kv.Value.Equals(header.Value));
-                bool isFound = index != -1;
-
-                /* 05 spec:
-                <-- Header  Table -->  <-- Static  Table -->
-                +---+-----------+---+  +---+-----------+---+
-                | 1 |    ...    | k |  |k+1|    ...    | n |
-                +---+-----------+---+  +---+-----------+---+
-                ^                   |
-                |                   V
-                Insertion Point       Drop Point
-                 */
-                if (!isFound)
-                {
-                    index = _staticTable.FindIndex(kv => kv.Key.Equals(header.Key) && kv.Value.Equals(header.Value));
-                    isFound = index != -1;
-
-                    if (isFound)
-                    {
-                        index += _remoteHeadersTable.Count;
-                        //3.2.1. Header Field Representation Processing
-                        //The referenced static entry is inserted at the beginning of the
-                        //header table.
-                        _remoteHeadersTable.Insert(0, header);
-                    }
-                }
-
-                if (!isFound)
-                {
-                    throw new CompressionError(new Exception("cant compress indexed header. Index not found."));
-                }
 
             const byte prefix = 7;
             var bytes = (index + 1).ToUVarInt(prefix);

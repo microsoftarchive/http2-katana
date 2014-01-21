@@ -7,6 +7,7 @@
 
 // See the Apache 2 License for the specific language governing permissions and limitations under the License.
 using System;
+using System.Linq;
 using System.Collections.Generic;
 using System.IO;
 
@@ -83,13 +84,12 @@ namespace Microsoft.Http2.Protocol.Compression.Huffman
                     bool isEos = true;
 
                     int j = 0;
-                    while (temp != null && i < bits.Length)
+                    while (i < bits.Length)
                     {
-                        
                         temp = !bits[i] ? temp.Left : temp.Right;
 
                         if (temp == null) 
-                            continue;
+                            break;
 
                         symbolBits.Add(temp.Value);
                         isEos &= temp.Value == _eos[j];
@@ -104,11 +104,12 @@ namespace Microsoft.Http2.Protocol.Compression.Huffman
                         i++;
                     }
 
-                    if (i < bits.Length)
-                    {
-                        var symbol = _table.GetByte(symbolBits);
-                        stream.WriteByte(symbol);
-                    }
+                    //all bits are ones then eos is reached
+                    if (symbolBits.Count < 8 && symbolBits.All(bit => bit))
+                        break;
+
+                    var symbol = _table.GetByte(symbolBits);
+                    stream.WriteByte(symbol);
                 }         
                 
                 result = new byte[stream.Position];

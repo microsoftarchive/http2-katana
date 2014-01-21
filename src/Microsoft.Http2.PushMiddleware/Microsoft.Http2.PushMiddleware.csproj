@@ -57,11 +57,7 @@
     <Compile Include="Bing\BingHelpers\Tile.cs" />
     <Compile Include="Bing\BingHelpers\TileSystem.cs" />
     <Compile Include="Bing\BingPushMiddleware.cs" />
-    <Compile Include="Service References\ImageryService\Reference.cs">
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
-      <DependentUpon>Reference.svcmap</DependentUpon>
-    </Compile>
+    <Compile Include="Bing\HtmlProcessor.cs" />
     <Compile Include="StaticFiles\PushExtensions.cs" />
     <Compile Include="StaticFiles\PushMiddleware.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -82,50 +78,6 @@
   <ItemGroup>
     <None Include="app.config" />
     <None Include="packages.config" />
-    <None Include="Service References\ImageryService\ImageryService.wsdl" />
-    <None Include="Service References\ImageryService\ImageryService.xsd">
-      <SubType>Designer</SubType>
-    </None>
-    <None Include="Service References\ImageryService\imageryservice1.wsdl" />
-    <None Include="Service References\ImageryService\ImageryService1.xsd">
-      <SubType>Designer</SubType>
-    </None>
-    <None Include="Service References\ImageryService\ImageryService2.xsd">
-      <SubType>Designer</SubType>
-    </None>
-    <None Include="Service References\ImageryService\ImageryService3.xsd">
-      <SubType>Designer</SubType>
-    </None>
-    <None Include="Service References\ImageryService\ImageryService4.xsd">
-      <SubType>Designer</SubType>
-    </None>
-    <None Include="Service References\ImageryService\ImageryService5.xsd">
-      <SubType>Designer</SubType>
-    </None>
-    <None Include="Service References\ImageryService\Microsoft.Http2.Push.ImageryService.ImageryMetadataResponse.datasource">
-      <DependentUpon>Reference.svcmap</DependentUpon>
-    </None>
-    <None Include="Service References\ImageryService\Microsoft.Http2.Push.ImageryService.MapUriResponse.datasource">
-      <DependentUpon>Reference.svcmap</DependentUpon>
-    </None>
-  </ItemGroup>
-  <ItemGroup>
-    <WCFMetadata Include="Service References\" />
-  </ItemGroup>
-  <ItemGroup>
-    <WCFMetadataStorage Include="Service References\ImageryService\" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Service References\ImageryService\configuration91.svcinfo" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Service References\ImageryService\configuration.svcinfo" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Service References\ImageryService\Reference.svcmap">
-      <Generator>WCF Proxy Generator</Generator>
-      <LastGenOutput>Reference.cs</LastGenOutput>
-    </None>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>

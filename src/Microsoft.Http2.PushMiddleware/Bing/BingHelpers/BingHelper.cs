@@ -12,8 +12,8 @@ namespace Microsoft.Http2.Push.Bing.BingHelpers
         private const string Base64ParamsRegex = @"([^&]*=[^&]*)";
 
         //dimensions in tiles
-        private const byte MapHeight = 4;
-        private const byte MapWidth = 8;
+        private const byte MapHeight = 3;
+        private const byte MapWidth = 3;
 
         public BingRequestProcessor(string originalReq)
         {
@@ -41,7 +41,27 @@ namespace Microsoft.Http2.Push.Bing.BingHelpers
             if (postfixIndex == -1)
                 throw new Exception("incorrect soap url format");
 
-            return soapUrl.Substring(prefixEndIndex, postfixIndex - prefixEndIndex);
+            return soapUrl.Substring(prefixEndIndex, postfixIndex - prefixEndIndex) + ".jpeg";
+        }
+
+        public static string GetSoapUrlFromQuadKey(string quadKey)
+        {
+            //example: http://ak.dynamic.t0.tiles.virtualearth.net/comp/ch/120?mkt=ru-ru&it=G,VE,BX,L,LA&shading=hill&og=33&n=z
+            return String.Format("http://ak.dynamic.t{0}.tiles.virtualearth.net/comp/ch/{1}?" +
+                                 "mkt=ru-ru&it=G,VE,BX,L,LA&shading=hill&og=34&n=z",
+                                 quadKey[quadKey.Length - 1], quadKey);
+        }
+
+        public static string GetSoapUrlFromTileName(string jpeg)
+        {
+            int ptIndex = jpeg.IndexOf('.'); //  /120.jpeg for example
+            if (ptIndex == -1)
+            {
+                throw new Exception("Invalid tile name");
+            }
+
+            string quadkey = jpeg.Substring(1, ptIndex - 1); //forget about leading /
+            return GetSoapUrlFromQuadKey(quadkey);
         }
 
         private static Dictionary<string, string> ExtractParametersFromBase64(String base64Params)

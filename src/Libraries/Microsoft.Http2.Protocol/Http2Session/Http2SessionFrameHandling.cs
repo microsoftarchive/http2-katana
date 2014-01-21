@@ -369,6 +369,13 @@ namespace Microsoft.Http2.Protocol
                     throw new ProtocolError(ResetStatusCode.FlowControlError, String.Format("Incorrect window update delta : {0}", windowUpdateFrame.Delta));
                 }
 
+                //TODO Remove this hack
+                //Connection window size
+                if (windowUpdateFrame.StreamId == 0)
+                {
+                    _flowControlManager.StreamsInitialWindowSize += windowUpdateFrame.Delta;
+                }
+
                 //09 -> 5.1.  Stream States
                 //A receiver can ignore WINDOW_UPDATE [WINDOW_UPDATE] or PRIORITY
                 //[PRIORITY] frames in this state.
