@@ -30,25 +30,6 @@ namespace Client.IO
             _end = end;
         }
 
-        public bool CompareFiles(string file1, string file2)
-        {
-            byte[] file1Md5;
-            byte[] file2Md5;
-
-            try
-            {
-                file1Md5 = MathEx.ComputeMD5ChecksumOf(file1);
-                file2Md5 = MathEx.ComputeMD5ChecksumOf(file2);
-            }
-            catch (FileNotFoundException)
-            {
-                return false;
-            }
-            
-
-            return file1Md5.SequenceEqual(file2Md5); 
-        }
-
         /// <summary>
         /// Gets file contents.
         /// </summary>

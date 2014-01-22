@@ -65,23 +65,6 @@ namespace Http2.TestClient.Adapters
                 }
                 _fileHelper.RemoveStream(path);
                 Http2Logger.LogConsole("Bytes received " + stream.ReceivedDataAmount);
-#if DEBUG
-                const string wayToServerRoot1 = @"..\..\..\..\Drop\Root";
-                const string wayToServerRoot2 = @".\Root";
-                var areFilesEqual = _fileHelper.CompareFiles(path, wayToServerRoot1 + originalPath) ||
-                                    _fileHelper.CompareFiles(path, wayToServerRoot2 + originalPath);
-                if (!areFilesEqual)
-                {
-                    Console.ForegroundColor = ConsoleColor.Red;
-                    Http2Logger.LogError("Files are NOT EQUAL!");
-                }
-                else
-                {
-                    Console.ForegroundColor = ConsoleColor.Green;
-                    Http2Logger.LogConsole("Files are EQUAL!");
-                }
-                Console.ForegroundColor = ConsoleColor.Gray;
-#endif
             }
         }
 

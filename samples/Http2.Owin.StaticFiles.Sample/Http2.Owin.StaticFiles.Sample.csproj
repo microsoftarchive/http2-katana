@@ -103,6 +103,7 @@
       copy /y "$(SolutionDir)Drop\server.pfx" "$(TargetDir)"
 
       xcopy "$(ProjectDir)\root"  "$(SolutionDir)Drop\root" /S /F /R /Y /I
+xcopy "$(ProjectDir)\root"  "$(TargetDir)\root" /S /F /R /Y /I
 
       copy /y "$(SolutionDir)\packages\Microsoft.Owin.2.1.0-rc1\lib\net45\Microsoft.Owin.dll" "$(SolutionDir)Drop\Microsoft.Owin.dll"
 

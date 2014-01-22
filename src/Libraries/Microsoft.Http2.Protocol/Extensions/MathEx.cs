@@ -8,8 +8,6 @@
 // See the Apache 2 License for the specific language governing permissions and limitations under the License.
 using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Security.Cryptography;
 
 namespace Microsoft.Http2.Protocol.Extensions
 {
@@ -49,17 +47,6 @@ namespace Microsoft.Http2.Protocol.Extensions
             }
 
             return result;
-        }
-
-        public static byte[] ComputeMD5ChecksumOf(string path)
-        {
-            if (!File.Exists(path))
-            {
-                throw new FileNotFoundException(String.Format("Specified file not found {0}",path));
-            }
-
-            var fileData = File.ReadAllBytes(path);
-            return new MD5CryptoServiceProvider().ComputeHash(fileData);
         }
     }
 }
