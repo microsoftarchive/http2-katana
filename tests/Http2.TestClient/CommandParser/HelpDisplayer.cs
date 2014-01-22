@@ -20,17 +20,6 @@ namespace Http2.TestClient.CommandParser
                               "                                                         Ex. HELP GET");
             Console.WriteLine("GET <resource url>                                       Download resource from the specified url.\n" +
                               "                                                         E.g.: get https://localhost:8443/test.txt");
-            Console.WriteLine("PUT <server url>/<alias> <local url>                     Put local resource on a server.\n" +
-                              "                                                         E.g.: put https://localhost:8443/test.html D:\\README.txt");
-            Console.WriteLine("POST <server url>/<server action> <local url>            Post local resource on a server and perform specified action then.\n" +
-                              "                                                         E.g.: post https://localhost:8443/test.html D:\\README.txt");
-            Console.WriteLine("DIR <server url>                                         Get files located in a server's root\n" +
-                              "                                                         E.g.: dir https://localhost:8443");
-            Console.WriteLine("DELETE <server url>/<filename>                           Send delete request to the server\n" +
-                              "                                                         E.g.: delete https://localhost:8443/index.html");
-#if HTTP11
-            Console.WriteLine("HTTP11GET <filename>          Download file using HTTP 1.1.");
-#endif
             Console.WriteLine("PING                                                     Pings opened connection\n" +
                               "                                                         E.g.: ping https://localhost:8443/");
             Console.WriteLine("EXIT                                                     Exit application");

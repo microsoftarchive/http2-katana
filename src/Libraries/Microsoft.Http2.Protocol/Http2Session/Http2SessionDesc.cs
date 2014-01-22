@@ -482,13 +482,11 @@ namespace Microsoft.Http2.Protocol
             {
                 //The endpoint is unable to maintain the compression context for the connection.
                 Http2Logger.LogError("Compression error occurred: " + ex.Message);
-                WriteGoAway(ResetStatusCode.CompressionError);
                 Close(ResetStatusCode.CompressionError);
             }
             catch (ProtocolError pEx)
             {
                 Http2Logger.LogError("Protocol error occurred: " + pEx.Message);
-                WriteGoAway(pEx.Code);
                 Close(pEx.Code);
             }
             catch (MaxConcurrentStreamsLimitException)
@@ -826,6 +824,9 @@ namespace Microsoft.Http2.Protocol
                 //Cancel all opened streams
                 stream.Dispose(ResetStatusCode.Cancel);
             }
+
+            if (!_goAwayReceived)
+                WriteGoAway(status);
 
             OnSettingsSent = null;
             OnFrameReceived = null;
