@@ -420,9 +420,19 @@ namespace Microsoft.Http2.Protocol
             //initiated stream.  If the stream identifier field specifies the value
             //0x0, a recipient MUST respond with a connection error (Section 5.4.1)
             //of type PROTOCOL_ERROR.
-            if (frame.StreamId == 0)
+
+            //... a receiver MUST
+            //treat the receipt of a PUSH_PROMISE that promises an illegal stream
+            //identifier (Section 5.1.1) (that is, an identifier for a stream that
+            //is not currently in the "idle" state) as a connection error
+            //(Section 5.4.1) of type PROTOCOL_ERROR, unless the receiver recently
+            //sent a RST_STREAM frame to cancel the associated stream (see
+            //Section 5.1).
+
+            if (frame.StreamId == 0 || frame.PromisedStreamId == 0 || (frame.PromisedStreamId % 2) != 0 
+                || ActiveStreams.Any(str => (str.Key % 2) == 0 && str.Key > frame.PromisedStreamId))
             {
-                throw new ProtocolError(ResetStatusCode.ProtocolError, "Incoming headers frame with id = 0");
+                throw new ProtocolError(ResetStatusCode.ProtocolError, "Incorrect promised stream id");
             }
 
             var serializedHeaders = new byte[frame.CompressedHeaders.Count];
