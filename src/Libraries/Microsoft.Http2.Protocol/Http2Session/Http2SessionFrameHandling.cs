@@ -403,7 +403,9 @@ namespace Microsoft.Http2.Protocol
 
         private void HandleGoAwayFrame(GoAwayFrame goAwayFrame)
         {
-            //TODO handle additional debug info
+            if (goAwayFrame.StreamId != 0)
+                throw new ProtocolError(ResetStatusCode.ProtocolError, "GoAway stream id should be null always");
+
             _goAwayReceived = true;
             
             Http2Logger.LogDebug("GoAway frame received with code {0}", goAwayFrame.StatusCode);
