@@ -8,6 +8,8 @@ Bin/
 *.pdb
 *.user
 *.cache
+*.ldf
+*.mdf
 Thumbs.db
 
 # Don't include NuGet Packages http://docs.nuget.org/docs/workflows/using-nuget-without-committing-packages

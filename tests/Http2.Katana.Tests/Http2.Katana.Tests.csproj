@@ -24,6 +24,7 @@
     <WarningLevel>2</WarningLevel>
     <NoWarn>
     </NoWarn>
+    <PlatformTarget>x86</PlatformTarget>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -34,12 +35,13 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Microsoft.Owin, Version=2.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+    <Reference Include="Microsoft.Owin, Version=2.0.2.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\packages\Microsoft.Owin.2.0.0\lib\net45\Microsoft.Owin.dll</HintPath>
+      <HintPath>..\..\packages\Microsoft.Owin.2.1.0-rc1\lib\net45\Microsoft.Owin.dll</HintPath>
     </Reference>
-    <Reference Include="Moq">
-      <HintPath>..\..\packages\Moq.4.1.1308.2321\lib\net40\Moq.dll</HintPath>
+    <Reference Include="Moq, Version=4.1.1309.1617, Culture=neutral, PublicKeyToken=69f491c39445e920, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\packages\Moq.4.1.1309.1617\lib\net40\Moq.dll</HintPath>
     </Reference>
     <Reference Include="Newtonsoft.Json">
       <HintPath>..\..\packages\Newtonsoft.Json.5.0.6\lib\net45\Newtonsoft.Json.dll</HintPath>
@@ -56,6 +58,8 @@
       <HintPath>..\Shared\SharedProtocol\packages\System.Net.Http.Formatting.dll</HintPath>
     </Reference>
     <Reference Include="System.Net.Http.WebRequest" />
+    <Reference Include="System.Runtime.Serialization" />
+    <Reference Include="System.ServiceModel" />
     <Reference Include="System.Web.Extensions" />
     <Reference Include="System.Web.Http, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
@@ -77,14 +81,35 @@
     <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\CommonHeaders.cs">
       <Link>Sources\Libraries\Microsoft.Http2.Protocol\CommonHeaders.cs</Link>
     </Compile>
-    <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\EventArgs\DataIsWrittenEventArgs.cs">
-      <Link>Sources\Libraries\Microsoft.Http2.Protocol\EventArgs\DataIsWrittenEventArgs.cs</Link>
+    <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Compression\HeadersDeltaCompression\CompressionProcessor\CompressionProcessor.cs">
+      <Link>Sources\Libraries\Microsoft.Http2.Protocol\Compression\HeadersDeltaCompression\CompressionProcessor\CompressionProcessor.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Compression\HeadersDeltaCompression\CompressionProcessor\CompressionProcStaticTable.cs">
+      <Link>Sources\Libraries\Microsoft.Http2.Protocol\Compression\HeadersDeltaCompression\CompressionProcessor\CompressionProcStaticTable.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Compression\HuffmanCompression\BinaryConverter.cs">
+      <Link>Sources\Libraries\Microsoft.Http2.Protocol\Compression\Huffman\BinaryConverter.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Compression\HuffmanCompression\BitTree.cs">
+      <Link>Sources\Libraries\Microsoft.Http2.Protocol\Compression\Huffman\BitTree.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Compression\HuffmanCompression\HuffmanCodesTable\HuffmanCodes.cs">
+      <Link>Sources\Libraries\Microsoft.Http2.Protocol\Compression\Huffman\HuffmanCodesTable\HuffmanCodes.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Compression\HuffmanCompression\HuffmanCodesTable\HuffmanCodesTable.cs">
+      <Link>Sources\Libraries\Microsoft.Http2.Protocol\Compression\Huffman\HuffmanCodesTable\HuffmanCodesTable.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Compression\HuffmanCompression\HuffmanCompressor.cs">
+      <Link>Sources\Libraries\Microsoft.Http2.Protocol\Compression\Huffman\HuffmanCompressor.cs</Link>
     </Compile>
     <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\EventArgs\FrameSentEventArgs.cs">
       <Link>Sources\Libraries\Microsoft.Http2.Protocol\EventArgs\FrameSentEventArgs.cs</Link>
     </Compile>
     <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Exceptions\MaxConcurrentStreamsLimitException.cs">
       <Link>Sources\Libraries\Microsoft.Http2.Protocol\Exceptions\MaxConcurrentStreamsLimitException.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\ForbiddenHeaders.cs">
+      <Link>Sources\Libraries\Microsoft.Http2.Protocol\ForbiddenHeaders.cs</Link>
     </Compile>
     <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Framing\ContinuationFrame.cs">
       <Link>Sources\Libraries\Microsoft.Http2.Protocol\Framing\ContinuationFrame.cs</Link>
@@ -94,6 +119,12 @@
     </Compile>
     <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Framing\IHeadersFrame.cs">
       <Link>Sources\Libraries\Microsoft.Http2.Protocol\Framing\IHeadersFrame.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Framing\PushPromiseFrame.cs">
+      <Link>Sources\Libraries\Microsoft.Http2.Protocol\Framing\PushPromiseFrame.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\HeadersSequenceList.cs">
+      <Link>Sources\Libraries\Microsoft.Http2.Protocol\HeadersSequenceList.cs</Link>
     </Compile>
     <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Http2MessageHandler.cs">
       <Link>Sources\Libraries\Microsoft.Http2.Protocol\Http2MessageHandler.cs</Link>
@@ -110,8 +141,182 @@
     <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Verbs.cs">
       <Link>Sources\Libraries\Microsoft.Http2.Protocol\Verbs.cs</Link>
     </Compile>
-    <Compile Include="..\..\src\Microsoft.Http2.Owin.Server\Adapters\CommonOwinKeys.cs">
-      <Link>Sources\Microsoft.Http2.Owin.Server\Adapters\CommonOwinKeys.cs</Link>
+    <Compile Include="..\..\src\Libraries\OpenSsl\ManagedOpenSsl\ALPN\Alpn.cs">
+      <Link>Sources\Libraries\OpenSsl\ALPN\Alpn.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Libraries\OpenSsl\ManagedOpenSsl\ALPN\Errors.cs">
+      <Link>Sources\Libraries\OpenSsl\ALPN\Errors.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Libraries\OpenSsl\ManagedOpenSsl\ConnectionEnd.cs">
+      <Link>Sources\Libraries\OpenSsl\ConnectionEnd.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Libraries\OpenSsl\ManagedOpenSsl\Core\Asn1DateTime.cs">
+      <Link>Sources\Libraries\OpenSsl\Core\Asn1DateTime.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Libraries\OpenSsl\ManagedOpenSsl\Core\Asn1Integer.cs">
+      <Link>Sources\Libraries\OpenSsl\Core\Asn1Integer.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Libraries\OpenSsl\ManagedOpenSsl\Core\Asn1Object.cs">
+      <Link>Sources\Libraries\OpenSsl\Core\Asn1Object.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Libraries\OpenSsl\ManagedOpenSsl\Core\Asn1String.cs">
+      <Link>Sources\Libraries\OpenSsl\Core\Asn1String.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Libraries\OpenSsl\ManagedOpenSsl\Core\Base.cs">
+      <Link>Sources\Libraries\OpenSsl\Core\Base.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Libraries\OpenSsl\ManagedOpenSsl\Core\BigNumber.cs">
+      <Link>Sources\Libraries\OpenSsl\Core\BigNumber.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Libraries\OpenSsl\ManagedOpenSsl\Core\BIO.cs">
+      <Link>Sources\Libraries\OpenSsl\Core\BIO.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Libraries\OpenSsl\ManagedOpenSsl\Core\Crypto.cs">
+      <Link>Sources\Libraries\OpenSsl\Core\Crypto.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Libraries\OpenSsl\ManagedOpenSsl\Core\MemoryTracker.cs">
+      <Link>Sources\Libraries\OpenSsl\Core\MemoryTracker.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Libraries\OpenSsl\ManagedOpenSsl\Core\Native.cs">
+      <Link>Sources\Libraries\OpenSsl\Core\Native.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Libraries\OpenSsl\ManagedOpenSsl\Core\Objects.cs">
+      <Link>Sources\Libraries\OpenSsl\Core\Objects.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Libraries\OpenSsl\ManagedOpenSsl\Core\OpenSslException.cs">
+      <Link>Sources\Libraries\OpenSsl\Core\OpenSslException.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Libraries\OpenSsl\ManagedOpenSsl\Core\Password.cs">
+      <Link>Sources\Libraries\OpenSsl\Core\Password.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Libraries\OpenSsl\ManagedOpenSsl\Core\Random.cs">
+      <Link>Sources\Libraries\OpenSsl\Core\Random.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Libraries\OpenSsl\ManagedOpenSsl\Core\Stack.cs">
+      <Link>Sources\Libraries\OpenSsl\Core\Stack.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Libraries\OpenSsl\ManagedOpenSsl\Core\Version.cs">
+      <Link>Sources\Libraries\OpenSsl\Core\Version.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Libraries\OpenSsl\ManagedOpenSsl\Crypto\Cipher.cs">
+      <Link>Sources\Libraries\OpenSsl\Crypto\Cipher.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Libraries\OpenSsl\ManagedOpenSsl\Crypto\CryptoKey.cs">
+      <Link>Sources\Libraries\OpenSsl\Crypto\CryptoKey.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Libraries\OpenSsl\ManagedOpenSsl\Crypto\DH.cs">
+      <Link>Sources\Libraries\OpenSsl\Crypto\DH.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Libraries\OpenSsl\ManagedOpenSsl\Crypto\DSA.cs">
+      <Link>Sources\Libraries\OpenSsl\Crypto\DSA.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Libraries\OpenSsl\ManagedOpenSsl\Crypto\EC\BuiltinCurve.cs">
+      <Link>Sources\Libraries\OpenSsl\Crypto\EC\BuiltinCurve.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Libraries\OpenSsl\ManagedOpenSsl\Crypto\EC\DSASignature.cs">
+      <Link>Sources\Libraries\OpenSsl\Crypto\EC\DSASignature.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Libraries\OpenSsl\ManagedOpenSsl\Crypto\EC\Group.cs">
+      <Link>Sources\Libraries\OpenSsl\Crypto\EC\Group.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Libraries\OpenSsl\ManagedOpenSsl\Crypto\EC\Key.cs">
+      <Link>Sources\Libraries\OpenSsl\Crypto\EC\Key.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Libraries\OpenSsl\ManagedOpenSsl\Crypto\EC\Method.cs">
+      <Link>Sources\Libraries\OpenSsl\Crypto\EC\Method.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Libraries\OpenSsl\ManagedOpenSsl\Crypto\EC\Point.cs">
+      <Link>Sources\Libraries\OpenSsl\Crypto\EC\Point.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Libraries\OpenSsl\ManagedOpenSsl\Crypto\HMAC.cs">
+      <Link>Sources\Libraries\OpenSsl\Crypto\HMAC.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Libraries\OpenSsl\ManagedOpenSsl\Crypto\MessageDigest.cs">
+      <Link>Sources\Libraries\OpenSsl\Crypto\MessageDigest.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Libraries\OpenSsl\ManagedOpenSsl\Crypto\RSA.cs">
+      <Link>Sources\Libraries\OpenSsl\Crypto\RSA.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Libraries\OpenSsl\ManagedOpenSsl\Exceptions\AlpnException.cs">
+      <Link>Sources\Libraries\OpenSsl\Exceptions\AlpnException.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Libraries\OpenSsl\ManagedOpenSsl\Protocols.cs">
+      <Link>Sources\Libraries\OpenSsl\Protocols.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Libraries\OpenSsl\ManagedOpenSsl\SSL\Enums.cs">
+      <Link>Sources\Libraries\OpenSsl\SSL\Enums.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Libraries\OpenSsl\ManagedOpenSsl\SSL\Ssl.cs">
+      <Link>Sources\Libraries\OpenSsl\SSL\Ssl.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Libraries\OpenSsl\ManagedOpenSsl\SSL\SslCipher.cs">
+      <Link>Sources\Libraries\OpenSsl\SSL\SslCipher.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Libraries\OpenSsl\ManagedOpenSsl\SSL\SslContext.cs">
+      <Link>Sources\Libraries\OpenSsl\SSL\SslContext.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Libraries\OpenSsl\ManagedOpenSsl\SSL\SslMethod.cs">
+      <Link>Sources\Libraries\OpenSsl\SSL\SslMethod.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Libraries\OpenSsl\ManagedOpenSsl\SSL\SslStream.cs">
+      <Link>Sources\Libraries\OpenSsl\SSL\SslStream.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Libraries\OpenSsl\ManagedOpenSsl\SSL\SslStreamBase.cs">
+      <Link>Sources\Libraries\OpenSsl\SSL\SslStreamBase.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Libraries\OpenSsl\ManagedOpenSsl\SSL\SslStreamClient.cs">
+      <Link>Sources\Libraries\OpenSsl\SSL\SslStreamClient.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Libraries\OpenSsl\ManagedOpenSsl\SSL\SslStreamServer.cs">
+      <Link>Sources\Libraries\OpenSsl\SSL\SslStreamServer.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Libraries\OpenSsl\ManagedOpenSsl\SSL\SSL_CTX.cs">
+      <Link>Sources\Libraries\OpenSsl\SSL\SSL_CTX.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Libraries\OpenSsl\ManagedOpenSsl\X509\Configuration.cs">
+      <Link>Sources\Libraries\OpenSsl\X509\Configuration.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Libraries\OpenSsl\ManagedOpenSsl\X509\Identity.cs">
+      <Link>Sources\Libraries\OpenSsl\X509\Identity.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Libraries\OpenSsl\ManagedOpenSsl\X509\PKCS12.cs">
+      <Link>Sources\Libraries\OpenSsl\X509\PKCS12.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Libraries\OpenSsl\ManagedOpenSsl\X509\PKCS7.cs">
+      <Link>Sources\Libraries\OpenSsl\X509\PKCS7.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Libraries\OpenSsl\ManagedOpenSsl\X509\VerifyResult.cs">
+      <Link>Sources\Libraries\OpenSsl\X509\VerifyResult.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Libraries\OpenSsl\ManagedOpenSsl\X509\X509Certificate.cs">
+      <Link>Sources\Libraries\OpenSsl\X509\X509Certificate.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Libraries\OpenSsl\ManagedOpenSsl\X509\X509CertificateAuthority.cs">
+      <Link>Sources\Libraries\OpenSsl\X509\X509CertificateAuthority.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Libraries\OpenSsl\ManagedOpenSsl\X509\X509CertificateInfo.cs">
+      <Link>Sources\Libraries\OpenSsl\X509\X509CertificateInfo.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Libraries\OpenSsl\ManagedOpenSsl\X509\X509Chain.cs">
+      <Link>Sources\Libraries\OpenSsl\X509\X509Chain.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Libraries\OpenSsl\ManagedOpenSsl\X509\X509Extension.cs">
+      <Link>Sources\Libraries\OpenSsl\X509\X509Extension.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Libraries\OpenSsl\ManagedOpenSsl\X509\X509Name.cs">
+      <Link>Sources\Libraries\OpenSsl\X509\X509Name.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Libraries\OpenSsl\ManagedOpenSsl\X509\X509Object.cs">
+      <Link>Sources\Libraries\OpenSsl\X509\X509Object.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Libraries\OpenSsl\ManagedOpenSsl\X509\X509Request.cs">
+      <Link>Sources\Libraries\OpenSsl\X509\X509Request.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Libraries\OpenSsl\ManagedOpenSsl\X509\X509Store.cs">
+      <Link>Sources\Libraries\OpenSsl\X509\X509Store.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Libraries\OpenSsl\ManagedOpenSsl\X509\X509StoreContext.cs">
+      <Link>Sources\Libraries\OpenSsl\X509\X509StoreContext.cs</Link>
     </Compile>
     <Compile Include="..\..\src\Microsoft.Http2.Owin.Server\Adapters\Http11Helper.cs">
       <Link>Sources\Microsoft.Http2.Owin.Server\Adapters\Http11Helper.cs</Link>
@@ -125,6 +330,42 @@
     <Compile Include="..\..\src\Microsoft.Http2.Owin.Server\Adapters\Http2OwinMessageHandler.cs">
       <Link>Sources\Microsoft.Http2.Owin.Server\Adapters\Http2OwinMessageHandler.cs</Link>
     </Compile>
+    <Compile Include="..\..\src\Microsoft.Http2.Owin.Server\CommonOwinKeys.cs">
+      <Link>Sources\Microsoft.Http2.Owin.Server\Adapters\CommonOwinKeys.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Microsoft.Http2.PushMiddleware\Bing\BingHelpers\BingHelper.cs">
+      <Link>Sources\Microsoft.Http2.PushMiddleware\Bing\BingHelpers\BingHelper.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Microsoft.Http2.PushMiddleware\Bing\BingHelpers\CommonNames.cs">
+      <Link>Sources\Microsoft.Http2.PushMiddleware\Bing\BingHelpers\CommonNames.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Microsoft.Http2.PushMiddleware\Bing\BingHelpers\Tile.cs">
+      <Link>Sources\Microsoft.Http2.PushMiddleware\Bing\BingHelpers\Tile.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Microsoft.Http2.PushMiddleware\Bing\BingHelpers\TileSystem.cs">
+      <Link>Sources\Microsoft.Http2.PushMiddleware\Bing\BingHelpers\TileSystem.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Microsoft.Http2.PushMiddleware\Bing\BingPushMiddleware.cs">
+      <Link>Sources\Microsoft.Http2.PushMiddleware\Bing\BingPushMiddleware.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Microsoft.Http2.PushMiddleware\Bing\HtmlProcessor.cs">
+      <Link>Sources\Microsoft.Http2.PushMiddleware\Bing\BingHelpers\HtmlProcessor.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Microsoft.Http2.PushMiddleware\PushMiddlewareBase.cs">
+      <Link>Sources\Microsoft.Http2.PushMiddleware\PushMiddlewareBase.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Microsoft.Http2.PushMiddleware\StaticFiles\GraphHelper.cs">
+      <Link>Sources\Microsoft.Http2.PushMiddleware\StaticFiles\GraphHelper.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Microsoft.Http2.PushMiddleware\StaticFiles\PushExtensions.cs">
+      <Link>Sources\Microsoft.Http2.PushMiddleware\StaticFiles\PushExtensions.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Microsoft.Http2.PushMiddleware\StaticFiles\PushMiddleware.cs">
+      <Link>Sources\Microsoft.Http2.PushMiddleware\StaticFiles\PushMiddleware.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Microsoft.Http2.PushMiddleware\StaticFiles\ReferenceTable.cs">
+      <Link>Sources\Microsoft.Http2.PushMiddleware\StaticFiles\ReferenceTable.cs</Link>
+    </Compile>
     <Compile Include="..\Http2.TestClient\Adapters\Http11ClientMessageHandler.cs">
       <Link>Sources\Client\Adapters\Http11ClientMessageHandler.cs</Link>
     </Compile>
@@ -136,9 +377,6 @@
     </Compile>
     <Compile Include="..\Http2.TestClient\Handshake\HandshakeKeys.cs">
       <Link>Sources\Client\Handshake\HandshakeKeys.cs</Link>
-    </Compile>
-    <Compile Include="..\Http2.TestClient\Handshake\HandshakeManager.cs">
-      <Link>Sources\Client\Handshake\HandshakeManager.cs</Link>
     </Compile>
     <Compile Include="..\Http2.TestClient\Handshake\HandshakeResponse.cs">
       <Link>Sources\Client\Handshake\HandshakeResponse.cs</Link>
@@ -156,302 +394,16 @@
       <Link>Sources\Client\IO\FileHelper.cs</Link>
     </Compile>
     <Compile Include="BasicTests.cs" />
+    <Compile Include="GlobalSuppressions.cs" />
     <Compile Include="HandshakeTests.cs" />
     <Compile Include="Http11Tests.cs" />
     <Compile Include="Http2Tests.cs" />
     <Compile Include="Facts.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="ResponseMiddleware.cs" />
     <Compile Include="TestHelpers.cs" />
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\BinaryHelper\BinaryHelper.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\BinaryHelper\BinaryHelper</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\Certificates\Certificate.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\Certificates\Certificate</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\Certificates\CertificateChain.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\Certificates\CertificateChain</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\Certificates\CertificateException.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\Certificates\CertificateException</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\Certificates\CertificateStore.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\Certificates\CertificateStore</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\Certificates\CertificateStoreCollection.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\Certificates\CertificateStoreCollection</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\Certificates\CertificateStructures.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\Certificates\CertificateStructures</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\Certificates\CertificateVerificationResult.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\Certificates\CertificateVerificationResult</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\Certificates\DistinguishedName.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\Certificates\DistinguishedName</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\Certificates\DistinguishedNameCollection.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\Certificates\DistinguishedNameCollection</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\Cryptography\ARCFourManaged.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\Cryptography\ARCFourManaged</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\Cryptography\ARCFourManagedTransform.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\Cryptography\ARCFourManagedTransform</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\Cryptography\CryptographyStructures.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\Cryptography\CryptographyStructures</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\Cryptography\DataProtectionCryptoServiceProvider.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\Cryptography\DataProtectionCryptoServiceProvider</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\Cryptography\HMAC.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\Cryptography\HMAC</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\Cryptography\MD2.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\Cryptography\MD2</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\Cryptography\MD2CryptoServiceProvider.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\Cryptography\MD2CryptoServiceProvider</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\Cryptography\MD4.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\Cryptography\MD4</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\Cryptography\MD4CryptoServiceProvider.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\Cryptography\MD4CryptoServiceProvider</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\Cryptography\RC4.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\Cryptography\RC4</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\Cryptography\RC4CryptoServiceProvider.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\Cryptography\RC4CryptoServiceProvider</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\Cryptography\RC4UnmanagedTransform.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\Cryptography\RC4UnmanagedTransform</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\Cryptography\RijndaelCryptoServiceProvider.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\Cryptography\RijndaelCryptoServiceProvider</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\Cryptography\RijndaelUnmanagedTransform.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\Cryptography\RijndaelUnmanagedTransform</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\Cryptography\RIPEMD160.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\Cryptography\RIPEMD160</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\Cryptography\RIPEMD160Managed.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\Cryptography\RIPEMD160Managed</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\Cryptography\SymmetricKey.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\Cryptography\SymmetricKey</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\EventArgs\ALPN\ALPNAddedToClientHelloArgs.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\EventArgs\ALPN\ALPNAddedToClientHelloArgs</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\EventArgs\ALPN\ALPNParsedFromServerHelloArgs.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\EventArgs\ALPN\ALPNParsedFromServerHelloArgs</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\EventArgs\NPN\NPNAddedToClientHelloArgs.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\EventArgs\NPN\NPNAddedToClientHelloArgs</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\EventArgs\NPN\NPNParsedFromServerHelloArgs.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\EventArgs\NPN\NPNParsedFromServerHelloArgs</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\EventArgs\ProtocolSelectedArgs.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\EventArgs\ProtocolSelectedArgs</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\EventArgs\SocketEventArgs\SocketCloseEventArgs.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\EventArgs\SocketEventArgs\SocketCloseEventArgs</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\Monitors\ExtensionMonitors\ALPNExtensionMonitor.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\Monitors\ExtensionMonitors\ALPNExtensionMonitor</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\Monitors\ExtensionMonitors\ExtensionMonitor.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\Monitors\ExtensionMonitors\ExtensionMonitor</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\Monitors\ISocketMonitor.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\Monitors\ISocketMonitor</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\Monitors\SslTlsHandshakeMonitor.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\Monitors\SslTlsHandshakeMonitor</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\SecurityConstants.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\SecurityConstants</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\SecurityException.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\SecurityException</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\SecurityStructures.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\SecurityStructures</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\Ssl\AsyncResult.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\Ssl\AsyncResult</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\Ssl\HandshakeExtensions.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\Ssl\HandshakeExtensions</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\Ssl\RequestEventArgs.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\Ssl\RequestEventArgs</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\Ssl\SecureHandshakeException.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\Ssl\SecureHandshakeException</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\Ssl\SecureHandshakeFailureReason.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\Ssl\SecureHandshakeFailureReason</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\Ssl\SecureHandshaker.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\Ssl\SecureHandshaker</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\Ssl\SecureNetworkStream.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\Ssl\SecureNetworkStream</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\Ssl\SecureSocket.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\Ssl\SecureSocket</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\Ssl\SecureTcpClient.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\Ssl\SecureTcpClient</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\Ssl\SecureTcpListener.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\Ssl\SecureTcpListener</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\Ssl\SecurityOptions.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\Ssl\SecurityOptions</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\Ssl\Shared\Alert.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\Ssl\Shared\Alert</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\Ssl\Shared\CipherSuites.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\Ssl\Shared\CipherSuites</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\Ssl\Shared\ClientHandshakeLayer.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\Ssl\Shared\ClientHandshakeLayer</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\Ssl\Shared\CloneableHash.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\Ssl\Shared\CloneableHash</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\Ssl\Shared\CompatibilityLayer.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\Ssl\Shared\CompatibilityLayer</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\Ssl\Shared\CompressionAlgorithm.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\Ssl\Shared\CompressionAlgorithm</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\Ssl\Shared\Extensions\ALPNCantSelectProtocolException.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\Ssl\Shared\Extensions\ALPNCantSelectProtocolException</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\Ssl\Shared\Extensions\ALPNExtension.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\Ssl\Shared\Extensions\ALPNExtension</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\Ssl\Shared\Extensions\Enums.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\Ssl\Shared\Extensions\Enums</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\Ssl\Shared\Extensions\Extension.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\Ssl\Shared\Extensions\Extension</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\Ssl\Shared\Extensions\ExtensionList.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\Ssl\Shared\Extensions\ExtensionList</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\Ssl\Shared\Extensions\ExtensionMessages\NextProtocolNegotiationMessage.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\Ssl\Shared\Extensions\ExtensionMessages\NextProtocolNegotiationMessage</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\Ssl\Shared\Extensions\ExtensionsParser.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\Ssl\Shared\Extensions\ExtensionsParser</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\Ssl\Shared\Extensions\IProtocolSelectionExtension.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\Ssl\Shared\Extensions\IProtocolSelectionExtension</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\Ssl\Shared\Extensions\RenegotiationExtension.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\Ssl\Shared\Extensions\RenegotiationExtension</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\Ssl\Shared\HandshakeLayer.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\Ssl\Shared\HandshakeLayer</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\Ssl\Shared\HandshakeMessage.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\Ssl\Shared\HandshakeMessage</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\Ssl\Shared\MD5SHA1CryptoServiceProvider.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\Ssl\Shared\MD5SHA1CryptoServiceProvider</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\Ssl\Shared\NextProtocolNegotiationMessage.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\Ssl\Shared\NextProtocolNegotiationMessage</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\Ssl\Shared\RecordLayer.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\Ssl\Shared\RecordLayer</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\Ssl\Shared\RecordMessage.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\Ssl\Shared\RecordMessage</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\Ssl\Shared\RSAKeyTransform.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\Ssl\Shared\RSAKeyTransform</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\Ssl\Shared\ServerHandshakeLayer.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\Ssl\Shared\ServerHandshakeLayer</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\Ssl\Shared\SocketController.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\Ssl\Shared\SocketController</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\Ssl\Shared\SslException.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\Ssl\Shared\SslException</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\Ssl\Shared\SslTypes.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\Ssl\Shared\SslTypes</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\Ssl\Shared\TransferItem.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\Ssl\Shared\TransferItem</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\Ssl\Shared\XBuffer.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\Ssl\Shared\XBuffer</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\Ssl\Ssl3\Ssl3CipherSuites.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\Ssl\Ssl3\Ssl3CipherSuites</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\Ssl\Ssl3\Ssl3ClientHandshakeLayer.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\Ssl\Ssl3\Ssl3ClientHandshakeLayer</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\Ssl\Ssl3\Ssl3DeriveBytes.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\Ssl\Ssl3\Ssl3DeriveBytes</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\Ssl\Ssl3\Ssl3HandshakeMac.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\Ssl\Ssl3\Ssl3HandshakeMac</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\Ssl\Ssl3\Ssl3RecordMAC.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\Ssl\Ssl3\Ssl3RecordMAC</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\Ssl\Ssl3\Ssl3ServerHandshakeLayer.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\Ssl\Ssl3\Ssl3ServerHandshakeLayer</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\Ssl\SslStructures.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\Ssl\SslStructures</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\Ssl\Tls1\ExpansionDeriveBytes.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\Ssl\Tls1\ExpansionDeriveBytes</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\Ssl\Tls1\PseudoRandomDeriveBytes.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\Ssl\Tls1\PseudoRandomDeriveBytes</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\Ssl\Tls1\Tls1CipherSuites.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\Ssl\Tls1\Tls1CipherSuites</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\Ssl\Tls1\Tls1ClientHandshakeLayer.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\Ssl\Tls1\Tls1ClientHandshakeLayer</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\Ssl\Tls1\Tls1ServerHandshakeLayer.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\Ssl\Tls1\Tls1ServerHandshakeLayer</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\Ssl\VerifyEventArgs.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\Ssl\VerifyEventArgs</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\Ssl\VirtualSocket.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\Ssl\VirtualSocket</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\MentalisSecurityLibrary\Security\SspiProvider.cs">
-      <Link>Sources\Libraries\MentalisSecurityLibrary\Security\SspiProvider</Link>
-    </Compile>
     <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\ActiveStreams.cs">
       <Link>Sources\Libraries\Microsoft.Http2.Protocol\ActiveStreams</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Compression\HeadersDeltaCompression\CompressionInitialHeaders.cs">
-      <Link>Sources\Libraries\Microsoft.Http2.Protocol\Compression\HeadersDeltaCompression\CompressionInitialHeaders</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Compression\HeadersDeltaCompression\CompressionProcessor.cs">
-      <Link>Sources\Libraries\Microsoft.Http2.Protocol\Compression\HeadersDeltaCompression\CompressionProcessor</Link>
     </Compile>
     <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Compression\HeadersDeltaCompression\Indexation.cs">
       <Link>Sources\Libraries\Microsoft.Http2.Protocol\Compression\HeadersDeltaCompression\Indexation</Link>
@@ -468,17 +420,11 @@
     <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Constants.cs">
       <Link>Sources\Libraries\Microsoft.Http2.Protocol\Constants</Link>
     </Compile>
-    <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\EventArgs\DataAvailableEventArgs.cs">
-      <Link>Sources\Libraries\Microsoft.Http2.Protocol\EventArgs\DataAvailableEventArgs</Link>
-    </Compile>
     <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\EventArgs\DataFrameSentEventArgs.cs">
       <Link>Sources\Libraries\Microsoft.Http2.Protocol\EventArgs\DataFrameSentEventArgs</Link>
     </Compile>
     <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\EventArgs\FrameReceivedEventArgs.cs">
       <Link>Sources\Libraries\Microsoft.Http2.Protocol\EventArgs\FrameReceivedEventArgs</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\EventArgs\Http11ResourceDownloadedEventArgs.cs">
-      <Link>Sources\Libraries\Microsoft.Http2.Protocol\EventArgs\Http11ResourceDownloadedEventArgs</Link>
     </Compile>
     <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\EventArgs\RequestSentEventArgs.cs">
       <Link>Sources\Libraries\Microsoft.Http2.Protocol\EventArgs\RequestSentEventArgs</Link>
@@ -497,9 +443,6 @@
     </Compile>
     <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Exceptions\InvalidHeaderException.cs">
       <Link>Sources\Libraries\Microsoft.Http2.Protocol\Exceptions\InvalidHeaderException</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Exceptions\MonitorIsBusyException.cs">
-      <Link>Sources\Libraries\Microsoft.Http2.Protocol\Exceptions\MonitorIsBusyException</Link>
     </Compile>
     <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Exceptions\ProtocolError.cs">
       <Link>Sources\Libraries\Microsoft.Http2.Protocol\Exceptions\ProtocolError</Link>
@@ -582,9 +525,6 @@
     <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Http2Stream.cs">
       <Link>Sources\Libraries\Microsoft.Http2.Protocol\Http2Stream</Link>
     </Compile>
-    <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\IO\DuplexStream.cs">
-      <Link>Sources\Libraries\Microsoft.Http2.Protocol\IO\DuplexStream</Link>
-    </Compile>
     <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\IO\IPriorityItem.cs">
       <Link>Sources\Libraries\Microsoft.Http2.Protocol\IO\IPriorityItem</Link>
     </Compile>
@@ -629,9 +569,6 @@
     </Compile>
     <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\StreamState.cs">
       <Link>Sources\Libraries\Microsoft.Http2.Protocol\StreamState</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\TransportInformation.cs">
-      <Link>Sources\Libraries\Microsoft.Http2.Protocol\TransportInformation</Link>
     </Compile>
     <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Utils\Http2Logger.cs">
       <Link>Sources\Libraries\Microsoft.Http2.Protocol\Utils\Http2Logger</Link>
@@ -685,12 +622,14 @@
     </None>
     <None Include="packages.config" />
   </ItemGroup>
-  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>copy /y "$(SolutionDir)Drop\certificate.pfx"  "$(TargetDir)\certificate.pfx"
+    <PostBuildEvent>copy /y "$(SolutionDir)Drop\server.pfx"  "$(TargetDir)\server.pfx"
 
-xcopy "$(ProjectDir)Root"  "$(TargetDir)Root" /S /F /R /Y /I</PostBuildEvent>
+xcopy "$(ProjectDir)Root"  "$(TargetDir)Root" /S /F /R /Y /I
+
+copy /y "$(SolutionDir)Drop\ssleay32.dll" "$(TargetDir)\ssleay32.dll"
+copy /y "$(SolutionDir)Drop\libeay32.dll" "$(TargetDir)\libeay32.dll"</PostBuildEvent>
   </PropertyGroup>
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

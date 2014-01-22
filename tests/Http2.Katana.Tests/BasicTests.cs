@@ -1,18 +1,20 @@
 ﻿using System.Globalization;
 using System.IO;
+using System.Text;
 using Microsoft.Http2.Protocol;
 using Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression;
+using Microsoft.Http2.Protocol.Compression.Huffman;
 using Microsoft.Http2.Protocol.Extensions;
 using Microsoft.Http2.Protocol.FlowControl;
 using Microsoft.Http2.Protocol.Framing;
 using Microsoft.Http2.Protocol.IO;
-using Microsoft.Http2.Protocol.Tests;
-using Org.Mentalis.Security.Ssl;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using Microsoft.Http2.Push;
+using OpenSSL;
 using Xunit;
 
 namespace Http2.Katana.Tests
@@ -94,22 +96,22 @@ namespace Http2.Katana.Tests
             Assert.Equal(collection.StoredHeadersSize, headersSize);
         }
 
-        [StandardFact]
+        [Fact]
         public void CompressionSuccessful()
         {
             var clientHeaders = new HeadersList
                 {
-                    new KeyValuePair<string, string>(":path", "http"),
                     new KeyValuePair<string, string>(":method", "get"),
+                    new KeyValuePair<string, string>(":path", "/Y3A9NTcuNjE2NjY1fjM5Ljg2NjY2NSZsdmw9NyZzdHk9ciZxPVlhcm9zbGF2bA=="),
                     new KeyValuePair<string, string>(":version", Protocols.Http2),
                     new KeyValuePair<string, string>(":host", "localhost"),
-                    new KeyValuePair<string, string>(":scheme", "http"),
+                    new KeyValuePair<string, string>(":scheme", "https"),
                 };
-            var clientCompressor = new CompressionProcessor(ConnectionEnd.Client);
-            var serverDecompressor = new CompressionProcessor(ConnectionEnd.Server);
+            var clientCompressionProc = new CompressionProcessor(ConnectionEnd.Client);
+            var serverCompressionProc = new CompressionProcessor(ConnectionEnd.Server);
 
-            var serializedHeaders = clientCompressor.Compress(clientHeaders);
-            var decompressedHeaders = new HeadersList(serverDecompressor.Decompress(serializedHeaders));
+            var serializedHeaders = clientCompressionProc.Compress(clientHeaders);
+            var decompressedHeaders = new HeadersList(serverCompressionProc.Decompress(serializedHeaders));
 
             foreach (var t in clientHeaders)
             {
@@ -118,18 +120,106 @@ namespace Http2.Katana.Tests
 
             var serverHeaders = new HeadersList
                 {
-                    new KeyValuePair<string, string>(":status", StatusCode.Code200Ok.ToString(CultureInfo.InvariantCulture)),
+                    new KeyValuePair<string, string>(":method", "get"),
+                    new KeyValuePair<string, string>(":path", "/simpleTest.txt"),
+                    new KeyValuePair<string, string>(":version", Protocols.Http2),
+                    new KeyValuePair<string, string>(":host", "localhost"),
+                    new KeyValuePair<string, string>(":scheme", "https"),
                 };
-            var serverCompressor = new CompressionProcessor(ConnectionEnd.Server);
-            var clientDecompressor = new CompressionProcessor(ConnectionEnd.Client);
 
-            serializedHeaders = serverCompressor.Compress(serverHeaders);
-            decompressedHeaders = new HeadersList(clientDecompressor.Decompress(serializedHeaders));
+            serializedHeaders = serverCompressionProc.Compress(serverHeaders);
+            decompressedHeaders = new HeadersList(clientCompressionProc.Decompress(serializedHeaders));
 
             foreach (var t in serverHeaders)
             {
                 Assert.Equal(decompressedHeaders.GetValue(t.Key), t.Value);
             }
+
+            serverHeaders = new HeadersList
+                {
+                    new KeyValuePair<string, string>(":status", StatusCode.Code404NotFound.ToString(CultureInfo.InvariantCulture)),
+                };
+
+            serializedHeaders = serverCompressionProc.Compress(serverHeaders);
+            decompressedHeaders = new HeadersList(clientCompressionProc.Decompress(serializedHeaders));
+
+            foreach (var t in serverHeaders)
+            {
+                Assert.Equal(decompressedHeaders.GetValue(t.Key), t.Value);
+            }
+            
+            serverHeaders = new HeadersList
+                {
+                    new KeyValuePair<string, string>("content-type", "text/plain"),
+                    new KeyValuePair<string, string>("last-modified", "Wed, 23 Oct 2013 21:32:06 GMT"),
+                    new KeyValuePair<string, string>("etag", "1cedo15cb041fc1"),
+                    new KeyValuePair<string, string>("content-length", "749761"),
+                    new KeyValuePair<string, string>(":status", StatusCode.Code200Ok.ToString(CultureInfo.InvariantCulture)),
+                };
+
+            serializedHeaders = serverCompressionProc.Compress(serverHeaders);
+            decompressedHeaders = new HeadersList(clientCompressionProc.Decompress(serializedHeaders));
+
+            foreach (var t in serverHeaders)
+            {
+                Assert.Equal(decompressedHeaders.GetValue(t.Key), t.Value);
+            }
+
+            clientHeaders = new HeadersList
+                {
+                    new KeyValuePair<string, string>(":method", "get"),
+                    new KeyValuePair<string, string>(":path", "/index.html"),
+                    new KeyValuePair<string, string>(":version", Protocols.Http2),
+                    new KeyValuePair<string, string>(":host", "localhost"),
+                    new KeyValuePair<string, string>(":scheme", "https"),
+                };
+
+            serializedHeaders = clientCompressionProc.Compress(clientHeaders);
+            decompressedHeaders = new HeadersList(serverCompressionProc.Decompress(serializedHeaders));
+
+            foreach (var t in clientHeaders)
+            {
+                Assert.Equal(decompressedHeaders.GetValue(t.Key), t.Value);
+            }
+        }
+
+        [StandardFact]
+        public void BitConverterBitsToBytesSuccessful()
+        {
+            const bool T = true;
+            const bool F = false;
+            var testInput = new List<bool>(new[] {T, T, T, F, F, F, T, F, T, F, T, F, F});
+            var bytes = BinaryConverter.ToBytes(testInput);
+
+            Assert.Equal(bytes[0], 0xe2);
+            Assert.Equal(bytes[1], 0xa0);
+        }
+
+        [Fact]
+        public void HuffmanCompressionSuccessful()
+        {
+            var compressor = new HuffmanCompressionProcessor();
+
+            const string input = "|";/* "cabacabaababbababcacacacaedfghijklmnopqrstuvwxyz"
+                                    + "Adsasd131221453!~[]{}{}~~`\'\\!@#$%^&*()_+=90klasdmnvzxcciuhakdkasdfioads"
+                                    + "ADBSADLGUCJNZCXNJSLKDGYSADHIASDMNKJLDBOCXBVCXJIMSAD<NSKLDBHCBIUXHCXZNCMSN"
+                                    + ",<>?|";*/
+
+            var inputBytes = Encoding.UTF8.GetBytes(input);
+
+            var now = DateTime.Now.Millisecond;
+
+            var compressed = compressor.Compress(inputBytes, true);
+            var decompressed = compressor.Decompress(compressed, true);
+
+            var newNow = DateTime.Now.Millisecond;
+
+            var output = Encoding.UTF8.GetString(decompressed);
+
+            Assert.Equal(input, output);
+
+            Console.WriteLine("Compress/decompress time: " + (newNow - now));
+            Console.WriteLine("Input length: " + input.Length);
         }
 
         [StandardFact]
@@ -252,14 +342,14 @@ namespace Http2.Katana.Tests
         [StandardFact]
         public void ActiveStreamsSuccessful()
         {
-            var session = new Http2Session(TestHelpers.CreateStream(), ConnectionEnd.Client, true, true, true, new CancellationToken());
+            var session = new Http2Session(Stream.Null, ConnectionEnd.Client, true, true, true, new CancellationToken());
             var testCollection = session.ActiveStreams;
             var fm = new FlowControlManager(session);
 
-            testCollection[1] = new Http2Stream(null, 1, null, fm, null);
-            testCollection[2] = new Http2Stream(null, 2, null, fm, null);
-            testCollection[3] = new Http2Stream(null, 3, null, fm, null);
-            testCollection[4] = new Http2Stream(null, 4, null, fm, null);
+            testCollection[1] = new Http2Stream(null, 1, null, fm);
+            testCollection[2] = new Http2Stream(null, 2, null, fm);
+            testCollection[3] = new Http2Stream(null, 3, null, fm);
+            testCollection[4] = new Http2Stream(null, 4, null, fm);
 
             fm.DisableStreamFlowControl(testCollection[2]);
             fm.DisableStreamFlowControl(testCollection[4]);
@@ -270,7 +360,7 @@ namespace Http2.Katana.Tests
             bool gotException = false;
             try
             {
-                testCollection[4] = new Http2Stream(null, 3, null, fm, null);
+                testCollection[4] = new Http2Stream(null, 3, null, fm);
             }
             catch (ArgumentException)
             {

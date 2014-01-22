@@ -1,4 +1,12 @@
-﻿using Microsoft.Http2.Protocol.Compression;
+﻿// Copyright © Microsoft Open Technologies, Inc.
+// All Rights Reserved       
+// Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at
+// http://www.apache.org/licenses/LICENSE-2.0
+
+// THIS CODE IS PROVIDED ON AN *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION ANY IMPLIED WARRANTIES OR CONDITIONS OF TITLE, FITNESS FOR A PARTICULAR PURPOSE, MERCHANTABLITY OR NON-INFRINGEMENT.
+
+// See the Apache 2 License for the specific language governing permissions and limitations under the License.
+using Microsoft.Http2.Protocol.Compression;
 using Microsoft.Http2.Protocol.EventArgs;
 using Microsoft.Http2.Protocol.Exceptions;
 using Microsoft.Http2.Protocol.FlowControl;
@@ -21,7 +29,6 @@ namespace Microsoft.Http2.Protocol
         private readonly int _id;
         private StreamState _state;
         private readonly WriteQueue _writeQueue;
-        private readonly ICompressionProcessor _compressionProc;
         private readonly FlowControlManager _flowCrtlManager;
 
         private readonly Queue<DataFrame> _unshippedFrames;
@@ -40,23 +47,20 @@ namespace Microsoft.Http2.Protocol
         /// Occurs when stream closes.
         /// </summary>
         public event EventHandler<StreamClosedEventArgs> OnClose;
-
         #endregion
 
         #region Constructors
 
         //Incoming
         internal Http2Stream(HeadersList headers, int id,
-                           WriteQueue writeQueue, FlowControlManager flowCrtlManager, 
-                           ICompressionProcessor comprProc, int priority = Constants.DefaultStreamPriority)
-            : this(id, writeQueue, flowCrtlManager, comprProc, priority)
+                           WriteQueue writeQueue, FlowControlManager flowCrtlManager, int priority = Constants.DefaultStreamPriority)
+            : this(id, writeQueue, flowCrtlManager, priority)
         {
             Headers = headers;
         }
 
         //Outgoing
-        internal Http2Stream(int id, WriteQueue writeQueue, FlowControlManager flowCrtlManager,
-                           ICompressionProcessor comprProc, int priority = Constants.DefaultStreamPriority)
+        internal Http2Stream(int id, WriteQueue writeQueue, FlowControlManager flowCrtlManager, int priority = Constants.DefaultStreamPriority)
         {
             if (id <= 0)
                 throw new ArgumentOutOfRangeException("invalid id for stream");
@@ -67,7 +71,6 @@ namespace Microsoft.Http2.Protocol
             _id = id;
             Priority = priority;
             _writeQueue = writeQueue;
-            _compressionProc = comprProc;
             _flowCrtlManager = flowCrtlManager;
 
             _unshippedFrames = new Queue<DataFrame>(16);
@@ -142,7 +145,7 @@ namespace Microsoft.Http2.Protocol
             set { Contract.Assert(value); _state |= StreamState.Disposed; }
         }
 
-        public HeadersList Headers { get; private set; }
+        public HeadersList Headers { get; internal set; }
 
         #endregion
 
@@ -152,7 +155,7 @@ namespace Microsoft.Http2.Protocol
         {
             if (IsFlowControlEnabled)
             {
-                //06
+                //09 -> 6.9.1.  The Flow Control Window
                 //A sender MUST NOT allow a flow control window to exceed 2^31 - 1
                 //bytes.  If a sender receives a WINDOW_UPDATE that causes a flow
                 //control window to exceed this maximum it MUST terminate either the
@@ -223,11 +226,7 @@ namespace Microsoft.Http2.Protocol
             if (Disposed)
                 return;
 
-            Headers.AddRange(headers);
-
-            //byte[] headerBytes = _compressionProc.Compress(headers);
-
-            var frame = new HeadersFrame(_id, /*headerBytes,*/ Priority)
+            var frame = new HeadersFrame(_id, Priority)
                 {
                     IsEndHeaders = isEndHeaders,
                     IsEndStream = isEndStream,
@@ -267,7 +266,7 @@ namespace Microsoft.Http2.Protocol
             //We cant let lesser frame that were passed through flow control window
             //be sent before greater frames that were not passed through flow control window
 
-            //06
+            //09 -> 6.9.1.  The Flow Control Window
             //The sender MUST NOT
             //send a flow controlled frame with a length that exceeds the space
             //available in either of the flow control windows advertised by the receiver.
@@ -315,6 +314,11 @@ namespace Microsoft.Http2.Protocol
             if (Disposed)
                 return;
 
+            if (dataFrame.StreamId == 0)
+            {
+                int a = 1;
+            }
+
             if (!IsFlowControlBlocked)
             {
                 _writeQueue.WriteFrame(dataFrame);
@@ -347,7 +351,7 @@ namespace Microsoft.Http2.Protocol
             if (windowSize > Constants.MaxWindowSize)
                 throw new ProtocolError(ResetStatusCode.FlowControlError, "window size is too large");
 
-            //Spec 06
+            //09 -> 6.9.4.  Ending Flow Control
             //After a receiver reads in a frame that marks the end of a stream (for
             //example, a data stream with a END_STREAM flag set), it MUST cease
 	        //transmission of WINDOW_UPDATE frames for that stream.
@@ -372,6 +376,28 @@ namespace Microsoft.Http2.Protocol
             
             _writeQueue.WriteFrame(frame);
             ResetSent = true;
+
+            if (OnFrameSent != null)
+            {
+                OnFrameSent(this, new FrameSentEventArgs(frame));
+            }
+        }
+
+        //TODO Think about: writing push_promise is available in any time now. Need to handle it.
+        public void WritePushPromise(IDictionary<string, string[]> pairs, Int32 promisedId)
+        {
+            if (Id % 2 != 0 && promisedId % 2 != 0)
+                throw new InvalidOperationException("Client cant send push_promise frames");
+
+            if (Disposed)
+                return;
+
+            var headers = new HeadersList(pairs);
+
+            //TODO IsEndPushPromise should be computationable
+            var frame = new PushPromiseFrame(Id, promisedId, true, headers);
+
+            _writeQueue.WriteFrame(frame);
 
             if (OnFrameSent != null)
             {

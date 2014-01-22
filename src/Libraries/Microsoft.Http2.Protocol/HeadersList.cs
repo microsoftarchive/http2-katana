@@ -1,4 +1,12 @@
-﻿using System;
+﻿// Copyright © Microsoft Open Technologies, Inc.
+// All Rights Reserved       
+// Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at
+// http://www.apache.org/licenses/LICENSE-2.0
+
+// THIS CODE IS PROVIDED ON AN *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION ANY IMPLIED WARRANTIES OR CONDITIONS OF TITLE, FITNESS FOR A PARTICULAR PURPOSE, MERCHANTABLITY OR NON-INFRINGEMENT.
+
+// See the Apache 2 License for the specific language governing permissions and limitations under the License.
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
@@ -38,7 +46,7 @@ namespace Microsoft.Http2.Protocol
             //Send only first value?
             foreach (var header in headers)
             {
-                _collection.Add(new KeyValuePair<string, string>(header.Key.ToLower(), header.Value[0].ToLower()));
+                _collection.Add(new KeyValuePair<string, string>(header.Key.ToLower(), header.Value[0]));
             }
         }
 
@@ -164,7 +172,7 @@ namespace Microsoft.Http2.Protocol
         {
             lock (_modificationLock)
             {
-                Contract.Assert(index >= 0 && index < Count);
+                Contract.Assert(index >= 0 && (index == 0 || index < Count));
                 StoredHeadersSize += header.Key.Length + header.Value.Length + 32;
                 _collection.Insert(index, header);
             }
@@ -207,6 +215,11 @@ namespace Microsoft.Http2.Protocol
 
                 return _collection.RemoveAll(predicate);
             }
+        }
+
+        public bool ContainsName(string name)
+        {
+            return _collection.FindIndex(kv => kv.Key.Equals(name)) != -1;
         }
 
         public KeyValuePair<string, string> this[int index]

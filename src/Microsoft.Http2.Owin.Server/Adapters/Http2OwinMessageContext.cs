@@ -9,6 +9,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading;
+using Owin;
 
 namespace Microsoft.Http2.Owin.Server.Adapters
 {
@@ -18,19 +19,17 @@ namespace Microsoft.Http2.Owin.Server.Adapters
         private readonly Http2Stream _protocolStream;
         private IOwinContext _owinContext;
         private IHeaderDictionary _responseHeaders;
-        private readonly TransportInformation _transportInfo;
         private bool _responseStarted;
 
-        internal Http2OwinMessageContext(Http2Stream protocolStream, TransportInformation transportInfo)
+        internal Http2OwinMessageContext(Http2Stream protocolStream)
         {
             _protocolStream = protocolStream;
-            _transportInfo = transportInfo;
             PopulateEnvironment();
         }
 
-        internal IDictionary<string, object> Environment
+        internal IOwinContext OwinContext
         {
-            get { return _owinContext.Environment; }
+            get { return _owinContext; }
         }
 
         /// <summary>
@@ -38,7 +37,7 @@ namespace Microsoft.Http2.Owin.Server.Adapters
         /// </summary>
         private void PopulateEnvironment()
         {
-            HeadersList headers = _protocolStream.Headers;
+            var headers = _protocolStream.Headers;
             _owinContext = new OwinContext();
             _responseHeaders = _owinContext.Response.Headers;
 
@@ -49,19 +48,18 @@ namespace Microsoft.Http2.Owin.Server.Adapters
             var owinResponse = _owinContext.Response;
 
             owinRequest.Method = headers.GetValue(CommonHeaders.Method);
-            owinRequest.Path = new PathString(headers.GetValue(CommonHeaders.Path));
+
+            var path = headers.GetValue(CommonHeaders.Path);
+            owinRequest.Path = path.StartsWith(@"/") ? new PathString(path) : new PathString(@"/" + path);
+
             owinRequest.CallCancelled = CancellationToken.None;
 
-            owinRequest.Host = new HostString(headers.GetValue(CommonHeaders.Host));
+            owinRequest.Host = new HostString(headers.GetValue(CommonHeaders.Authority));
             owinRequest.PathBase = PathString.Empty;
             owinRequest.QueryString = QueryString.Empty;
             owinRequest.Body = Stream.Null;
             owinRequest.Protocol = Protocols.Http2;
             owinRequest.Scheme = headers.GetValue(CommonHeaders.Scheme) == Uri.UriSchemeHttp ? Uri.UriSchemeHttp : Uri.UriSchemeHttps;
-            owinRequest.RemoteIpAddress = _transportInfo.RemoteIpAddress;
-            owinRequest.RemotePort = Convert.ToInt32(_transportInfo.RemotePort);
-            owinRequest.LocalIpAddress = _transportInfo.LocalIpAddress;
-            owinRequest.LocalPort = _transportInfo.LocalPort;
 
             owinResponse.Body = new ResponseStream(_protocolStream, StartResponse);
         }

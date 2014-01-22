@@ -1,10 +1,18 @@
-﻿using System.IO;
+﻿// Copyright © Microsoft Open Technologies, Inc.
+// All Rights Reserved       
+// Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at
+// http://www.apache.org/licenses/LICENSE-2.0
+
+// THIS CODE IS PROVIDED ON AN *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION ANY IMPLIED WARRANTIES OR CONDITIONS OF TITLE, FITNESS FOR A PARTICULAR PURPOSE, MERCHANTABLITY OR NON-INFRINGEMENT.
+
+// See the Apache 2 License for the specific language governing permissions and limitations under the License.
+using System.IO;
 using System.Text;
 using System.Threading;
 using Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression;
 using Microsoft.Http2.Protocol.EventArgs;
 using Microsoft.Http2.Protocol.Exceptions;
-using Org.Mentalis.Security.Ssl;
+using OpenSSL;
 using Microsoft.Http2.Protocol.Compression;
 using Microsoft.Http2.Protocol.Framing;
 using Microsoft.Http2.Protocol.IO;
@@ -13,6 +21,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Http2.Protocol.Utils;
+using OpenSSL.SSL;
 
 namespace Microsoft.Http2.Protocol
 {
@@ -23,12 +32,13 @@ namespace Microsoft.Http2.Protocol
     public partial class Http2Session : IDisposable
     {
         private bool _goAwayReceived;
-        private readonly FrameReader _frameReader;
-        private readonly WriteQueue _writeQueue;
-        private readonly Stream _ioStream;
+        private FrameReader _frameReader;
+        private WriteQueue _writeQueue;
+        private Stream _ioStream;
         private ManualResetEvent _pingReceived = new ManualResetEvent(false);
+        private ManualResetEvent _settingsAckReceived = new ManualResetEvent(false);
         private bool _disposed;
-        private readonly ICompressionProcessor _comprProc;
+        private ICompressionProcessor _comprProc;
         private readonly FlowControlManager _flowControlManager;
         private readonly ConnectionEnd _ourEnd;
         private readonly ConnectionEnd _remoteEnd;
@@ -40,18 +50,14 @@ namespace Microsoft.Http2.Protocol
         private bool _wasResponseReceived;
         private Frame _lastFrame;
         private readonly CancellationToken _cancelSessionToken;
-        private readonly List<HeadersSequence> _headersSequences; 
+        private readonly HeadersSequenceList _headersSequences; 
         private const string ClientSessionHeader = "PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n";
- 
+        private Dictionary<int, string> _promisedResources; 
+
         /// <summary>
         /// Occurs when settings frame was sent.
         /// </summary>
         public event EventHandler<SettingsSentEventArgs> OnSettingsSent;
-
-        /// <summary>
-        /// Occurs when frame was sent.
-        /// </summary>
-        public event EventHandler<FrameSentEventArgs> OnFrameSent;
 
         /// <summary>
         /// Occurs when frame was received.
@@ -95,7 +101,8 @@ namespace Microsoft.Http2.Protocol
         internal Int32 RemoteMaxConcurrentStreams { get; set; }
         internal Int32 InitialWindowSize { get; set; }
         internal Int32 SessionWindowSize { get; set; }
- 
+        internal bool IsPushEnabled { get; private set; }
+
         public Http2Session(Stream stream, ConnectionEnd end, 
                             bool usePriorities, bool useFlowControl, bool isSecure,
                             CancellationToken cancel,
@@ -126,6 +133,13 @@ namespace Microsoft.Http2.Protocol
             {
                 _remoteEnd = ConnectionEnd.Server;
                 _lastId = -1; // Streams opened by client are odd
+
+                //if we got unsecure connection then server will respond with id == 1. We cant initiate 
+                //new stream with id == 1.
+                if (!(stream is SslStream))
+                {
+                    _lastId = 3;
+                }
             }
             else
             {
@@ -154,7 +168,8 @@ namespace Microsoft.Http2.Protocol
             }
 
             SessionWindowSize = 0;
-            _headersSequences = new List<HeadersSequence>();
+            _headersSequences = new HeadersSequenceList();
+            _promisedResources = new Dictionary<int, string>();
         }
 
         private void SendSessionHeader()
@@ -190,7 +205,7 @@ namespace Microsoft.Http2.Protocol
 
             var initialStream = CreateStream(new HeadersList(initialRequest), 1);
 
-            //spec 06:
+            //09 -> 5.1.1.  Stream Identifiers
             //A stream identifier of one (0x1) is used to respond to the HTTP/1.1
             //request which was specified during Upgrade (see Section 3.2).  After
             //the upgrade completes, stream 0x1 is "half closed (local)" to the
@@ -233,45 +248,50 @@ namespace Microsoft.Http2.Protocol
             {
                 SendSessionHeader();
             }
-
-            //Write settings. Settings must be the first frame in session.
-            if (_useFlowControl)
-            {
-                WriteSettings(new[]
-                    {
-                        new SettingsPair(SettingsFlags.None, SettingsIds.InitialWindowSize, Constants.MaxFrameContentSize)
-                    });
-            }
-            else
-            {
-                WriteSettings(new[]
-                    {
-                        new SettingsPair(SettingsFlags.None, SettingsIds.InitialWindowSize, Constants.MaxFrameContentSize),
-                        new SettingsPair(SettingsFlags.None, SettingsIds.FlowControlOptions, (byte) FlowControlOptions.DontUseFlowControl)
-                    });
-            }
             // Listen for incoming Http/2.0 frames
             var incomingTask = new Task(() =>
                 {
-                    Thread.CurrentThread.Name = "Frame listening thread";
+                    Thread.CurrentThread.Name = "Frame listening thread started";
                     PumpIncommingData();
                 });
 
             // Send outgoing Http/2.0 frames
             var outgoingTask = new Task(() =>
                 {
-                    Thread.CurrentThread.Name = "Frame writing thread";
+                    Thread.CurrentThread.Name = "Frame writing thread started";
                     PumpOutgoingData();
                 });
 
             outgoingTask.Start();
+            incomingTask.Start();
+
+            //Write settings. Settings must be the first frame in session.
+            if (_ourEnd == ConnectionEnd.Client)
+            {
+                if (_useFlowControl)
+                {
+                    WriteSettings(new[]
+                        {
+                            new SettingsPair(SettingsFlags.None, SettingsIds.InitialWindowSize,
+                                             Constants.MaxFrameContentSize)
+                        }, false);
+                }
+                else
+                {
+                    WriteSettings(new[]
+                        {
+                            new SettingsPair(SettingsFlags.None, SettingsIds.InitialWindowSize,
+                                             Constants.MaxFrameContentSize),
+                            new SettingsPair(SettingsFlags.None, SettingsIds.FlowControlOptions,
+                                             (byte) FlowControlOptions.DontUseFlowControl)
+                        }, false);
+                }
+            }
 
             //Handle upgrade handshake headers.
             if (initialRequest != null && !_isSecure)
                 DispatchInitialRequest(initialRequest);
             
-            incomingTask.Start();
-
             var endPumpsTask = Task.WhenAll(incomingTask, outgoingTask);
 
             //Cancellation token
@@ -295,9 +315,17 @@ namespace Microsoft.Http2.Protocol
                         _wasResponseReceived = true;
                     }
                 }
+                catch (IOException)
+                {
+                    //Connection was closed by the remote endpoint
+                    Http2Logger.LogInfo("Connection was closed by the remote endpoint");
+                    Dispose();
+                    break;
+                }
                 catch (Exception)
                 {
                     // Read failure, abort the connection/session.
+                    Http2Logger.LogInfo("Read failure, abort the connection/session");
                     Dispose();
                     break;
                 }
@@ -305,6 +333,12 @@ namespace Microsoft.Http2.Protocol
                 if (frame != null)
                 {
                     DispatchIncomingFrame(frame);
+                }
+                else
+                {
+                    //Looks like connection was lost
+                    Dispose();
+                    break;
                 }
             }
 
@@ -326,7 +360,7 @@ namespace Microsoft.Http2.Protocol
                     Http2Logger.LogError("Handling session was cancelled");
                     Dispose();
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
                     Http2Logger.LogError("Sending frame was cancelled because connection was lost");
                     Dispose();
@@ -348,7 +382,7 @@ namespace Microsoft.Http2.Protocol
             {
                 if (frame.FrameLength > Constants.MaxFrameContentSize)
                 {
-                    throw new ProtocolError(ResetStatusCode.FrameTooLarge,
+                    throw new ProtocolError(ResetStatusCode.FrameSizeError,
                                             String.Format("Frame too large: Type: {0} {1}", frame.FrameType,
                                                           frame.FrameLength));
                 }
@@ -385,6 +419,12 @@ namespace Microsoft.Http2.Protocol
                         break;
                     case FrameType.Settings:
                         HandleSettingsFrame(frame as SettingsFrame);
+
+                        if (!(frame as SettingsFrame).IsAck)
+                        {
+                            //Send ack
+                            WriteSettings(new SettingsPair[0], true);
+                        }
                         break;
                     case FrameType.WindowUpdate:
                         HandleWindowUpdateFrame(frame as WindowUpdateFrame, out stream);
@@ -392,8 +432,18 @@ namespace Microsoft.Http2.Protocol
                     case FrameType.GoAway:
                         HandleGoAwayFrame(frame as GoAwayFrame);
                         break;
+                    case FrameType.PushPromise:
+                        HandlePushPromiseFrame(frame as PushPromiseFrame, out stream);
+
+                        if (stream != null) //This means that sequence is complete
+                        {
+                            _promisedResources.Add(stream.Id, stream.Headers.GetValue(CommonHeaders.Path));
+                        }
+
+                        break;
                     default:
-                        //Item 4.1 in 06 spec: Implementations MUST ignore frames of unsupported or unrecognized types
+                        //09 -> 4.1.  Frame Format
+                        //Implementations MUST ignore frames of unsupported or unrecognized types.
                         Http2Logger.LogDebug("Unknown frame received. Ignoring it");
                         break;
                 }
@@ -405,6 +455,10 @@ namespace Microsoft.Http2.Protocol
                     //Tell the stream that it was the last frame
                     Http2Logger.LogDebug("Final frame received for stream with id = " + stream.Id);
                     stream.EndStreamReceived = true;
+
+                    //Promised resource has been pushed
+                    if (_promisedResources.ContainsKey(stream.Id))
+                        _promisedResources.Remove(stream.Id);
                 }
 
                 if (stream == null || OnFrameReceived == null) 
@@ -454,7 +508,7 @@ namespace Microsoft.Http2.Protocol
         /// <param name="streamId"></param>
         /// <param name="priority"></param>
         /// <returns></returns>
-        private Http2Stream CreateStream(HeadersList headers, int streamId, int priority = -1)
+        public Http2Stream CreateStream(HeadersList headers, int streamId, int priority = -1)
         {
 
             if (headers == null)
@@ -472,10 +526,21 @@ namespace Microsoft.Http2.Protocol
             }
 
             var stream = new Http2Stream(headers, streamId,
-                                         _writeQueue, _flowControlManager,
-                                         _comprProc, priority);
+                                         _writeQueue, _flowControlManager, priority);
+
+            var streamSequence = new HeadersSequence(streamId, (new HeadersFrame(streamId, priority){Headers = headers}));
+            _headersSequences.Add(streamSequence);
 
             ActiveStreams[stream.Id] = stream;
+
+            stream.OnFrameSent += (o, args) =>
+                {
+                    if (!(args.Frame is IHeadersFrame))
+                        return;
+
+                    var streamSeq = _headersSequences.Find(stream.Id);
+                    streamSeq.AddHeaders(args.Frame as IHeadersFrame);
+                };
 
             stream.OnClose += (o, args) =>
                 {
@@ -483,7 +548,63 @@ namespace Microsoft.Http2.Protocol
                     {
                         throw new ArgumentException("Cant remove stream from ActiveStreams");
                     }
+
+                    var streamSeq = _headersSequences.Find(stream.Id);
+
+                    if (streamSeq != null)
+                        _headersSequences.Remove(streamSeq);
                 };
+
+            return stream;
+        }
+
+        internal Http2Stream CreateStream(HeadersSequence sequence)
+        {
+
+            if (sequence == null)
+                throw new ArgumentNullException("sequence is null");
+
+            if (sequence.Priority < 0 || sequence.Priority > Constants.MaxPriority)
+                throw new ArgumentOutOfRangeException("priority is not between 0 and MaxPriority");
+
+            if (ActiveStreams.GetOpenedStreamsBy(_remoteEnd) + 1 > OurMaxConcurrentStreams)
+            {
+                throw new MaxConcurrentStreamsLimitException();
+            }
+
+            int id = sequence.StreamId;
+            int priority = sequence.Priority;
+            var headers = sequence.Headers;
+
+            var stream = new Http2Stream(headers, id,
+                                         _writeQueue, _flowControlManager, priority);
+
+            if (sequence.WasEndStreamReceived)
+                stream.EndStreamReceived = sequence.WasEndStreamReceived;
+
+            ActiveStreams[stream.Id] = stream;
+
+            stream.OnFrameSent += (o, args) =>
+            {
+                if (!(args.Frame is IHeadersFrame))
+                    return;
+
+                var streamSeq = _headersSequences.Find(stream.Id);
+                streamSeq.AddHeaders(args.Frame as IHeadersFrame);
+            };
+
+            stream.OnClose += (o, args) =>
+            {
+                if (!ActiveStreams.Remove(ActiveStreams[args.Id]))
+                {
+                    throw new ArgumentException("Cant remove stream from ActiveStreams");
+                }
+
+                var streamSeq = _headersSequences.Find(stream.Id);
+
+                if (streamSeq != null)
+                    _headersSequences.Remove(streamSeq);
+            };
 
             return stream;
         }
@@ -504,7 +625,7 @@ namespace Microsoft.Http2.Protocol
         /// <param name="priority">The stream priority.</param>
         /// <returns></returns>
         /// <exception cref="System.InvalidOperationException">Thrown when trying to create more streams than allowed by the remote side</exception>
-        private Http2Stream CreateStream(int priority)
+        public Http2Stream CreateStream(int priority)
         {
             if (priority < 0 || priority > Constants.MaxPriority)
                 throw new ArgumentOutOfRangeException("priority is not between 0 and MaxPriority");
@@ -517,12 +638,24 @@ namespace Microsoft.Http2.Protocol
             var id = GetNextId();
             if (_usePriorities)
             {
-                ActiveStreams[id] = new Http2Stream(id, _writeQueue, _flowControlManager, _comprProc, priority);
+                ActiveStreams[id] = new Http2Stream(id, _writeQueue, _flowControlManager, priority);
             }
             else
             {
-                ActiveStreams[id] = new Http2Stream(id, _writeQueue, _flowControlManager, _comprProc);
+                ActiveStreams[id] = new Http2Stream(id, _writeQueue, _flowControlManager);
             }
+
+            var streamSequence = new HeadersSequence(id, (new HeadersFrame(id, priority)));
+            _headersSequences.Add(streamSequence);
+
+            ActiveStreams[id].OnFrameSent += (o, args) =>
+            {
+                if (!(args.Frame is IHeadersFrame))
+                    return;
+
+                var streamSeq = _headersSequences.Find(id);
+                streamSeq.AddHeaders(args.Frame as IHeadersFrame);
+            };
 
             ActiveStreams[id].OnClose += (o, args) =>
                 {
@@ -531,18 +664,10 @@ namespace Microsoft.Http2.Protocol
                         throw new ArgumentException("Can't remove stream from ActiveStreams.");
                     }
 
-                    var streamSequence = _headersSequences.Find(seq => seq.StreamId == args.Id);
+                    var streamSeq = _headersSequences.Find(id);
 
-                    if (streamSequence != null)
-                        _headersSequences.Remove(streamSequence);
-                };
-
-            ActiveStreams[id].OnFrameSent += (o, args) =>
-                {
-                    if (OnFrameSent != null)
-                    {
-                        OnFrameSent(o, args);
-                    }
+                    if (streamSeq != null)
+                        _headersSequences.Remove(streamSeq);
                 };
 
             return ActiveStreams[id];
@@ -556,15 +681,33 @@ namespace Microsoft.Http2.Protocol
         /// <param name="isEndStream">True if initial headers+priority is also the final frame from endpoint.</param>
         public void SendRequest(HeadersList pairs, int priority, bool isEndStream)
         {
+            if (_ourEnd == ConnectionEnd.Server)
+                throw new ProtocolError(ResetStatusCode.ProtocolError, "Server should not initiate request");
+
             if (pairs == null)
                 throw new ArgumentNullException("pairs is null");
 
             if (priority < 0 || priority > Constants.MaxPriority)
                 throw new ArgumentOutOfRangeException("priority is not between 0 and MaxPriority");
 
+            var path = pairs.GetValue(CommonHeaders.Path);
+
+            if (path == null)
+                throw new ProtocolError(ResetStatusCode.ProtocolError, "Invalid request ex");
+
+            //09 -> 8.2.2.  Push Responses
+            //Once a client receives a PUSH_PROMISE frame and chooses to accept the
+            //pushed resource, the client SHOULD NOT issue any requests for the
+            //promised resource until after the promised stream has closed.
+            if (_promisedResources.ContainsValue(path))
+                throw new ProtocolError(ResetStatusCode.ProtocolError, "Resource has been promised. Client should not request it.");
+
             var stream = CreateStream(priority);
 
             stream.WriteHeadersFrame(pairs, isEndStream, true);
+
+            var streamSequence = _headersSequences.Find(stream.Id);
+            streamSequence.AddHeaders(new HeadersFrame(stream.Id, stream.Priority) { Headers = pairs });
 
             if (OnRequestSent != null)
             {
@@ -591,14 +734,23 @@ namespace Microsoft.Http2.Protocol
         /// Writes the settings frame.
         /// </summary>
         /// <param name="settings">The settings.</param>
-        public void WriteSettings(SettingsPair[] settings)
+        public void WriteSettings(SettingsPair[] settings, bool isAck)
         {
             if (settings == null)
                 throw new ArgumentNullException("settings array is null");
 
-            var frame = new SettingsFrame(new List<SettingsPair>(settings));
+            var frame = new SettingsFrame(new List<SettingsPair>(settings), isAck);
 
             _writeQueue.WriteFrame(frame);
+
+
+            if (!isAck && !_settingsAckReceived.WaitOne(60000))
+            {
+                WriteGoAway(ResetStatusCode.SettingsTimeout);
+                Dispose();
+            }
+            
+            _settingsAckReceived.Reset();
 
             if (OnSettingsSent != null)
             {
@@ -670,18 +822,18 @@ namespace Microsoft.Http2.Protocol
             foreach (var stream in ActiveStreams.Values)
             {
                 //Cancel all opened streams
-                //stream.WriteRst(ResetStatusCode.Cancel);
                 stream.Dispose(ResetStatusCode.Cancel);
             }
 
+            if (!_goAwayReceived)
+                WriteGoAway(status);
+
             OnSettingsSent = null;
             OnFrameReceived = null;
-            OnFrameSent = null;
 
-            if (!_goAwayReceived)
-            {
-                WriteGoAway(status);
-            }
+            //Missing GoAway means connection was forcibly closed by the remote ep. This means that we can
+            //send nothing into this connection. No need trying to send GoAway.
+            //Hence we may not check for !_goAwayReceived
 
             if (_writeQueue != null)
             {
@@ -692,22 +844,31 @@ namespace Microsoft.Http2.Protocol
             if (_frameReader != null)
             {
                 _frameReader.Dispose();
+                _frameReader = null;
             }
 
             if (_comprProc != null)
             {
                 _comprProc.Dispose();
+                _comprProc = null;
             }
 
             if (_ioStream != null)
             {
                 _ioStream.Close();
+                _ioStream = null;
             }
 
             if (_pingReceived != null)
             {
                 _pingReceived.Dispose();
                 _pingReceived = null;
+            }
+
+            if (_settingsAckReceived != null)
+            {
+                _settingsAckReceived.Dispose();
+                _settingsAckReceived = null;
             }
 
             if (OnSessionDisposed != null)

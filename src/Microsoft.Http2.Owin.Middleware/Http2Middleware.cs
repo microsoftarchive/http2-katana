@@ -1,7 +1,16 @@
-﻿using System;
+﻿// Copyright © Microsoft Open Technologies, Inc.
+// All Rights Reserved       
+// Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at
+// http://www.apache.org/licenses/LICENSE-2.0
+
+// THIS CODE IS PROVIDED ON AN *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION ANY IMPLIED WARRANTIES OR CONDITIONS OF TITLE, FITNESS FOR A PARTICULAR PURPOSE, MERCHANTABLITY OR NON-INFRINGEMENT.
+
+// See the Apache 2 License for the specific language governing permissions and limitations under the License.
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -10,24 +19,21 @@ using Microsoft.Http2.Owin.Server.Adapters;
 using Microsoft.Http2.Protocol.Utils;
 using Microsoft.Owin;
 using Microsoft.Http2.Protocol;
-using Microsoft.Http2.Protocol.IO;
-using Org.Mentalis.Security.Ssl;
+using OpenSSL;
+using OpenSSL.SSL;
+using Owin;
 
 namespace Microsoft.Http2.Owin.Middleware
 {
-    using AppFunc = Func<IDictionary<string, object>, Task>;
-    using UpgradeDelegate = Action<IDictionary<string, object>, Func<IDictionary<string, object>, Task>>;
+    using UpgradeDelegate = Action<IDictionary<string, object>, Func<IOwinContext, Task>>;
     // Http-01/2.0 uses a similar upgrade handshake to WebSockets. This middleware answers upgrade requests
     // using the Opaque Upgrade OWIN extension and then switches the pipeline to HTTP/2.0 binary framing.
     // Interestingly the HTTP/2.0 handshake does not need to be the first HTTP/1.1 request on a connection, only the last.
-    public class Http2Middleware
+    public class Http2Middleware : OwinMiddleware
     {
-        // Pass requests onto this pipeline if not upgrading to HTTP/2.0.
-        private readonly AppFunc _next;
-
-        public Http2Middleware(AppFunc next)
+        public Http2Middleware(OwinMiddleware next)
+            :base(next)
         {
-            _next = next;
         }
 
         /// <summary>
@@ -35,18 +41,13 @@ namespace Microsoft.Http2.Owin.Middleware
         /// If so starts http2 session via provider.
         /// Calls next layer if not.
         /// </summary>
-        /// <param name="environment">The environment.</param>
         /// <returns></returns>
-        public async Task Invoke(IDictionary<string, object> environment)
+        public override async Task Invoke(IOwinContext context)
         {
-            var context = new OwinContext(environment);
-
             if (IsOpaqueUpgradePossible(context.Request) && IsRequestForHttp2Upgrade(context.Request))
             {
-                var upgradeDelegate = environment[CommonOwinKeys.OpaqueUpgrade] as UpgradeDelegate;
+                var upgradeDelegate = context.Environment[CommonOwinKeys.OpaqueUpgrade] as UpgradeDelegate;
                 Debug.Assert(upgradeDelegate != null, "upgradeDelegate is not null");
-
-                var trInfo = CreateTransportInfo(context.Request);
 
                 // save original request parameters; used to complete request after upaque upgrade is done
                 var requestCopy = GetInitialRequestParams(context.Request);
@@ -54,7 +55,7 @@ namespace Microsoft.Http2.Owin.Middleware
                 upgradeDelegate.Invoke(new Dictionary<string, object>(), async opaque =>
                     {
                         //use the same stream which was used during upgrade
-                        var opaqueStream = opaque[CommonOwinKeys.OpaqueStream] as DuplexStream;
+                        var opaqueStream = opaque.Environment[CommonOwinKeys.OpaqueStream] as Stream;
 
                         //TODO Provide cancellation token here
                         // Move to method
@@ -62,8 +63,8 @@ namespace Microsoft.Http2.Owin.Middleware
                         {
                             using (var http2MessageHandler = new Http2OwinMessageHandler(opaqueStream,
                                                                                             ConnectionEnd.Server,
-                                                                                            trInfo, _next,
-                                                                                            CancellationToken.None)
+                                                                                            opaqueStream is SslStream,
+                                                                                            Next.Invoke, CancellationToken.None)
                                 )
                             {
                                 await http2MessageHandler.StartSessionAsync(requestCopy);
@@ -82,7 +83,7 @@ namespace Microsoft.Http2.Owin.Middleware
             }
 
             //If we dont have upgrade delegate then pass request to the next layer
-            await _next(environment);
+            await Next.Invoke(context);
         }
 
         private static bool IsRequestForHttp2Upgrade(IOwinRequest request)
@@ -92,16 +93,13 @@ namespace Microsoft.Http2.Owin.Middleware
                     && headers.ContainsKey(CommonHeaders.Http2Settings)
                     && headers.ContainsKey(CommonHeaders.Upgrade)
                     && headers[CommonHeaders.Upgrade].FirstOrDefault(it =>
-                                         it.ToUpper().IndexOf(Protocols.Http2, StringComparison.OrdinalIgnoreCase) != -1
-                                         || it.ToUpper().IndexOf(Protocols.Http204, StringComparison.OrdinalIgnoreCase) != -1) != null;
+                                         it.ToUpper().IndexOf(Protocols.Http2, StringComparison.OrdinalIgnoreCase) != -1) != null;
         }
 
         private static bool IsOpaqueUpgradePossible(IOwinRequest request)
         {
-            var environment = request.Environment;
-
-            return environment.ContainsKey(CommonOwinKeys.OpaqueUpgrade)
-                   && environment[CommonOwinKeys.OpaqueUpgrade] is UpgradeDelegate;
+            return request.Environment.ContainsKey(CommonOwinKeys.OpaqueUpgrade)
+                   && request.Environment[CommonOwinKeys.OpaqueUpgrade] is UpgradeDelegate;
         }
 
         private static IDictionary<string, string> GetInitialRequestParams(IOwinRequest request)
@@ -161,20 +159,8 @@ namespace Microsoft.Http2.Owin.Middleware
                     {CommonHeaders.InitialWindowSize, windowSize},
                     {CommonHeaders.MaxConcurrentStreams, maxStreams},
                     {CommonHeaders.Scheme, scheme},
-                    {CommonHeaders.Host, host}
+                    {CommonHeaders.Authority, host}
                 };
-        }
-        
-
-        private static TransportInformation CreateTransportInfo(IOwinRequest owinRequest)
-        {
-            return new TransportInformation
-            {
-                RemoteIpAddress = owinRequest.RemoteIpAddress,
-                RemotePort = owinRequest.RemotePort != null ? (int) owinRequest.RemotePort : 8080,
-                LocalIpAddress = owinRequest.LocalIpAddress,
-                LocalPort = owinRequest.LocalPort != null ? (int) owinRequest.LocalPort : 8080,
-            };
         }
     }
 }

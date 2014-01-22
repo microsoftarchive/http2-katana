@@ -1,19 +1,29 @@
-﻿using System;
+﻿// Copyright © Microsoft Open Technologies, Inc.
+// All Rights Reserved       
+// Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at
+// http://www.apache.org/licenses/LICENSE-2.0
+
+// THIS CODE IS PROVIDED ON AN *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION ANY IMPLIED WARRANTIES OR CONDITIONS OF TITLE, FITNESS FOR A PARTICULAR PURPOSE, MERCHANTABLITY OR NON-INFRINGEMENT.
+
+// See the Apache 2 License for the specific language governing permissions and limitations under the License.
+using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.IO;
 using System.Linq;
+using System.Net;
+using System.Net.Sockets;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
-using Org.Mentalis.Security.Certificates;
-using Org.Mentalis.Security.Ssl;
-using Org.Mentalis.Security.Ssl.Shared.Extensions;
-using Microsoft.Http2.Protocol;
 using Microsoft.Http2.Protocol.Utils;
+using Microsoft.Owin;
+using OpenSSL.Core;
+using OpenSSL.X509;
 
 namespace Microsoft.Http2.Owin.Server
 {
-    using AppFunc = Func<IDictionary<string, object>, Task>;
+    using AppFunc = Func<IOwinContext, Task>;
 
     /// <summary>
     /// Http2 socket server implementation that uses raw socket.
@@ -21,10 +31,10 @@ namespace Microsoft.Http2.Owin.Server
     public class HttpSocketServer : IDisposable
     {
         private static readonly string AssemblyName = Path.GetDirectoryName(Assembly.GetExecutingAssembly().CodeBase.Substring(8));
-        private const string CertificateFilename = @"\certificate.pfx";
+        private const string CertificateFilename = @"\server.pfx";
 
         private readonly Thread _listenThread;
-        private CancellationTokenSource _cancelAccept;
+        private readonly CancellationTokenSource _cancelAccept;
         private readonly AppFunc _next;
         private readonly int _port;
         private readonly string _scheme;
@@ -32,10 +42,19 @@ namespace Microsoft.Http2.Owin.Server
         private readonly bool _usePriorities;
         private readonly bool _useFlowControl;
         private bool _disposed;
-        private readonly SecurityOptions _options;
-        private readonly SecureTcpListener _server;
+        private readonly TcpListener _server;
+        private X509Certificate _serverCert;
+        private bool _isSecure;
 
-        public HttpSocketServer(Func<IDictionary<string, object>, Task> next, IDictionary<string, object> properties)
+        private X509Certificate LoadPKCS12Certificate(string certFilename, string password)
+        {
+            using (var certFile = BIO.File(certFilename, "r"))
+            {
+                return X509Certificate.FromPKCS12(certFile, password);
+            }
+        }
+
+        public HttpSocketServer(Func<IOwinContext, Task> next, IDictionary<string, object> properties)
         {
             _next = next;
             var addresses = (IList<IDictionary<string, object>>)properties["host.Addresses"];
@@ -50,18 +69,28 @@ namespace Microsoft.Http2.Owin.Server
             _usePriorities = (bool)properties["use-priorities"];
             _useFlowControl = (bool)properties["use-flowControl"];
 
-            var extensions = new[] { ExtensionType.Renegotiation, ExtensionType.ALPN };
+            int securePort;
 
-            // protocols should be in order of their priority
-            _options = _scheme == Uri.UriSchemeHttps ? new SecurityOptions(SecureProtocol.Tls1, extensions, new[] { Protocols.Http2, Protocols.Http204, Protocols.Http1 }, ConnectionEnd.Server)
-                                : new SecurityOptions(SecureProtocol.None, extensions, new[] { Protocols.Http2, Protocols.Http1 }, ConnectionEnd.Server);
+            if (!int.TryParse(ConfigurationManager.AppSettings["securePort"], out securePort))
+            {
+                Http2Logger.LogError("Incorrect port in the config file!");
+                return;
+            }
 
-            _options.VerificationType = CredentialVerification.None;
-            _options.Certificate = Certificate.CreateFromCerFile(AssemblyName + CertificateFilename);
-            _options.Flags = SecurityFlags.Default;
-            _options.AllowedAlgorithms = SslAlgorithms.RSA_AES_256_SHA | SslAlgorithms.NULL_COMPRESSION;
+            try
+            {
+                _serverCert = LoadPKCS12Certificate(AssemblyName + CertificateFilename, "p@ssw0rd");
+            }
+            catch (Exception ex)
+            {
+                Http2Logger.LogInfo("Unable to start server. Check certificate. Exception: " + ex.Message);
+                return;
+            }
+            
 
-            _server = new SecureTcpListener(_port, _options);
+            _isSecure = _port == securePort;
+
+            _server = new TcpListener(IPAddress.Any, _port);
 
             ThreadPool.SetMaxThreads(30, 10);
 
@@ -77,7 +106,7 @@ namespace Microsoft.Http2.Owin.Server
             {
                 try
                 {
-                    var client = new HttpConnectingClient(_server, _options, _next, _useHandshake, _usePriorities, _useFlowControl);
+                    var client = new HttpConnectingClient(_server, _next.Invoke, _serverCert, _isSecure, _useHandshake, _usePriorities, _useFlowControl);
                     client.Accept(_cancelAccept.Token);
                 }
                 catch (Exception ex)
@@ -98,13 +127,18 @@ namespace Microsoft.Http2.Owin.Server
             {
                 _cancelAccept.Cancel();
                 _cancelAccept.Dispose();
-                _cancelAccept = null;
             }
 
             _disposed = true;
             if (_server != null)
             {
                 _server.Stop();
+            }
+
+            if (_serverCert != null)
+            {
+                _serverCert.Dispose();
+                _serverCert = null;
             }
         }
     }

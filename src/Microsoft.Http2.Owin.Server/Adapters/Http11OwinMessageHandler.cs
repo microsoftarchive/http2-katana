@@ -6,16 +6,17 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Http1.Protocol;
 using Microsoft.Owin;
-using Org.Mentalis.Security.Ssl;
 using Microsoft.Http2.Protocol;
 using Microsoft.Http2.Protocol.Utils;
+using OpenSSL.SSL;
+using Owin;
 using StatusCode = Microsoft.Http2.Protocol.StatusCode;
 
 namespace Microsoft.Http2.Owin.Server.Adapters
 {
-    using AppFunc = Func<IDictionary<string, object>, Task>;
+    using AppFunc = Func<IOwinContext, Task>;
     using Environment = IDictionary<string, object>;
-    using UpgradeDelegate = Action<IDictionary<string, object>, Func<IDictionary<string, object>, Task>>;
+    using UpgradeDelegate = Action<IDictionary<string, object>, Func<IOwinContext, Task>>;
 
     /// <summary>
     /// This class overrides http11 request/response processing logic as owin requires
@@ -24,7 +25,7 @@ namespace Microsoft.Http2.Owin.Server.Adapters
     public class Http11ProtocolOwinAdapter
     {
         private readonly Stream _client;
-        private readonly SecureProtocol _protocol;
+        private readonly SslProtocols _protocol;
         private readonly AppFunc _next;
         private Environment _environment;
         private IOwinRequest _request;
@@ -37,7 +38,7 @@ namespace Microsoft.Http2.Owin.Server.Adapters
         /// <param name="client">The client connection.</param>
         /// <param name="protocol">Security protocol which is used for connection.</param>
         /// <param name="next">The next component in the OWIN pipeline.</param>
-        public Http11ProtocolOwinAdapter(Stream client, SecureProtocol protocol, AppFunc next)
+        public Http11ProtocolOwinAdapter(Stream client, SslProtocols protocol, AppFunc next)
         {
             // args checking
             if (client == null)
@@ -85,7 +86,7 @@ namespace Microsoft.Http2.Owin.Server.Adapters
                     throw new NotSupportedException(method + " method is not currently supported via HTTP/1.1");
                 }
 
-                var scheme = _protocol == SecureProtocol.None ? Uri.UriSchemeHttp : Uri.UriSchemeHttps;
+                var scheme = _protocol == SslProtocols.None ? Uri.UriSchemeHttp : Uri.UriSchemeHttps;
 
                 var path = splittedRequestString[1];
 
@@ -98,7 +99,7 @@ namespace Microsoft.Http2.Owin.Server.Adapters
                 // we may need to populate additional fields if request supports UPGRADE
                 AddOpaqueUpgradeIfNeeded();
 
-                await _next(_environment);
+                await _next.Invoke(new OwinContext(_environment));
 
                 if (_opaqueCallback == null)
                 {
@@ -110,7 +111,7 @@ namespace Microsoft.Http2.Owin.Server.Adapters
                     EndResponse(false);
 
                     var opaqueEnvironment = CreateOpaqueEnvironment();
-                    await _opaqueCallback(opaqueEnvironment);
+                    await _opaqueCallback(new OwinContext(opaqueEnvironment));
                 }
             }
             catch (Exception ex)

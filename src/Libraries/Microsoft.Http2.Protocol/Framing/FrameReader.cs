@@ -1,4 +1,12 @@
-﻿using System;
+﻿// Copyright © Microsoft Open Technologies, Inc.
+// All Rights Reserved       
+// Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at
+// http://www.apache.org/licenses/LICENSE-2.0
+
+// THIS CODE IS PROVIDED ON AN *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION ANY IMPLIED WARRANTIES OR CONDITIONS OF TITLE, FITNESS FOR A PARTICULAR PURPOSE, MERCHANTABLITY OR NON-INFRINGEMENT.
+
+// See the Apache 2 License for the specific language governing permissions and limitations under the License.
+using System;
 using System.IO;
 
 namespace Microsoft.Http2.Protocol.Framing
@@ -33,7 +41,8 @@ namespace Microsoft.Http2.Protocol.Framing
             {
                 wholeFrame = GetFrameType(preamble);
             }
-            //Item 4.1 in 06 spec: Implementations MUST ignore frames of unsupported or unrecognized types
+            //09 -> 4.1.  Frame Format 
+            //Implementations MUST ignore frames of unsupported or unrecognized types
             catch (NotImplementedException)
             {
                 return preamble;
@@ -71,6 +80,13 @@ namespace Microsoft.Http2.Protocol.Framing
 
                 case FrameType.Data:
                     return new DataFrame(preamble);
+
+                case FrameType.PushPromise:
+                    return new PushPromiseFrame(preamble);
+
+                case FrameType.Priority:
+                    return new PriorityFrame(preamble);
+
                 default:
                     throw new NotImplementedException("Frame type: " + preamble.FrameType);
             }
@@ -81,11 +97,7 @@ namespace Microsoft.Http2.Protocol.Framing
             int totalRead = 0;
             while (totalRead < count && !_isDisposed)
             {
-                int read = _stream.Read(buffer, offset + totalRead, count - totalRead);
-                
-                //MUST be fixed
-                //Do not check for read <= 0 because DuplexStream Read method guarantees that data already came,
-                //but read buffer may not already updated it's position because of _readWriteLock.
+                int read =_stream.Read(buffer, offset + totalRead, count - totalRead);
 
                 if (read <= 0)
                 {
@@ -94,6 +106,7 @@ namespace Microsoft.Http2.Protocol.Framing
                 }
                 totalRead += read;
             }
+
             return true;
         }
 

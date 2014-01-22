@@ -1,15 +1,20 @@
-﻿using System;
-using System.Collections.Generic;
+﻿// Copyright © Microsoft Open Technologies, Inc.
+// All Rights Reserved       
+// Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at
+// http://www.apache.org/licenses/LICENSE-2.0
+
+// THIS CODE IS PROVIDED ON AN *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION ANY IMPLIED WARRANTIES OR CONDITIONS OF TITLE, FITNESS FOR A PARTICULAR PURPOSE, MERCHANTABLITY OR NON-INFRINGEMENT.
+
+// See the Apache 2 License for the specific language governing permissions and limitations under the License.
+using System;
 using System.IO;
 using System.Reflection;
-using System.Text;
 using System.Threading;
 using Client.IO;
 using Microsoft.Http2.Protocol;
 using Microsoft.Http2.Protocol.Framing;
-using Microsoft.Http2.Protocol.IO;
 using Microsoft.Http2.Protocol.Utils;
-using Org.Mentalis.Security.Ssl;
+using OpenSSL;
 
 namespace Http2.TestClient.Adapters
 {
@@ -21,11 +26,11 @@ namespace Http2.TestClient.Adapters
 
         public bool IsDisposed { get { return _isDisposed; } }
 
-        public Http2ClientMessageHandler(DuplexStream stream, ConnectionEnd end, TransportInformation transportInfo, CancellationToken cancel) 
-            : base(stream, end, stream.IsSecure, transportInfo, cancel)
+        public Http2ClientMessageHandler(Stream stream, ConnectionEnd end, bool isSecure, CancellationToken cancel)
+            : base(stream, end, isSecure, cancel)
         {
             _fileHelper = new FileHelper(ConnectionEnd.Client);
-            stream.OnClose += delegate { Dispose(); };
+            _session.OnSessionDisposed += delegate { Dispose(); };
         }
 
         private void SaveDataFrame(Http2Stream stream, DataFrame dataFrame)
@@ -43,10 +48,7 @@ namespace Http2.TestClient.Adapters
             catch (IOException)
             {
                 Http2Logger.LogError("File is still downloading. Repeat request later");
-                //stream.WriteDataFrame(new byte[0], true);
-
-                //RST always has endstream flag
-                //_fileHelper.RemoveStream(path);
+               
                 stream.Dispose(ResetStatusCode.InternalError);
                 return;
             }
@@ -63,23 +65,6 @@ namespace Http2.TestClient.Adapters
                 }
                 _fileHelper.RemoveStream(path);
                 Http2Logger.LogConsole("Bytes received " + stream.ReceivedDataAmount);
-#if DEBUG
-                const string wayToServerRoot1 = @"..\..\..\..\Drop\Root";
-                const string wayToServerRoot2 = @".\Root";
-                var areFilesEqual = _fileHelper.CompareFiles(path, wayToServerRoot1 + originalPath) ||
-                                    _fileHelper.CompareFiles(path, wayToServerRoot2 + originalPath);
-                if (!areFilesEqual)
-                {
-                    Console.ForegroundColor = ConsoleColor.Red;
-                    Http2Logger.LogError("Files are NOT EQUAL!");
-                }
-                else
-                {
-                    Console.ForegroundColor = ConsoleColor.Green;
-                    Http2Logger.LogConsole("Files are EQUAL!");
-                }
-                Console.ForegroundColor = ConsoleColor.Gray;
-#endif
             }
         }
 
@@ -99,15 +84,29 @@ namespace Http2.TestClient.Adapters
 
         protected override void ProcessRequest(Http2Stream stream, Frame frame)
         {
-            //spec 06
-            //A client
-            //MUST treat the absence of the ":status" header field, the presence of
-            //multiple values, or an invalid value as a stream error
-            //(Section 5.4.2) of type PROTOCOL_ERROR [PROTOCOL_ERROR].
-
+            //spec 09 -> 8.1.3.2.  Response Header Fields
+            //A single ":status" header field is defined that carries the HTTP
+            //status code field (see [HTTP-p2], Section 6).  This header field MUST
+            //be included in all responses, otherwise the response is malformed
             if (stream.Headers.GetValue(CommonHeaders.Status) == null)
             {
-                stream.WriteRst(ResetStatusCode.ProtocolError); 
+                stream.WriteRst(ResetStatusCode.ProtocolError);
+                stream.Dispose(ResetStatusCode.ProtocolError);
+                return;
+            }
+
+            int code;
+            if (!int.TryParse(stream.Headers.GetValue(CommonHeaders.Status), out code))
+            {
+                stream.WriteRst(ResetStatusCode.ProtocolError);  //Got something strange in the status field
+                stream.Dispose(ResetStatusCode.ProtocolError);
+            }
+
+            //got some king of error
+            if (code != StatusCode.Code200Ok)
+            {
+                //Close server's stream
+                stream.Dispose(ResetStatusCode.Cancel); //will dispose client's stream and close server's one.
             }
             //Do nothing. Client may not process requests for now
         }
@@ -125,7 +124,12 @@ namespace Http2.TestClient.Adapters
             }
             else
             {
-                OnFirstSettingsSent += (o, args) => _session.SendRequest(pairs, priority, isEndStream);
+                OnFirstSettingsSent += (o, args) =>
+                    {
+                        //unsec handled via upgrade handshake
+                        if (_isSecure)
+                            _session.SendRequest(pairs, priority, isEndStream);
+                    };
             }
         }
 

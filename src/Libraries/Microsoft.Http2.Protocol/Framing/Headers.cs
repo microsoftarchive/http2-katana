@@ -1,4 +1,12 @@
-﻿using System;
+﻿// Copyright © Microsoft Open Technologies, Inc.
+// All Rights Reserved       
+// Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at
+// http://www.apache.org/licenses/LICENSE-2.0
+
+// THIS CODE IS PROVIDED ON AN *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION ANY IMPLIED WARRANTIES OR CONDITIONS OF TITLE, FITNESS FOR A PARTICULAR PURPOSE, MERCHANTABLITY OR NON-INFRINGEMENT.
+
+// See the Apache 2 License for the specific language governing permissions and limitations under the License.
+using System;
 
 namespace Microsoft.Http2.Protocol.Framing
 {
@@ -69,7 +77,7 @@ namespace Microsoft.Http2.Protocol.Framing
             }
             private set
             {
-                FrameHelpers.Set32BitsAt(Buffer, 8, (int)value);
+                FrameHelpers.Set32BitsAt(Buffer, 8, value);
             }
         }
 
@@ -101,9 +109,8 @@ namespace Microsoft.Http2.Protocol.Framing
         ///  Create an outgoing frame
         /// </summary>
         /// <param name="streamId">Stream id</param>
-        /// <param name="headerBytes">Header bytes</param>
         /// <param name="priority">Priority</param>
-        public HeadersFrame(int streamId, /*byte[] headerBytes,*/ int priority = -1)
+        public HeadersFrame(int streamId, int priority = -1)
         {
             //PRIORITY (0x8):  Bit 4 being set indicates that the first four octets
             //of this frame contain a single reserved bit and a 31-bit priority;
@@ -115,7 +122,7 @@ namespace Microsoft.Http2.Protocol.Framing
                 ? PreambleSizeWithPriority
                 : PreambleSizeWithoutPriority;
 
-            _buffer = new byte[/*headerBytes.Length + */preambleLength];
+            _buffer = new byte[preambleLength];
             HasPriority = hasPriority;
 
             StreamId = streamId;
@@ -125,9 +132,6 @@ namespace Microsoft.Http2.Protocol.Framing
             {
                 Priority = priority;
             }
-
-            // Copy in the headers
-            //System.Buffer.BlockCopy(headerBytes, 0, Buffer, preambleLength, headerBytes.Length);
         }
 
         /// <summary>
