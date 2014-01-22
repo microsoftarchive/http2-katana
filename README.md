@@ -6,8 +6,7 @@ HTTP/2.0 with Katana
 Please note following:
 * Be aware this code is released as a prototype and it currently handles only basic static files. 
 * This code should only be used for interoperability testing.
-* This prototype supports header compression (draft-ietf-httpbis-header-compression-03), and HTTP/2.0 features such as stream multiplexing, and negotiation mechanisms such as ALPN and HTTP upgrade, as well as the ability to establish direct HTTP/2.0 connections. 
-* It does not yet implement server push. 
+* This prototype supports header compression (draft-ietf-httpbis-header-compression-05), and HTTP/2.0 (draft-ietf-httpbis-http2-09) features such as stream multiplexing, and negotiation mechanisms such as ALPN and HTTP upgrade, as well as the ability to establish direct HTTP/2.0 connections. 
 * Apart from the server component, this prototype also includes a test command line client that makes HTTP/2.0 protocol requests to the server.
 * The following endpoints can be used for testing but will only work with an HTTP/2.0-enabled browser or HTTP/2.0 client (included in this source):
   http://http2katanatest.cloudapp.net:8080/ and 
