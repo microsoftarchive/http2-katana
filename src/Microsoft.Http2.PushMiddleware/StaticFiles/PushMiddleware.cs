@@ -37,6 +37,83 @@ namespace Microsoft.Http2.Push
                     {
                         "/root/simpleTest.txt", new string[0]
                     },
+                    {
+                        "/root/LookAround.htm", new []
+                            {
+                                "/root/LookAround_files/BaseStyles.css",
+                                "/root/LookAround_files/Demo.css",
+                                "/root/LookAround_files/DemoTemplate.css",
+                                "/root/LookAround_files/FavIcon.ico",
+                                "/root/LookAround_files/ie-logo.png",
+                                "/root/LookAround_files/instructions.png",
+                                "/root/LookAround_files/loading.gif",
+                                "/root/LookAround_files/negx.jpg",
+                                "/root/LookAround_files/negy.jpg",
+                                "/root/LookAround_files/negz.jpg",
+                                "/root/LookAround_files/posx.jpg",
+                                "/root/LookAround_files/posy.jpg",
+                                "/root/LookAround_files/posz.jpg",
+                                "/root/LookAround_files/ReturnAndShareControls.css",
+                                "/root/LookAround_files/ReturnAndShareControls.js",
+                                "/root/LookAround_files/ReturnButtonImageStrip.png",
+                                "/root/LookAround_files/TestDriveCommon.js",
+                                "/root/LookAround_files/three.min.js",
+                            }
+                    },
+                    {
+                        "/root/LookAround_files/BaseStyles.css", new string[0]
+                    },
+                    {
+                        "/root/LookAround_files/Demo.css", new string[0]
+                    },
+                    {
+                        "/root/LookAround_files/DemoTemplate.css", new string[0]
+                    },
+                    {
+                        "/root/LookAround_files/FavIcon.ico", new string[0]
+                    },
+                    {
+                        "/root/LookAround_files/ie-logo.png", new string[0]
+                    },
+                    {
+                        "/root/LookAround_files/instructions.png", new string[0]
+                    },
+                    {
+                        "/root/LookAround_files/loading.gif", new string[0]
+                    },
+                    {
+                        "/root/LookAround_files/negx.jpg", new string[0]
+                    },
+                    {
+                        "/root/LookAround_files/negy.jpg", new string[0]
+                    },
+                    {
+                        "/root/LookAround_files/negz.jpg", new string[0]
+                    },
+                    {
+                        "/root/LookAround_files/posx.jpg", new string[0]
+                    },
+                    {
+                        "/root/LookAround_files/posy.jpg", new string[0]
+                    },
+                    {
+                        "/root/LookAround_files/posz.jpg", new string[0]
+                    },
+                    {
+                        "/root/LookAround_files/ReturnAndShareControls.css", new string[0]
+                    },
+                    {
+                        "/root/LookAround_files/ReturnAndShareControls.js", new string[0]
+                    },
+                    {
+                        "/root/LookAround_files/ReturnButtonImageStrip.png", new string[0]
+                    },
+                    {
+                        "/root/LookAround_files/TestDriveCommon.js", new string[0]
+                    },
+                    {
+                        "/root/LookAround_files/three.min.js", new string[0]
+                    },
                 });
         }
 

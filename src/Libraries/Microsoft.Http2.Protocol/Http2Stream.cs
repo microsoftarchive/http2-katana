@@ -314,11 +314,6 @@ namespace Microsoft.Http2.Protocol
             if (Disposed)
                 return;
 
-            if (dataFrame.StreamId == 0)
-            {
-                int a = 1;
-            }
-
             if (!IsFlowControlBlocked)
             {
                 _writeQueue.WriteFrame(dataFrame);

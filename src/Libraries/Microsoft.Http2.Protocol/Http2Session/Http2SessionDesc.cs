@@ -468,6 +468,8 @@ namespace Microsoft.Http2.Protocol
                 stream.FramesReceived++;
             }
 
+            //09
+            //5.1.  Stream States
             //An endpoint MUST NOT send frames on a closed stream.  An endpoint
             //that receives a frame after receiving a RST_STREAM [RST_STREAM] or
             //a frame containing a END_STREAM flag on that stream MUST treat
@@ -476,7 +478,7 @@ namespace Microsoft.Http2.Protocol
             catch (Http2StreamNotFoundException ex)
             {
                 Http2Logger.LogDebug("Frame for already closed stream with Id = {0}", ex.Id);
-                _writeQueue.WriteFrame(new RstStreamFrame(ex.Id, ResetStatusCode.StreamClosed));
+                GetStream(ex.Id).WriteRst(ResetStatusCode.StreamClosed);
             }
             catch (CompressionError ex)
             {

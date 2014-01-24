@@ -209,17 +209,28 @@ namespace Microsoft.Http2.Protocol
 
         private void HandleRstFrame(RstStreamFrame resetFrame, out Http2Stream stream)
         {
+            //spec 09
+            //6.4.  RST_STREAM
+            //RST_STREAM frames MUST be associated with a stream.  If a RST_STREAM
+            //frame is received with a stream identifier of 0x0, the recipient MUST
+            //treat this as a connection error (Section 5.4.1) of type
+            //PROTOCOL_ERROR.
+            if (resetFrame.StreamId == 0)
+            {
+                throw new ProtocolError(ResetStatusCode.ProtocolError, "resetFrame with id = 0");
+            }
+
             stream = GetStream(resetFrame.StreamId);
 
             //09 -> 5.4.2.  Stream Error Handling
             //An endpoint MUST NOT send a RST_STREAM in response to an RST_STREAM
             //frame, to avoid looping.
-            if (stream != null)
-            {
-                Http2Logger.LogDebug("RST frame with code {0} for id {1}", resetFrame.StatusCode,
-                                        resetFrame.StreamId);
-                stream.Dispose(ResetStatusCode.None);
-            }
+            if (stream == null) 
+                return;
+
+            Http2Logger.LogDebug("RST frame with code {0} for id {1}", resetFrame.StatusCode,
+                                 resetFrame.StreamId);
+            stream.Dispose(ResetStatusCode.None);
             //09 -> 5.1.  Stream States
             //WINDOW_UPDATE, PRIORITY, or RST_STREAM frames can be received in
             //this state for a short period after a DATA or HEADERS frame
@@ -274,7 +285,7 @@ namespace Microsoft.Http2.Protocol
             if (pingFrame.StreamId != 0)
             {
                 throw new ProtocolError(ResetStatusCode.ProtocolError,
-                                        "Incoming continuation frame with id = 0");
+                                        "Incoming ping frame with id != 0");
             }
 
             Http2Logger.LogDebug("Ping frame with StreamId:{0} Payload:{1}", pingFrame.StreamId,
@@ -404,7 +415,7 @@ namespace Microsoft.Http2.Protocol
         private void HandleGoAwayFrame(GoAwayFrame goAwayFrame)
         {
             if (goAwayFrame.StreamId != 0)
-                throw new ProtocolError(ResetStatusCode.ProtocolError, "GoAway stream id should be null always");
+                throw new ProtocolError(ResetStatusCode.ProtocolError, "GoAway stream id should always be null");
 
             _goAwayReceived = true;
             
