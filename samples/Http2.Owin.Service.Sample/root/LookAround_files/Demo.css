@@ -1,0 +1,15 @@
+body {
+	margin: 0px; padding: 0px; overflow: hidden; font-family: Candara, sans-serif; font-size: 180%; max-width: 100%; -ms-touch-action: none; background-color: lightblue;
+}
+#DemoTitle {
+	padding: 0px; left: 10px; top: 5px; font-size: 140%; position: absolute;
+}
+#DemoScreenReaderText {
+	left: 100px; top: 100px; position: absolute;
+}
+#DemoIntroduction {
+	padding: 8px 20px 16px; border-radius: 4px; transition:opacity 0.5s ease-in-out; left: 50%; top: 50%; width: 600px; margin-top: -300px; margin-left: -300px; position: absolute; opacity: 0.9; background-color: white;
+}
+#DemoContent {
+	margin: 0px; left: 0px; top: 0px; position: absolute;
+}
