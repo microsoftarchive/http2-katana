@@ -276,16 +276,15 @@ namespace Microsoft.Http2.Protocol
 
         private void HandlePingFrame(PingFrame pingFrame)
         {
-            //09 -> 6.7.  PING
-            //PING frames are not associated with any individual stream.  If a PING
-            //frame is received with a stream identifier field value other than
-            //0x0, the recipient MUST respond with a connection error
-            //(Section 5.4.1) of type PROTOCOL_ERROR.
-
+            /*09 -> 6.7.  PING
+            PING frames are not associated with any individual stream.  If a PING
+            frame is received with a stream identifier field value other than
+            0x0, the recipient MUST respond with a connection error
+            (Section 5.4.1) of type PROTOCOL_ERROR. */
             if (pingFrame.StreamId != 0)
             {
                 throw new ProtocolError(ResetStatusCode.ProtocolError,
-                                        "Incoming ping frame with id != 0");
+                                        "The stream id for a ping frame is not 0");
             }
 
             Http2Logger.LogDebug("Ping frame with StreamId:{0} Payload:{1}", pingFrame.StreamId,
@@ -310,18 +309,28 @@ namespace Microsoft.Http2.Protocol
         private void HandleSettingsFrame(SettingsFrame settingsFrame)
         {
             _wasSettingsReceived = true;
-            Http2Logger.LogDebug("Settings frame. Entry count: {0} StreamId: {1}", settingsFrame.EntryCount,
+            Http2Logger.LogDebug("Settings frame. Entry count: {0} Stream Id: {1}", settingsFrame.EntryCount,
                                  settingsFrame.StreamId);
 
-            //Receipt of a SETTINGS frame with the ACK flag set and a length
-            //field value other than 0 MUST be treated as a connection error
-            //(Section 5.4.1) of type FRAME_SIZE_ERROR.
+            /* 09 -> 6.5. SETTINGS frames always apply to a connection, never a single stream.
+            The stream identifier for a settings frame MUST be zero. If an
+            endpoint receives a SETTINGS frame whose stream identifier field is
+            anything other than 0x0, the endpoint MUST respond with a connection
+            error (Section 5.4.1) of type PROTOCOL_ERROR. */
+            if (settingsFrame.StreamId != 0)
+            {
+                throw new ProtocolError(ResetStatusCode.ProtocolError, "The stream id for a settings frame is not 0");
+            }
+
+            /* 09 -> 6.5. Receipt of a SETTINGS frame with the ACK flag set and a length
+            field value other than 0 MUST be treated as a connection error
+            (Section 5.4.1) of type FRAME_SIZE_ERROR. */
             if (settingsFrame.IsAck)
             {
                 _settingsAckReceived.Set();
 
                 if (settingsFrame.FrameLength != 0)
-                    throw new ProtocolError(ResetStatusCode.FrameSizeError, "ack settings frame is not 0");
+                    throw new ProtocolError(ResetStatusCode.FrameSizeError, "The length of settings frame with ACK flag set is not 0");
                 
                 return;
             }
@@ -414,8 +423,12 @@ namespace Microsoft.Http2.Protocol
 
         private void HandleGoAwayFrame(GoAwayFrame goAwayFrame)
         {
+            /* 09 -> 6.8. The GOAWAY frame applies to the connection, not a specific stream.
+            The stream identifier MUST be zero. */
             if (goAwayFrame.StreamId != 0)
-                throw new ProtocolError(ResetStatusCode.ProtocolError, "GoAway stream id should always be null");
+            {
+                throw new ProtocolError(ResetStatusCode.ProtocolError, "The stream id for a GoAway frame is not 0");
+            }
 
             _goAwayReceived = true;
             
