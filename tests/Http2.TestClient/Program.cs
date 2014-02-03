@@ -161,7 +161,7 @@ namespace Http2.TestClient
                 }
             } while (!isTestsEnabled);
 
-            waitForTestsFinish.WaitOne(60000);
+            waitForTestsFinish.WaitOne(5000);
 
             Http2Logger.LogDebug("Exiting");
             Console.WriteLine();

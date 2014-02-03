@@ -49,7 +49,7 @@ namespace Http2.TestClient.Adapters
             {
                 Http2Logger.LogError("File is still downloading. Repeat request later");
                
-                stream.Dispose(ResetStatusCode.InternalError);
+                stream.Close(ResetStatusCode.InternalError);
                 return;
             }
 
@@ -57,7 +57,7 @@ namespace Http2.TestClient.Adapters
 
             if (dataFrame.IsEndStream)
             {
-                if (!stream.EndStreamSent)
+                if (!stream.HalfClosedRemote)
                 {
                     //send terminator
                     stream.WriteDataFrame(new ArraySegment<byte>(new byte[0]), true);
@@ -79,7 +79,7 @@ namespace Http2.TestClient.Adapters
             SaveDataFrame(stream, dataFrame);
 
             if (dataFrame.IsEndStream)
-                stream.EndStreamReceived = true;
+                stream.HalfClosedLocal = true;
         }
 
         protected override void ProcessRequest(Http2Stream stream, Frame frame)
@@ -91,7 +91,7 @@ namespace Http2.TestClient.Adapters
             if (stream.Headers.GetValue(CommonHeaders.Status) == null)
             {
                 stream.WriteRst(ResetStatusCode.ProtocolError);
-                stream.Dispose(ResetStatusCode.ProtocolError);
+                stream.Close(ResetStatusCode.ProtocolError);
                 return;
             }
 
@@ -99,14 +99,14 @@ namespace Http2.TestClient.Adapters
             if (!int.TryParse(stream.Headers.GetValue(CommonHeaders.Status), out code))
             {
                 stream.WriteRst(ResetStatusCode.ProtocolError);  //Got something strange in the status field
-                stream.Dispose(ResetStatusCode.ProtocolError);
+                stream.Close(ResetStatusCode.ProtocolError);
             }
 
             //got some king of error
             if (code != StatusCode.Code200Ok)
             {
                 //Close server's stream
-                stream.Dispose(ResetStatusCode.Cancel); //will dispose client's stream and close server's one.
+                stream.Close(ResetStatusCode.Cancel); //will dispose client's stream and close server's one.
             }
             //Do nothing. Client may not process requests for now
         }

@@ -98,7 +98,7 @@ namespace Microsoft.Http2.Owin.Server.Adapters
                 || stream.Headers.GetValue(CommonHeaders.Authority) == null)
             {
                 stream.WriteRst(ResetStatusCode.ProtocolError);
-                stream.Dispose(ResetStatusCode.ProtocolError);
+                stream.Close(ResetStatusCode.ProtocolError);
                 return;
             }
 
@@ -114,7 +114,7 @@ namespace Microsoft.Http2.Owin.Server.Adapters
                         {
                             var promisedStream = CreateStream();
                             //assume that we have already received endStream
-                            promisedStream.EndStreamReceived = true;
+                            promisedStream.HalfClosedLocal = true;
                             stream.WritePushPromise(pairs, promisedStream.Id);
 
                             var headers = new HeadersList(pairs);

@@ -22,7 +22,7 @@ namespace Microsoft.Http2.Protocol
     /// <summary>
     /// Class represents http2 stream.
     /// </summary>
-    public class Http2Stream : IDisposable
+    public class Http2Stream
     {
         #region Fields
 
@@ -96,53 +96,60 @@ namespace Microsoft.Http2.Protocol
 
         public int FramesSent { get; set; }
         public int FramesReceived { get; set; }
-
-        public bool EndStreamSent
-        {
-            get { return (_state & StreamState.EndStreamSent) == StreamState.EndStreamSent; }
-            set
-            {
-                Contract.Assert(value); 
-                _state |= StreamState.EndStreamSent;
-
-                if (EndStreamReceived)
-                {
-                    Dispose(ResetStatusCode.None);
-                }
-            }
-        }
-        public bool EndStreamReceived
-        {
-            get { return (_state & StreamState.EndStreamReceived) == StreamState.EndStreamReceived; }
-            set
-            {
-                Contract.Assert(value); 
-                _state |= StreamState.EndStreamReceived;
-
-                if (EndStreamSent)
-                {
-                    Dispose(ResetStatusCode.None);
-                }
-            }
-        }
-
         public int Priority { get; set; }
 
-        public bool ResetSent
+        public bool Opened
         {
-            get { return (_state & StreamState.ResetSent) == StreamState.ResetSent; }
-            set { Contract.Assert(value); _state |= StreamState.ResetSent; }
-        }
-        public bool ResetReceived
-        {
-            get { return (_state & StreamState.ResetReceived) == StreamState.ResetReceived; }
-            set { Contract.Assert(value); _state |= StreamState.ResetReceived; }
+            get { return _state == StreamState.Opened; }
+            set { Contract.Assert(value); _state = StreamState.Opened; }
         }
 
-        public bool Disposed
+        public bool Idle
         {
-            get { return (_state & StreamState.Disposed) == StreamState.Disposed; }
-            set { Contract.Assert(value); _state |= StreamState.Disposed; }
+            get { return _state == StreamState.Idle; }
+            set { Contract.Assert(value); _state = StreamState.Idle; }
+        }
+
+        public bool HalfClosedRemote
+        {
+            get { return _state == StreamState.HalfClosedRemote; }
+            set
+            {
+                Contract.Assert(value); 
+                _state = StreamState.HalfClosedRemote;
+
+                if (HalfClosedLocal)
+                {
+                    Close(ResetStatusCode.None);
+                }
+            }
+        }
+
+        public bool HalfClosedLocal
+        {
+            get { return _state == StreamState.HalfClosedLocal; }
+            set
+            {
+                Contract.Assert(value); 
+                _state = StreamState.HalfClosedLocal;
+
+                if (HalfClosedRemote)
+                {
+                    Close(ResetStatusCode.None);
+                }
+            }
+        }
+
+        public bool Closed
+        {
+            get { return _state == StreamState.Closed; }
+            set { Contract.Assert(value); _state = StreamState.Closed; }
+        }
+
+        public bool Reserved
+        {
+            get { return _state == StreamState.Reserved; }
+            set { Contract.Assert(value); _state = StreamState.Reserved; }
         }
 
         public HeadersList Headers { get; internal set; }
@@ -185,7 +192,7 @@ namespace Microsoft.Http2.Protocol
         /// </summary>
         public void PumpUnshippedFrames()
         {
-            if (Disposed)
+            if (Closed)
                 return;
 
             //Handle window update one at a time
@@ -198,9 +205,9 @@ namespace Microsoft.Http2.Protocol
                 }
 
                 //Do not dispose if unshipped frames are still here
-                if (EndStreamSent && EndStreamReceived && !Disposed)
+                if (HalfClosedRemote && HalfClosedLocal && !Closed)
                 {
-                    Dispose(ResetStatusCode.None);
+                    Close(ResetStatusCode.None);
                 }
             }
         }
@@ -223,7 +230,7 @@ namespace Microsoft.Http2.Protocol
             if (headers == null)
                 throw new ArgumentNullException("headers is null");
 
-            if (Disposed)
+            if (Closed)
                 return;
 
             var frame = new HeadersFrame(_id, Priority)
@@ -237,7 +244,7 @@ namespace Microsoft.Http2.Protocol
 
             if (frame.IsEndStream)
             {
-                EndStreamSent = true;
+                HalfClosedRemote = true;
             }
 
             if (OnFrameSent != null)
@@ -258,7 +265,7 @@ namespace Microsoft.Http2.Protocol
             if (data.Array == null)
                 throw new ArgumentNullException("data is null");
 
-            if (Disposed)
+            if (Closed)
                 return;
 
             var dataFrame = new DataFrame(_id, data, isEndStream);
@@ -286,7 +293,7 @@ namespace Microsoft.Http2.Protocol
                 if (dataFrame.IsEndStream)
                 {
                     Http2Logger.LogDebug("Transfer end");
-                    EndStreamSent = true;
+                    HalfClosedRemote = true;
                 }
 
                 if (OnFrameSent != null)
@@ -311,7 +318,7 @@ namespace Microsoft.Http2.Protocol
             if (dataFrame == null)
                 throw new ArgumentNullException("dataFrame is null");
 
-            if (Disposed)
+            if (Closed)
                 return;
 
             if (!IsFlowControlBlocked)
@@ -324,7 +331,7 @@ namespace Microsoft.Http2.Protocol
                 if (dataFrame.IsEndStream)
                 {
                     Http2Logger.LogDebug("Transfer end");
-                    EndStreamSent = true;
+                    HalfClosedRemote = true;
                 }
 
                 if (OnFrameSent != null)
@@ -350,7 +357,7 @@ namespace Microsoft.Http2.Protocol
             //After a receiver reads in a frame that marks the end of a stream (for
             //example, a data stream with a END_STREAM flag set), it MUST cease
 	        //transmission of WINDOW_UPDATE frames for that stream.
-            if (Disposed || EndStreamReceived)
+            if (Closed || HalfClosedLocal)
                 return;
 
             var frame = new WindowUpdateFrame(_id, windowSize);
@@ -364,13 +371,12 @@ namespace Microsoft.Http2.Protocol
 
         public void WriteRst(ResetStatusCode code)
         {
-            if (Disposed)
+            if (Closed)
                 return;
 
             var frame = new RstStreamFrame(_id, code);
             
             _writeQueue.WriteFrame(frame);
-            ResetSent = true;
 
             if (OnFrameSent != null)
             {
@@ -384,7 +390,7 @@ namespace Microsoft.Http2.Protocol
             if (Id % 2 != 0 && promisedId % 2 != 0)
                 throw new InvalidOperationException("Client cant send push_promise frames");
 
-            if (Disposed)
+            if (Closed)
                 return;
 
             var headers = new HeadersList(pairs);
@@ -402,14 +408,9 @@ namespace Microsoft.Http2.Protocol
 
         #endregion
 
-        public void Dispose()
+        public void Close(ResetStatusCode code)
         {
-            Dispose(ResetStatusCode.Cancel);
-        }
-
-        public void Dispose(ResetStatusCode code)
-        {
-            if (Disposed)
+            if (Closed || Idle)
             {
                 return;
             }
@@ -425,7 +426,7 @@ namespace Microsoft.Http2.Protocol
 
             _flowCrtlManager.StreamClosedHandler(this);
 
-            Disposed = true;
+            Closed = true;
 
             if (OnClose != null)
                 OnClose(this, new StreamClosedEventArgs(_id));

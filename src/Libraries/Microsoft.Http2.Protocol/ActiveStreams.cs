@@ -80,14 +80,9 @@ namespace Microsoft.Http2.Protocol
         public Dictionary<int, Http2Stream> FlowControlledStreams { get; private set; }
 
         public ActiveStreams()
-            :this(10)
         {
-        }
-
-        public ActiveStreams(int capacity)
-        {
-            NonFlowControlledStreams = new Dictionary<int, Http2Stream>(capacity / 2);
-            FlowControlledStreams = new Dictionary<int, Http2Stream>(capacity / 2);
+            NonFlowControlledStreams = new Dictionary<int, Http2Stream>();
+            FlowControlledStreams = new Dictionary<int, Http2Stream>();
         }
 
         public bool TryGetValue(int key, out Http2Stream value)
@@ -122,17 +117,12 @@ namespace Microsoft.Http2.Protocol
             }
             set
             {
-                Add(value);
+                
             }
         }
 
         public void Add(Http2Stream item)
         {
-            if (ContainsKey(item.Id))
-            {
-                throw new ArgumentException("This key already exists in the collection: " + item.Id);
-            }
-
             if (item.IsFlowControlEnabled)
             {
                 FlowControlledStreams.Add(item.Id, item);

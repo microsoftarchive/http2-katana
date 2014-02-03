@@ -21,21 +21,21 @@ namespace Microsoft.Http2.Protocol.IO
         private readonly Stream _stream;
         private bool _disposed;
         private readonly object _writeLock = new object();
-        private readonly ActiveStreams _streams;
+        private ActiveStreams _streams;
         private readonly ICompressionProcessor _proc;
         public bool IsPriorityTurnedOn { get; private set; }
-
-        public WriteQueue(Stream stream, ActiveStreams streams, ICompressionProcessor processor, bool isPriorityTurnedOn)
+        
+        public WriteQueue(Stream stream, ICompressionProcessor processor, bool isPriorityTurnedOn)
         {
             if (stream == null)
                 throw new ArgumentNullException("io stream is null");
 
-            if (streams == null)
-                throw new ArgumentNullException("streams collection is null");
+            //if (streams == null)
+            //    throw new ArgumentNullException("streams collection is null");
 
             //Priorities are turned on for debugging
             IsPriorityTurnedOn = isPriorityTurnedOn;
-            _streams = streams;
+            //_streams = streams;
             _proc = processor;
             if (IsPriorityTurnedOn)
             {
@@ -47,6 +47,11 @@ namespace Microsoft.Http2.Protocol.IO
             }
             _stream = stream;
             _disposed = false;
+        }
+
+        public void SetActiveStreams(ActiveStreams streams)
+        {
+            _streams = streams;
         }
 
         // Queue up a fully rendered frame to send

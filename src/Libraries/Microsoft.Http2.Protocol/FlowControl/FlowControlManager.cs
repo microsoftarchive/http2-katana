@@ -20,7 +20,7 @@ namespace Microsoft.Http2.Protocol.FlowControl
     internal class FlowControlManager
     {
         private readonly Http2Session _flowControlledSession;
-        private readonly ActiveStreams _streamCollection;
+        private ActiveStreams _streamCollection;
         private Int32 _options;
         private bool _wasFlowControlSet;
         /// <summary>
@@ -91,6 +91,11 @@ namespace Microsoft.Http2.Protocol.FlowControl
             Options = Constants.InitialFlowControlOptionsValue;
             _wasFlowControlSet = false;
             IsSessionBlocked = false;
+        }
+
+        public void SetStreamsCollection(ActiveStreams streams)
+        {
+            _streamCollection = streams;
         }
 
         /// <summary>
