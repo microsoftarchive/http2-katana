@@ -367,6 +367,7 @@ namespace Http2.TestClient
 
         public async void StartConnection()
         {
+            Console.WriteLine("Start connection called");
             if (_useHttp20 && !_sessionAdapter.IsDisposed && !_isDisposed)
             {
                 Dictionary<string, string> initialRequest = null;
@@ -382,27 +383,34 @@ namespace Http2.TestClient
 
                 GC.Collect();
             }
-            else if (_sessionAdapter.IsDisposed)
-            {
-                Http2Logger.LogError("Connection was aborted by the remote side. Check your session header.");
-                Dispose(true);
-            }
+
+            if (!_sessionAdapter.IsDisposed) 
+                return;
+
+            Http2Logger.LogError("Connection was aborted by the remote side. Check your session header.");
+            Dispose(true);
         }
 
         //localPath should be provided only for post and put cmds
         //serverPostAct should be provided only for post cmd
         private void SubmitRequest(Uri request, string method)
         {
+            //Submit request if http2 was chosen
+            Http2Logger.LogConsole("Submitting request");
+
             var headers = new HeadersList
                 {
-                    new KeyValuePair<string, string>(CommonHeaders.Method, method),
-                    new KeyValuePair<string, string>(CommonHeaders.Path, request.PathAndQuery),
-                    new KeyValuePair<string, string>(CommonHeaders.Authority, _host),
-                    new KeyValuePair<string, string>(CommonHeaders.Scheme, _scheme),
+                    new KeyValuePair<string, string>(CommonHeaders.Method, method.ToLower()),
+                    new KeyValuePair<string, string>(CommonHeaders.Path, request.PathAndQuery.ToLower()),
+                    new KeyValuePair<string, string>(CommonHeaders.Authority, _host.ToLower()),
+                    new KeyValuePair<string, string>(CommonHeaders.Scheme, _scheme.ToLower()),
                 };
+            
+            Http2Logger.LogHeaders(headers);
 
             //Sending request with default  priority
             _sessionAdapter.SendRequest(headers, Constants.DefaultStreamPriority, false);
+            Http2Logger.LogConsole("Request sent");
         }
 
         public void SendRequestAsync(Uri request, string method)
@@ -418,9 +426,6 @@ namespace Http2.TestClient
                 {
                     Http2Logger.LogConsole("Download with Http/1.1");
                 }
-
-                //Submit request if http2 was chosen
-                Http2Logger.LogConsole("Submitting request");
 
                 //Submit request in the current thread, response will be handled in the session thread.
                 SubmitRequest(request, method);

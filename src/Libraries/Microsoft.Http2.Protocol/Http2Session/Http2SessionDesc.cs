@@ -45,7 +45,9 @@ namespace Microsoft.Http2.Protocol
         private readonly bool _usePriorities;
         private readonly bool _useFlowControl;
         private readonly bool _isSecure;
-        private int _lastId;
+        private int _lastId;            //streams creation
+        private int _lastPromisedId;    //check pushed  (server) streams ids
+        private int _lastSuccessfulId;  //check client stream ids
         private bool _wasSettingsReceived;
         private bool _wasResponseReceived;
         private Frame _lastFrame;
@@ -397,6 +399,8 @@ namespace Microsoft.Http2.Protocol
                                             "Settings was not the first frame in the session");
                 }
 
+                Http2Logger.LogDebug("Incoming frame:" + frame.FrameType);
+
                 switch (frame.FrameType)
                 {
                     case FrameType.Headers:
@@ -478,7 +482,8 @@ namespace Microsoft.Http2.Protocol
             catch (Http2StreamNotFoundException ex)
             {
                 Http2Logger.LogDebug("Frame for already closed stream with Id = {0}", ex.Id);
-                GetStream(ex.Id).WriteRst(ResetStatusCode.StreamClosed);
+                //Close(ResetStatusCode.StreamClosed);
+                _writeQueue.WriteFrame(new RstStreamFrame(ex.Id, ResetStatusCode.StreamClosed));
             }
             catch (CompressionError ex)
             {
@@ -766,6 +771,7 @@ namespace Microsoft.Http2.Protocol
         /// <param name="code">The code.</param>
         public void WriteGoAway(ResetStatusCode code)
         {
+            Http2Logger.LogDebug("Writing GoAway with code = {0}", code);
             //if there were no streams opened
             if (_lastId == -1)
             {

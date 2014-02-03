@@ -142,6 +142,15 @@ namespace Microsoft.Http2.Protocol.Utils
             }
         }
 
+        public static void LogHeaders(HeadersList headers)
+        {
+            Console.WriteLine("Headers set:");
+            foreach (var header in headers)
+            {
+                Console.WriteLine("{0}: {1}", header.Key, header.Value);
+            }
+        }
+
         private static void LogToFile(string message)
         {
             if (!_writeToFile) return;
