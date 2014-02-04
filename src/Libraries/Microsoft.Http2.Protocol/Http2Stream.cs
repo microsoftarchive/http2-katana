@@ -115,10 +115,10 @@ namespace Microsoft.Http2.Protocol
             get { return _state == StreamState.HalfClosedRemote; }
             set
             {
-                Contract.Assert(value); 
-                _state = StreamState.HalfClosedRemote;
+                Contract.Assert(value);
+                _state = HalfClosedLocal ? StreamState.Closed : StreamState.HalfClosedRemote;
 
-                if (HalfClosedLocal)
+                if (Closed)
                 {
                     Close(ResetStatusCode.None);
                 }
@@ -130,10 +130,40 @@ namespace Microsoft.Http2.Protocol
             get { return _state == StreamState.HalfClosedLocal; }
             set
             {
-                Contract.Assert(value); 
-                _state = StreamState.HalfClosedLocal;
+                Contract.Assert(value);
+                _state = HalfClosedRemote ? StreamState.Closed : StreamState.HalfClosedLocal;
 
-                if (HalfClosedRemote)
+                if (Closed)
+                {
+                    Close(ResetStatusCode.None);
+                }
+            }
+        }
+
+        public bool ReservedLocal
+        {
+            get { return _state == StreamState.ReservedLocal; }
+            set
+            {
+                Contract.Assert(value);
+                _state = ReservedRemote ? StreamState.Closed : StreamState.ReservedLocal;
+
+                if (Closed)
+                {
+                    Close(ResetStatusCode.None);
+                }
+            }
+        }
+
+        public bool ReservedRemote
+        {
+            get { return _state == StreamState.ReservedRemote; }
+            set
+            {
+                Contract.Assert(value);
+                _state = HalfClosedLocal ? StreamState.Closed : StreamState.ReservedRemote;
+
+                if (Closed)
                 {
                     Close(ResetStatusCode.None);
                 }
@@ -144,12 +174,6 @@ namespace Microsoft.Http2.Protocol
         {
             get { return _state == StreamState.Closed; }
             set { Contract.Assert(value); _state = StreamState.Closed; }
-        }
-
-        public bool Reserved
-        {
-            get { return _state == StreamState.Reserved; }
-            set { Contract.Assert(value); _state = StreamState.Reserved; }
         }
 
         public HeadersList Headers { get; internal set; }
@@ -244,6 +268,10 @@ namespace Microsoft.Http2.Protocol
 
             if (frame.IsEndStream)
             {
+                HalfClosedLocal = true;
+            }
+            else if (ReservedLocal)
+            {
                 HalfClosedRemote = true;
             }
 
@@ -293,7 +321,7 @@ namespace Microsoft.Http2.Protocol
                 if (dataFrame.IsEndStream)
                 {
                     Http2Logger.LogDebug("Transfer end");
-                    HalfClosedRemote = true;
+                    HalfClosedLocal = true;
                 }
 
                 if (OnFrameSent != null)
@@ -331,7 +359,7 @@ namespace Microsoft.Http2.Protocol
                 if (dataFrame.IsEndStream)
                 {
                     Http2Logger.LogDebug("Transfer end");
-                    HalfClosedRemote = true;
+                    HalfClosedLocal = true;
                 }
 
                 if (OnFrameSent != null)
@@ -357,8 +385,10 @@ namespace Microsoft.Http2.Protocol
             //After a receiver reads in a frame that marks the end of a stream (for
             //example, a data stream with a END_STREAM flag set), it MUST cease
 	        //transmission of WINDOW_UPDATE frames for that stream.
-            if (Closed || HalfClosedLocal)
+            if (Closed)
                 return;
+
+            //TODO handle idle state
 
             var frame = new WindowUpdateFrame(_id, windowSize);
             _writeQueue.WriteFrame(frame);
@@ -397,6 +427,8 @@ namespace Microsoft.Http2.Protocol
 
             //TODO IsEndPushPromise should be computationable
             var frame = new PushPromiseFrame(Id, promisedId, true, headers);
+
+            ReservedLocal = true;
 
             _writeQueue.WriteFrame(frame);
 

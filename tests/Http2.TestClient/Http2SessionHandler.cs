@@ -409,7 +409,7 @@ namespace Http2.TestClient
             Http2Logger.LogHeaders(headers);
 
             //Sending request with default  priority
-            _sessionAdapter.SendRequest(headers, Constants.DefaultStreamPriority, false);
+            _sessionAdapter.SendRequest(headers, Constants.DefaultStreamPriority, true);
             Http2Logger.LogConsole("Request sent");
         }
 

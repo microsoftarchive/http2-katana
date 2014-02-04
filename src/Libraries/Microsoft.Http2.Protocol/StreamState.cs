@@ -18,8 +18,9 @@ namespace Microsoft.Http2.Protocol
         Idle = 0x00,
         HalfClosedRemote = 0x01,
         HalfClosedLocal = 0x02,
-        Reserved = 0x04,
-        Opened = 0x08,
-        Closed = 0x10,
+        Opened = 0x04,
+        Closed = 0x08,
+        ReservedLocal = 0x10,
+        ReservedRemote = 0x20
     }
 }

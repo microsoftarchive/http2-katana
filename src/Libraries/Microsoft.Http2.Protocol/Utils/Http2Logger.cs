@@ -93,7 +93,7 @@ namespace Microsoft.Http2.Protocol.Utils
         {
             if (_loggerLevel > Http2LoggerState.NoLogging)
             {
-                string outString = string.Format("[{0}] ThreadId:{1} ERROR:{2}", DateTime.Now, Thread.CurrentThread.ManagedThreadId, errString);
+                string outString = string.Format("[{0}] ThreadId:{1} ERROR: {2}", DateTime.Now, Thread.CurrentThread.ManagedThreadId, errString);
                 Console.WriteLine(outString);
                 LogToFile(outString);
             }
@@ -120,7 +120,7 @@ namespace Microsoft.Http2.Protocol.Utils
         {
             if (_loggerLevel >= Http2LoggerState.VerboseLogging)
             {
-                string outString = "[" + DateTime.Now.ToString("T") + "] INFO:" + infoString;
+                string outString = "[" + DateTime.Now.ToString("T") + "] INFO: " + infoString;
                 Console.WriteLine(outString);
                 LogToFile(outString);
             }
@@ -136,7 +136,7 @@ namespace Microsoft.Http2.Protocol.Utils
             if (_loggerLevel >= Http2LoggerState.DebugLogging)
             {
                 debugString = string.Format(debugString, format);
-                string outString = string.Format("[{0}] ThreadId:{1} DBG:{2}", DateTime.Now, Thread.CurrentThread.ManagedThreadId, debugString);
+                string outString = string.Format("[{0}] ThreadId:{1} DBG: {2}", DateTime.Now, Thread.CurrentThread.ManagedThreadId, debugString);
                 Console.WriteLine(outString);
                 LogToFile(outString);
             }

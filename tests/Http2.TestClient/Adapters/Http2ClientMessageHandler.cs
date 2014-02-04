@@ -14,6 +14,7 @@ using Client.IO;
 using Microsoft.Http2.Protocol;
 using Microsoft.Http2.Protocol.Framing;
 using Microsoft.Http2.Protocol.Utils;
+using Microsoft.Http2.Protocol.Exceptions;
 using OpenSSL;
 
 namespace Http2.TestClient.Adapters
@@ -57,7 +58,7 @@ namespace Http2.TestClient.Adapters
 
             if (dataFrame.IsEndStream)
             {
-                if (!stream.HalfClosedRemote)
+                if (stream.HalfClosedRemote)
                 {
                     //send terminator
                     stream.WriteDataFrame(new ArraySegment<byte>(new byte[0]), true);
@@ -77,9 +78,6 @@ namespace Http2.TestClient.Adapters
             var dataFrame = frame as DataFrame;
 
             SaveDataFrame(stream, dataFrame);
-
-            if (dataFrame.IsEndStream)
-                stream.HalfClosedLocal = true;
         }
 
         protected override void ProcessRequest(Http2Stream stream, Frame frame)
@@ -90,9 +88,8 @@ namespace Http2.TestClient.Adapters
             //be included in all responses, otherwise the response is malformed
             if (stream.Headers.GetValue(CommonHeaders.Status) == null)
             {
-                stream.WriteRst(ResetStatusCode.ProtocolError);
-                stream.Close(ResetStatusCode.ProtocolError);
-                return;
+                throw new ProtocolError(ResetStatusCode.ProtocolError,
+                                        "no status header in response. StreamId = " + stream.Id);
             }
 
             int code;

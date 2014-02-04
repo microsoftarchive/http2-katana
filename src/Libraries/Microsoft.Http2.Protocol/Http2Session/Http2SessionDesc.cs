@@ -47,7 +47,6 @@ namespace Microsoft.Http2.Protocol
         private readonly bool _isSecure;
         private int _lastId;            //streams creation
         private int _lastPromisedId;    //check pushed  (server) streams ids
-        private int _lastSuccessfulId;  //check client stream ids
         private bool _wasSettingsReceived;
         private bool _wasResponseReceived;
         private Frame _lastFrame;
@@ -410,7 +409,7 @@ namespace Microsoft.Http2.Protocol
                                             "Settings was not the first frame in the session");
                 }
 
-                Http2Logger.LogDebug("Incoming frame:" + frame.FrameType);
+                Http2Logger.LogDebug("Incoming frame: " + frame.FrameType);
 
                 switch (frame.FrameType)
                 {
@@ -469,7 +468,7 @@ namespace Microsoft.Http2.Protocol
                 {
                     //Tell the stream that it was the last frame
                     Http2Logger.LogDebug("Final frame received for stream with id = " + stream.Id);
-                    stream.HalfClosedLocal = true;
+                    stream.HalfClosedRemote = true;
 
                     //Promised resource has been pushed
                     if (_promisedResources.ContainsKey(stream.Id))
@@ -825,7 +824,7 @@ namespace Microsoft.Http2.Protocol
             foreach (var stream in ActiveStreams.Values)
             {
                 //Cancel all opened streams
-                stream.Close(ResetStatusCode.Cancel);
+                stream.Close(ResetStatusCode.None);
             }
 
             if (!_goAwayReceived)

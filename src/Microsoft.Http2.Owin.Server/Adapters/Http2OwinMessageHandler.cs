@@ -5,6 +5,7 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Http2.Protocol;
+using Microsoft.Http2.Protocol.Exceptions;
 using Microsoft.Http2.Protocol.Framing;
 using Microsoft.Http2.Protocol.Utils;
 using Microsoft.Owin;
@@ -97,6 +98,9 @@ namespace Microsoft.Http2.Owin.Server.Adapters
                 || stream.Headers.GetValue(CommonHeaders.Scheme) == null
                 || stream.Headers.GetValue(CommonHeaders.Authority) == null)
             {
+
+                //throw new ProtocolError(ResetStatusCode.ProtocolError,
+                //        "no important header in request. StreamId = " + stream.Id);
                 stream.WriteRst(ResetStatusCode.ProtocolError);
                 stream.Close(ResetStatusCode.ProtocolError);
                 return;

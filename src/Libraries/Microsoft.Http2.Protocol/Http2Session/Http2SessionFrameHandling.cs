@@ -48,7 +48,7 @@ namespace Microsoft.Http2.Protocol
             //is received whose stream identifier field is 0x0, the recipient MUST
             //respond with a connection error (Section 5.4.1) of type
             //PROTOCOL_ERROR [PROTOCOL_ERROR].
-            if (headersFrame.StreamId == 0 || headersFrame.StreamId > _lastSuccessfulId + 2)
+            if (headersFrame.StreamId == 0)
             {
                 throw new ProtocolError(ResetStatusCode.ProtocolError, "Incoming headers frame with id = 0");
             }
@@ -90,13 +90,17 @@ namespace Microsoft.Http2.Protocol
             }
 
             stream = GetStream(headersFrame.StreamId);
-            if (stream.Idle || stream.Reserved)
+            if (stream.Idle)
             {
                 stream = CreateStream(sequence);
 
                 ValidateHeaders(stream);
-
-                _lastSuccessfulId = stream.Id;
+            }
+            else if (stream.ReservedRemote)
+            {
+                stream = CreateStream(sequence);
+                stream.HalfClosedLocal = true;
+                ValidateHeaders(stream);
             }
             else if(stream.Opened || stream.HalfClosedLocal)
             {
@@ -127,7 +131,7 @@ namespace Microsoft.Http2.Protocol
             //CONTINUATION frame is received whose stream identifier field is 0x0,
             //the recipient MUST respond with a connection error (Section 5.4.1) of
             //type PROTOCOL_ERROR.
-            if (contFrame.StreamId == 0 || contFrame.StreamId > _lastSuccessfulId + 2)
+            if (contFrame.StreamId == 0)
             {
                 throw new ProtocolError(ResetStatusCode.ProtocolError,
                                         "Incoming continuation frame with id = 0");
@@ -164,13 +168,11 @@ namespace Microsoft.Http2.Protocol
             }
 
             stream = GetStream(contFrame.StreamId);
-            if (stream.Idle || stream.Reserved)
+            if (stream.Idle || stream.ReservedRemote)
             {
                 stream = CreateStream(sequence);
 
                 ValidateHeaders(stream);
-
-                _lastSuccessfulId = stream.Id;
             }
             else if (stream.Opened || stream.HalfClosedLocal)
             {
@@ -203,11 +205,11 @@ namespace Microsoft.Http2.Protocol
                                  priorityFrame.Priority);
 
             stream = GetStream(priorityFrame.StreamId);
-
+            
             if (stream.Closed)
                 throw new Http2StreamNotFoundException(priorityFrame.StreamId);
 
-            if (!(stream.Opened || stream.Reserved || stream.HalfClosedLocal))
+            if (!(stream.Opened || stream.ReservedRemote || stream.HalfClosedLocal))
                 throw new ProtocolError(ResetStatusCode.ProtocolError, "priority for non opened or reserved stream");
 
             if (!_usePriorities) 
@@ -246,9 +248,12 @@ namespace Microsoft.Http2.Protocol
             stream = GetStream(resetFrame.StreamId);
 
             if (stream.Closed)
-                return;
+            {
+                throw new Http2StreamNotFoundException(resetFrame.StreamId);
+                //_writeQueue.WriteFrame(new GoAwayFrame(0, ResetStatusCode.StreamClosed));
+            }
 
-            if (!(stream.Reserved || stream.Opened))
+            if (!(stream.ReservedRemote || stream.Opened || stream.HalfClosedLocal))
                 throw new ProtocolError(ResetStatusCode.ProtocolError, "rst for non opened or reserved stream");
 
             //09 -> 5.4.2.  Stream Error Handling
@@ -289,7 +294,7 @@ namespace Microsoft.Http2.Protocol
                 throw new Http2StreamNotFoundException(dataFrame.StreamId);
 
             //TODO remove HalfClosedRemote
-            if (!(stream.Opened || stream.HalfClosedLocal || stream.HalfClosedRemote))
+            if (!(stream.Opened || stream.HalfClosedLocal/* || stream.HalfClosedRemote*/))
                 throw new ProtocolError(ResetStatusCode.ProtocolError, "data in non opened or half closed local stream");
 
             //Aggressive window update
@@ -404,7 +409,7 @@ namespace Microsoft.Http2.Protocol
             if (stream.Closed)
                 throw new Http2StreamNotFoundException(windowUpdateFrame.StreamId);
 
-            if (!(stream.Opened || stream.Reserved || stream.HalfClosedRemote || stream.HalfClosedLocal))
+            if (!(stream.Opened /*|| stream.Reserved*/ || stream.HalfClosedRemote || stream.HalfClosedLocal))
                 throw new ProtocolError(ResetStatusCode.ProtocolError, "window update in incorrect state");
 
             //09 -> 6.9.  WINDOW_UPDATE
@@ -451,13 +456,14 @@ namespace Microsoft.Http2.Protocol
             _goAwayReceived = true;
             
             Http2Logger.LogDebug("GoAway frame received with code {0}", goAwayFrame.StatusCode);
+            Http2Logger.LogDebug("last successful id = {0}", goAwayFrame.LastGoodStreamId);
             Dispose();
         }
 
         private void HandlePushPromiseFrame(PushPromiseFrame frame, out Http2Stream stream)
         {
-            Http2Logger.LogDebug("New push_promise with id = " + frame.StreamId);
-            Http2Logger.LogDebug("Promised id = " + frame.PromisedStreamId);
+            Http2Logger.LogDebug("push_promise: StreamId = {0}, PromisedStreamId = {1}",
+                frame.StreamId, frame.PromisedStreamId);
 
             //09 -> 6.6.  PUSH_PROMISE
             //PUSH_PROMISE frames MUST be associated with an existing, peer-
@@ -473,10 +479,10 @@ namespace Microsoft.Http2.Protocol
             //sent a RST_STREAM frame to cancel the associated stream (see
             //Section 5.1).
 
-            if (frame.StreamId == 0
+            if (frame.StreamId % 2 == 0
                 || frame.PromisedStreamId == 0
                 || (frame.PromisedStreamId % 2) != 0
-                || frame.PromisedStreamId > _lastPromisedId
+                || frame.PromisedStreamId < _lastPromisedId
                 || !((ActiveStreams[frame.StreamId].Opened || ActiveStreams[frame.StreamId].HalfClosedLocal)))
             {
                 throw new ProtocolError(ResetStatusCode.ProtocolError, "Incorrect promised stream id");
@@ -554,8 +560,7 @@ namespace Microsoft.Http2.Protocol
             if (stream.Idle)
             {
                 stream = CreateStream(sequence);
-                stream.HalfClosedRemote = true;
-                stream.Reserved = true;
+                stream.ReservedRemote = true;
 
                 ValidateHeaders(stream);
                 _lastPromisedId = stream.Id;
