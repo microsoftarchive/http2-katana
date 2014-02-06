@@ -35,7 +35,7 @@ namespace Http2.TestClient
             _sessions = new Dictionary<string, Http2SessionHandler>();
             _environment = ArgsHelper.GetEnvironment(args);
 
-            var isTestsEnabled = ConfigurationManager.AppSettings["gruntEnabled"] == "true";
+            var isTestsEnabled = ConfigurationManager.AppSettings["testModeEnabled"] == "true";
             var waitForTestsFinish = new ManualResetEvent(!isTestsEnabled);
 
             Console.WriteLine();

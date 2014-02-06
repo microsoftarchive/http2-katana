@@ -61,13 +61,13 @@ namespace Microsoft.Http2.Protocol.IO
                 throw new ArgumentNullException("frame is null");
 
             //Do not write to already closed stream
-            if (frame.FrameType != FrameType.Settings
-                && frame.FrameType != FrameType.GoAway
-                && frame.FrameType != FrameType.Ping
-                && _streams[frame.StreamId] == null)
-            {
-                return;
-            }
+            //if (frame.FrameType != FrameType.Settings
+            //    && frame.FrameType != FrameType.GoAway
+            //    && frame.FrameType != FrameType.Ping
+            //    && _streams[frame.StreamId] == null)
+            //{
+            //    return;
+            //}
 
             var priority = frame.StreamId != 0 ? _streams[frame.StreamId].Priority : Constants.DefaultStreamPriority;
 

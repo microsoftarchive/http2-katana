@@ -30,8 +30,9 @@ namespace Microsoft.Http2.Protocol
             //treated as malformed (Section 8.1.3.5).
             foreach (var header in stream.Headers)
             {
-                if (!_matcher.IsMatch(header.Key))
-                {
+                string key = header.Key;
+                if (!_matcher.IsMatch(key) || key == ":")
+                {                    
                     stream.WriteRst(ResetStatusCode.RefusedStream);
                     stream.Close(ResetStatusCode.RefusedStream);
                     break;
@@ -374,6 +375,14 @@ namespace Microsoft.Http2.Protocol
                         break;
                     case SettingsIds.MaxConcurrentStreams:
                         RemoteMaxConcurrentStreams = settingsFrame[i].Value;
+                           /* A client can use the SETTINGS_MAX_CONCURRENT_STREAMS setting to limit
+                           the number of resources that can be concurrently pushed by a server.
+                           Advertising a SETTINGS_MAX_CONCURRENT_STREAMS value of zero disables
+                           server push by preventing the server from creating the necessary
+                           streams.  This does not prohibit a server from sending PUSH_PROMISE
+                           frames; clients need to reset any promised streams that are not
+                           wanted. */
+                        IsPushEnabled = settingsFrame[i].Value == 0;
                         break;
                     case SettingsIds.InitialWindowSize:
                         int newInitWindowSize = settingsFrame[i].Value;
@@ -470,23 +479,30 @@ namespace Microsoft.Http2.Protocol
             //initiated stream.  If the stream identifier field specifies the value
             //0x0, a recipient MUST respond with a connection error (Section 5.4.1)
             //of type PROTOCOL_ERROR.
-
             //... a receiver MUST
             //treat the receipt of a PUSH_PROMISE that promises an illegal stream
             //identifier (Section 5.1.1) (that is, an identifier for a stream that
             //is not currently in the "idle" state) as a connection error
             //(Section 5.4.1) of type PROTOCOL_ERROR, unless the receiver recently
             //sent a RST_STREAM frame to cancel the associated stream (see
-            //Section 5.1).
+            //Section 5.1).         
+
+            // An endpoint
+            // that receives any frame after receiving a RST_STREAM MUST treat
+            // that as a stream error (Section 5.4.2) of type STREAM_CLOSED.
+            if (ActiveStreams[frame.StreamId].Closed)
+            {
+                throw new Http2StreamNotFoundException(frame.StreamId);
+            }
 
             if (frame.StreamId % 2 == 0
                 || frame.PromisedStreamId == 0
                 || (frame.PromisedStreamId % 2) != 0
                 || frame.PromisedStreamId < _lastPromisedId
                 || !((ActiveStreams[frame.StreamId].Opened || ActiveStreams[frame.StreamId].HalfClosedLocal)))
-            {
+            { 
                 throw new ProtocolError(ResetStatusCode.ProtocolError, "Incorrect promised stream id");
-            }
+            }         
 
             var serializedHeaders = new byte[frame.CompressedHeaders.Count];
 

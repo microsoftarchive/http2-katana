@@ -491,7 +491,7 @@ namespace Microsoft.Http2.Protocol
             //[STREAM_CLOSED].
             catch (Http2StreamNotFoundException ex)
             {
-                Http2Logger.LogDebug("Frame for already closed stream with Id = {0}", ex.Id);
+                Http2Logger.LogDebug("Frame for already Closed stream with Stream Id = {0}", ex.Id);
                 //Close(ResetStatusCode.StreamClosed);
                 _writeQueue.WriteFrame(new RstStreamFrame(ex.Id, ResetStatusCode.StreamClosed));
             }
