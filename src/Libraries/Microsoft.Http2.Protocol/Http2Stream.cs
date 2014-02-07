@@ -97,6 +97,7 @@ namespace Microsoft.Http2.Protocol
         public int FramesSent { get; set; }
         public int FramesReceived { get; set; }
         public int Priority { get; set; }
+        public bool WasRstSent { get; set; }
 
         public bool Opened
         {

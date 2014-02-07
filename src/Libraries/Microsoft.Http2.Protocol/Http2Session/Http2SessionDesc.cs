@@ -467,7 +467,7 @@ namespace Microsoft.Http2.Protocol
                 if (frame is IEndStreamFrame && ((IEndStreamFrame) frame).IsEndStream)
                 {
                     //Tell the stream that it was the last frame
-                    Http2Logger.LogDebug("Final frame received for stream with id = " + stream.Id);
+                    Http2Logger.LogDebug("Final frame received for StreamId = " + stream.Id);
                     stream.HalfClosedRemote = true;
 
                     //Promised resource has been pushed
@@ -491,9 +491,9 @@ namespace Microsoft.Http2.Protocol
             //[STREAM_CLOSED].
             catch (Http2StreamNotFoundException ex)
             {
-                Http2Logger.LogDebug("Frame for already Closed stream with Stream Id = {0}", ex.Id);
-                //Close(ResetStatusCode.StreamClosed);
+                Http2Logger.LogDebug("Frame for already Closed stream with StreamId = {0}", ex.Id);
                 _writeQueue.WriteFrame(new RstStreamFrame(ex.Id, ResetStatusCode.StreamClosed));
+                stream.WasRstSent = true;
             }
             catch (CompressionError ex)
             {

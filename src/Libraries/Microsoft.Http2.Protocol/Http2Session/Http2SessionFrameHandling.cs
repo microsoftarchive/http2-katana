@@ -243,19 +243,22 @@ namespace Microsoft.Http2.Protocol
             //PROTOCOL_ERROR.
             if (resetFrame.StreamId == 0)
             {
-                throw new ProtocolError(ResetStatusCode.ProtocolError, "RstFrame with id = 0");
+                throw new ProtocolError(ResetStatusCode.ProtocolError, "RstFrame with StreamId = 0");
             }
 
             stream = GetStream(resetFrame.StreamId);
 
             if (stream.Closed)
             {
-                throw new Http2StreamNotFoundException(resetFrame.StreamId);
-                //_writeQueue.WriteFrame(new GoAwayFrame(0, ResetStatusCode.StreamClosed));
+                if (!stream.WasRstSent)
+                {
+                    throw new Http2StreamNotFoundException(resetFrame.StreamId);
+                }
+                return;
             }
 
             if (!(stream.ReservedRemote || stream.Opened || stream.HalfClosedLocal))
-                throw new ProtocolError(ResetStatusCode.ProtocolError, "rst for non opened or reserved stream");
+                throw new ProtocolError(ResetStatusCode.ProtocolError, "Rst for non opened or reserved stream");
 
             //09 -> 5.4.2.  Stream Error Handling
             //An endpoint MUST NOT send a RST_STREAM in response to an RST_STREAM
@@ -294,8 +297,7 @@ namespace Microsoft.Http2.Protocol
             if (stream.Closed)
                 throw new Http2StreamNotFoundException(dataFrame.StreamId);
 
-            //TODO remove HalfClosedRemote
-            if (!(stream.Opened || stream.HalfClosedLocal/* || stream.HalfClosedRemote*/))
+            if (!(stream.Opened || stream.HalfClosedLocal))
                 throw new ProtocolError(ResetStatusCode.ProtocolError, "data in non opened or half closed local stream");
 
             //Aggressive window update
@@ -413,12 +415,25 @@ namespace Microsoft.Http2.Protocol
 
             Http2Logger.LogDebug("WINDOW_UPDATE frame: Delta = {0}, StreamId: {1}", windowUpdateFrame.Delta,
                                     windowUpdateFrame.StreamId);
-            stream = GetStream(windowUpdateFrame.StreamId);
+
+            // TODO Remove this hack
+            /* The WINDOW_UPDATE frame can be specific to a stream or to the entire
+            connection.  In the former case, the frame's stream identifier
+            indicates the affected stream; in the latter, the value "0" indicates
+            that the _entire connection_ is the subject of the frame. */
+            if (windowUpdateFrame.StreamId == 0)
+            {
+                _flowControlManager.StreamsInitialWindowSize += windowUpdateFrame.Delta;
+                stream = null;
+                return; 
+            }
+
+            stream = GetStream(windowUpdateFrame.StreamId);                         
 
             if (stream.Closed)
                 throw new Http2StreamNotFoundException(windowUpdateFrame.StreamId);
 
-            if (!(stream.Opened /*|| stream.Reserved*/ || stream.HalfClosedRemote || stream.HalfClosedLocal))
+            if (!(stream.Opened || stream.HalfClosedRemote || stream.HalfClosedLocal))
                 throw new ProtocolError(ResetStatusCode.ProtocolError, "window update in incorrect state");
 
             //09 -> 6.9.  WINDOW_UPDATE
@@ -431,14 +446,7 @@ namespace Microsoft.Http2.Protocol
             {
                 Http2Logger.LogDebug("Incorrect window update delta : {0}", windowUpdateFrame.Delta);
                 throw new ProtocolError(ResetStatusCode.FlowControlError, String.Format("Incorrect window update delta : {0}", windowUpdateFrame.Delta));
-            }
-
-            //TODO Remove this hack
-            //Connection window size
-            if (windowUpdateFrame.StreamId == 0)
-            {
-                _flowControlManager.StreamsInitialWindowSize += windowUpdateFrame.Delta;
-            }
+            }           
 
             //09 -> 5.1.  Stream States
             //A receiver can ignore WINDOW_UPDATE [WINDOW_UPDATE] or PRIORITY
