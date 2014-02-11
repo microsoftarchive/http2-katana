@@ -138,6 +138,9 @@
     <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\IO\ResponseStream.cs">
       <Link>Sources\Libraries\Microsoft.Http2.Protocol\IO\ResponseStream.cs</Link>
     </Compile>
+    <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\StreamDictionary.cs">
+      <Link>Sources\Libraries\Microsoft.Http2.Protocol\StreamDictionary.cs</Link>
+    </Compile>
     <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Verbs.cs">
       <Link>Sources\Libraries\Microsoft.Http2.Protocol\Verbs.cs</Link>
     </Compile>
@@ -402,9 +405,6 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ResponseMiddleware.cs" />
     <Compile Include="TestHelpers.cs" />
-    <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\ActiveStreams.cs">
-      <Link>Sources\Libraries\Microsoft.Http2.Protocol\ActiveStreams</Link>
-    </Compile>
     <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Compression\HeadersDeltaCompression\Indexation.cs">
       <Link>Sources\Libraries\Microsoft.Http2.Protocol\Compression\HeadersDeltaCompression\Indexation</Link>
     </Compile>

@@ -21,7 +21,7 @@ namespace Microsoft.Http2.Protocol.IO
         private readonly Stream _stream;
         private bool _disposed;
         private readonly object _writeLock = new object();
-        private ActiveStreams _streams;
+        private StreamDictionary _streams;
         private readonly ICompressionProcessor _proc;
         public bool IsPriorityTurnedOn { get; private set; }
         
@@ -49,7 +49,7 @@ namespace Microsoft.Http2.Protocol.IO
             _disposed = false;
         }
 
-        public void SetActiveStreams(ActiveStreams streams)
+        public void SetStreamDictionary(StreamDictionary streams)
         {
             _streams = streams;
         }

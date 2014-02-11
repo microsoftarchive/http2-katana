@@ -390,7 +390,7 @@ namespace Microsoft.Http2.Protocol
                         int newInitWindowSize = settingsFrame[i].Value;
                         int windowSizeDiff = newInitWindowSize - _flowControlManager.StreamsInitialWindowSize;
 
-                        foreach (var stream in ActiveStreams.FlowControlledStreams.Values)
+                        foreach (var stream in StreamDictionary.FlowControlledStreams.Values)
                         {
                             stream.WindowSize += windowSizeDiff;
                         }
@@ -496,7 +496,7 @@ namespace Microsoft.Http2.Protocol
             // An endpoint
             // that receives any frame after receiving a RST_STREAM MUST treat
             // that as a stream error (Section 5.4.2) of type STREAM_CLOSED.
-            if (ActiveStreams[frame.StreamId].Closed)
+            if (StreamDictionary[frame.StreamId].Closed)
             {
                 throw new Http2StreamNotFoundException(frame.StreamId);
             }
@@ -512,7 +512,7 @@ namespace Microsoft.Http2.Protocol
                 || frame.PromisedStreamId == 0
                 || (frame.PromisedStreamId % 2) != 0
                 || frame.PromisedStreamId < _lastPromisedId
-                || !((ActiveStreams[frame.StreamId].Opened || ActiveStreams[frame.StreamId].HalfClosedLocal)))
+                || !((StreamDictionary[frame.StreamId].Opened || StreamDictionary[frame.StreamId].HalfClosedLocal)))
             { 
                 throw new ProtocolError(ResetStatusCode.ProtocolError, "Incorrect Promised Stream id");
             }         

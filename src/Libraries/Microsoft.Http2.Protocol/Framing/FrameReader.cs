@@ -75,6 +75,9 @@ namespace Microsoft.Http2.Protocol.Framing
                 case FrameType.Headers:
                     return new HeadersFrame(preamble);
 
+                case FrameType.Continuation:
+                    return new ContinuationFrame(preamble);
+
                 case FrameType.WindowUpdate:
                     return new WindowUpdateFrame(preamble);
 

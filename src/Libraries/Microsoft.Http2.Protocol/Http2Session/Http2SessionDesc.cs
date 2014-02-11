@@ -76,12 +76,12 @@ namespace Microsoft.Http2.Protocol
         public event EventHandler<System.EventArgs> OnSessionDisposed;
 
         /// <summary>
-        /// Gets the active streams.
+        /// Gets the stream dictionary.
         /// </summary>
         /// <value>
-        /// The active streams collection.
+        /// The stream dictionary.
         /// </value>
-        internal ActiveStreams ActiveStreams { get; private set; }
+        internal StreamDictionary StreamDictionary { get; private set; }
 
         /// <summary>
         /// How many parallel streams can our endpoint support
@@ -170,18 +170,18 @@ namespace Microsoft.Http2.Protocol
             _headersSequences = new HeadersSequenceList();
             _promisedResources = new Dictionary<int, string>();
 
-            ActiveStreams = new ActiveStreams();
+            StreamDictionary = new StreamDictionary();
             for (byte i = 0; i < OurMaxConcurrentStreams; i++)
             {
                 var http2Stream = new Http2Stream(new HeadersList(), i + 1, _writeQueue, _flowControlManager)
                 {
                     Idle = true
                 };
-                ActiveStreams.Add(new KeyValuePair<int, Http2Stream>(i + 1, http2Stream));
+                StreamDictionary.Add(new KeyValuePair<int, Http2Stream>(i + 1, http2Stream));
             }
 
-            _flowControlManager.SetStreamsCollection(ActiveStreams);
-            _writeQueue.SetActiveStreams(ActiveStreams);
+            _flowControlManager.SetStreamDictionary(StreamDictionary);
+            _writeQueue.SetStreamDictionary(StreamDictionary);
         }
 
         private void SendSessionHeader()
@@ -537,7 +537,7 @@ namespace Microsoft.Http2.Protocol
             if (priority < 0 || priority > Constants.MaxPriority)
                 throw new ArgumentOutOfRangeException("priority is not between 0 and MaxPriority");
 
-            if (ActiveStreams.GetOpenedStreamsBy(_remoteEnd) + 1 > OurMaxConcurrentStreams)
+            if (StreamDictionary.GetOpenedStreamsBy(_remoteEnd) + 1 > OurMaxConcurrentStreams)
             {
                 throw new MaxConcurrentStreamsLimitException();
             }
@@ -548,7 +548,7 @@ namespace Microsoft.Http2.Protocol
             var streamSequence = new HeadersSequence(streamId, (new HeadersFrame(streamId, priority){Headers = headers}));
             _headersSequences.Add(streamSequence);
 
-            var stream = ActiveStreams[streamId];
+            var stream = StreamDictionary[streamId];
 
             stream.OnFrameSent += (o, args) =>
                 {
@@ -582,7 +582,7 @@ namespace Microsoft.Http2.Protocol
             if (sequence.Priority < 0 || sequence.Priority > Constants.MaxPriority)
                 throw new ArgumentOutOfRangeException("priority is not between 0 and MaxPriority");
 
-            if (ActiveStreams.GetOpenedStreamsBy(_remoteEnd) + 1 > OurMaxConcurrentStreams)
+            if (StreamDictionary.GetOpenedStreamsBy(_remoteEnd) + 1 > OurMaxConcurrentStreams)
             {
                 throw new MaxConcurrentStreamsLimitException();
             }
@@ -591,7 +591,7 @@ namespace Microsoft.Http2.Protocol
             int priority = sequence.Priority;
             var headers = sequence.Headers;
 
-            var stream = ActiveStreams[id];
+            var stream = StreamDictionary[id];
 
             if (sequence.WasEndStreamReceived)
                 stream.HalfClosedLocal = sequence.WasEndStreamReceived;
@@ -641,12 +641,12 @@ namespace Microsoft.Http2.Protocol
             if (priority < 0 || priority > Constants.MaxPriority)
                 throw new ArgumentOutOfRangeException("priority is not between 0 and MaxPriority");
 
-            if (ActiveStreams.GetOpenedStreamsBy(_ourEnd) + 1 > RemoteMaxConcurrentStreams)
+            if (StreamDictionary.GetOpenedStreamsBy(_ourEnd) + 1 > RemoteMaxConcurrentStreams)
             {
                 throw new MaxConcurrentStreamsLimitException();
             }
             int nextId = GetNextId();
-            var stream = ActiveStreams[nextId];
+            var stream = StreamDictionary[nextId];
 
             var streamSequence = new HeadersSequence(nextId, (new HeadersFrame(nextId, priority)));
             _headersSequences.Add(streamSequence);
@@ -717,14 +717,14 @@ namespace Microsoft.Http2.Protocol
         }
 
         /// <summary>
-        /// Gets the stream from active streams.
+        /// Gets the stream from stream dictionary.
         /// </summary>
         /// <param name="id">The stream id.</param>
         /// <returns></returns>
         internal Http2Stream GetStream(int id)
         {
             Http2Stream stream;
-            if (!ActiveStreams.TryGetValue(id, out stream))
+            if (!StreamDictionary.TryGetValue(id, out stream))
             {
                 return null;
             }
@@ -821,7 +821,7 @@ namespace Microsoft.Http2.Protocol
             _disposed = true;
 
             // Dispose of all streams
-            foreach (var stream in ActiveStreams.Values)
+            foreach (var stream in StreamDictionary.Values)
             {
                 //Cancel all opened streams
                 stream.Close(ResetStatusCode.None);
