@@ -20,7 +20,7 @@ namespace Microsoft.Http2.Protocol.FlowControl
     internal class FlowControlManager
     {
         private readonly Http2Session _flowControlledSession;
-        private readonly ActiveStreams _streamCollection;
+        private StreamDictionary _streamDictionary;
         private Int32 _options;
         private bool _wasFlowControlSet;
         /// <summary>
@@ -47,7 +47,7 @@ namespace Microsoft.Http2.Protocol.FlowControl
 
                if (!IsFlowControlEnabled)
                {
-                   foreach (var stream in _streamCollection.Values)
+                   foreach (var stream in _streamDictionary.Values)
                    {
                        DisableStreamFlowControl(stream);
                    }
@@ -86,11 +86,16 @@ namespace Microsoft.Http2.Protocol.FlowControl
             StreamsInitialWindowSize = Constants.InitialFlowControlWindowSize;
 
             _flowControlledSession = flowControlledSession;
-            _streamCollection = _flowControlledSession.ActiveStreams;
+            _streamDictionary = _flowControlledSession.StreamDictionary;
 
             Options = Constants.InitialFlowControlOptionsValue;
             _wasFlowControlSet = false;
             IsSessionBlocked = false;
+        }
+
+        public void SetStreamDictionary(StreamDictionary streams)
+        {
+            _streamDictionary = streams;
         }
 
         /// <summary>
@@ -105,7 +110,7 @@ namespace Microsoft.Http2.Protocol.FlowControl
             if (stream == null)
                 throw new ArgumentNullException("stream is null");
 
-            return _streamCollection.IsStreamFlowControlled(stream);
+            return _streamDictionary.IsStreamFlowControlled(stream);
         }
 
         public void NewStreamOpenedHandler(Http2Stream stream)
@@ -134,7 +139,7 @@ namespace Microsoft.Http2.Protocol.FlowControl
             if (stream == null)
                 throw new ArgumentNullException("stream is null");
 
-            _streamCollection.DisableFlowControl(stream);
+            _streamDictionary.DisableFlowControl(stream);
         }
 
         /// <summary>
@@ -148,12 +153,12 @@ namespace Microsoft.Http2.Protocol.FlowControl
             int id = args.Id;
 
             //Stream was closed after a data final frame.
-            if (!_streamCollection.ContainsKey(id))
+            if (!_streamDictionary.ContainsKey(id))
             {
                 return;
             }
 
-            var stream = _streamCollection[id];
+            var stream = _streamDictionary[id];
             if (!stream.IsFlowControlEnabled)
             {
                 return;

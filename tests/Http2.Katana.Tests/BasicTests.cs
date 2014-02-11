@@ -340,10 +340,10 @@ namespace Http2.Katana.Tests
         }
 
         [StandardFact]
-        public void ActiveStreamsSuccessful()
+        public void StreamDictionarySuccessful()
         {
             var session = new Http2Session(Stream.Null, ConnectionEnd.Client, true, true, true, new CancellationToken());
-            var testCollection = session.ActiveStreams;
+            var testCollection = session.StreamDictionary;
             var fm = new FlowControlManager(session);
 
             testCollection[1] = new Http2Stream(null, 1, null, fm);

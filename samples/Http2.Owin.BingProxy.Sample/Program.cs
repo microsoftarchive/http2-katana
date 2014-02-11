@@ -18,8 +18,8 @@ namespace Http2.Owin.BingProxy.Sample
         static void Main(string[] args)
         {
             var address = ConfigurationManager.AppSettings["useSecurePort"] == "true"
-                                   ? "https://localhost:8443/"
-                                   : "http://localhost:8080/";
+                                   ? ConfigurationManager.AppSettings["secureAddress"]
+                                   : ConfigurationManager.AppSettings["unsecureAddressAddress"];
 
             var startOpt = new StartOptions(address)
             {

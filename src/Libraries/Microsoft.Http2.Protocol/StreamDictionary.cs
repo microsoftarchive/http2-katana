@@ -17,19 +17,19 @@ namespace Microsoft.Http2.Protocol
     /// <summary>
     /// This collection consists of two collection - flow controlled and nonflowcontrolled streams.
     /// </summary>
-    internal class ActiveStreams : IDictionary<int, Http2Stream>
+    internal class StreamDictionary : IDictionary<int, Http2Stream>
     {
         /// <summary>
         /// Collection enumerator class
         /// </summary>
-        private class ActiveStreamsEnumerator : IEnumerator<KeyValuePair<int, Http2Stream>>
+        private class StreamDictionaryEnumerator : IEnumerator<KeyValuePair<int, Http2Stream>>
         {
-            private readonly ActiveStreams _collection;
+            private readonly StreamDictionary _collection;
             private KeyValuePair<int, Http2Stream> _curPair;
             private Dictionary<int, Http2Stream>.Enumerator _nonControlledEnum;
             private Dictionary<int, Http2Stream>.Enumerator _controlledEnum;
 
-            public ActiveStreamsEnumerator(ActiveStreams collection)
+            public StreamDictionaryEnumerator(StreamDictionary collection)
             {
                 _collection = collection;
                 _curPair = default(KeyValuePair<int, Http2Stream>);
@@ -79,15 +79,10 @@ namespace Microsoft.Http2.Protocol
         public Dictionary<int, Http2Stream> NonFlowControlledStreams { get; private set; }
         public Dictionary<int, Http2Stream> FlowControlledStreams { get; private set; }
 
-        public ActiveStreams()
-            :this(10)
+        public StreamDictionary()
         {
-        }
-
-        public ActiveStreams(int capacity)
-        {
-            NonFlowControlledStreams = new Dictionary<int, Http2Stream>(capacity / 2);
-            FlowControlledStreams = new Dictionary<int, Http2Stream>(capacity / 2);
+            NonFlowControlledStreams = new Dictionary<int, Http2Stream>();
+            FlowControlledStreams = new Dictionary<int, Http2Stream>();
         }
 
         public bool TryGetValue(int key, out Http2Stream value)
@@ -122,17 +117,12 @@ namespace Microsoft.Http2.Protocol
             }
             set
             {
-                Add(value);
+                
             }
         }
 
         public void Add(Http2Stream item)
         {
-            if (ContainsKey(item.Id))
-            {
-                throw new ArgumentException("This key already exists in the collection: " + item.Id);
-            }
-
             if (item.IsFlowControlEnabled)
             {
                 FlowControlledStreams.Add(item.Id, item);
@@ -268,7 +258,7 @@ namespace Microsoft.Http2.Protocol
 
         public IEnumerator<KeyValuePair<int, Http2Stream>> GetEnumerator()
         {
-            return new ActiveStreamsEnumerator(this);
+            return new StreamDictionaryEnumerator(this);
         }
 
         IEnumerator IEnumerable.GetEnumerator()

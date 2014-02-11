@@ -82,7 +82,10 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>copy /y "$(SolutionDir)Drop\server.pfx" "$(TargetDir)"
+    <PostBuildEvent>copy /y "$(TargetPath)" "$(SolutionDir)Drop\$(TargetFileName)"
+copy /y "$(TargetDir)\Http2.Owin.BingProxy.Sample.exe.config" "$(SolutionDir)Drop\Http2.Owin.BingProxy.Sample.exe.config"
+
+copy /y "$(SolutionDir)Drop\server.pfx" "$(TargetDir)"
 copy /y "$(SolutionDir)\Drop\ssleay32.dll" "$(TargetDir)\ssleay32.dll"
 copy /y "$(SolutionDir)\Drop\libeay32.dll" "$(TargetDir)\libeay32.dll"</PostBuildEvent>
   </PropertyGroup>

@@ -60,6 +60,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ArgsHelper.cs" />
     <Compile Include="CommandParser\CommandParser.cs" />
     <Compile Include="CommandParser\HelpDisplayer.cs" />
     <Compile Include="Commands\Command.cs" />
@@ -100,7 +101,9 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <None Include="app.config" />
+    <None Include="app.config">
+      <SubType>Designer</SubType>
+    </None>
     <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

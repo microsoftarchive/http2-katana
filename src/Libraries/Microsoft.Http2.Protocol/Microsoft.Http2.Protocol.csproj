@@ -43,7 +43,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="ActiveStreams.cs" />
+    <Compile Include="StreamDictionary.cs" />
     <Compile Include="CommonHeaders.cs" />
     <Compile Include="Compression\HeadersDeltaCompression\CompressionProcessor\CompressionProcessor.cs" />
     <Compile Include="Compression\HeadersDeltaCompression\CompressionProcessor\CompressionProcStaticTable.cs" />
