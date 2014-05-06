@@ -456,10 +456,11 @@ namespace Microsoft.Http2.Protocol
 
                         break;
                     default:
-                        //09 -> 4.1.  Frame Format
-                        //Implementations MUST ignore frames of unsupported or unrecognized types.
-                        Http2Logger.LogDebug("Unknown frame received. Ignoring it");
-                        break;
+                        /* 12 -> 4.1
+                        Implementations MUST treat the receipt of an unknown frame type
+                        (any frame types not defined in this document) as a connection
+                        error of type PROTOCOL_ERROR. */
+                        throw new ProtocolError(ResetStatusCode.ProtocolError, "Unknown frame type detected");
                 }
 
                 _lastFrame = frame;
