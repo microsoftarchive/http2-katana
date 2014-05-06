@@ -365,7 +365,6 @@ namespace Microsoft.Http2.Protocol
 
             for (int i = 0; i < settingsFrame.EntryCount; i++)
             {
-
                 switch (settingsFrame[i].Id)
                 {
                     case SettingsIds.HeadersTableSize:
@@ -377,13 +376,13 @@ namespace Microsoft.Http2.Protocol
                         break;
                     case SettingsIds.MaxConcurrentStreams:
                         RemoteMaxConcurrentStreams = settingsFrame[i].Value;
-                           /* A client can use the SETTINGS_MAX_CONCURRENT_STREAMS setting to limit
-                           the number of resources that can be concurrently pushed by a server.
-                           Advertising a SETTINGS_MAX_CONCURRENT_STREAMS value of zero disables
-                           server push by preventing the server from creating the necessary
-                           streams.  This does not prohibit a server from sending PUSH_PROMISE
-                           frames; clients need to reset any promised streams that are not
-                           wanted. */
+                        /* A client can use the SETTINGS_MAX_CONCURRENT_STREAMS setting to limit
+                        the number of resources that can be concurrently pushed by a server.
+                        Advertising a SETTINGS_MAX_CONCURRENT_STREAMS value of zero disables
+                        server push by preventing the server from creating the necessary
+                        streams.  This does not prohibit a server from sending PUSH_PROMISE
+                        frames; clients need to reset any promised streams that are not
+                        wanted. */
                         IsPushEnabled = settingsFrame[i].Value == 0;
                         break;
                     case SettingsIds.InitialWindowSize:
@@ -401,6 +400,11 @@ namespace Microsoft.Http2.Protocol
                     case SettingsIds.FlowControlOptions:
                         _flowControlManager.Options = settingsFrame[i].Value;
                         break;
+                    default:
+                        /* 12 -> 6.5.2 
+                        An endpoint that receives a SETTINGS frame with any other identifier
+                        MUST treat this as a connection error of type PROTOCOL_ERROR. */
+                        throw new ProtocolError(ResetStatusCode.ProtocolError, "Unknown setting identifier detected");
                 }
             }
         }
