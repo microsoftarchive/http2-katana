@@ -8,13 +8,19 @@
 // See the Apache 2 License for the specific language governing permissions and limitations under the License.
 namespace Microsoft.Http2.Protocol.Framing
 {
+    /// <summary>
+    /// See draft 12 -> 6.5.2.  Defined SETTINGS Parameters
+    /// </summary>
     public enum SettingsIds : int
     {
         None = 0,
-        SettingsHeadersTableSize = 1,
-        SettingsEnableServerPush = 2,
-        MaxConcurrentStreams = 4,
-        InitialWindowSize = 7,
+        HeadersTableSize = 1,
+        EnablePush = 2,
+        MaxConcurrentStreams = 3,
+        InitialWindowSize = 4,
+        CompressData = 5,
+        //TODO: FlowControlOptions setting is ignored
+        //because flow control cannot be disabled
         FlowControlOptions = 10
     }
 }

@@ -368,11 +368,11 @@ namespace Microsoft.Http2.Protocol
 
                 switch (settingsFrame[i].Id)
                 {
-                    case SettingsIds.SettingsHeadersTableSize:
+                    case SettingsIds.HeadersTableSize:
                         if (_comprProc is CompressionProcessor)
                             (_comprProc as CompressionProcessor).NotifySettingsChanges(settingsFrame[i].Value);
                         break;
-                    case SettingsIds.SettingsEnableServerPush:
+                    case SettingsIds.EnablePush:
                         IsPushEnabled = settingsFrame[i].Value != 0;
                         break;
                     case SettingsIds.MaxConcurrentStreams:
