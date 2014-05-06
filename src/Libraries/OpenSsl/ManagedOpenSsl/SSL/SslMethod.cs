@@ -229,19 +229,34 @@ namespace OpenSSL.SSL
         public static SslMethod SSLv23_client_method = new SslMethod(Native.SSLv23_client_method(), false);
 
         /// <summary>
-        /// TLSv1_method()
+        /// TLSv11_method()
         /// </summary>
-        public static SslMethod TLSv1_method = new SslMethod(Native.TLSv1_1_method(), false);
+        public static SslMethod TLSv11_method = new SslMethod(Native.TLSv1_1_method(), false);
 
         /// <summary>
-        /// TLSv1_server_method()
+        /// TLSv11_server_method()
         /// </summary>
-        public static SslMethod TLSv1_server_method = new SslMethod(Native.TLSv1_1_server_method(), false);
+        public static SslMethod TLSv11_server_method = new SslMethod(Native.TLSv1_1_server_method(), false);
 
         /// <summary>
-        /// TLSv1_client_method()
+        /// TLSv11_client_method()
         /// </summary>
-        public static SslMethod TLSv1_client_method = new SslMethod(Native.TLSv1_1_client_method(), false);
+        public static SslMethod TLSv11_client_method = new SslMethod(Native.TLSv1_1_client_method(), false);
+
+        /// <summary>
+        /// TLSv12_method()
+        /// </summary>
+        public static SslMethod TLSv12_method = new SslMethod(Native.TLSv1_2_method(), false);
+
+        /// <summary>
+        /// TLSv12_server_method()
+        /// </summary>
+        public static SslMethod TLSv12_server_method = new SslMethod(Native.TLSv1_2_server_method(), false);
+
+        /// <summary>
+        /// TLSv12_client_method()
+        /// </summary>
+        public static SslMethod TLSv12_client_method = new SslMethod(Native.TLSv1_2_client_method(), false);
 
         /// <summary>
         /// DTLSv1_method()
