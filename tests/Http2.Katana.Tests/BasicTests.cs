@@ -343,36 +343,20 @@ namespace Http2.Katana.Tests
         public void StreamDictionarySuccessful()
         {
             var session = new Http2Session(Stream.Null, ConnectionEnd.Client, true, true, true, new CancellationToken());
-            var testCollection = session.StreamDictionary;
+            var streamDictionary = session.StreamDictionary;
             var fm = new FlowControlManager(session);
 
-            testCollection[1] = new Http2Stream(null, 1, null, fm);
-            testCollection[2] = new Http2Stream(null, 2, null, fm);
-            testCollection[3] = new Http2Stream(null, 3, null, fm);
-            testCollection[4] = new Http2Stream(null, 4, null, fm);
+            streamDictionary[1] = new Http2Stream(null, 1, null, fm);
+            streamDictionary[2] = new Http2Stream(null, 2, null, fm);
+            streamDictionary[3] = new Http2Stream(null, 3, null, fm);
+            streamDictionary[4] = new Http2Stream(null, 4, null, fm);
 
-            fm.DisableStreamFlowControl(testCollection[2]);
-            fm.DisableStreamFlowControl(testCollection[4]);
+            Assert.Equal(streamDictionary.FlowControlledStreams.Count, 100);
 
-            Assert.Equal(testCollection.NonFlowControlledStreams.Count, 2);
-            Assert.Equal(testCollection.FlowControlledStreams.Count, 2);
+            streamDictionary.Remove(4);
 
-            bool gotException = false;
-            try
-            {
-                testCollection[4] = new Http2Stream(null, 3, null, fm);
-            }
-            catch (ArgumentException)
-            {
-                gotException = true;
-            }
-
-            Assert.Equal(gotException, true);
-
-            testCollection.Remove(4);
-
-            Assert.Equal(testCollection.Count, 3);
-            Assert.Equal(testCollection.ContainsKey(4), false);
+            Assert.Equal(streamDictionary.Count, 99);
+            Assert.Equal(streamDictionary.ContainsKey(4), false);
         }
     }
 }
