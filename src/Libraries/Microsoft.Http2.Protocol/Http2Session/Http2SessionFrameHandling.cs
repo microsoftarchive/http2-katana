@@ -347,19 +347,23 @@ namespace Microsoft.Http2.Protocol
             _wasSettingsReceived = true;
             Http2Logger.LogDebug("SETTINGS frame: Entry count = {0}, StreamId: {1}", settingsFrame.EntryCount,
                                  settingsFrame.StreamId);
-
+            /* 12 -> 6.5
+            If an endpoint receives a SETTINGS frame whose stream identifier 
+            field is other than 0x0, the endpoint MUST respond with a connection
+            error of type PROTOCOL_ERROR. */
             if (settingsFrame.StreamId != 0)
-                throw new ProtocolError(ResetStatusCode.ProtocolError, "Settings frame Strream id is not 0");
-            //Receipt of a SETTINGS frame with the ACK flag set and a length
-            //field value other than 0 MUST be treated as a connection error
-            //(Section 5.4.1) of type FRAME_SIZE_ERROR.
+                throw new ProtocolError(ResetStatusCode.ProtocolError, "Settings frame stream id is not 0");
+            /* 12 -> 6.5
+            Receipt of a SETTINGS frame with the ACK flag set and a length
+            field value other than 0 MUST be treated as a connection error
+            of type FRAME_SIZE_ERROR. */
             if (settingsFrame.IsAck)
             {
                 _settingsAckReceived.Set();
 
                 if (settingsFrame.FrameLength != 0)
-                    throw new ProtocolError(ResetStatusCode.FrameSizeError, "ACK settings frame is not 0");
-                
+                    throw new ProtocolError(ResetStatusCode.FrameSizeError, "ACK settings frame is not 0");      
+          
                 return;
             }
 
