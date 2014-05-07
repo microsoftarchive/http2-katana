@@ -284,7 +284,7 @@ namespace Microsoft.Http2.Protocol
                 {
                     WriteSettings(new[]
                         {
-                            new SettingsPair(SettingsFlags.None, SettingsIds.InitialWindowSize,
+                            new SettingsPair(SettingsIds.InitialWindowSize,
                                              Constants.MaxFrameContentSize)
                         }, false);
                 }
@@ -292,9 +292,9 @@ namespace Microsoft.Http2.Protocol
                 {
                     WriteSettings(new[]
                         {
-                            new SettingsPair(SettingsFlags.None, SettingsIds.InitialWindowSize,
+                            new SettingsPair(SettingsIds.InitialWindowSize,
                                              Constants.MaxFrameContentSize),
-                            new SettingsPair(SettingsFlags.None, SettingsIds.FlowControlOptions,
+                            new SettingsPair(SettingsIds.FlowControlOptions,
                                              (byte) FlowControlOptions.DontUseFlowControl)
                         }, false);
                 }

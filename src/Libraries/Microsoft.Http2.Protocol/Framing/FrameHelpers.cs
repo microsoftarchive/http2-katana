@@ -84,7 +84,7 @@ namespace Microsoft.Http2.Protocol.Framing
             buffer[offset] = (byte)(upper3Bits | lower5Bits);
         }
 
-        public static int Get8BitsAt(byte[] buffer, int offset, byte value)
+        public static int Get8BitsAt(byte[] buffer, int offset)
         {
             Contract.Assert(offset >= 0 && offset < buffer.Length);
             return (0x1F & buffer[offset]);
