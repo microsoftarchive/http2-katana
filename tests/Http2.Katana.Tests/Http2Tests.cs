@@ -303,7 +303,7 @@ namespace Http2.Katana.Tests
             var http11Headers = "GET " + uri.AbsolutePath + " HTTP/1.1\r\n" +
                                 "Host: " + uri.Host + "\r\n" +
                                 "Connection: Upgrade, HTTP2-Settings\r\n" +
-                                "Upgrade: " + Protocols.Http2 + "\r\n" +
+                                "Upgrade: " + Protocols.Http2NoTls + "\r\n" +
                                 "HTTP2-Settings: \r\n" + // TODO send any valid settings
                                 "\r\n";
             clientStream.Write(Encoding.UTF8.GetBytes(http11Headers));

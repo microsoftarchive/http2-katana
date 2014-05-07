@@ -78,7 +78,7 @@ namespace Microsoft.Http2.Owin.Middleware
                     });
 
                 // specify Upgrade protocol
-                context.Response.Headers.Add(CommonHeaders.Upgrade, new[] { Protocols.Http2 });
+                context.Response.Headers.Add(CommonHeaders.Upgrade, new[] { Protocols.Http2NoTls });
                 return;
             }
 
@@ -93,7 +93,7 @@ namespace Microsoft.Http2.Owin.Middleware
                     && headers.ContainsKey(CommonHeaders.Http2Settings)
                     && headers.ContainsKey(CommonHeaders.Upgrade)
                     && headers[CommonHeaders.Upgrade].FirstOrDefault(it =>
-                                         it.ToUpper().IndexOf(Protocols.Http2, StringComparison.OrdinalIgnoreCase) != -1) != null;
+                                         it.ToUpper().IndexOf(Protocols.Http2NoTls, StringComparison.OrdinalIgnoreCase) != -1) != null;
         }
 
         private static bool IsOpaqueUpgradePossible(IOwinRequest request)
