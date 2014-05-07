@@ -161,7 +161,7 @@
 
 using System;
 using System.Runtime.InteropServices;
-using OpenSSL.ALPN;
+using OpenSSL.Extensions;
 using OpenSSL.Core;
 using OpenSSL.Exceptions;
 using OpenSSL.X509;
@@ -570,7 +570,7 @@ namespace OpenSSL.SSL
                 var data = new IntPtr();
                 var len = new IntPtr();
 
-                AlpnExtension.SSL_get0_alpn_selected(Handle, ref data, ref len);
+                Native.SSL_get0_alpn_selected(Handle, ref data, ref len);
 
                 if (data == IntPtr.Zero)
                 {

@@ -190,6 +190,10 @@ namespace OpenSSL.SSL
             
             // Initalize the Ssl object
             ssl = new Ssl(sslContext);
+
+            sniCb = sniExt.ServerSniCb;
+            sniExt.AttachSniExtensionServer(ssl.Handle, sslContext.Handle, sniCb);
+
             // Initialze the read/write bio
             read_bio = BIO.MemoryBuffer(false);
             write_bio = BIO.MemoryBuffer(false);

@@ -78,10 +78,11 @@ using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
+using OpenSSL.Core;
 using OpenSSL.Exceptions;
 using OpenSSL.SSL;
 
-namespace OpenSSL.ALPN
+namespace OpenSSL.Extensions
 {
     /// <summary>
     /// 
@@ -108,29 +109,7 @@ namespace OpenSSL.ALPN
             SetKnownProtocols(ctxHandle, knownProtos);
         }
 
-        [DllImport("ssleay32.dll", CallingConvention = CallingConvention.Cdecl)]
-        public static extern int SSL_CTX_set_alpn_protos(IntPtr /*SSL_CTX * */ ctx,
-                                                         [MarshalAs(UnmanagedType.LPArray)] byte[]
-                                                             /*const unsigned char* */ protos,
-                                                         UInt32 protos_len);
 
-        [DllImport("ssleay32.dll", CallingConvention = CallingConvention.Cdecl)]
-        public static extern void SSL_get0_alpn_selected(IntPtr /*SSL* */ ssl,
-                                                         ref IntPtr /*const unsigned char** */ data,
-                                                         ref IntPtr /*unsigned* */ len);
-
-        //void SSL_CTX_set_alpn_select_cb(SSL_CTX* ctx,
-        //int (*cb) (SSL *ssl,
-        //     const unsigned char **out,
-        //     unsigned char *outlen,
-        //     const unsigned char *in,
-        //     unsigned int inlen,
-        //      void *arg),
-        // void *arg)
-        [DllImport("ssleay32.dll", CallingConvention = CallingConvention.Cdecl)]
-        public static extern void SSL_CTX_set_alpn_select_cb(IntPtr /*SSL_CTX* */ ctx,
-                                                             IntPtr /* int (*cb) */ alpnCb,
-                                                             IntPtr /*void* */ arg);
 
         private byte[] _knownProtocols;
 
@@ -171,7 +150,7 @@ namespace OpenSSL.ALPN
                 Buffer.BlockCopy(protoStream.GetBuffer(), 0, _knownProtocols, 0, offset);
             }
 
-            if (SSL_CTX_set_alpn_protos(ctx, _knownProtocols, (UInt32)_knownProtocols.Length) != 0)
+            if (Native.SSL_CTX_set_alpn_protos(ctx, _knownProtocols, (UInt32)_knownProtocols.Length) != 0)
                 throw new AlpnException("cant set alpn protos");
         }
 
