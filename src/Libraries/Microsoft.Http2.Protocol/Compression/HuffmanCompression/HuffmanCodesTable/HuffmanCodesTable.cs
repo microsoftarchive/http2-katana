@@ -18,20 +18,14 @@ namespace Microsoft.Http2.Protocol.Compression.Huffman
 
     internal partial class HuffmanCodesTable
     {
-        private bool _isRequest;
         private const bool T = true;
         private const bool F = false;
-
-        public HuffmanCodesTable(bool isRequest)
-        {
-            _isRequest = isRequest;
-        }
 
         public int Size 
         {
             get
             {
-                Map bitsMap = _isRequest ? _reqSymbolBitsMap : _respSymbolBitsMap;
+                Map bitsMap = _symbolBitsMap;
                 return bitsMap.Keys.Sum(value => value.Length);
             }
         }
@@ -40,21 +34,18 @@ namespace Microsoft.Http2.Protocol.Compression.Huffman
         {
             get
             {
-                return _isRequest ? _reqSymbolBitsMap : _respSymbolBitsMap;
+                return _symbolBitsMap;
             }
             set
             {
                 Debug.Assert(value != null);
-                if (_isRequest)
-                    _reqSymbolBitsMap = value;
-                else
-                    _respSymbolBitsMap = value;
+                _symbolBitsMap = value;
             }
         }
 
         public byte GetByte(bool[] bits)
         {
-            Map bitsMap = _isRequest ? _reqSymbolBitsMap : _respSymbolBitsMap;
+            Map bitsMap = _symbolBitsMap;
             foreach (var tableBits in bitsMap.Keys)
             {
                 if (tableBits.Length != bits.Length)
@@ -81,7 +72,7 @@ namespace Microsoft.Http2.Protocol.Compression.Huffman
 
         public byte GetByte(List<bool> bits)
         {
-            Map bitsMap = _isRequest ? _reqSymbolBitsMap : _respSymbolBitsMap;
+            Map bitsMap = _symbolBitsMap;
             foreach (var tableBits in bitsMap.Keys)
             {
                 if (tableBits.Length != bits.Count)
@@ -108,7 +99,7 @@ namespace Microsoft.Http2.Protocol.Compression.Huffman
 
         public bool[] GetBits(byte c)
         {
-            var bitsMap = _isRequest ? _reqSymbolBitsMap : _respSymbolBitsMap;
+            var bitsMap = _symbolBitsMap;
             var val = bitsMap.FirstOrDefault(pair => pair.Value == c).Key;
 
             if (val == null)

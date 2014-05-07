@@ -107,8 +107,8 @@ namespace Http2.Katana.Tests
                     new KeyValuePair<string, string>(":host", "localhost"),
                     new KeyValuePair<string, string>(":scheme", "https"),
                 };
-            var clientCompressionProc = new CompressionProcessor(ConnectionEnd.Client);
-            var serverCompressionProc = new CompressionProcessor(ConnectionEnd.Server);
+            var clientCompressionProc = new CompressionProcessor();
+            var serverCompressionProc = new CompressionProcessor();
 
             var serializedHeaders = clientCompressionProc.Compress(clientHeaders);
             var decompressedHeaders = new HeadersList(serverCompressionProc.Decompress(serializedHeaders));
@@ -209,8 +209,8 @@ namespace Http2.Katana.Tests
 
             var now = DateTime.Now.Millisecond;
 
-            var compressed = compressor.Compress(inputBytes, true);
-            var decompressed = compressor.Decompress(compressed, true);
+            var compressed = compressor.Compress(inputBytes);
+            var decompressed = compressor.Decompress(compressed);
 
             var newNow = DateTime.Now.Millisecond;
 

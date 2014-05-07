@@ -17,14 +17,12 @@ namespace Microsoft.Http2.Protocol.Compression.Huffman
     {
         private Node _root;
         private HuffmanCodesTable _table;
-        private bool _isRequest;
         private readonly bool[] _eos;
 
-        public BitTree(HuffmanCodesTable table, bool isRequest)
+        public BitTree(HuffmanCodesTable table)
         {
             _table = table;
-            _isRequest = isRequest;
-            _eos = _isRequest ? HuffmanCodesTable.ReqEos : HuffmanCodesTable.RespEos;
+            _eos = HuffmanCodesTable.Eos;
             _root = new Node(false, null);
             BuildTree(table);
         }
@@ -36,7 +34,7 @@ namespace Microsoft.Http2.Protocol.Compression.Huffman
                 Add(bits);
             }
 
-            Add(_isRequest ? HuffmanCodesTable.ReqEos : HuffmanCodesTable.RespEos);
+            Add(HuffmanCodesTable.Eos);
         }
 
         private void Add(bool[] bits)

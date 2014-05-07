@@ -29,8 +29,6 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
         private HeadersList _localHeadersTable;
         private HeadersList _localRefSet;
 
-        private ConnectionEnd _localEnd;
-
         private HuffmanCompressionProcessor _huffmanProc;
 
         private bool _isDisposed;
@@ -39,7 +37,7 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
 
         private int _maxHeaderByteSize;
 
-        public CompressionProcessor(ConnectionEnd end)
+        public CompressionProcessor()
         {
             //default max headers table size
             _maxHeaderByteSize = 4096;
@@ -53,8 +51,6 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
             _localRefSet = new HeadersList();
 
             _huffmanProc = new HuffmanCompressionProcessor();
-
-            _localEnd = end;
 
             InitCompressor();
             InitDecompressor();
@@ -161,7 +157,7 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
             else
             {
                 itemBts = Encoding.UTF8.GetBytes(item);
-                itemBts = _huffmanProc.Compress(itemBts, _localEnd == ConnectionEnd.Client);
+                itemBts = _huffmanProc.Compress(itemBts);
 
                 len = itemBts.Length;
                 lenBts = len.ToUVarInt(prefix);
@@ -396,7 +392,7 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
             {
                 var compressedBytes = new byte[len];
                 Buffer.BlockCopy(bytes, _currentOffset, compressedBytes, 0, len);
-                var decodedBytes = _huffmanProc.Decompress(compressedBytes, _localEnd == ConnectionEnd.Server);
+                var decodedBytes = _huffmanProc.Decompress(compressedBytes);
                 result = Encoding.UTF8.GetString(decodedBytes);
 
                 _currentOffset += len;

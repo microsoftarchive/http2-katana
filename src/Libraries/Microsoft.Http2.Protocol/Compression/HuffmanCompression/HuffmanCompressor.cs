@@ -12,30 +12,24 @@ namespace Microsoft.Http2.Protocol.Compression.Huffman
 {
     internal class HuffmanCompressionProcessor
     {
-        private BitTree _requestTree;
-        private HuffmanCodesTable _requestTable;
+        private BitTree _tree;
+        private HuffmanCodesTable _table;
 
         private BitTree _responseTree;
-        private HuffmanCodesTable _responseTable;
 
         public HuffmanCompressionProcessor()
         {
-            _requestTable = new HuffmanCodesTable(isRequest: true);
-            _requestTree = new BitTree(_requestTable, true);
-
-            _responseTable = new HuffmanCodesTable(isRequest: false);
-            _responseTree = new BitTree(_responseTable, false);
+            _table = new HuffmanCodesTable();
+            _tree = new BitTree(_table);
         }
 
-        public byte[] Compress(byte[] data, bool isRequest)
+        public byte[] Compress(byte[] data)
         {
             var huffmanEncodedMessage = new List<bool>();
 
-            var table = isRequest ? _requestTable : _responseTable;
-
             foreach (var bt in data)
             {
-                huffmanEncodedMessage.AddRange(table.GetBits(bt));
+                huffmanEncodedMessage.AddRange(_table.GetBits(bt));
             }
 
             //TODO clear this out.
@@ -49,13 +43,10 @@ namespace Microsoft.Http2.Protocol.Compression.Huffman
             return BinaryConverter.ToBytes(huffmanEncodedMessage);
         }
 
-        public byte[] Decompress(byte[] compressed, bool isRequest)
+        public byte[] Decompress(byte[] compressed)
         {
             var bits = BinaryConverter.ToBits(compressed);
-
-            var tree = isRequest ? _requestTree : _responseTree;
-
-            return tree.GetBytes(bits);
+            return _tree.GetBytes(bits);
         }
     }
 }
