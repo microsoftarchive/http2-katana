@@ -161,10 +161,10 @@
 
 using System;
 using System.Collections.Generic;
-using System.Text;
 using System.IO;
 using System.Threading;
 using OpenSSL.Core;
+using OpenSSL.Extensions;
 using OpenSSL.X509;
 
 namespace OpenSSL.SSL
@@ -193,7 +193,13 @@ namespace OpenSSL.SSL
 		protected HandshakeState handShakeState = HandshakeState.None;
 		protected OpenSslException handshakeException = null;
 
+        protected SniCallback sniCb;
+        protected Sni sniExt;
+
+        protected string srvName = "http2Srv";
+
 	    public string AlpnSelectedProtocol { get; protected set; }
+
 		/// <summary>
 		/// Override to implement client/server specific handshake processing
 		/// </summary>
@@ -373,6 +379,7 @@ namespace OpenSSL.SSL
 			read_buffer = new byte[16384];
 			//inHandshakeLoop = false;
 			decrypted_data_stream = new MemoryStream();
+            sniExt = new Sni(srvName);
 		}
 
 		public bool HandshakeComplete

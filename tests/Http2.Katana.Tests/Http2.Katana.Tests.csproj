@@ -144,12 +144,6 @@
     <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Verbs.cs">
       <Link>Sources\Libraries\Microsoft.Http2.Protocol\Verbs.cs</Link>
     </Compile>
-    <Compile Include="..\..\src\Libraries\OpenSsl\ManagedOpenSsl\ALPN\Alpn.cs">
-      <Link>Sources\Libraries\OpenSsl\ALPN\Alpn.cs</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\OpenSsl\ManagedOpenSsl\ALPN\Errors.cs">
-      <Link>Sources\Libraries\OpenSsl\ALPN\Errors.cs</Link>
-    </Compile>
     <Compile Include="..\..\src\Libraries\OpenSsl\ManagedOpenSsl\ConnectionEnd.cs">
       <Link>Sources\Libraries\OpenSsl\ConnectionEnd.cs</Link>
     </Compile>
@@ -242,6 +236,15 @@
     </Compile>
     <Compile Include="..\..\src\Libraries\OpenSsl\ManagedOpenSsl\Exceptions\AlpnException.cs">
       <Link>Sources\Libraries\OpenSsl\Exceptions\AlpnException.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Libraries\OpenSsl\ManagedOpenSsl\Extensions\Alpn.cs">
+      <Link>Sources\Libraries\OpenSsl\Extensions\Alpn.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Libraries\OpenSsl\ManagedOpenSsl\Extensions\Errors.cs">
+      <Link>Sources\Libraries\OpenSsl\Extensions\Errors.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Libraries\OpenSsl\ManagedOpenSsl\Extensions\SNI.cs">
+      <Link>Sources\Libraries\OpenSsl\Extensions\SNI.cs</Link>
     </Compile>
     <Compile Include="..\..\src\Libraries\OpenSsl\ManagedOpenSsl\Protocols.cs">
       <Link>Sources\Libraries\OpenSsl\Protocols.cs</Link>

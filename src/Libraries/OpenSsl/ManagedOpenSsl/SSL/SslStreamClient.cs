@@ -159,9 +159,11 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
 // THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+using System;
 using System.IO;
 using OpenSSL.Core;
 using OpenSSL.Crypto;
+using OpenSSL.Extensions;
 using OpenSSL.X509;
 using OpenSsl.Protocols;
 
@@ -239,7 +241,10 @@ namespace OpenSSL.SSL
 			read_bio = BIO.MemoryBuffer(false);
 			write_bio = BIO.MemoryBuffer(false);
 			ssl = new Ssl(sslContext);
-            
+
+            sniCb = sniExt.ClientSniCb;
+            sniExt.AttachSniExtensionClient(ssl.Handle, sslContext.Handle, sniCb);
+
 			ssl.SetBIO(read_bio, write_bio);
 			read_bio.SetClose(BIO.CloseOption.Close);
 			write_bio.SetClose(BIO.CloseOption.Close);
@@ -301,6 +306,7 @@ namespace OpenSSL.SSL
 				// Successful handshake
 				ret = true;
 			}
+
 			return ret;
 		}
 

@@ -260,6 +260,11 @@ namespace OpenSSL.Core
 		/// </summary>
 		const string DLLNAME = "libeay32";
 		const string SSLDLLNAME = "ssleay32";
+        internal const int TLSEXT_NAMETYPE_host_name = 0;
+        internal const int SSL_CTRL_SET_TLSEXT_SERVERNAME_CB = 53;
+        internal const int SSL_CTRL_SET_TLSEXT_SERVERNAME_ARG = 54;
+        internal const int SSL_CTRL_SET_TLSEXT_HOSTNAME = 55;
+        internal const int SSL_CTRL_GET_SESSION_REUSED = 8;
 
 		#region Delegates
 		[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
@@ -2396,6 +2401,25 @@ namespace OpenSSL.Core
 
 		#region SSL Methods
 
+        //long  SSL_ctrl(SSL *ctx, int cmd, long larg, void *parg);
+	    [DllImport(SSLDLLNAME, CallingConvention = CallingConvention.Cdecl)]
+	    public static extern int SSL_ctrl(IntPtr /* SSL* */ ssl,
+	                                       int cmd,
+	                                       int larg,
+	                                       IntPtr parg);
+
+        //const char *SSL_get_servername(const SSL *s, const int type);
+        [DllImport(SSLDLLNAME, CallingConvention = CallingConvention.Cdecl)]
+        public static extern IntPtr SSL_get_servername(IntPtr /* SSL* */ s, int type);
+
+        //int SSL_get_servername_type(const SSL *s);
+        [DllImport(SSLDLLNAME, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int SSL_get_servername_type(IntPtr /* SSL* */ s);
+
+        //SSL_SESSION *SSL_get_session(const SSL *ssl);
+        [DllImport(SSLDLLNAME, CallingConvention = CallingConvention.Cdecl)]
+        public static extern IntPtr SSL_get_session(IntPtr /* SSL* */ s);
+
 		[DllImport(SSLDLLNAME, CallingConvention=CallingConvention.Cdecl)]
 		public extern static IntPtr SSLv2_method();
 
@@ -2444,6 +2468,12 @@ namespace OpenSSL.Core
 		#endregion
 
 		#region SSL_CTX
+        //long	SSL_CTX_callback_ctrl(SSL_CTX *, int, void (*)(void));
+        [DllImport("ssleay32.dll", CallingConvention = CallingConvention.Cdecl)]
+        public static extern int SSL_CTX_callback_ctrl(IntPtr /* SSL_CTX * */ ctx,
+                                                        int cmd,
+                                                        IntPtr /* SniCallback ptr */ cb);
+
 		[DllImport(SSLDLLNAME, CallingConvention=CallingConvention.Cdecl)]
 		public extern static IntPtr SSL_CTX_new(IntPtr sslMethod);
 
@@ -2452,6 +2482,30 @@ namespace OpenSSL.Core
 
 		[DllImport(SSLDLLNAME, CallingConvention=CallingConvention.Cdecl)]
 		public extern static int SSL_CTX_ctrl(IntPtr ctx, int cmd, int arg, IntPtr parg);
+
+        [DllImport(SSLDLLNAME, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int SSL_CTX_set_alpn_protos(IntPtr /*SSL_CTX * */ ctx,
+                                                         [MarshalAs(UnmanagedType.LPArray)] byte[]
+                                                         /*const unsigned char* */ protos,
+                                                         UInt32 protos_len);
+
+        [DllImport(SSLDLLNAME, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void SSL_get0_alpn_selected(IntPtr /*SSL* */ ssl,
+                                                         ref IntPtr /*const unsigned char** */ data,
+                                                         ref IntPtr /*unsigned* */ len);
+
+        //void SSL_CTX_set_alpn_select_cb(SSL_CTX* ctx,
+        //int (*cb) (SSL *ssl,
+        //     const unsigned char **out,
+        //     unsigned char *outlen,
+        //     const unsigned char *in,
+        //     unsigned int inlen,
+        //      void *arg),
+        // void *arg)
+        [DllImport(SSLDLLNAME, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void SSL_CTX_set_alpn_select_cb(IntPtr /*SSL_CTX* */ ctx,
+                                                             IntPtr /* int (*cb) */ alpnCb,
+                                                             IntPtr /*void* */ arg);
 
 		public const int SSL_CTRL_OPTIONS = 32;
 		public const int SSL_CTRL_MODE = 33;

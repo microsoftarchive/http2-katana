@@ -163,7 +163,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
-using OpenSSL.ALPN;
+using OpenSSL.Extensions;
 using OpenSSL.Core;
 using OpenSSL.Crypto;
 using OpenSSL.X509;
@@ -185,8 +185,8 @@ namespace OpenSSL.SSL
 
         #endregion
 
-        internal static AlpnCallback alpnCb;
-        internal static AlpnExtension alpnExt;
+        private static AlpnCallback alpnCb;
+        private static AlpnExtension alpnExt;
 
         /// <summary>
         ///     Calls SSL_CTX_new()
@@ -203,13 +203,13 @@ namespace OpenSSL.SSL
                 return;
 
             alpnExt = new AlpnExtension(Handle, protoList);
-            
+
             if (end == ConnectionEnd.Server)
             {
                 alpnCb = alpnExt.AlpnCb;
                 var alpnCbPtr = Marshal.GetFunctionPointerForDelegate(alpnCb);
                 var arg = new IntPtr();
-                AlpnExtension.SSL_CTX_set_alpn_select_cb(Handle, alpnCbPtr, arg);
+                Native.SSL_CTX_set_alpn_select_cb(Handle, alpnCbPtr, arg);
             }
         }
 
