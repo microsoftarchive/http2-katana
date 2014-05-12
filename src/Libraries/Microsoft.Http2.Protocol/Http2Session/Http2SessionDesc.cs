@@ -285,7 +285,7 @@ namespace Microsoft.Http2.Protocol
                     WriteSettings(new[]
                         {
                             new SettingsPair(SettingsIds.InitialWindowSize,
-                                             Constants.MaxFrameContentSize)
+                                             Constants.MaxFramePayloadSize)
                         }, false);
                 }
                 else
@@ -293,7 +293,7 @@ namespace Microsoft.Http2.Protocol
                     WriteSettings(new[]
                         {
                             new SettingsPair(SettingsIds.InitialWindowSize,
-                                             Constants.MaxFrameContentSize),
+                                             Constants.MaxFramePayloadSize),
                             new SettingsPair(SettingsIds.FlowControlOptions,
                                              (byte) FlowControlOptions.DontUseFlowControl)
                         }, false);
@@ -392,11 +392,11 @@ namespace Microsoft.Http2.Protocol
             
             try
             {
-                if (frame.FrameLength > Constants.MaxFrameContentSize)
+                if (frame.PayloadLength > Constants.MaxFramePayloadSize)
                 {
                     throw new ProtocolError(ResetStatusCode.FrameSizeError,
                                             String.Format("Frame too large: Type: {0} {1}", frame.FrameType,
-                                                          frame.FrameLength));
+                                                          frame.PayloadLength));
                 }
 
                 //Settings MUST be first frame in the session from server and 

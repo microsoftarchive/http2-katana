@@ -410,24 +410,13 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
             return result;
         }
 
-        //09 -> 8.1.3.4.  Compressing the Cookie Header Field
+       
         private void ProcessCookie(HeadersList toProcess)
         {
-            //The Cookie header field [COOKIE] can carry a significant amount of
-            //redundant data.
-
-            //The Cookie header field uses a semi-colon (";") to delimit cookie-
-            //pairs (or "crumbs").  This header field doesn't follow the list
-            //construction rules in HTTP (see [HTTP-p1], Section 3.2.2), which
-            //prevents cookie-pairs from being separated into different name-value
-            //pairs.  This can significantly reduce compression efficiency as
-            //individual cookie-pairs are updated.
-
-            //To allow for better compression efficiency, the Cookie header field
-            //MAY be split into separate header fields, each with one or more
-            //cookie-pairs.  If there are multiple Cookie header fields after
-            //decompression, these MUST be concatenated into a single octet string
-            //using the two octet delimiter of 0x3B, 0x20 (the ASCII string "; ").
+            /* 12 -> 8.1.3.4.
+            If there are multiple Cookie header fields after
+            decompression, these MUST be concatenated into a single octet string
+            using the two octet delimiter of 0x3B, 0x20 (the ASCII string "; "). */
 
             const string delimiter = "; ";
             var cookie = new StringBuilder(String.Empty);
@@ -701,7 +690,6 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
 
                 ProcessCookie(result);
 
-                //Return result
                 return result;
             }
             catch (Exception e)

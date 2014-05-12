@@ -28,7 +28,7 @@ namespace Microsoft.Http2.Protocol.Framing
             : base(new byte[InitialFrameSize])
         {
             FrameType = FrameType.GoAway;
-            FrameLength = InitialFrameSize - Constants.FramePreambleSize; // 16 bytes
+            PayloadLength = InitialFrameSize - Constants.FramePreambleSize; // 16 bytes
             LastGoodStreamId = lastStreamId;
             StatusCode = statusCode;
         }
@@ -38,11 +38,11 @@ namespace Microsoft.Http2.Protocol.Framing
         {
             get
             {
-                return FrameHelpers.Get31BitsAt(Buffer, 8);
+                return FrameHelper.Get31BitsAt(Buffer, 8);
             }
             set
             {
-                FrameHelpers.Set31BitsAt(Buffer, 8, value);
+                FrameHelper.Set31BitsAt(Buffer, 8, value);
             }
         }
 
@@ -51,11 +51,11 @@ namespace Microsoft.Http2.Protocol.Framing
         {
             get
             {
-                return (ResetStatusCode)FrameHelpers.Get32BitsAt(Buffer, 12);
+                return (ResetStatusCode)FrameHelper.Get32BitsAt(Buffer, 12);
             }
             set
             {
-                FrameHelpers.Set32BitsAt(Buffer, 12, (int)value);
+                FrameHelper.Set32BitsAt(Buffer, 12, (int)value);
             }
         }
     }

@@ -297,7 +297,17 @@ namespace Microsoft.Http2.Protocol
             if (Closed)
                 return;
 
-            var dataFrame = new DataFrame(_id, data, isEndStream);
+            /* 12 -> 6.1
+            DATA frames MAY also contain arbitrary padding.  Padding can be added
+            to DATA frames to hide the size of messages. */
+            var r = new Random();
+            var padHigh =  (byte) 1;
+            var padLow = (byte) r.Next(1, 7);
+
+            // var dataFrame = new DataFrame(_id, data, isEndStream);
+            Http2Logger.LogDebug("DATA frame: pad high: {0}, pad low {1}", padHigh, padLow);
+
+            var dataFrame = new DataFrame(_id, data, isEndStream, padHigh, padLow);
 
             //We cant let lesser frame that were passed through flow control window
             //be sent before greater frames that were not passed through flow control window
@@ -315,7 +325,7 @@ namespace Microsoft.Http2.Protocol
             if (!IsFlowControlBlocked)
             {
                 _writeQueue.WriteFrame(dataFrame);
-                SentDataAmount += dataFrame.FrameLength;
+                SentDataAmount += dataFrame.PayloadLength;
 
                 _flowCrtlManager.DataFrameSentHandler(this, new DataFrameSentEventArgs(dataFrame));
 
@@ -353,7 +363,7 @@ namespace Microsoft.Http2.Protocol
             if (!IsFlowControlBlocked)
             {
                 _writeQueue.WriteFrame(dataFrame);
-                SentDataAmount += dataFrame.FrameLength;
+                SentDataAmount += dataFrame.PayloadLength;
 
                 _flowCrtlManager.DataFrameSentHandler(this, new DataFrameSentEventArgs(dataFrame));
 

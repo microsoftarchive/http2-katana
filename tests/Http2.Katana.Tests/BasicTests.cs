@@ -246,28 +246,28 @@ namespace Http2.Katana.Tests
         }
 
         [StandardFact]
-        public void FrameHelperSuccessful()
+        public void FrameHelperuccessful()
         {
             const byte input = 1;
-            byte result = FrameHelpers.SetBit(input, true, 3);
+            byte result = FrameHelper.SetBit(input, true, 3);
             Assert.Equal(result, 9);
-            result = FrameHelpers.SetBit(result, false, 3);
+            result = FrameHelper.SetBit(result, false, 3);
             Assert.Equal(result, 1);
-            result = FrameHelpers.SetBit(result, false, 0);
+            result = FrameHelper.SetBit(result, false, 0);
             Assert.Equal(result, 0);
-            result = FrameHelpers.SetBit(result, true, 7);
+            result = FrameHelper.SetBit(result, true, 7);
             Assert.Equal(result, 128);
-            result = FrameHelpers.SetBit(result, true, 6);
+            result = FrameHelper.SetBit(result, true, 6);
             Assert.Equal(result, 192);
-            result = FrameHelpers.SetBit(result, true, 5);
+            result = FrameHelper.SetBit(result, true, 5);
             Assert.Equal(result, 224);
-            result = FrameHelpers.SetBit(result, false, 7);
+            result = FrameHelper.SetBit(result, false, 7);
             Assert.Equal(result, 96);
-            result = FrameHelpers.SetBit(result, false, 6);
+            result = FrameHelper.SetBit(result, false, 6);
             Assert.Equal(result, 32);
-            result = FrameHelpers.SetBit(result, false, 5);
+            result = FrameHelper.SetBit(result, false, 5);
             Assert.Equal(result, 0);
-            result = FrameHelpers.SetBit(result, true, 0);
+            result = FrameHelper.SetBit(result, true, 0);
             Assert.Equal(result, input);
         }
 

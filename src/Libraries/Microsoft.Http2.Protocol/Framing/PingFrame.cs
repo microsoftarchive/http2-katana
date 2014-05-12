@@ -9,20 +9,20 @@
 namespace Microsoft.Http2.Protocol.Framing
 {
     /// <summary>
-    /// Ping frame class
-    /// See spec: http://tools.ietf.org/html/draft-ietf-httpbis-http2-04#section-6.7
+    /// PING frame class
+    /// see 12 -> 6.7.
     /// </summary>
     internal class PingFrame : Frame
     {
         /// <summary>
         /// Ping frame expected payload length
         /// </summary>
-        public const int PayloadLength = 8;
+        public const int DefPayloadLength = 8;
 
         /// <summary>
         /// The number of bytes in the frame.
         /// </summary>
-        public const int FrameSize = PayloadLength + Constants.FramePreambleSize;
+        public const int FrameSize = DefPayloadLength + Constants.FramePreambleSize;
 
         public bool IsAck 
         {
@@ -50,7 +50,7 @@ namespace Microsoft.Http2.Protocol.Framing
             : base(new byte[FrameSize])
         {
             FrameType = FrameType.Ping;
-            FrameLength = FrameSize - Constants.FramePreambleSize; // 4
+            PayloadLength = FrameSize - Constants.FramePreambleSize; // 4
 
             IsAck = isAck;
             StreamId = 0;

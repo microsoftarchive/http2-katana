@@ -58,12 +58,12 @@ namespace Microsoft.Http2.Protocol.Framing
         {
             get
             {
-                return FrameHelpers.Get31BitsAt(Buffer, PromisedIdOffset);
+                return FrameHelper.Get31BitsAt(Buffer, PromisedIdOffset);
             }
             set
             {
                 Contract.Assert(value >= 0 && value <= 255);
-                FrameHelpers.Set31BitsAt(Buffer, PromisedIdOffset, value);
+                FrameHelper.Set31BitsAt(Buffer, PromisedIdOffset, value);
             }
         }
 
@@ -80,7 +80,7 @@ namespace Microsoft.Http2.Protocol.Framing
             Contract.Assert(streamId > 0 && promisedStreamId > 0);
             StreamId = streamId;
             FrameType = FrameType.PushPromise;
-            FrameLength = Buffer.Length - Constants.FramePreambleSize;
+            PayloadLength = Buffer.Length - Constants.FramePreambleSize;
             PromisedStreamId = promisedStreamId;
             Headers = headers ?? new HeadersList();
             IsEndPushPromise = isEndPushPromise;

@@ -48,11 +48,11 @@ namespace Microsoft.Http2.Protocol.Framing
         {
             get
             {
-                return (SettingsIds)FrameHelpers.Get8BitsAt(_bufferSegment.Array, _bufferSegment.Offset);
+                return (SettingsIds)FrameHelper.Get8BitsAt(_bufferSegment.Array, _bufferSegment.Offset);
             }
             set
             {
-                FrameHelpers.Set8BitsAt(_bufferSegment.Array, _bufferSegment.Offset, (int)value);
+                FrameHelper.Set8BitsAt(_bufferSegment.Array, _bufferSegment.Offset, (int)value);
             }
         }
 
@@ -60,11 +60,11 @@ namespace Microsoft.Http2.Protocol.Framing
         {
             get
             {
-                return FrameHelpers.Get32BitsAt(_bufferSegment.Array, _bufferSegment.Offset + 1);
+                return FrameHelper.Get32BitsAt(_bufferSegment.Array, _bufferSegment.Offset + 1);
             }
             set
             {
-                FrameHelpers.Set32BitsAt(_bufferSegment.Array, _bufferSegment.Offset + 1, value);
+                FrameHelper.Set32BitsAt(_bufferSegment.Array, _bufferSegment.Offset + 1, value);
             }
         }
     }

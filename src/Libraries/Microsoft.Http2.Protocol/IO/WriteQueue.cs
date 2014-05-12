@@ -108,7 +108,7 @@ namespace Microsoft.Http2.Protocol.IO
                             var headersFrame = entry.Frame as IHeadersFrame;
                             var headers = headersFrame.Headers;
                             var compressedHeaders = _proc.Compress(headers);
-                            entry.Frame.FrameLength += compressedHeaders.Length;
+                            entry.Frame.PayloadLength += compressedHeaders.Length;
                             _stream.Write(entry.Buffer, 0, entry.Buffer.Length);
                             _stream.Write(compressedHeaders, 0, compressedHeaders.Length);
                         }

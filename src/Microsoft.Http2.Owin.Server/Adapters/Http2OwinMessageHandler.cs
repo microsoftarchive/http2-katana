@@ -152,10 +152,5 @@ namespace Microsoft.Http2.Owin.Server.Adapters
             stream.WriteHeadersFrame(headers, final, true);
            
         }
-
-        //private void PushHeaders(IDictionary<string, string[]> pairs)
-        //{
-            
-        //}
     }
 }

@@ -18,8 +18,8 @@ namespace Microsoft.Http2.Protocol.Framing
     {
         public int Priority
         {
-            get { return  FrameHelpers.Get31BitsAt(Buffer, 8); }
-            set { FrameHelpers.Set31BitsAt(Buffer, 8, value); }
+            get { return  FrameHelper.Get31BitsAt(Buffer, 8); }
+            set { FrameHelper.Set31BitsAt(Buffer, 8, value); }
         }
 
         /// <summary>

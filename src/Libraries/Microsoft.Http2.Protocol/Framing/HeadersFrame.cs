@@ -11,15 +11,12 @@ using System;
 namespace Microsoft.Http2.Protocol.Framing
 {
     /// <summary>
-    /// Frame headers class
+    /// HEADERS frame class
+    /// see 12 -> 6.2.
     /// </summary>
     public class HeadersFrame : Frame, IEndStreamFrame, IHeadersFrame
     {
-        // The number of bytes in the frame, not including the compressed headers.
         private const int PreambleSizeWithPriority = 12;
-
-        // The number of bytes in the frame, not including the compressed headers.
-        private const int PreambleSizeWithoutPriority = 8;
 
         private HeadersList _headers = new HeadersList();
 
@@ -73,11 +70,11 @@ namespace Microsoft.Http2.Protocol.Framing
                 if (!HasPriority)
                     return Constants.DefaultStreamPriority;
 
-                return FrameHelpers.Get32BitsAt(Buffer, 8);
+                return FrameHelper.Get32BitsAt(Buffer, 8);
             }
             private set
             {
-                FrameHelpers.Set32BitsAt(Buffer, 8, value);
+                FrameHelper.Set32BitsAt(Buffer, 8, value);
             }
         }
 
@@ -85,7 +82,7 @@ namespace Microsoft.Http2.Protocol.Framing
         {
             get
             {
-                int offset = HasPriority ? PreambleSizeWithPriority : PreambleSizeWithoutPriority;
+                int offset = HasPriority ? PreambleSizeWithPriority : Constants.FramePreambleSize;
                 return new ArraySegment<byte>(Buffer, offset, Buffer.Length - offset);
             }
         }
@@ -120,14 +117,14 @@ namespace Microsoft.Http2.Protocol.Framing
 
             int preambleLength = hasPriority
                 ? PreambleSizeWithPriority
-                : PreambleSizeWithoutPriority;
+                : Constants.FramePreambleSize;
 
             _buffer = new byte[preambleLength];
             HasPriority = hasPriority;
 
             StreamId = streamId;
             FrameType = FrameType.Headers;
-            FrameLength = Buffer.Length - Constants.FramePreambleSize;
+            PayloadLength = Buffer.Length - Constants.FramePreambleSize;
             if (HasPriority)
             {
                 Priority = priority;

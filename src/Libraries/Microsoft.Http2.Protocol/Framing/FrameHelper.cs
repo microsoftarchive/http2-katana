@@ -14,7 +14,7 @@ using System.Text;
 namespace Microsoft.Http2.Protocol.Framing
 {
     // Helpers for reading binary fields of various sizes
-    internal static class FrameHelpers
+    internal static class FrameHelper
     {
         public static byte SetBit(byte input, bool value, byte offset)
         {

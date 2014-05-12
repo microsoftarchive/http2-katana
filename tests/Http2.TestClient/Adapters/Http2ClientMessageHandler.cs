@@ -54,7 +54,7 @@ namespace Http2.TestClient.Adapters
                 return;
             }
 
-            stream.ReceivedDataAmount += dataFrame.FrameLength;
+            stream.ReceivedDataAmount += dataFrame.PayloadLength;
 
             if (dataFrame.IsEndStream)
             {

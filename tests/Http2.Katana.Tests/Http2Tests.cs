@@ -653,12 +653,12 @@ namespace Http2.Katana.Tests
         {
             using (Stream s = TestHelpers.GenerateStreamFromString(fileContent))
             {
-                var etalonBytes = new byte[dataFrame.FrameLength];
-                s.Read(etalonBytes, 0, dataFrame.FrameLength);
+                var etalonBytes = new byte[dataFrame.PayloadLength];
+                s.Read(etalonBytes, 0, dataFrame.PayloadLength);
 
                 Assert.Equal(etalonBytes,
                              dataFrame.Payload.Array.Skip(8)
-                                      .Take(dataFrame.FrameLength)
+                                      .Take(dataFrame.PayloadLength)
                                       .ToArray());
             }
         }

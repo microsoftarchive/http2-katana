@@ -300,12 +300,11 @@ namespace Microsoft.Http2.Protocol
             if (!(stream.Opened || stream.HalfClosedLocal))
                 throw new ProtocolError(ResetStatusCode.ProtocolError, "data in non opened or half closed local stream");
 
-            //Aggressive window update
-            Http2Logger.LogDebug("DATA frame: StreamId = {0}, Length = {1}", dataFrame.StreamId,
-                                    dataFrame.FrameLength);
+            Http2Logger.LogDebug("DATA frame: stream id={0}, payload len={1}, has pad={2}, pad high={3}, pad low={4}", dataFrame.StreamId,
+                                    dataFrame.PayloadLength, dataFrame.HasPadding, dataFrame.PadHigh, dataFrame.PadLow);
             if (stream.IsFlowControlEnabled && !dataFrame.IsEndStream)
             {
-                stream.WriteWindowUpdate(Constants.MaxFrameContentSize);
+                stream.WriteWindowUpdate(Constants.MaxFramePayloadSize);
             }
         }
 
@@ -326,7 +325,7 @@ namespace Microsoft.Http2.Protocol
             Http2Logger.LogDebug("PING frame: StreamId = {0}, Payload = {1}", pingFrame.StreamId,
                                              pingFrame.Payload.Count);
 
-            if (pingFrame.FrameLength != PingFrame.PayloadLength)
+            if (pingFrame.PayloadLength != PingFrame.DefPayloadLength)
             {
                 throw new ProtocolError(ResetStatusCode.FrameSizeError, "Ping payload size is not equal to 8");
             }
@@ -361,7 +360,7 @@ namespace Microsoft.Http2.Protocol
             {
                 _settingsAckReceived.Set();
 
-                if (settingsFrame.FrameLength != 0)
+                if (settingsFrame.PayloadLength != 0)
                     throw new ProtocolError(ResetStatusCode.FrameSizeError, "ACK settings frame is not 0");      
           
                 return;

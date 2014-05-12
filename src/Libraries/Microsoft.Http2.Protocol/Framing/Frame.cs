@@ -17,7 +17,7 @@ namespace Microsoft.Http2.Protocol.Framing
     //+-+-------------+---------------+-------------------------------+
     //|R|                 Stream Identifier (31)                      |
     //+-+-------------------------------------------------------------+
-    //|                     Frame Data (0...)                       ...
+    //|                     Frame Payload (0...)                    ...
     //+---------------------------------------------------------------+
     /// <summary>
     /// Represents the initial frame fields on every frame.
@@ -25,7 +25,6 @@ namespace Microsoft.Http2.Protocol.Framing
     public class Frame
     {
         protected byte[] _buffer;
-
 
         // For reading the preamble to determine the frame type and length
         public Frame()
@@ -35,7 +34,7 @@ namespace Microsoft.Http2.Protocol.Framing
 
         // For incoming frames
         protected Frame(Frame preamble)
-            : this(new byte[Constants.FramePreambleSize + preamble.FrameLength])
+            : this(new byte[Constants.FramePreambleSize + preamble.PayloadLength])
         {
             System.Buffer.BlockCopy(preamble.Buffer, 0, Buffer, 0, Constants.FramePreambleSize);
         }
@@ -48,7 +47,8 @@ namespace Microsoft.Http2.Protocol.Framing
 
         public byte[] Buffer
         {
-            get { return _buffer; } 
+            get { return _buffer; }
+            set { _buffer = value; }
         }
 
         public ArraySegment<byte> Payload
@@ -69,15 +69,18 @@ namespace Microsoft.Http2.Protocol.Framing
         }
 
         // 16 bits, 0-15
-        public int FrameLength
+        /* 12 -> 4.1.
+        The length of the frame payload. The 8 octets of the frame header
+        are not included in this value */
+        public int PayloadLength
         {
             get
             {
-                return FrameHelpers.Get16BitsAt(Buffer, 0);
+                return FrameHelper.Get16BitsAt(Buffer, 0);
             }
             set
             {
-                FrameHelpers.Set16BitsAt(Buffer, 0, value);
+                FrameHelper.Set16BitsAt(Buffer, 0, value);
             }
         }
 
@@ -88,7 +91,9 @@ namespace Microsoft.Http2.Protocol.Framing
             {
                 return (FrameType) Buffer[2];
             }
-            set { Buffer[2] = (byte)value;
+            set 
+            { 
+                Buffer[2] = (byte)value;
             }
         }
 
@@ -105,22 +110,16 @@ namespace Microsoft.Http2.Protocol.Framing
             }
         }
 
-        /// <summary>
-        /// Gets or sets the stream id.
-        /// All frames have stream Id field.
-        /// </summary>
-        /// <value>
-        /// The stream id.
-        /// </value>
+        // 31 bits, 33-63
         public Int32 StreamId
         {
             get
             {
-                return FrameHelpers.Get31BitsAt(Buffer, 4);
+                return FrameHelper.Get31BitsAt(Buffer, 4);
             }
             set
             {
-                FrameHelpers.Set31BitsAt(Buffer, 4, value);
+                FrameHelper.Set31BitsAt(Buffer, 4, value);
             }
         }
     }

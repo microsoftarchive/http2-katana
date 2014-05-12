@@ -62,7 +62,7 @@ namespace Microsoft.Http2.Protocol.Framing
 
             StreamId = streamId;
             FrameType = FrameType.Headers;
-            FrameLength = Buffer.Length - Constants.FramePreambleSize;
+            PayloadLength = Buffer.Length - Constants.FramePreambleSize;
 
             // Copy in the headers
             System.Buffer.BlockCopy(headerBytes, 0, Buffer, PreambleSizeWithoutPriority, headerBytes.Length);

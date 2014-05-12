@@ -33,7 +33,7 @@ namespace Microsoft.Http2.Protocol.Framing
             : base(new byte[InitialFrameSize + settings.Count * SettingsPair.PairSize])
         {
             FrameType = FrameType.Settings;
-            FrameLength = (settings.Count * SettingsPair.PairSize) + InitialFrameSize - Constants.FramePreambleSize;
+            PayloadLength = (settings.Count * SettingsPair.PairSize) + InitialFrameSize - Constants.FramePreambleSize;
             StreamId = 0;
 
             if (isAck)
