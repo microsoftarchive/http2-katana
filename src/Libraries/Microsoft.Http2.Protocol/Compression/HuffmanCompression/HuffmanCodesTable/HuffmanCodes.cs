@@ -121,6 +121,7 @@ namespace Microsoft.Http2.Protocol.Compression.Huffman
             };
         #endregion
 
-        public static readonly bool[] Eos = new[] { T,T,T,T,T,T,T,T, T,T,T,T,T,T,T,T, T,T,T,T,F,T,T,T, F,F }; //|11111111|11111111|11110111|00
+        // see spec 07 - > Appendix C.  Huffman Codes
+        public static readonly bool[] Eos = new[] { T,T,T,T,T,T,T,T, T,T,T,T,T,T,T,T, T,T,T,F,T,T,T,F, F }; //|11111111|11111111|11101110|0
     }
 }

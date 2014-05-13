@@ -32,12 +32,13 @@ namespace Microsoft.Http2.Protocol.Compression.Huffman
                 huffmanEncodedMessage.AddRange(_table.GetBits(bt));
             }
 
-            //TODO clear this out.
-            //add finish symbol
-            //huffmanEncodedMessage.AddRange(isRequest ? HuffmanCodesTable.ReqEos : HuffmanCodesTable.RespEos);
-            for (byte i = 0; i < huffmanEncodedMessage.Count % 8; i++)
+            // Adds most significant bytes of EOS
+            int temp = 8 - huffmanEncodedMessage.Count % 8;
+            int numberOfBitsInPadding = temp == 8 ? 0 : temp;
+
+            for (int i = 0; i < numberOfBitsInPadding; i++)
             {
-                huffmanEncodedMessage.Add(true);
+                huffmanEncodedMessage.Add(HuffmanCodesTable.Eos[i]);
             }
             
             return BinaryConverter.ToBytes(huffmanEncodedMessage);
