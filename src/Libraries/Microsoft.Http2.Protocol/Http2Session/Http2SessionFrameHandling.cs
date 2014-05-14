@@ -121,11 +121,11 @@ namespace Microsoft.Http2.Protocol
 
         private void HandleContinuation(ContinuationFrame contFrame, out Http2Stream stream)
         {
+            Http2Logger.LogDebug("CONTINUATION frame: stream id={0}", contFrame.StreamId);
+
             if (!(_lastFrame is ContinuationFrame || _lastFrame is HeadersFrame))
                 throw new ProtocolError(ResetStatusCode.ProtocolError,
                                         "Last frame was not headers or continuation");
-
-            Http2Logger.LogDebug("CONTINUATION frame: StreamId = {0}", contFrame.StreamId);
 
             //09 -> 6.10.  CONTINUATION
             //CONTINUATION frames MUST be associated with a stream.  If a
@@ -193,6 +193,9 @@ namespace Microsoft.Http2.Protocol
 
         private void HandlePriority(PriorityFrame priorityFrame, out Http2Stream stream)
         {
+            Http2Logger.LogDebug("PRIORITY frame: stream id={0}, priority={1}", priorityFrame.StreamId, 
+                priorityFrame.Priority);
+
             //09 -> 6.3.  PRIORITY
             //The PRIORITY frame is associated with an existing stream.  If a
             //PRIORITY frame is received with a stream identifier of 0x0, the
@@ -202,8 +205,7 @@ namespace Microsoft.Http2.Protocol
             if (priorityFrame.StreamId == 0)
                 throw new ProtocolError(ResetStatusCode.ProtocolError, "Incoming priority frame with id = 0");
 
-            Http2Logger.LogDebug("PRIORITY frame: StreamId = {0}, Priority = {1}", priorityFrame.StreamId,
-                                 priorityFrame.Priority);
+            
 
             stream = GetStream(priorityFrame.StreamId);
             
@@ -235,6 +237,9 @@ namespace Microsoft.Http2.Protocol
 
         private void HandleRstFrame(RstStreamFrame resetFrame, out Http2Stream stream)
         {
+            Http2Logger.LogDebug("RST_STREAM frame: stream id={0}, status code={1}",
+               resetFrame.StreamId, resetFrame.StatusCode);
+
             //spec 09
             //6.4.  RST_STREAM
             //RST_STREAM frames MUST be associated with a stream.  If a RST_STREAM
@@ -243,13 +248,17 @@ namespace Microsoft.Http2.Protocol
             //PROTOCOL_ERROR.
             if (resetFrame.StreamId == 0)
             {
-                throw new ProtocolError(ResetStatusCode.ProtocolError, "RstFrame with StreamId = 0");
+                throw new ProtocolError(ResetStatusCode.ProtocolError, "Rst frame with stream id=0");
             }
 
             stream = GetStream(resetFrame.StreamId);
 
+            
             if (stream.Closed)
             {
+                /* 12 -> 5.4.2
+                An endpoint MUST NOT send a RST_STREAM in response to an RST_STREAM
+                frame, to avoid looping. */
                 if (!stream.WasRstSent)
                 {
                     throw new Http2StreamNotFoundException(resetFrame.StreamId);
@@ -259,13 +268,6 @@ namespace Microsoft.Http2.Protocol
 
             if (!(stream.ReservedRemote || stream.Opened || stream.HalfClosedLocal))
                 throw new ProtocolError(ResetStatusCode.ProtocolError, "Rst for non opened or reserved stream");
-
-            //09 -> 5.4.2.  Stream Error Handling
-            //An endpoint MUST NOT send a RST_STREAM in response to an RST_STREAM
-            //frame, to avoid looping.
-
-            Http2Logger.LogDebug("RST frame: StatusCode  = {0}, StreamId =  {1}", 
-                resetFrame.StatusCode, resetFrame.StreamId);
 
             //09 -> 5.1.  Stream States
             //WINDOW_UPDATE, PRIORITY, or RST_STREAM frames can be received in
@@ -283,6 +285,9 @@ namespace Microsoft.Http2.Protocol
 
         private void HandleDataFrame(DataFrame dataFrame, out Http2Stream stream)
         {
+            Http2Logger.LogDebug("DATA frame: stream id={0}, payload len={1}, has pad={2}, pad high={3}, pad low={4}, " +
+                                 "end stream={5}", dataFrame.StreamId, dataFrame.PayloadLength, 
+                                 dataFrame.HasPadding, dataFrame.PadHigh, dataFrame.PadLow, dataFrame.IsEndStream);
             //09 -> 6.1.  DATA
             //DATA frames MUST be associated with a stream.  If a DATA frame is
             //received whose stream identifier field is 0x0, the recipient MUST
@@ -300,8 +305,7 @@ namespace Microsoft.Http2.Protocol
             if (!(stream.Opened || stream.HalfClosedLocal))
                 throw new ProtocolError(ResetStatusCode.ProtocolError, "data in non opened or half closed local stream");
 
-            Http2Logger.LogDebug("DATA frame: stream id={0}, payload len={1}, has pad={2}, pad high={3}, pad low={4}", dataFrame.StreamId,
-                                    dataFrame.PayloadLength, dataFrame.HasPadding, dataFrame.PadHigh, dataFrame.PadLow);
+            
             if (stream.IsFlowControlEnabled && !dataFrame.IsEndStream)
             {
                 stream.WriteWindowUpdate(Constants.MaxFramePayloadSize);
@@ -310,6 +314,9 @@ namespace Microsoft.Http2.Protocol
 
         private void HandlePingFrame(PingFrame pingFrame)
         {
+            Http2Logger.LogDebug("PING frame: stream id={0}, payload={1}", pingFrame.StreamId,
+                pingFrame.Payload.Count);
+
             //09 -> 6.7.  PING
             //PING frames are not associated with any individual stream.  If a PING
             //frame is received with a stream identifier field value other than
@@ -321,9 +328,6 @@ namespace Microsoft.Http2.Protocol
                 throw new ProtocolError(ResetStatusCode.ProtocolError,
                                         "Incoming ping frame with id != 0");
             }
-
-            Http2Logger.LogDebug("PING frame: StreamId = {0}, Payload = {1}", pingFrame.StreamId,
-                                             pingFrame.Payload.Count);
 
             if (pingFrame.PayloadLength != PingFrame.DefPayloadLength)
             {
@@ -343,9 +347,11 @@ namespace Microsoft.Http2.Protocol
 
         private void HandleSettingsFrame(SettingsFrame settingsFrame)
         {
+            Http2Logger.LogDebug("SETTINGS frame: stream id={0}, entry count={1}", settingsFrame.StreamId,
+                settingsFrame.EntryCount);
+
             _wasSettingsReceived = true;
-            Http2Logger.LogDebug("SETTINGS frame: Entry count = {0}, StreamId: {1}", settingsFrame.EntryCount,
-                                 settingsFrame.StreamId);
+            
             /* 12 -> 6.5
             If an endpoint receives a SETTINGS frame whose stream identifier 
             field is other than 0x0, the endpoint MUST respond with a connection
@@ -414,14 +420,14 @@ namespace Microsoft.Http2.Protocol
 
         private void HandleWindowUpdateFrame(WindowUpdateFrame windowUpdateFrame, out Http2Stream stream)
         {
+            Http2Logger.LogDebug("WINDOW_UPDATE frame: stream id={0}, delta={1}",windowUpdateFrame.StreamId,
+                 windowUpdateFrame.Delta);
+
             if (!_useFlowControl)
             {
                 stream = null;
                 return;
             }
-
-            Http2Logger.LogDebug("WINDOW_UPDATE frame: Delta = {0}, StreamId: {1}", windowUpdateFrame.Delta,
-                                    windowUpdateFrame.StreamId);
 
             // TODO Remove this hack
             /* The WINDOW_UPDATE frame can be specific to a stream or to the entire
@@ -435,12 +441,15 @@ namespace Microsoft.Http2.Protocol
                 return; 
             }
 
-            stream = GetStream(windowUpdateFrame.StreamId);                         
+            stream = GetStream(windowUpdateFrame.StreamId);
 
-            if (stream.Closed)
-                throw new Http2StreamNotFoundException(windowUpdateFrame.StreamId);
+            /* 12 -> 6.9 
+            WINDOW_UPDATE can be sent by a peer that has sent a frame bearing the
+            END_STREAM flag.  This means that a receiver could receive a
+            WINDOW_UPDATE frame on a "half closed (remote)" or "closed" stream.
+            A receiver MUST NOT treat this as an error. */
 
-            if (!(stream.Opened || stream.HalfClosedRemote || stream.HalfClosedLocal))
+            if (!(stream.Opened || stream.HalfClosedRemote || stream.HalfClosedLocal || stream.Closed))
                 throw new ProtocolError(ResetStatusCode.ProtocolError, "window update in incorrect state");
 
             //09 -> 6.9.  WINDOW_UPDATE
@@ -474,19 +483,21 @@ namespace Microsoft.Http2.Protocol
 
         private void HandleGoAwayFrame(GoAwayFrame goAwayFrame)
         {
+            Http2Logger.LogDebug("GOAWAY frame: stream id={0}, status code={1}", goAwayFrame.StreamId,
+                goAwayFrame.StatusCode);
+
             if (goAwayFrame.StreamId != 0)
                 throw new ProtocolError(ResetStatusCode.ProtocolError, "GoAway Stream id should always be null");
 
             _goAwayReceived = true;
-
-            Http2Logger.LogDebug("GOAWAY frame: StatusCode = {0}", goAwayFrame.StatusCode);
+           
             Http2Logger.LogDebug("last successful id = {0}", goAwayFrame.LastGoodStreamId);
             Dispose();
         }
 
         private void HandlePushPromiseFrame(PushPromiseFrame frame, out Http2Stream stream)
         {
-            Http2Logger.LogDebug("PUSH_PROMISE frame: StreamId = {0}, PromisedStreamId = {1}",
+            Http2Logger.LogDebug("PUSH_PROMISE frame: stream id={0}, promised id={1}",
                 frame.StreamId, frame.PromisedStreamId);
 
             // 09 -> 6.6. 

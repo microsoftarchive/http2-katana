@@ -649,6 +649,7 @@ namespace Http2.Katana.Tests
                 CheckArraysEquality(TestHelpers.FileContentSimpleTest, dataFrame);
         }
 
+        //TODO: update test to use dataFrame.Data.Count instead of dataFrame.PayloadLength
         private void CheckArraysEquality(String fileContent, DataFrame dataFrame)
         {
             using (Stream s = TestHelpers.GenerateStreamFromString(fileContent))

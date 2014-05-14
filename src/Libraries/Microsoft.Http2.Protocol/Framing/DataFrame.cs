@@ -29,13 +29,14 @@ namespace Microsoft.Http2.Protocol.Framing
         // For outgoing
         public DataFrame(int streamId, ArraySegment<byte> data, bool isEndStream, byte padHigh = 0, byte padLow = 0)
         {
+            Contract.Assert(data.Array != null);
+
             /* 12 -> 6.1
             DATA frames MAY also contain arbitrary padding.  Padding can be added
             to DATA frames to hide the size of messages. The total number of padding
             octets is determined by multiplying the value of the Pad High field by 256 
             and adding the value of the Pad Low field. */
-            Contract.Assert(data.Array != null);
-
+            
             int padLength = padHigh * 256 + padLow;
             if (padLength != 0)
             {
@@ -58,6 +59,12 @@ namespace Microsoft.Http2.Protocol.Framing
            
             IsEndStream = isEndStream;
             StreamId = streamId;
+
+            //TODO: add optional gzip compression
+            /* 12 -> 6.1
+            Data frames are optionally compressed using GZip compression.
+            Each frame is individually compressed; the state of the compressor is
+            reset for each frame.*/
         }
 
         public bool IsEndStream
@@ -164,10 +171,10 @@ namespace Microsoft.Http2.Protocol.Framing
             {
                 if (HasPadding)
                 {
-                    int padLength = PadHigh * 256 - PadLow;
+                    int padLength = PadHigh * 256 + PadLow;
 
                     return new ArraySegment<byte>(Buffer, Constants.FramePreambleSize + PadHighLowLength,
-                        Buffer.Length - Constants.FramePreambleSize - padLength);
+                        Buffer.Length - Constants.FramePreambleSize - PadHighLowLength - padLength);
                 }
                 return new ArraySegment<byte>(Buffer, Constants.FramePreambleSize,
                         Buffer.Length - Constants.FramePreambleSize);

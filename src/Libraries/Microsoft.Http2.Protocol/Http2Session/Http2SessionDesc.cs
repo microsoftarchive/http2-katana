@@ -492,8 +492,13 @@ namespace Microsoft.Http2.Protocol
             //[STREAM_CLOSED].
             catch (Http2StreamNotFoundException ex)
             {
-                Http2Logger.LogDebug("Frame for already Closed stream with StreamId = {0}", ex.Id);
-                _writeQueue.WriteFrame(new RstStreamFrame(ex.Id, ResetStatusCode.StreamClosed));
+                Http2Logger.LogDebug("Frame for already Closed stream with stream id={0}", ex.Id);
+                var rstFrame = new RstStreamFrame(ex.Id, ResetStatusCode.StreamClosed);
+
+                Http2Logger.LogDebug("Sending RST_STREAM frame: stream id={0}, status code={1}",
+                    rstFrame.StreamId, rstFrame.StatusCode);
+
+                _writeQueue.WriteFrame(rstFrame);
                 stream.WasRstSent = true;
             }
             catch (CompressionError ex)
