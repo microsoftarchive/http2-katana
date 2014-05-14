@@ -363,6 +363,7 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
             
             //throw away huffman's mask
             bytes[_currentOffset] &= 0x7f;
+
             if ((bytes[_currentOffset]) < maxPrefixVal)
             {
                 len = bytes[_currentOffset++]; 
@@ -600,10 +601,13 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
             byte firstByteValue = bytes[_currentOffset];
 
             switch (type)
-            {  
+            {
                 case IndexationType.Incremental:
-                case IndexationType.WithoutIndexation:
                     prefix = 6;
+                    break;
+                // see spec 07 - > 4.3.2.  Literal Header Field without Indexing
+                case IndexationType.WithoutIndexation:
+                    prefix = 4;
                     break;
                 case IndexationType.Indexed:
                     prefix = 7;
@@ -620,7 +624,7 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
             int i = 1;
             while (true)
             {
-                if ((bytes[_currentOffset + i] & 0x80) == 0)
+                if ((bytes[_currentOffset + i] & (byte)IndexationType.Indexed) == 0)
                 {
                     break;
                 }
@@ -638,18 +642,28 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
         {
             var typeByte = bytes[_currentOffset];
             IndexationType indexationType;
-            
-            if ((typeByte & 0x80) == (byte)IndexationType.Indexed)
+
+            if ((typeByte & (byte)IndexationType.Indexed) == (byte)IndexationType.Indexed)
             {
                 indexationType = IndexationType.Indexed;
             }
-            else if ((typeByte & 0x40) == (byte)IndexationType.WithoutIndexation)
-            {
-                indexationType = IndexationType.WithoutIndexation;
-            }
-            else
+            // See spec 07 -> 4.3.1.  Literal Header Field with Incremental Indexing
+            // This representation starts with the '01' 2-bit pattern.
+            else if ((typeByte & (byte)IndexationType.Incremental) == (byte)IndexationType.Incremental)
             {
                 indexationType = IndexationType.Incremental;
+            }
+            // see spec 07 -> 4.3.1.  4.3.2.  Literal Header Field without Indexing
+            // The literal header field without indexing representation starts with
+            // the '0000' 4-bit pattern.
+
+            // When we get the type, WithoutIndexation type is assigned when other types are not suitable. 
+            // Therefore, the code works, but this mask is not used since 
+            // pattern of any  representation is suitable to 0x00 mask. Therefore, there may be exceptions
+            // if representation is unknown.
+            else
+            {
+                indexationType = IndexationType.WithoutIndexation;
             }
             //throw type mask away
             bytes[_currentOffset] = (byte)(bytes[_currentOffset] & (~(byte)indexationType));
