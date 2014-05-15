@@ -258,15 +258,7 @@ namespace Microsoft.Http2.Protocol
             if (Closed)
                 return;
 
-            /* 12 -> 6.2
-            The HEADERS frame includes optional padding.  Padding fields and
-            flags are identical to those defined for DATA frames. */
-            var r = new Random();
-            var padHigh = (byte)1;
-            var padLow = (byte)r.Next(1, 7);
-
-            var frame = new HeadersFrame(_id, -1, 0, false,
-                                         padHigh, padLow)
+            var frame = new HeadersFrame(_id, true)
                 {
                     IsEndHeaders = isEndHeaders,
                     IsEndStream = isEndStream,
@@ -305,14 +297,7 @@ namespace Microsoft.Http2.Protocol
             if (Closed)
                 return;
 
-            /* 12 -> 6.1
-            DATA frames MAY also contain arbitrary padding.  Padding can be added
-            to DATA frames to hide the size of messages. */
-            var r = new Random();
-            var padHigh = (byte) 1;
-            var padLow = (byte) r.Next(1, 7);
-
-            var dataFrame = new DataFrame(_id, data, isEndStream, padHigh, padLow);
+            var dataFrame = new DataFrame(_id, data, isEndStream, true);
 
             Http2Logger.LogDebug(
                     "Sending DATA frame: stream id={0}, payload len={1}, has pad={2}, pad high={3}, pad low={4}, " +

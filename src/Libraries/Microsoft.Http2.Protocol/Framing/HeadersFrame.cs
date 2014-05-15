@@ -34,28 +34,31 @@ namespace Microsoft.Http2.Protocol.Framing
         }
 
         // for outgoing
-        public HeadersFrame(int streamId, int streamDependency = -1, byte weight = 0, bool exclusive = false, 
-            byte padHigh = 0, byte padLow = 0)
+        public HeadersFrame(int streamId, bool hasPadding, int streamDependency = -1, byte weight = 0, bool exclusive = false)
         {
             /* 12 -> 5.3 
             A client can assign a priority for a new stream by including
             prioritization information in the HEADERS frame */
             bool hasPriority = (streamDependency != -1 && weight != 0);
 
-            /* 12 -> 6.2 
-            The HEADERS frame includes optional padding.  Padding fields and
-            flags are identical to those defined for DATA frames. */
-            int padLength = padHigh * 256 + padLow;
-
             int preambleLength = Constants.FramePreambleSize;
-            if (padLength != 0) preambleLength += PadHighLowLength;
+            if (hasPadding) preambleLength += PadHighLowLength;
             if (hasPriority) preambleLength += DependencyLength + WeightLength;
 
             // construct frame without Headers Block and Padding bytes
             Buffer = new byte[preambleLength];
 
-            if (padLength != 0)
+            /* 12 -> 6.2 
+            The HEADERS frame includes optional padding.  Padding fields and
+            flags are identical to those defined for DATA frames. */
+
+            if (hasPadding)
             {
+                // generate padding
+                var padHigh = (byte) 1;
+                var padLow = (byte) new Random().Next(1, 7);
+                int padLength = padHigh * 256 + padLow;
+
                 HasPadHigh = true;
                 HasPadLow = true;
                 PadHigh = padHigh;

@@ -27,7 +27,7 @@ namespace Microsoft.Http2.Protocol.Framing
         }
 
         // for outgoing
-        public DataFrame(int streamId, ArraySegment<byte> data, bool isEndStream, byte padHigh = 0, byte padLow = 0)
+        public DataFrame(int streamId, ArraySegment<byte> data, bool isEndStream, bool hasPadding)
         {
             Contract.Assert(data.Array != null);
 
@@ -36,10 +36,14 @@ namespace Microsoft.Http2.Protocol.Framing
             to DATA frames to hide the size of messages. The total number of padding
             octets is determined by multiplying the value of the Pad High field by 256 
             and adding the value of the Pad Low field. */
-            
-            int padLength = padHigh * 256 + padLow;
-            if (padLength != 0)
+                       
+            if (hasPadding)
             {
+                // generate padding
+                var padHigh = (byte) 1;
+                var padLow = (byte) new Random().Next(1, 7);
+                int padLength = padHigh * 256 + padLow;
+
                 // construct frame with padding
                 Buffer = new byte[Constants.FramePreambleSize + PadHighLowLength + data.Count + padLength];
                 HasPadHigh = true;

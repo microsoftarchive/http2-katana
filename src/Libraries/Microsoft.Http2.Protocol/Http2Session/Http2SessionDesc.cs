@@ -233,7 +233,7 @@ namespace Microsoft.Http2.Protocol
                 initialStream.HalfClosedLocal = true;
                 if (OnFrameReceived != null)
                 {
-                    OnFrameReceived(this, new FrameReceivedEventArgs(initialStream, new HeadersFrame(1)));
+                    OnFrameReceived(this, new FrameReceivedEventArgs(initialStream, new HeadersFrame(1, false)));
                 }
             }
         }
@@ -468,7 +468,7 @@ namespace Microsoft.Http2.Protocol
                 if (frame is IEndStreamFrame && ((IEndStreamFrame) frame).IsEndStream)
                 {
                     //Tell the stream that it was the last frame
-                    Http2Logger.LogDebug("Final frame received for StreamId = " + stream.Id);
+                    Http2Logger.LogDebug("Final frame received for stream id=" + stream.Id);
                     stream.HalfClosedRemote = true;
 
                     //Promised resource has been pushed
@@ -551,7 +551,7 @@ namespace Microsoft.Http2.Protocol
             //var stream = new Http2Stream(headers, streamId,
             //                             _writeQueue, _flowControlManager, priority);
 
-            var streamSequence = new HeadersSequence(streamId, (new HeadersFrame(streamId, priority){Headers = headers}));
+            var streamSequence = new HeadersSequence(streamId, (new HeadersFrame(streamId, false){Headers = headers}));
             _headersSequences.Add(streamSequence);
 
             var stream = StreamDictionary[streamId];
@@ -654,7 +654,7 @@ namespace Microsoft.Http2.Protocol
             int nextId = GetNextId();
             var stream = StreamDictionary[nextId];
 
-            var streamSequence = new HeadersSequence(nextId, (new HeadersFrame(nextId, priority)));
+            var streamSequence = new HeadersSequence(nextId, (new HeadersFrame(nextId, false)));
             _headersSequences.Add(streamSequence);
 
             stream.OnFrameSent += (o, args) =>
@@ -714,7 +714,7 @@ namespace Microsoft.Http2.Protocol
             stream.WriteHeadersFrame(pairs, isEndStream, true);
 
             var streamSequence = _headersSequences.Find(stream.Id);
-            streamSequence.AddHeaders(new HeadersFrame(stream.Id, stream.Priority) { Headers = pairs });
+            streamSequence.AddHeaders(new HeadersFrame(stream.Id, false) { Headers = pairs });
 
             if (OnRequestSent != null)
             {
