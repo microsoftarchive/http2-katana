@@ -11,6 +11,7 @@ using Microsoft.Http2.Protocol.Compression;
 using Microsoft.Http2.Protocol.Framing;
 using System;
 using System.Threading;
+using Microsoft.Http2.Protocol.Utils;
 
 namespace Microsoft.Http2.Protocol.IO
 {
@@ -60,15 +61,6 @@ namespace Microsoft.Http2.Protocol.IO
             if (frame == null)
                 throw new ArgumentNullException("frame is null");
 
-            //Do not write to already closed stream
-            //if (frame.FrameType != FrameType.Settings
-            //    && frame.FrameType != FrameType.GoAway
-            //    && frame.FrameType != FrameType.Ping
-            //    && _streams[frame.StreamId] == null)
-            //{
-            //    return;
-            //}
-
             var priority = frame.StreamId != 0 ? _streams[frame.StreamId].Priority : Constants.DefaultStreamPriority;
 
             IQueueItem entry;
@@ -105,10 +97,21 @@ namespace Microsoft.Http2.Protocol.IO
                         //fixes issue 55. Invoking compression when frame sending order is known.
                         if (IsPriorityTurnedOn && entry.Frame is IHeadersFrame)
                         {
-                            var headersFrame = entry.Frame as IHeadersFrame;
+                            //TODO: reconstruct frame here to add padding and update frame Length
+                            var headersFrame = (HeadersFrame) entry.Frame;
                             var headers = headersFrame.Headers;
                             var compressedHeaders = _proc.Compress(headers);
                             entry.Frame.PayloadLength += compressedHeaders.Length;
+
+                            Http2Logger.LogDebug("Sending HEADERS frame: stream id={0}, payload len={1}, " +
+                                                 "has pad={2}, pad high={3}, pad low={4}, end stream={5}, " +
+                                                 "has priority={6}, exclusive={7}, dependency={8}, weight={9}", 
+                                 headersFrame.StreamId, headersFrame.PayloadLength,
+                                 headersFrame.HasPadding, headersFrame.PadHigh, headersFrame.PadLow, headersFrame.IsEndStream,
+                                 headersFrame.HasPriority, headersFrame.Exclusive, headersFrame.StreamDependency, headersFrame.Weight);
+
+                            //new ArraySegment<byte>(new byte[0]);
+                            //entry.Frame.Payload
                             _stream.Write(entry.Buffer, 0, entry.Buffer.Length);
                             _stream.Write(compressedHeaders, 0, compressedHeaders.Length);
                         }

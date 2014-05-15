@@ -13,17 +13,23 @@ namespace Microsoft.Http2.Protocol
     /// </summary>
     public static class Constants
     {
-        // There are always at least 8 bytes in a control frame or data frame
-        public const int FramePreambleSize = 8;
+        /* 12 -> 4.1 
+        All frames begin with an 8-octet header followed by a payload of
+        between 0 and 16,383 octets.*/
+        public const int FramePreambleSize = 8; // bytes
         public const int DefaultClientCertVectorSize = 8;
-        public const int MaxFramePayloadSize = 0x3fff; // Spec 09 defines max frame size to be 16383 bytes.
-        public const int MaxFramePaddingSize = 300; // in bytes
+        /* 12 -> 4.2 
+        The absolute maximum size of a frame payload is 2^14-1 (16,383) octets,
+        meaning that the maximum frame size is 16,391 octets. */
+        public const int MaxFramePayloadSize = 0x3fff; // 16383 bytes.
+        public const int MaxFramePaddingSize = 300; // bytes
         public const int InitialFlowControlOptionsValue = 0;
         public const string DefaultMethod = Verbs.Get;
         public const string DefaultHost = "localhost";
-
+        /* 12 -> 6.5.2 
+        It is recommended that this value be no smaller than 100, so as to not
+        unnecessarily limit parallelism. */
         public const int DefaultMaxConcurrentStreams = 100;
-
         //09 -> 6.9.1.  The Flow Control Window
         //A sender MUST NOT allow a flow control window to exceed 2^31 - 1 bytes.
         public const int MaxWindowSize = 0x7FFFFFFF;
@@ -35,5 +41,7 @@ namespace Microsoft.Http2.Protocol
         //connection flow control window is 65535 bytes.  
         public const int InitialFlowControlWindowSize = 0xFFFF;
         public const int DefaultStreamPriority = 1 << 30;
+        public const int DefaultStreamDependency = 3;
+        public const int DefaultStreamWeight = 16;
     }
 }

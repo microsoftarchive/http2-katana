@@ -258,7 +258,7 @@ namespace Microsoft.Http2.Protocol
             if (Closed)
                 return;
 
-            var frame = new HeadersFrame(_id, Priority)
+            var frame = new HeadersFrame(_id, Constants.DefaultStreamDependency, Constants.DefaultStreamWeight, true)
                 {
                     IsEndHeaders = isEndHeaders,
                     IsEndStream = isEndStream,

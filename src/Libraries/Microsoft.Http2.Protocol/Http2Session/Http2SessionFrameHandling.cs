@@ -42,16 +42,19 @@ namespace Microsoft.Http2.Protocol
 
         private void HandleHeaders(HeadersFrame headersFrame, out Http2Stream stream)
         {
-            Http2Logger.LogDebug("HEADERS frame: StreamId = {0}", headersFrame.StreamId);
+            Http2Logger.LogDebug("HEADERS frame: stream id={0}, payload len={1}, has pad={2}, pad high={3}, pad low={4}, " +
+                                 "end stream={5}, has priority={6}, exclusive={7}, dependency={8}, weight={9}", 
+                                 headersFrame.StreamId, headersFrame.PayloadLength,
+                                 headersFrame.HasPadding, headersFrame.PadHigh, headersFrame.PadLow, headersFrame.IsEndStream,
+                                 headersFrame.HasPriority, headersFrame.Exclusive, headersFrame.StreamDependency, headersFrame.Weight);
 
-            //09 -> 6.2.  HEADERS
-            //If a HEADERS frame
-            //is received whose stream identifier field is 0x0, the recipient MUST
-            //respond with a connection error (Section 5.4.1) of type
-            //PROTOCOL_ERROR [PROTOCOL_ERROR].
+            /* 12 -> 6.2 
+            HEADERS frames MUST be associated with a stream.  If a HEADERS frame
+            is received whose stream identifier field is 0x0, the recipient MUST
+            respond with a connection error of type PROTOCOL_ERROR.*/
             if (headersFrame.StreamId == 0)
             {
-                throw new ProtocolError(ResetStatusCode.ProtocolError, "Incoming headers frame with id = 0");
+                throw new ProtocolError(ResetStatusCode.ProtocolError, "Incoming headers frame with stream id=0");
             }
 
             var serializedHeaders = new byte[headersFrame.CompressedHeaders.Count];
@@ -64,7 +67,7 @@ namespace Microsoft.Http2.Protocol
             var headers = new HeadersList(decompressedHeaders);
             foreach (var header in headers)
             {
-                Http2Logger.LogDebug("Stream {0} header: {1}={2}", headersFrame.StreamId, header.Key, header.Value);
+                Http2Logger.LogDebug("{1}={2}", headersFrame.StreamId, header.Key, header.Value);
             }
             headersFrame.Headers.AddRange(headers);
 
@@ -81,7 +84,8 @@ namespace Microsoft.Http2.Protocol
 
             if (headersFrame.HasPriority)
             {
-                sequence.Priority = headersFrame.Priority;
+                //TODO: Priority was deprecated, now we need to use Dependency and Weight
+                //sequence.Priority = headersFrame.Priority;
             }
 
             if (!sequence.IsComplete)
@@ -135,7 +139,7 @@ namespace Microsoft.Http2.Protocol
             if (contFrame.StreamId == 0)
             {
                 throw new ProtocolError(ResetStatusCode.ProtocolError,
-                                        "Incoming continuation frame with id = 0");
+                                        "Incoming continuation frame with stream id=0");
             }
 
             var serHeaders = new byte[contFrame.CompressedHeaders.Count];
@@ -203,7 +207,7 @@ namespace Microsoft.Http2.Protocol
             //type PROTOCOL_ERROR [PROTOCOL_ERROR].
 
             if (priorityFrame.StreamId == 0)
-                throw new ProtocolError(ResetStatusCode.ProtocolError, "Incoming priority frame with id = 0");
+                throw new ProtocolError(ResetStatusCode.ProtocolError, "Incoming priority frame with stream id=0");
 
             
 
@@ -295,7 +299,7 @@ namespace Microsoft.Http2.Protocol
             //PROTOCOL_ERROR.
             if (dataFrame.StreamId == 0)
                 throw new ProtocolError(ResetStatusCode.ProtocolError,
-                                        "Incoming continuation frame with id = 0");
+                                        "Incoming continuation frame with stream id=0");
 
             stream = GetStream(dataFrame.StreamId);
 
@@ -326,7 +330,7 @@ namespace Microsoft.Http2.Protocol
             if (pingFrame.StreamId != 0)
             {
                 throw new ProtocolError(ResetStatusCode.ProtocolError,
-                                        "Incoming ping frame with id != 0");
+                                        "Incoming ping frame with stream id != 0");
             }
 
             if (pingFrame.PayloadLength != PingFrame.DefPayloadLength)

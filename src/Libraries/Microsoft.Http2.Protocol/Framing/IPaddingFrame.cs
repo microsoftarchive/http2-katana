@@ -10,8 +10,8 @@ namespace Microsoft.Http2.Protocol.Framing
 {
     internal interface IPaddingFrame
     {
-        bool IsPadLow { get; set; }
-        bool IsPadHigh { get; set; }
+        bool HasPadLow { get; set; }
+        bool HasPadHigh { get; set; }
         bool HasPadding { get; }
         byte PadHigh { get; set; }
         byte PadLow { get; set; }

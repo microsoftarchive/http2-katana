@@ -6,23 +6,10 @@
 // THIS CODE IS PROVIDED ON AN *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION ANY IMPLIED WARRANTIES OR CONDITIONS OF TITLE, FITNESS FOR A PARTICULAR PURPOSE, MERCHANTABLITY OR NON-INFRINGEMENT.
 
 // See the Apache 2 License for the specific language governing permissions and limitations under the License.
-using System;
-
 namespace Microsoft.Http2.Protocol.Framing
 {
-    [Flags]
-    public enum FrameFlags
+    internal interface IEndSegmentFrame
     {
-        None = 0x00,
-        Ack = 0x01,
-        EndStream = 0x01,
-        PingAck = 0x01,
-        EndSegment = 0x02,
-        EndHeaders = 0x04,
-        EndPushPromise = 0x04,
-        PadLow = 0x08,
-        PadHight = 0x10,
-        Compressed = 0x20,
-        Priority = 0x20
+        bool IsEndSegment { get; set; }
     }
 }

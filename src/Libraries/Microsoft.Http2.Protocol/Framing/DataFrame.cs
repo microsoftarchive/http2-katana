@@ -15,18 +15,18 @@ namespace Microsoft.Http2.Protocol.Framing
     /// DATA frame class
     /// see 12 -> 6.1.
     /// </summary>
-    public class DataFrame : Frame, IEndStreamFrame, IPaddingFrame
+    public class DataFrame : Frame, IEndStreamFrame, IEndSegmentFrame, IPaddingFrame
     {
-        // 2 bytes: 1 for Pad High and 1 for Pad Low fields
+        // 1 byte Pad High, 1 byte Pad Low field
         private const int PadHighLowLength = 2;
 
-        // For incoming
+        // for incoming
         public DataFrame(Frame preamble)
             : base(preamble)
         {
         }
 
-        // For outgoing
+        // for outgoing
         public DataFrame(int streamId, ArraySegment<byte> data, bool isEndStream, byte padHigh = 0, byte padLow = 0)
         {
             Contract.Assert(data.Array != null);
@@ -40,9 +40,10 @@ namespace Microsoft.Http2.Protocol.Framing
             int padLength = padHigh * 256 + padLow;
             if (padLength != 0)
             {
+                // construct frame with padding
                 Buffer = new byte[Constants.FramePreambleSize + PadHighLowLength + data.Count + padLength];
-                IsPadHigh = true;
-                IsPadLow = true;
+                HasPadHigh = true;
+                HasPadLow = true;
                 PadHigh = padHigh;
                 PadLow = padLow;
                 PayloadLength = PadHighLowLength + data.Count + padLength;
@@ -51,6 +52,7 @@ namespace Microsoft.Http2.Protocol.Framing
             }
             else
             {
+                // construct frame without padding
                 Buffer = new byte[Constants.FramePreambleSize + data.Count];
                 PayloadLength = data.Count;               
 
@@ -58,6 +60,7 @@ namespace Microsoft.Http2.Protocol.Framing
             }
            
             IsEndStream = isEndStream;
+            FrameType = FrameType.Data;
             StreamId = streamId;
 
             //TODO: add optional gzip compression
@@ -97,7 +100,7 @@ namespace Microsoft.Http2.Protocol.Framing
             }
         }
 
-        public bool IsPadLow
+        public bool HasPadLow
         {
             get
             {
@@ -112,7 +115,7 @@ namespace Microsoft.Http2.Protocol.Framing
             }
         }
 
-        public bool IsPadHigh
+        public bool HasPadHigh
         {
             get
             {
@@ -129,7 +132,7 @@ namespace Microsoft.Http2.Protocol.Framing
 
         public bool HasPadding
         {
-            get { return IsPadHigh && IsPadLow; }
+            get { return HasPadHigh && HasPadLow; }
         }
 
         public byte PadHigh

@@ -12,15 +12,69 @@ namespace Microsoft.Http2.Protocol.Framing
 {
     /// <summary>
     /// HEADERS frame class
-    /// see 12 -> 6.2.
+    /// see 12 -> 6.2
     /// </summary>
-    public class HeadersFrame : Frame, IEndStreamFrame, IHeadersFrame
+    public class HeadersFrame : Frame, IEndStreamFrame, IEndSegmentFrame, IHeadersFrame, IPaddingFrame
     {
-        private const int PreambleSizeWithPriority = 12;
+        // 1 byte Pad High, 1 byte Pad Low field
+        private const int PadHighLowLength = 2;
+
+        // 4 bytes Stream Dependency field
+        private const int DependencyLength = 4;
+
+        // 1 byte Weight field
+        private const int WeightLength = 1;
 
         private HeadersList _headers = new HeadersList();
 
-        // 8 bits, 24-31
+        // for incoming
+        public HeadersFrame(Frame preamble)
+            : base(preamble)
+        {
+        }
+
+        // for outgoing
+        public HeadersFrame(int streamId, int streamDependency = -1, byte weight = 0, bool exclusive = false, 
+            byte padHigh = 0, byte padLow = 0)
+        {
+            /* 12 -> 5.3 
+            A client can assign a priority for a new stream by including
+            prioritization information in the HEADERS frame */
+            bool hasPriority = (streamDependency != -1 && weight != 0);
+
+            /* 12 -> 6.2 
+            The HEADERS frame includes optional padding.  Padding fields and
+            flags are identical to those defined for DATA frames. */
+            int padLength = padHigh * 256 + padLow;
+
+            int preambleLength = Constants.FramePreambleSize;
+            if (padLength != 0) preambleLength += PadHighLowLength;
+            if (hasPriority) preambleLength += DependencyLength + WeightLength;
+
+            // construct frame without Headers Block and Padding bytes
+            Buffer = new byte[preambleLength];
+
+            if (padLength != 0)
+            {
+                PadHigh = padHigh;
+                PadLow = padLow;
+                HasPadHigh = true;
+                HasPadLow = true;
+            }
+
+            if (hasPriority)
+            {
+                HasPriority = true; 
+                Exclusive = exclusive;
+                StreamDependency = streamDependency;
+                Weight = weight;
+            }
+
+            PayloadLength = Buffer.Length - Constants.FramePreambleSize;
+            FrameType = FrameType.Headers;
+            StreamId = streamId;
+        }
+
         public bool IsEndStream
         {
             get
@@ -36,14 +90,17 @@ namespace Microsoft.Http2.Protocol.Framing
             }
         }
 
-        public bool HasPriority
+        public bool IsEndSegment
         {
-            get { return (Flags & FrameFlags.Priority) == FrameFlags.Priority; }
-            private set
+            get
+            {
+                return (Flags & FrameFlags.EndSegment) == FrameFlags.EndSegment;
+            }
+            set
             {
                 if (value)
                 {
-                    Flags |= FrameFlags.Priority;
+                    Flags |= FrameFlags.EndSegment;
                 }
             }
         }
@@ -63,18 +120,145 @@ namespace Microsoft.Http2.Protocol.Framing
             }
         }
 
-        public int Priority
+        public bool HasPadLow
         {
             get
             {
-                if (!HasPriority)
-                    return Constants.DefaultStreamPriority;
-
-                return FrameHelper.Get32BitsAt(Buffer, 8);
+                return (Flags & FrameFlags.PadLow) == FrameFlags.PadLow;
             }
-            private set
+            set
             {
-                FrameHelper.Set32BitsAt(Buffer, 8, value);
+                if (value)
+                {
+                    Flags |= FrameFlags.PadLow;
+                }
+            }
+        }
+
+        public bool HasPadHigh
+        {
+            get
+            {
+                return (Flags & FrameFlags.PadHight) == FrameFlags.PadHight;
+            }
+            set
+            {
+                if (value)
+                {
+                    Flags |= FrameFlags.PadHight;
+                }
+            }
+        }    
+
+        public bool HasPadding
+        {
+            get { return HasPadHigh && HasPadLow; }
+        }
+
+        public byte PadHigh
+        {
+            get
+            {
+                return HasPadding ? Buffer[Constants.FramePreambleSize] : (byte) 0;
+            }
+            set { Buffer[Constants.FramePreambleSize] = value; }
+        }
+
+        public byte PadLow
+        {
+            get
+            {
+                return HasPadding ? Buffer[Constants.FramePreambleSize + 1] : (byte)0;
+            }
+            set { Buffer[Constants.FramePreambleSize + 1] = value; }
+        }
+
+        public bool HasPriority
+        {
+            get
+            {
+                return (Flags & FrameFlags.Priority) == FrameFlags.Priority;
+            }
+            set
+            {
+                if (value)
+                {
+                    Flags |= FrameFlags.Priority;
+                }
+            }
+        }
+
+        public bool Exclusive
+        {
+            get
+            {
+                if (HasPriority)
+                {
+                    if (HasPadding)
+                    {
+                        return FrameHelper.GetBit(Buffer[Constants.FramePreambleSize + PadHighLowLength], 7);
+                    }
+                    return FrameHelper.GetBit(Buffer[Constants.FramePreambleSize], 7);
+                }
+                return false;
+            }
+            set
+            {
+                if (HasPadding)
+                {
+                    Buffer[Constants.FramePreambleSize + PadHighLowLength] = 
+                        FrameHelper.SetBit(Buffer[Constants.FramePreambleSize + PadHighLowLength], value, 7);
+                }
+                Buffer[Constants.FramePreambleSize] = 
+                    FrameHelper.SetBit(Buffer[Constants.FramePreambleSize], value, 7);
+            }
+        }
+
+        public int StreamDependency
+        {
+            get
+            {
+                if (HasPriority)
+                {
+                    if (HasPadding)
+                    {
+                        return FrameHelper.Get31BitsAt(Buffer, Constants.FramePreambleSize + PadHighLowLength);
+                    }
+                    return FrameHelper.Get31BitsAt(Buffer, Constants.FramePreambleSize);
+                }
+                return 0;
+            }
+            set
+            {
+                if (HasPadding)
+                {
+                    FrameHelper.Set31BitsAt(Buffer, Constants.FramePreambleSize + PadHighLowLength, value);
+                }
+                FrameHelper.Set31BitsAt(Buffer, Constants.FramePreambleSize, value);
+            }
+        }
+
+        public byte Weight
+        {
+            get
+            {
+                if (HasPriority)
+                {
+                    if (HasPadding)
+                    {
+                        return Buffer[Constants.FramePreambleSize + PadHighLowLength + DependencyLength];
+                    }
+                    return Buffer[Constants.FramePreambleSize + DependencyLength];
+                }
+                return 0;
+            }
+            set
+            {
+                if (HasPadding)
+                {
+                    Buffer[Constants.FramePreambleSize + PadHighLowLength + DependencyLength] = value;
+                }
+                Buffer[Constants.FramePreambleSize + DependencyLength] = value;
             }
         }
 
@@ -82,11 +266,20 @@ namespace Microsoft.Http2.Protocol.Framing
         {
             get
             {
-                int offset = HasPriority ? PreambleSizeWithPriority : Constants.FramePreambleSize;
-                return new ArraySegment<byte>(Buffer, offset, Buffer.Length - offset);
+                int padLength = PadHigh * 256 + PadLow;
+                int offset = Constants.FramePreambleSize;
+
+                if (HasPadding) offset += PadHighLowLength;
+                if (HasPriority) offset += DependencyLength + WeightLength;
+
+                int count = Buffer.Length - offset - padLength;
+
+                return new ArraySegment<byte>(Buffer, offset, count);
             }
         }
 
+        /* Headers List will be compressed and added to frame Buffer later,
+        in WriteQueue.PumpToStream() method. */
         public HeadersList Headers
         {
             get
@@ -100,44 +293,6 @@ namespace Microsoft.Http2.Protocol.Framing
 
                 _headers = value;
             }
-        }
-
-        /// <summary>
-        ///  Create an outgoing frame
-        /// </summary>
-        /// <param name="streamId">Stream id</param>
-        /// <param name="priority">Priority</param>
-        public HeadersFrame(int streamId, int priority = -1)
-        {
-            //PRIORITY (0x8):  Bit 4 being set indicates that the first four octets
-            //of this frame contain a single reserved bit and a 31-bit priority;
-            //If this bit is not set, the four bytes do not
-            //appear and the frame only contains a header block fragment.
-            bool hasPriority = (priority != -1);
-
-            int preambleLength = hasPriority
-                ? PreambleSizeWithPriority
-                : Constants.FramePreambleSize;
-
-            _buffer = new byte[preambleLength];
-            HasPriority = hasPriority;
-
-            StreamId = streamId;
-            FrameType = FrameType.Headers;
-            PayloadLength = Buffer.Length - Constants.FramePreambleSize;
-            if (HasPriority)
-            {
-                Priority = priority;
-            }
-        }
-
-        /// <summary>
-        /// Create an incoming frame
-        /// </summary>
-        /// <param name="preamble">Frame preamble</param>
-        public HeadersFrame(Frame preamble)
-            : base(preamble)
-        {
-        }
+        }      
     }
 }
