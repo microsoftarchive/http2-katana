@@ -56,10 +56,10 @@ namespace Microsoft.Http2.Protocol.Framing
 
             if (padLength != 0)
             {
-                PadHigh = padHigh;
-                PadLow = padLow;
                 HasPadHigh = true;
                 HasPadLow = true;
+                PadHigh = padHigh;
+                PadLow = padLow;
             }
 
             if (hasPriority)
@@ -206,11 +206,10 @@ namespace Microsoft.Http2.Protocol.Framing
             {
                 if (HasPadding)
                 {
-                    Buffer[Constants.FramePreambleSize + PadHighLowLength] = 
-                        FrameHelper.SetBit(Buffer[Constants.FramePreambleSize + PadHighLowLength], value, 7);
+                    FrameHelper.SetBit(ref Buffer[Constants.FramePreambleSize + PadHighLowLength], value, 7);
+                    return;
                 }
-                Buffer[Constants.FramePreambleSize] = 
-                    FrameHelper.SetBit(Buffer[Constants.FramePreambleSize], value, 7);
+                FrameHelper.SetBit(ref Buffer[Constants.FramePreambleSize], value, 7);
             }
         }
 
@@ -233,6 +232,7 @@ namespace Microsoft.Http2.Protocol.Framing
                 if (HasPadding)
                 {
                     FrameHelper.Set31BitsAt(Buffer, Constants.FramePreambleSize + PadHighLowLength, value);
+                    return;
                 }
                 FrameHelper.Set31BitsAt(Buffer, Constants.FramePreambleSize, value);
             }
@@ -257,6 +257,7 @@ namespace Microsoft.Http2.Protocol.Framing
                 if (HasPadding)
                 {
                     Buffer[Constants.FramePreambleSize + PadHighLowLength + DependencyLength] = value;
+                    return;
                 }
                 Buffer[Constants.FramePreambleSize + DependencyLength] = value;
             }

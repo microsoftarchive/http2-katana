@@ -94,14 +94,21 @@ namespace Microsoft.Http2.Protocol.IO
                     {
                         var entry = _messageQueue.Dequeue();
 
-                        //fixes issue 55. Invoking compression when frame sending order is known.
+                        /* see https://github.com/MSOpenTech/http2-katana/issues/55
+                        It's critically important to keep compression context before sending
+                        headers frame. Since that we are unable to construct headers frame with 
+                        compressed headers block as part of the frame's Buffer, because Queue has 
+                        prioritization mechanism and we must compress headers list immediately before
+                        sending it. */
                         if (IsPriorityTurnedOn && entry.Frame is IHeadersFrame)
                         {
-                            //TODO: reconstruct frame here to add padding and update frame Length
+                            // frame reconstruction to add compressed headers and padding
                             var headersFrame = (HeadersFrame) entry.Frame;
                             var headers = headersFrame.Headers;
                             var compressedHeaders = _proc.Compress(headers);
                             entry.Frame.PayloadLength += compressedHeaders.Length;
+                            byte[] padding = new byte[headersFrame.PadHigh * 256 + headersFrame.PadLow];
+                            entry.Frame.PayloadLength += padding.Length;
 
                             Http2Logger.LogDebug("Sending HEADERS frame: stream id={0}, payload len={1}, " +
                                                  "has pad={2}, pad high={3}, pad low={4}, end stream={5}, " +
@@ -110,10 +117,12 @@ namespace Microsoft.Http2.Protocol.IO
                                  headersFrame.HasPadding, headersFrame.PadHigh, headersFrame.PadLow, headersFrame.IsEndStream,
                                  headersFrame.HasPriority, headersFrame.Exclusive, headersFrame.StreamDependency, headersFrame.Weight);
 
-                            //new ArraySegment<byte>(new byte[0]);
-                            //entry.Frame.Payload
+                            // write frame preamble
                             _stream.Write(entry.Buffer, 0, entry.Buffer.Length);
+                            // write compressed Headers Block
                             _stream.Write(compressedHeaders, 0, compressedHeaders.Length);
+                            // write frame padding
+                            _stream.Write(padding, 0, padding.Length);
                         }
                         else
                         {

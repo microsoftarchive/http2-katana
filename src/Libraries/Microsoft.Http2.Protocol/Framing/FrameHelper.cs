@@ -28,6 +28,18 @@ namespace Microsoft.Http2.Protocol.Framing
             return (byte)(input ^ (1 << offset));
         }
 
+        public static void SetBit(ref byte input, bool value, byte offset)
+        {
+            Contract.Assert(offset <= 7);
+
+            if (value == GetBit(input, offset))
+            {
+                return;
+            }
+
+            input ^= (byte)(1 << offset);
+        }
+
         public static bool GetBit(byte input, byte offset)
         {
             Contract.Assert(offset <= 7);

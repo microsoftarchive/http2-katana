@@ -258,7 +258,15 @@ namespace Microsoft.Http2.Protocol
             if (Closed)
                 return;
 
-            var frame = new HeadersFrame(_id, Constants.DefaultStreamDependency, Constants.DefaultStreamWeight, true)
+            /* 12 -> 6.2
+            The HEADERS frame includes optional padding.  Padding fields and
+            flags are identical to those defined for DATA frames. */
+            var r = new Random();
+            var padHigh = (byte)1;
+            var padLow = (byte)r.Next(1, 7);
+
+            var frame = new HeadersFrame(_id, -1, 0, false,
+                                         padHigh, padLow)
                 {
                     IsEndHeaders = isEndHeaders,
                     IsEndStream = isEndStream,
