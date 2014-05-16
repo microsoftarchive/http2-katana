@@ -51,7 +51,7 @@ namespace Microsoft.Http2.Protocol.Framing
 
             if ((newFrame is HeadersFrame && newFrame.IsEndHeaders)
                 || (newFrame is ContinuationFrame && newFrame.IsEndHeaders)
-                || newFrame is PushPromiseFrame && (newFrame as PushPromiseFrame).IsEndPushPromise)
+                || newFrame is PushPromiseFrame && (newFrame as PushPromiseFrame).IsEndHeaders)
             {
                 IsComplete = true;
             }

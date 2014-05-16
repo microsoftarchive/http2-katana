@@ -433,9 +433,7 @@ namespace Microsoft.Http2.Protocol
                 return;
 
             var headers = new HeadersList(pairs);
-
-            //TODO IsEndPushPromise should be computationable
-            var frame = new PushPromiseFrame(Id, promisedId, true, headers);
+            var frame = new PushPromiseFrame(Id, promisedId, true, true, headers);
 
             ReservedLocal = true;
 

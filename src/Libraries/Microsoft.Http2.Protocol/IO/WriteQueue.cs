@@ -87,7 +87,7 @@ namespace Microsoft.Http2.Protocol.IO
                 if (cancel.IsCancellationRequested)
                     cancel.ThrowIfCancellationRequested();
 
-                //Send one at a time
+                // send one at a time
                 lock (_writeLock)
                 {
                     if (_messageQueue.Count > 0)
@@ -100,22 +100,41 @@ namespace Microsoft.Http2.Protocol.IO
                         compressed headers block as part of the frame's Buffer, because Queue has 
                         prioritization mechanism and we must compress headers list immediately before
                         sending it. */
-                        if (IsPriorityTurnedOn && entry.Frame is IHeadersFrame)
+                        if (IsPriorityTurnedOn && entry.Frame is IHeadersFrame && entry.Frame is IPaddingFrame)
                         {
-                            // frame reconstruction to add compressed headers and padding
-                            var headersFrame = (HeadersFrame) entry.Frame;
-                            var headers = headersFrame.Headers;
+                            /* There are two frame types bears Headers Block Fragment: HEADERS and PUSH_PROMISE,
+                            both implements IHeadersFrame interface. It can include additional padding as well.
+                            Since that we call to interface methods to avoid code redundant. */
+
+                            // frame reconstruction: headers compression
+                            var headers = (entry.Frame as IHeadersFrame).Headers;
                             var compressedHeaders = _proc.Compress(headers);
                             entry.Frame.PayloadLength += compressedHeaders.Length;
-                            byte[] padding = new byte[headersFrame.PadHigh * 256 + headersFrame.PadLow];
+                            // frame reconstruction: add padding
+                            var paddingFrame = entry.Frame as IPaddingFrame;
+                            byte[] padding = new byte[paddingFrame.PadHigh * 256 + paddingFrame.PadLow];
                             entry.Frame.PayloadLength += padding.Length;
 
-                            Http2Logger.LogDebug("Sending HEADERS frame: stream id={0}, payload len={1}, " +
-                                                 "has pad={2}, pad high={3}, pad low={4}, end stream={5}, " +
-                                                 "has priority={6}, exclusive={7}, dependency={8}, weight={9}", 
-                                 headersFrame.StreamId, headersFrame.PayloadLength,
-                                 headersFrame.HasPadding, headersFrame.PadHigh, headersFrame.PadLow, headersFrame.IsEndStream,
-                                 headersFrame.HasPriority, headersFrame.Exclusive, headersFrame.StreamDependency, headersFrame.Weight);
+                            if (entry.Frame is HeadersFrame)
+                            {
+                                var headersFrame = entry.Frame as HeadersFrame;
+                                Http2Logger.LogDebug("Sending HEADERS frame: stream id={0}, payload len={1}, " +
+                                                "has pad={2}, pad high={3}, pad low={4}, end stream={5}, " +
+                                                "has priority={6}, exclusive={7}, dependency={8}, weight={9}",
+                                headersFrame.StreamId, headersFrame.PayloadLength, headersFrame.HasPadding,
+                                headersFrame.PadHigh, headersFrame.PadLow, headersFrame.IsEndStream,
+                                headersFrame.HasPriority, headersFrame.Exclusive, headersFrame.StreamDependency,
+                                headersFrame.Weight);
+                            }
+                            if (entry.Frame is PushPromiseFrame)
+                            {
+                                var pushPromiseFrame = entry.Frame as PushPromiseFrame;
+                                Http2Logger.LogDebug("Sending PUSH_PROMISE frame: stream id={0}, payload len={1}, " +
+                                                     "promised id={2}, has pad={3}, pad high={4}, pad low={5}, end headers={6}",
+                                pushPromiseFrame.StreamId, pushPromiseFrame.PayloadLength,
+                                pushPromiseFrame.PromisedStreamId, pushPromiseFrame.HasPadding,
+                                pushPromiseFrame.PadHigh, pushPromiseFrame.PadLow, pushPromiseFrame.IsEndHeaders);                 
+                            }                          
 
                             // write frame preamble
                             _stream.Write(entry.Buffer, 0, entry.Buffer.Length);

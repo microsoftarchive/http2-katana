@@ -57,7 +57,6 @@ namespace Microsoft.Http2.Protocol.Framing
                 // generate padding
                 var padHigh = (byte) 1;
                 var padLow = (byte) new Random().Next(1, 7);
-                int padLength = padHigh * 256 + padLow;
 
                 HasPadHigh = true;
                 HasPadLow = true;
@@ -297,6 +296,6 @@ namespace Microsoft.Http2.Protocol.Framing
 
                 _headers = value;
             }
-        }      
+        }
     }
 }

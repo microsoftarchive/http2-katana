@@ -19,7 +19,6 @@ namespace Microsoft.Http2.Protocol.Framing
         PingAck = 0x01,
         EndSegment = 0x02,
         EndHeaders = 0x04,
-        EndPushPromise = 0x04,
         PadLow = 0x08,
         PadHight = 0x10,
         Compressed = 0x20,

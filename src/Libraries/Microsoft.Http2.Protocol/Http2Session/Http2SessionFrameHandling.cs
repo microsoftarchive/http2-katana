@@ -501,23 +501,23 @@ namespace Microsoft.Http2.Protocol
 
         private void HandlePushPromiseFrame(PushPromiseFrame frame, out Http2Stream stream)
         {
-            Http2Logger.LogDebug("PUSH_PROMISE frame: stream id={0}, promised id={1}",
-                frame.StreamId, frame.PromisedStreamId);
+            Http2Logger.LogDebug("PUSH_PROMISE frame: stream id={0}, payload len={1}, promised id={2}, " +
+                                 "has pad={3}, pad high={4}, pad low={5}, end headers={6}",
+                                 frame.StreamId, frame.PayloadLength, frame.PromisedStreamId, frame.HasPadding,
+                                 frame.PadHigh, frame.PadLow, frame.IsEndHeaders);
 
-            // 09 -> 6.6. 
-            // PUSH_PROMISE frames MUST be associated with an existing, peer-
-            // initiated stream.  If the stream identifier field specifies the value
-            // 0x0, a recipient MUST respond with a connection error (Section 5.4.1)
-            // of type PROTOCOL_ERROR.
+            /* 12 -> 6.6. 
+            PUSH_PROMISE frames MUST be associated with an existing, peer- initiated stream.
+            If the stream identifier field specifies the value 0x0, a recipient MUST respond
+            with a connection error of type PROTOCOL_ERROR. */
             if (frame.StreamId == 0)
             {
                 throw new ProtocolError(ResetStatusCode.ProtocolError, "push promise frame with StreamId = 0");
             }
 
-            // 09 -> 6.6.
-            // An endpoint
-            // that receives any frame after receiving a RST_STREAM MUST treat
-            // that as a stream error (Section 5.4.2) of type STREAM_CLOSED.
+            /* 12 -> 5.1
+            An endpoint that receives any frame after receiving a RST_STREAM MUST treat
+            that as a stream error of type STREAM_CLOSED. */
             if (StreamDictionary[frame.StreamId].Closed)
             {
                 throw new Http2StreamNotFoundException(frame.StreamId);

@@ -233,7 +233,7 @@ namespace Microsoft.Http2.Protocol
                 initialStream.HalfClosedLocal = true;
                 if (OnFrameReceived != null)
                 {
-                    OnFrameReceived(this, new FrameReceivedEventArgs(initialStream, new HeadersFrame(1, false)));
+                    OnFrameReceived(this, new FrameReceivedEventArgs(initialStream, new HeadersFrame(1, true)));
                 }
             }
         }
@@ -548,10 +548,7 @@ namespace Microsoft.Http2.Protocol
                 throw new MaxConcurrentStreamsLimitException();
             }
 
-            //var stream = new Http2Stream(headers, streamId,
-            //                             _writeQueue, _flowControlManager, priority);
-
-            var streamSequence = new HeadersSequence(streamId, (new HeadersFrame(streamId, false){Headers = headers}));
+            var streamSequence = new HeadersSequence(streamId, (new HeadersFrame(streamId, true){Headers = headers}));
             _headersSequences.Add(streamSequence);
 
             var stream = StreamDictionary[streamId];
@@ -654,7 +651,7 @@ namespace Microsoft.Http2.Protocol
             int nextId = GetNextId();
             var stream = StreamDictionary[nextId];
 
-            var streamSequence = new HeadersSequence(nextId, (new HeadersFrame(nextId, false)));
+            var streamSequence = new HeadersSequence(nextId, (new HeadersFrame(nextId, true)));
             _headersSequences.Add(streamSequence);
 
             stream.OnFrameSent += (o, args) =>
@@ -714,7 +711,7 @@ namespace Microsoft.Http2.Protocol
             stream.WriteHeadersFrame(pairs, isEndStream, true);
 
             var streamSequence = _headersSequences.Find(stream.Id);
-            streamSequence.AddHeaders(new HeadersFrame(stream.Id, false) { Headers = pairs });
+            streamSequence.AddHeaders(new HeadersFrame(stream.Id, true) { Headers = pairs });
 
             if (OnRequestSent != null)
             {

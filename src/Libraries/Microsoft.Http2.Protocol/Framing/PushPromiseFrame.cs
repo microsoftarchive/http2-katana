@@ -11,34 +11,152 @@ using System.Diagnostics.Contracts;
 
 namespace Microsoft.Http2.Protocol.Framing
 {
-    internal class PushPromiseFrame : Frame, IHeadersFrame
+    /// <summary>
+    /// PUSH_PROMISE frame class
+    /// see 12 -> 6.6
+    /// </summary>
+    internal class PushPromiseFrame : Frame, IHeadersFrame, IPaddingFrame
     {
-        // The number of bytes in the frame, not including the compressed headers.
-        private const byte PreambleSize = 8;
-        private const byte PromisedIdOffset = 8;
-        private const byte HeadersOffset = PreambleSize + sizeof (Int32);
+        // 1 byte Pad High, 1 byte Pad Low field
+        private const int PadHighLowLength = 2;
 
-        public HeadersList Headers { get; set; }
+        // 4 bytes Promised Stream Id field
+        private const int PromisedIdLength = 4;
 
-        //EndHeaders and EndPushPromise are 0x04 both
-        public bool IsEndHeaders
+        private HeadersList _headers = new HeadersList();
+
+        // for incoming
+        public PushPromiseFrame(Frame preamble)
+            : base(preamble)
         {
-            get { return IsEndPushPromise; }
-            set { IsEndPushPromise = value; }
         }
 
-        public bool IsEndPushPromise
+        // for outgoing
+        public PushPromiseFrame(Int32 streamId, Int32 promisedStreamId, bool hasPadding, bool isEndHeaders,
+            HeadersList headers = null)
+        {
+            Contract.Assert(streamId > 0 && promisedStreamId > 0);
+
+            int preambleLength = Constants.FramePreambleSize + PromisedIdLength;
+            if (hasPadding) preambleLength += PadHighLowLength;
+
+            // construct frame without Headers Block and Padding bytes
+            Buffer = new byte[preambleLength];
+
+            /* 12 -> 6.6 
+            The PUSH_PROMISE frame includes optional padding. Padding fields and
+            flags are identical to those defined for DATA frames. */
+
+            if (hasPadding)
+            {
+                // generate padding
+                var padHigh = (byte)1;
+                var padLow = (byte)new Random().Next(1, 7);
+
+                HasPadHigh = true;
+                HasPadLow = true;
+                PadHigh = padHigh;
+                PadLow = padLow;
+            }
+
+            PayloadLength = Buffer.Length - Constants.FramePreambleSize;
+            FrameType = FrameType.PushPromise;
+            StreamId = streamId;
+
+            PromisedStreamId = promisedStreamId;
+            IsEndHeaders = isEndHeaders;
+
+            if (headers != null) Headers = headers;
+        }
+
+        public bool IsEndHeaders
         {
             get
             {
-                return (Flags & FrameFlags.EndPushPromise) == FrameFlags.EndPushPromise;
+                return (Flags & FrameFlags.EndHeaders) == FrameFlags.EndHeaders;
             }
             set
             {
                 if (value)
                 {
-                    Flags |= FrameFlags.EndPushPromise;
+                    Flags |= FrameFlags.EndHeaders;
                 }
+            }
+        }
+
+        public bool HasPadHigh
+        {
+            get
+            {
+                return (Flags & FrameFlags.PadHight) == FrameFlags.PadHight;
+            }
+            set
+            {
+                if (value)
+                {
+                    Flags |= FrameFlags.PadHight;
+                }
+            }
+        }
+
+        public bool HasPadLow
+        {
+            get
+            {
+                return (Flags & FrameFlags.PadLow) == FrameFlags.PadLow;
+            }
+            set
+            {
+                if (value)
+                {
+                    Flags |= FrameFlags.PadLow;
+                }
+            }
+        }
+
+        public bool HasPadding
+        {
+            get { return HasPadHigh && HasPadLow; }
+        }
+
+        public byte PadHigh
+        {
+            get
+            {
+                return HasPadding ? Buffer[Constants.FramePreambleSize] : (byte)0;
+            }
+            set { Buffer[Constants.FramePreambleSize] = value; }
+        }
+
+        public byte PadLow
+        {
+            get
+            {
+                return HasPadding ? Buffer[Constants.FramePreambleSize + 1] : (byte)0;
+            }
+            set { Buffer[Constants.FramePreambleSize + 1] = value; }
+        }
+
+        public Int32 PromisedStreamId
+        {
+            get
+            {
+                if (HasPadding)
+                {
+                    return FrameHelper.Get31BitsAt(Buffer, Constants.FramePreambleSize + PadHighLowLength);
+                }
+                return FrameHelper.Get31BitsAt(Buffer, Constants.FramePreambleSize);
+            }
+            set
+            {
+                Contract.Assert(value >= 0 && value <= 255);
+
+                if (HasPadding)
+                {
+                    FrameHelper.Set31BitsAt(Buffer, Constants.FramePreambleSize + PadHighLowLength, value);
+                    return;
+                }
+                FrameHelper.Set31BitsAt(Buffer, Constants.FramePreambleSize, value);
             }
         }
 
@@ -46,44 +164,32 @@ namespace Microsoft.Http2.Protocol.Framing
         {
             get
             {
-                //preamble (8 bytes) -> promised Id (4 bytes) -> compressed headers
-                var compressedBytesPayload = Buffer.Length - HeadersOffset;
-                Contract.Assert(compressedBytesPayload >= 0);
+                int padLength = PadHigh * 256 + PadLow;
+                int offset = Constants.FramePreambleSize + PromisedIdLength;
 
-                return new ArraySegment<byte>(Buffer, HeadersOffset, compressedBytesPayload);
+                if (HasPadding) offset += PadHighLowLength;
+
+                int count = Buffer.Length - offset - padLength;
+
+                return new ArraySegment<byte>(Buffer, offset, count);
             }
         }
 
-        public Int32 PromisedStreamId
+        /* Headers List will be compressed and added to frame Buffer later,
+        in WriteQueue.PumpToStream() method. */
+        public HeadersList Headers
         {
             get
             {
-                return FrameHelper.Get31BitsAt(Buffer, PromisedIdOffset);
+                return _headers;
             }
             set
             {
-                Contract.Assert(value >= 0 && value <= 255);
-                FrameHelper.Set31BitsAt(Buffer, PromisedIdOffset, value);
+                if (value == null)
+                    return;
+
+                _headers = value;
             }
-        }
-
-        public PushPromiseFrame(Frame preamble)
-            : base(preamble)
-        {
-            Headers = new HeadersList();
-        }
-
-        public PushPromiseFrame(Int32 streamId, Int32 promisedStreamId,
-                                bool isEndPushPromise, HeadersList headers = null)
-            : base(new byte[HeadersOffset])
-        {
-            Contract.Assert(streamId > 0 && promisedStreamId > 0);
-            StreamId = streamId;
-            FrameType = FrameType.PushPromise;
-            PayloadLength = Buffer.Length - Constants.FramePreambleSize;
-            PromisedStreamId = promisedStreamId;
-            Headers = headers ?? new HeadersList();
-            IsEndPushPromise = isEndPushPromise;
         }
     }
 }
