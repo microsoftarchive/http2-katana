@@ -102,9 +102,9 @@ namespace Microsoft.Http2.Protocol.IO
                         sending it. */
                         if (IsPriorityTurnedOn && entry.Frame is IHeadersFrame && entry.Frame is IPaddingFrame)
                         {
-                            /* There are two frame types bears Headers Block Fragment: HEADERS and PUSH_PROMISE,
-                            both implements IHeadersFrame interface. It can include additional padding as well.
-                            Since that we call to interface methods to avoid code redundant. */
+                            /* There are two frame types bears Headers Block Fragment: HEADERS and PUSH_PROMISE
+                            and CONTINUATION, which implements IHeadersFrame interface. It can include additional 
+                            padding as well. Since that we call to interface methods to avoid code redundant. */
 
                             // frame reconstruction: headers compression
                             var headers = (entry.Frame as IHeadersFrame).Headers;
@@ -134,7 +134,15 @@ namespace Microsoft.Http2.Protocol.IO
                                 pushPromiseFrame.StreamId, pushPromiseFrame.PayloadLength,
                                 pushPromiseFrame.PromisedStreamId, pushPromiseFrame.HasPadding,
                                 pushPromiseFrame.PadHigh, pushPromiseFrame.PadLow, pushPromiseFrame.IsEndHeaders);                 
-                            }                          
+                            }
+                            if (entry.Frame is ContinuationFrame)
+                            {
+                                var contFrame = entry.Frame as ContinuationFrame;
+                                Http2Logger.LogDebug("Sending CONTINUATION frame: stream id={0}, payload len={1}, has pad={2}, " +
+                                                     "pad high={3}, pad low={4}, end headers={5}", contFrame.StreamId,
+                                contFrame.PayloadLength, contFrame.HasPadding, contFrame.PadHigh, contFrame.PadLow, 
+                                contFrame.IsEndHeaders);
+                            }
 
                             // write frame preamble
                             _stream.Write(entry.Buffer, 0, entry.Buffer.Length);

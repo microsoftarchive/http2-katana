@@ -125,7 +125,9 @@ namespace Microsoft.Http2.Protocol
 
         private void HandleContinuation(ContinuationFrame contFrame, out Http2Stream stream)
         {
-            Http2Logger.LogDebug("CONTINUATION frame: stream id={0}", contFrame.StreamId);
+            Http2Logger.LogDebug("CONTINUATION frame: stream id={0}, payload len={1}, has pad={2}, pad high={3}," +
+                                 " pad low={4}, end headers={5}", contFrame.StreamId, contFrame.PayloadLength,
+                                 contFrame.HasPadding, contFrame.PadHigh, contFrame.PadLow, contFrame.IsEndHeaders);
 
             if (!(_lastFrame is ContinuationFrame || _lastFrame is HeadersFrame))
                 throw new ProtocolError(ResetStatusCode.ProtocolError,
