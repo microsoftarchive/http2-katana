@@ -269,6 +269,13 @@ namespace Microsoft.Http2.Protocol
             if (dataFrame.StreamId == 0)
                 throw new ProtocolError(ResetStatusCode.ProtocolError,
                                         "Incoming continuation frame with stream id=0");
+            /* 12 -> 6.1 
+            An endpoint that has not enabled DATA frame compression MUST
+            treat the receipt of a DATA frame with the COMPRESSED flag set as a
+            connection error of type PROTOCOL_ERROR. */
+            if (dataFrame.IsCompressed)
+                throw new ProtocolError(ResetStatusCode.ProtocolError,
+                                        "GZIP compression is not enabled");
 
             stream = GetStream(dataFrame.StreamId);
 
@@ -316,8 +323,8 @@ namespace Microsoft.Http2.Protocol
 
         private void HandleSettingsFrame(SettingsFrame settingsFrame)
         {
-            Http2Logger.LogDebug("SETTINGS frame: stream id={0}, entry count={1}", settingsFrame.StreamId,
-                settingsFrame.EntryCount);
+            Http2Logger.LogDebug("SETTINGS frame: stream id={0}, payload len={1}, is ack={2}, count={3}",
+                settingsFrame.StreamId, settingsFrame.PayloadLength, settingsFrame.IsAck, settingsFrame.EntryCount);
 
             _wasSettingsReceived = true;
             
@@ -337,13 +344,16 @@ namespace Microsoft.Http2.Protocol
                 _settingsAckReceived.Set();
 
                 if (settingsFrame.PayloadLength != 0)
-                    throw new ProtocolError(ResetStatusCode.FrameSizeError, "ACK settings frame is not 0");      
-          
+                    throw new ProtocolError(ResetStatusCode.FrameSizeError, 
+                        "Settings frame with ACK flag set and non-zero payload");               
                 return;
             }
 
             for (int i = 0; i < settingsFrame.EntryCount; i++)
             {
+               // Http2Logger.LogDebug("{0}: {1}", settingsFrame[i].Id, settingsFrame[i].Value);
+                Http2Logger.LogDebug("--SETTINGS ITEM in handle--");
+
                 switch (settingsFrame[i].Id)
                 {
                     case SettingsIds.HeadersTableSize:
@@ -376,9 +386,17 @@ namespace Microsoft.Http2.Protocol
                         _flowControlManager.StreamsInitialWindowSize = newInitWindowSize;
                         InitialWindowSize = newInitWindowSize;
                         break;
-                    case SettingsIds.FlowControlOptions:
+
+                    // TODO:
+                    // case SettingsIds.CompressData:
+                    // _GzipCompressionProcessor.Enabled = true;
+
+
+                    /* 12 -> 5.2.1 
+                    Flow control cannot be disabled. */
+                    /*case SettingsIds.FlowControlOptions:
                         _flowControlManager.Options = settingsFrame[i].Value;
-                        break;
+                        break;*/
                     default:
                         /* 12 -> 6.5.2 
                         An endpoint that receives a SETTINGS frame with any other identifier

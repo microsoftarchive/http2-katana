@@ -67,7 +67,7 @@ namespace Microsoft.Http2.Protocol.Framing
             FrameType = FrameType.Data;
             StreamId = streamId;
 
-            //TODO: add optional gzip compression
+            //TODO: add optional gzip compression in constructor and properties
             /* 12 -> 6.1
             Data frames are optionally compressed using GZip compression.
             Each frame is individually compressed; the state of the compressor is

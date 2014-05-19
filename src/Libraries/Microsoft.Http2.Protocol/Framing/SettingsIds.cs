@@ -18,9 +18,6 @@ namespace Microsoft.Http2.Protocol.Framing
         EnablePush = 2,
         MaxConcurrentStreams = 3,
         InitialWindowSize = 4,
-        CompressData = 5,
-        //TODO: FlowControlOptions setting is ignored
-        //because flow control cannot be disabled
-        FlowControlOptions = 10
+        CompressData = 5
     }
 }
