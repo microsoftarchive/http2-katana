@@ -9,7 +9,7 @@
 namespace Microsoft.Http2.Protocol.Framing
 {
     /// <summary>
-    /// See draft 12 -> 6.5.2.  Defined SETTINGS Parameters
+    /// See 12 -> 6.5.2
     /// </summary>
     public enum SettingsIds : int
     {

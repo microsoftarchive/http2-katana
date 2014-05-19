@@ -338,25 +338,5 @@ namespace Http2.Katana.Tests
             var item11 = queue.Dequeue();
             Assert.Equal(((PriorityQueueEntry)item11).Priority, 0);
         }
-
-        [StandardFact]
-        public void StreamDictionarySuccessful()
-        {
-            var session = new Http2Session(Stream.Null, ConnectionEnd.Client, true, true, true, new CancellationToken());
-            var streamDictionary = session.StreamDictionary;
-            var fm = new FlowControlManager(session);
-
-            streamDictionary[1] = new Http2Stream(null, 1, null, fm);
-            streamDictionary[2] = new Http2Stream(null, 2, null, fm);
-            streamDictionary[3] = new Http2Stream(null, 3, null, fm);
-            streamDictionary[4] = new Http2Stream(null, 4, null, fm);
-
-            Assert.Equal(streamDictionary.FlowControlledStreams.Count, 100);
-
-            streamDictionary.Remove(4);
-
-            Assert.Equal(streamDictionary.Count, 99);
-            Assert.Equal(streamDictionary.ContainsKey(4), false);
-        }
     }
 }
