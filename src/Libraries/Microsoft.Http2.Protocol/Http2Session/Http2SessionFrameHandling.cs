@@ -13,6 +13,7 @@ using Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression;
 using Microsoft.Http2.Protocol.Exceptions;
 using Microsoft.Http2.Protocol.Framing;
 using Microsoft.Http2.Protocol.Utils;
+using OpenSSL;
 
 namespace Microsoft.Http2.Protocol
 {
@@ -572,6 +573,41 @@ namespace Microsoft.Http2.Protocol
                 is not currently in the "idle" state) as a connection error of type PROTOCOL_ERROR. */
                 throw new ProtocolError(ResetStatusCode.ProtocolError, "Remote endpoint tried to Promise incorrect Stream id");
             }
+        }
+
+        private void HandleAltSvcFrame(Frame altSvcFrame)
+        {
+            Http2Logger.LogDebug("ALTSVC frame: stream id={0}, payload len={1}", 
+                altSvcFrame.StreamId, altSvcFrame.PayloadLength);
+
+            /* 12 -> 6.11 
+            The ALTSVC frame is intended for receipt by clients; a server that receives 
+            an ALTSVC frame MUST treat it as a connection error of type PROTOCOL_ERROR. */
+            if (_ourEnd == ConnectionEnd.Server)
+                throw new ProtocolError(ResetStatusCode.ProtocolError, "Rst frame with stream id=0");
+
+            /* 12 -> 6.11 
+            The ALTSVC frame advertises the availability of an alternative service to the client. */
+
+            // TODO: receiving ALTSVC frame by client is not implemented.
+            // see https://tools.ietf.org/html/draft-ietf-httpbis-http2-12#section-6.11
+            // and https://tools.ietf.org/html/draft-ietf-httpbis-alt-svc-01
+        }
+
+        private void HandleBlockedFrame(Frame blockedFrame)
+        {
+            Http2Logger.LogDebug("BLOCKED frame: stream id={0}, payload len={1}",
+                blockedFrame.StreamId, blockedFrame.PayloadLength);
+
+            /* 12 -> 6.12 
+            The BLOCKED frame defines no flags and contains no payload. A
+            receiver MUST treat the receipt of a BLOCKED frame with a payload as
+            a connection error of type FRAME_SIZE_ERROR. */
+            if (blockedFrame.PayloadLength > 0)
+                throw new ProtocolError(ResetStatusCode.FrameSizeError, "Blocked frame with non-zero payload");
+
+            // TODO: receiving BLCOKED frame is not implemented.
+            // see https://tools.ietf.org/html/draft-ietf-httpbis-http2-12#section-6.12
         }
     }
 }

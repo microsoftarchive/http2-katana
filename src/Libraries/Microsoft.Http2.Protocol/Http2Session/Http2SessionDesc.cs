@@ -399,14 +399,14 @@ namespace Microsoft.Http2.Protocol
                                                           frame.PayloadLength));
                 }
 
-                //Settings MUST be first frame in the session from server and 
-                //client MUST send settings immediately after connection header.
-                //This means that settings ALWAYS first frame in the session.
-                //This block checks if it doesnt.
+                /* 12 -> 6.5
+                A SETTINGS frame MUST be sent by both endpoints at the start of a
+                connection, and MAY be sent at any other time by either endpoint over
+                the lifetime of the connection.*/
                 if (frame.FrameType != FrameType.Settings && !_wasSettingsReceived)
                 {
                     throw new ProtocolError(ResetStatusCode.ProtocolError,
-                                            "Settings was not the first frame in the session");
+                                            "Settings frame was not the first frame in the session");
                 }
 
                 Http2Logger.LogDebug("Incoming frame: " + frame.FrameType);
@@ -433,10 +433,9 @@ namespace Microsoft.Http2.Protocol
                         break;
                     case FrameType.Settings:
                         HandleSettingsFrame(frame as SettingsFrame);
-
                         if (!(frame as SettingsFrame).IsAck)
                         {
-                            //Send ack
+                            // sending ACK settings
                             WriteSettings(new SettingsPair[0], true);
                         }
                         break;
@@ -448,12 +447,16 @@ namespace Microsoft.Http2.Protocol
                         break;
                     case FrameType.PushPromise:
                         HandlePushPromiseFrame(frame as PushPromiseFrame, out stream);
-
                         if (stream != null) //This means that sequence is complete
                         {
                             _promisedResources.Add(stream.Id, stream.Headers.GetValue(CommonHeaders.Path));
                         }
-
+                        break;
+                    case FrameType.AltSvc:
+                        HandleAltSvcFrame(frame);
+                        break;                  
+                    case FrameType.Blocked:
+                        HandleBlockedFrame(frame);
                         break;
                     default:
                         /* 12 -> 4.1
