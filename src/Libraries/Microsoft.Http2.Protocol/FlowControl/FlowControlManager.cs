@@ -76,7 +76,7 @@ namespace Microsoft.Http2.Protocol.FlowControl
         public FlowControlManager(Http2Session flowControlledSession)
         {
             if (flowControlledSession == null)
-                throw new ArgumentNullException("flowControlledSession is null");
+                throw new ArgumentNullException("flowControlledSession");
 
             //09 -> 6.9.2.  Initial Flow Control Window Size
             //When a HTTP/2.0 connection is first established, new streams are

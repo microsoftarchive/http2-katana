@@ -759,8 +759,7 @@ namespace Microsoft.Http2.Protocol
 
             foreach(var s in settings)
             {
-               // Http2Logger.LogDebug("{0}: {1}", s.Id, s.Value);
-                Http2Logger.LogDebug("--SETTINGS ITEM in sending--");
+                Http2Logger.LogDebug("{0}: {1}", s.Id.ToString(), s.Value);
             }
 
             _writeQueue.WriteFrame(frame);
