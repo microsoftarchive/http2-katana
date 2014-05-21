@@ -253,9 +253,10 @@ namespace Microsoft.Http2.Protocol
 
                 if (!await GetSessionHeaderAndVerifyIt(_ioStream))
                 {
-                    Dispose();
+                    /*Dispose();
                     //throw something?
-                    return;
+                    return;*/
+                    // SendSessionHeader();
                 }
             }
             else

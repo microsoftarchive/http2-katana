@@ -28,7 +28,7 @@ namespace Microsoft.Http2.Protocol.Tests
         public static readonly string SimpleTestFileName = "simpleTest.txt";
 
         public static readonly string FileContent5bTest =
-            new StreamReader(new FileStream(@"root\5mbTest.txt", FileMode.Open)).ReadToEnd(),
+                                          new StreamReader(new FileStream(@"root\5mbTest.txt", FileMode.Open)).ReadToEnd(),
                                       FileContentSimpleTest =
                                           new StreamReader(new FileStream(@"root\"+SimpleTestFileName, FileMode.Open))
                                               .ReadToEnd(),

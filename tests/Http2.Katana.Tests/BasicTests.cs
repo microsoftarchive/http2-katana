@@ -30,7 +30,7 @@ namespace Http2.Katana.Tests
         }
 
         [StandardFact]
-        public void MinExtendedMathMultipleNumbersSuccessful()
+        public void ExtendedMathMultipleNumbers()
         {
             var tests = new List<int[]>
                 {
@@ -48,7 +48,7 @@ namespace Http2.Katana.Tests
         }
 
         [StandardFact]
-        public void MinExtendedMathWithComparerSuccessful()
+        public void ExtendedMathComparer()
         {
             var tests = new List<string[]>
                 {
@@ -66,7 +66,7 @@ namespace Http2.Katana.Tests
         }
 
         [StandardFact]
-        public void HeadersCollectionSuccessful()
+        public void HeadersList()
         {
             var collection = new HeadersList(new[]
                 {
@@ -97,7 +97,7 @@ namespace Http2.Katana.Tests
         }
 
         [Fact]
-        public void CompressionSuccessful()
+        public void HeadersCompression()
         {
             var clientHeaders = new HeadersList
                 {
@@ -184,19 +184,19 @@ namespace Http2.Katana.Tests
         }
 
         [StandardFact]
-        public void BitConverterBitsToBytesSuccessful()
+        public void BinaryConverter()
         {
             const bool T = true;
             const bool F = false;
             var testInput = new List<bool>(new[] {T, T, T, F, F, F, T, F, T, F, T, F, F});
-            var bytes = BinaryConverter.ToBytes(testInput);
+            var bytes = Microsoft.Http2.Protocol.Compression.Huffman.BinaryConverter.ToBytes(testInput);
 
             Assert.Equal(bytes[0], 0xe2);
             Assert.Equal(bytes[1], 0xa0);
         }
 
         [Fact]
-        public void HuffmanCompressionSuccessful()
+        public void HuffmanCompression()
         {
             var compressor = new HuffmanCompressionProcessor();
 
@@ -223,7 +223,7 @@ namespace Http2.Katana.Tests
         }
 
         [StandardFact]
-        public void UVarIntConversionSuccessful()
+        public void UVarIntConversion()
         {
             var test1337 = 1337.ToUVarInt(5);
             Assert.Equal(Int32Extensions.FromUVarInt(test1337), 1337);
@@ -246,33 +246,33 @@ namespace Http2.Katana.Tests
         }
 
         [StandardFact]
-        public void FrameHelperuccessful()
+        public void FrameHelper()
         {
             const byte input = 1;
-            byte result = FrameHelper.SetBit(input, true, 3);
+            byte result = Microsoft.Http2.Protocol.Framing.FrameHelper.SetBit(input, true, 3);
             Assert.Equal(result, 9);
-            result = FrameHelper.SetBit(result, false, 3);
+            result = Microsoft.Http2.Protocol.Framing.FrameHelper.SetBit(result, false, 3);
             Assert.Equal(result, 1);
-            result = FrameHelper.SetBit(result, false, 0);
+            result = Microsoft.Http2.Protocol.Framing.FrameHelper.SetBit(result, false, 0);
             Assert.Equal(result, 0);
-            result = FrameHelper.SetBit(result, true, 7);
+            result = Microsoft.Http2.Protocol.Framing.FrameHelper.SetBit(result, true, 7);
             Assert.Equal(result, 128);
-            result = FrameHelper.SetBit(result, true, 6);
+            result = Microsoft.Http2.Protocol.Framing.FrameHelper.SetBit(result, true, 6);
             Assert.Equal(result, 192);
-            result = FrameHelper.SetBit(result, true, 5);
+            result = Microsoft.Http2.Protocol.Framing.FrameHelper.SetBit(result, true, 5);
             Assert.Equal(result, 224);
-            result = FrameHelper.SetBit(result, false, 7);
+            result = Microsoft.Http2.Protocol.Framing.FrameHelper.SetBit(result, false, 7);
             Assert.Equal(result, 96);
-            result = FrameHelper.SetBit(result, false, 6);
+            result = Microsoft.Http2.Protocol.Framing.FrameHelper.SetBit(result, false, 6);
             Assert.Equal(result, 32);
-            result = FrameHelper.SetBit(result, false, 5);
+            result = Microsoft.Http2.Protocol.Framing.FrameHelper.SetBit(result, false, 5);
             Assert.Equal(result, 0);
-            result = FrameHelper.SetBit(result, true, 0);
+            result = Microsoft.Http2.Protocol.Framing.FrameHelper.SetBit(result, true, 0);
             Assert.Equal(result, input);
         }
 
         [StandardFact]
-        public void MinExtendedMathWithoutComparerSuccessful()
+        public void ExtendedMathWithoutComparer()
         {
             var tests = new List<double[]>
                 {
@@ -290,7 +290,7 @@ namespace Http2.Katana.Tests
         }
 
         [StandardFact]
-        public void PriorityTestSuccessful()
+        public void PriorityQueue()
         {
             var itemsCollection = new List<IPriorityItem>
                 {
