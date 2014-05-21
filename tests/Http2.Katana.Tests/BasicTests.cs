@@ -1,20 +1,19 @@
-﻿using System.Globalization;
-using System.IO;
-using System.Text;
-using Microsoft.Http2.Protocol;
+﻿using Microsoft.Http2.Protocol;
 using Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression;
 using Microsoft.Http2.Protocol.Compression.Huffman;
 using Microsoft.Http2.Protocol.Extensions;
 using Microsoft.Http2.Protocol.FlowControl;
 using Microsoft.Http2.Protocol.Framing;
 using Microsoft.Http2.Protocol.IO;
+using OpenSSL;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading;
-using Microsoft.Http2.Push;
-using OpenSSL;
 using Xunit;
 
 namespace Http2.Katana.Tests

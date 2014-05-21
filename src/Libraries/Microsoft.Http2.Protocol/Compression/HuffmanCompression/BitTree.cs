@@ -98,7 +98,7 @@ namespace Microsoft.Http2.Protocol.Compression.Huffman
                             // see spec 07 - > 4.1.2.  String Literal Representation
                             // A Huffman encoded string literal containing the EOS entry
                             // MUST be treated as a decoding error.
-                            throw new CompressionError(new Exception("EOS contains"));
+                            throw new CompressionError("EOS contains");
                         }
 
                         i++;

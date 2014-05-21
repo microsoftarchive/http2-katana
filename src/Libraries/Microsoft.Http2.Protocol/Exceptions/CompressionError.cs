@@ -12,7 +12,8 @@ namespace Microsoft.Http2.Protocol.Exceptions
 {
     public class CompressionError : Exception
     {
-        public CompressionError(Exception e): base("", e)
+        public CompressionError(string message)
+            : base(message)
         {
         }
 

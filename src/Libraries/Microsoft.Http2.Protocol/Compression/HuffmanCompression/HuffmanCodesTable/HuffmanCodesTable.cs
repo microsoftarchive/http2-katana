@@ -67,7 +67,7 @@ namespace Microsoft.Http2.Protocol.Compression.Huffman
                 }
             }
 
-            throw new CompressionError(new Exception("symbol does not present in the alphabeth"));
+            throw new CompressionError("symbol does not present in the alphabeth");
         }
 
         public byte GetByte(List<bool> bits)
@@ -94,7 +94,7 @@ namespace Microsoft.Http2.Protocol.Compression.Huffman
                 }
             }
 
-            throw new CompressionError(new Exception("symbol is not present in the alphabeth"));
+            throw new CompressionError("symbol is not present in the alphabeth");
         }
 
         public bool[] GetBits(byte c)
@@ -103,7 +103,7 @@ namespace Microsoft.Http2.Protocol.Compression.Huffman
             var val = bitsMap.FirstOrDefault(pair => pair.Value == c).Key;
 
             if (val == null)
-                throw new CompressionError(new Exception("symbol does not present in the alphabeth"));
+                throw new CompressionError("symbol does not present in the alphabeth");
 
             return val;
         }

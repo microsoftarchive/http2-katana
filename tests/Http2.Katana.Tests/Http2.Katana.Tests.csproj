@@ -87,6 +87,9 @@
     <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Compression\HeadersDeltaCompression\CompressionProcessor\CompressionProcStaticTable.cs">
       <Link>Sources\Libraries\Microsoft.Http2.Protocol\Compression\HeadersDeltaCompression\CompressionProcessor\CompressionProcStaticTable.cs</Link>
     </Compile>
+    <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Compression\HeadersDeltaCompression\UVarIntPrefix.cs">
+      <Link>Sources\Libraries\Microsoft.Http2.Protocol\Compression\HeadersDeltaCompression\UVarIntPrefix.cs</Link>
+    </Compile>
     <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Compression\HuffmanCompression\BinaryConverter.cs">
       <Link>Sources\Libraries\Microsoft.Http2.Protocol\Compression\Huffman\BinaryConverter.cs</Link>
     </Compile>
@@ -415,6 +418,8 @@
       <Link>Sources\Client\IO\FileHelper.cs</Link>
     </Compile>
     <Compile Include="BasicTests.cs" />
+    <Compile Include="CompProcState.cs" />
+    <Compile Include="EncContextUpdateTests.cs" />
     <Compile Include="GlobalSuppressions.cs" />
     <Compile Include="HandshakeTests.cs" />
     <Compile Include="Http11Tests.cs" />
