@@ -28,6 +28,6 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
         // This representation starts with the '01' 2-bit pattern.
         Incremental = 0x40,          //07: Literal with incremental indexing     | 0 | 1 |         Index (6+)       |
 
-        Indexed = 0x80               //05: Indexed                                | 1 |            Index (7+)       |
+        Indexed = 0x80               //07: Indexed                                | 1 |            Index (7+)       |
     }
 }

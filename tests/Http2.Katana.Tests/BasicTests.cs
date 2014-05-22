@@ -193,6 +193,39 @@ namespace Http2.Katana.Tests
             Assert.Equal(bytes[0], 0xe2);
             Assert.Equal(bytes[1], 0xa0);
         }
+        
+        [StandardFact]
+        public void NeverIndexedEmission()
+        {
+            var serverCompressionProc = new CompressionProcessor();
+            var header = new KeyValuePair<string, string>("custom-key", "custom-value");
+
+            byte[] index = { 0x10 };
+            byte[] name = Encoding.UTF8.GetBytes(header.Key);
+            byte[] nameLength = name.Length.ToUVarInt(7);
+            byte[] value = Encoding.UTF8.GetBytes(header.Value);
+            byte[] valueLength = value.Length.ToUVarInt(7);
+
+            byte[] encodedHeader = new byte[index.Length + name.Length +
+                value.Length + nameLength.Length + valueLength.Length];
+
+            // creates encoded header
+            int offset = 0;
+            Buffer.BlockCopy(index, 0, encodedHeader, 0, index.Length);
+            offset += index.Length;
+            Buffer.BlockCopy(nameLength, 0, encodedHeader, offset , nameLength.Length);
+            offset += nameLength.Length;
+            Buffer.BlockCopy(name, 0, encodedHeader, offset, name.Length);
+            offset += name.Length;
+            Buffer.BlockCopy(valueLength, 0, encodedHeader, offset, valueLength.Length);
+            offset += valueLength.Length;
+            Buffer.BlockCopy(value, 0, encodedHeader, offset, value.Length);
+
+            HeadersList deserializedHeaders = serverCompressionProc.Decompress(encodedHeader);
+
+            Assert.Equal(deserializedHeaders[0].Key, header.Key);
+            Assert.Equal(deserializedHeaders[0].Value, header.Value);
+        }
 
         [Fact]
         public void HuffmanCompression()
@@ -247,26 +280,26 @@ namespace Http2.Katana.Tests
         [StandardFact]
         public void FrameHelper()
         {
-            const byte input = 1;
-            byte result = Microsoft.Http2.Protocol.Framing.FrameHelper.SetBit(input, true, 3);
+             const byte input = 1;
+            byte result = FrameHelpers.SetBit(input, true, 3);
             Assert.Equal(result, 9);
-            result = Microsoft.Http2.Protocol.Framing.FrameHelper.SetBit(result, false, 3);
+            result = FrameHelpers.SetBit(result, false, 3);
             Assert.Equal(result, 1);
-            result = Microsoft.Http2.Protocol.Framing.FrameHelper.SetBit(result, false, 0);
+            result = FrameHelpers.SetBit(result, false, 0);
             Assert.Equal(result, 0);
-            result = Microsoft.Http2.Protocol.Framing.FrameHelper.SetBit(result, true, 7);
+            result = FrameHelpers.SetBit(result, true, 7);
             Assert.Equal(result, 128);
-            result = Microsoft.Http2.Protocol.Framing.FrameHelper.SetBit(result, true, 6);
+            result = FrameHelpers.SetBit(result, true, 6);
             Assert.Equal(result, 192);
-            result = Microsoft.Http2.Protocol.Framing.FrameHelper.SetBit(result, true, 5);
+            result = FrameHelpers.SetBit(result, true, 5);
             Assert.Equal(result, 224);
-            result = Microsoft.Http2.Protocol.Framing.FrameHelper.SetBit(result, false, 7);
+            result = FrameHelpers.SetBit(result, false, 7);
             Assert.Equal(result, 96);
-            result = Microsoft.Http2.Protocol.Framing.FrameHelper.SetBit(result, false, 6);
+            result = FrameHelpers.SetBit(result, false, 6);
             Assert.Equal(result, 32);
-            result = Microsoft.Http2.Protocol.Framing.FrameHelper.SetBit(result, false, 5);
+            result = FrameHelpers.SetBit(result, false, 5);
             Assert.Equal(result, 0);
-            result = Microsoft.Http2.Protocol.Framing.FrameHelper.SetBit(result, true, 0);
+            result = FrameHelpers.SetBit(result, true, 0);
             Assert.Equal(result, input);
         }
 

@@ -638,6 +638,31 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
             return null;
         }
 
+        private Tuple<string, string, IndexationType> ProcessNeverIndexed(byte [] bytes, 
+            int index)
+        {
+            /* 07 -> 4.3.3
+            The encoding of the representation is the same as for the literal
+            header field without indexing representation. */
+
+            string name;
+            string value;
+
+            if (index == 0)
+            {
+                name = DecodeString(bytes, stringPrefix);
+            }
+            else
+            {
+                // Index increased by 1 was sent
+                name = index < _localHeadersTable.Count ? _localHeadersTable[index - 1].Key : _staticTable[index - 1].Key;
+            }
+
+            value = DecodeString(bytes, stringPrefix);
+
+            return new Tuple<string, string, IndexationType>(name, value, IndexationType.NeverIndexed);
+        }
+
         private Tuple<string, string, IndexationType> ParseHeader(byte[] bytes)
         {
             var type = GetHeaderType(bytes);
@@ -657,6 +682,8 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
                     return ProcessIncremental(bytes, index);
                 case IndexationType.EncodingContextUpdate:
                     return ProcessEncodingContextUpdate(index, changeTypeFlag);
+                case IndexationType.NeverIndexed:
+                    return ProcessNeverIndexed(bytes, index);
                 case IndexationType.WithoutIndexation:
                     return ProcessWithoutIndexing(bytes, index);
             }
@@ -682,6 +709,9 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
                     break;
                 case IndexationType.EncodingContextUpdate:
                     prefix = (byte)UVarIntPrefix.EncodingContextUpdate;
+                    break;
+                case IndexationType.NeverIndexed:
+                    prefix = (byte) UVarIntPrefix.NeverIndexed;
                     break;
             }
 
@@ -728,6 +758,11 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
             {
                 indexationType = IndexationType.EncodingContextUpdate;
             }
+            else if ((typeByte & (byte) IndexationType.NeverIndexed) ==
+                     (byte) IndexationType.NeverIndexed)
+            {
+                indexationType = IndexationType.NeverIndexed;
+            }
             /* When we get the type, WithoutIndexation type is assigned when other types are not suitable. 
             Therefore mask is not used since pattern of any representation is suitable to 0x00 mask. */
             else
@@ -762,12 +797,14 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
                 {
                     var entry = ParseHeader(serializedHeaders);
 
-                    if (entry == null) // parsed indexed header which was in the refSet already.
+                    // parsed indexed header which was already in the refSet 
+                    if (entry == null) 
                         continue;
 
                     var header = new KeyValuePair<string, string>(entry.Item1, entry.Item2);
                     
-                    if (entry.Item3 == IndexationType.WithoutIndexation)
+                    if (entry.Item3 == IndexationType.WithoutIndexation ||
+                        entry.Item3 == IndexationType.NeverIndexed)
                     {
                         unindexedHeadersList.Add(header);
                     }
@@ -776,7 +813,8 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
                 // Base result on already modified reference set
                 var result = new HeadersList(_localRefSet);
 
-                // Add to result Without indexation. They were not added into reference set.
+                // Add to result Without indexation and Never Indexed
+                // They were not added into reference set
                 result.AddRange(unindexedHeadersList);
 
                 ProcessCookie(result);
