@@ -15,8 +15,6 @@ namespace Microsoft.Http2.Protocol.Compression.Huffman
         private BitTree _tree;
         private HuffmanCodesTable _table;
 
-        private BitTree _responseTree;
-
         public HuffmanCompressionProcessor()
         {
             _table = new HuffmanCodesTable();

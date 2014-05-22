@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Reflection;
+﻿using System.Collections.Generic;
 using Microsoft.Http2.Protocol;
 using Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression;
 using Microsoft.Http2.Protocol.Extensions;

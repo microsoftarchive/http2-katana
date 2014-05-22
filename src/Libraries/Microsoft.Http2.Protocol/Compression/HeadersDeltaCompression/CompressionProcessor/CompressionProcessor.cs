@@ -602,7 +602,6 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
             return new Tuple<string, string, IndexationType>(name, value, IndexationType.Incremental);
         }
 
-        /* 07 -> 4.4 */
         private Tuple<string, string, IndexationType> ProcessEncodingContextUpdate(int command, bool changeTypeFlag)
         {
             if (!changeTypeFlag)
