@@ -196,7 +196,7 @@ namespace OpenSSL.SSL
         protected SniCallback sniCb;
         protected Sni sniExt;
 
-        protected string srvName = "http2Srv";
+        protected string srvName = "localhost";
 
 	    public string AlpnSelectedProtocol { get; protected set; }
 
