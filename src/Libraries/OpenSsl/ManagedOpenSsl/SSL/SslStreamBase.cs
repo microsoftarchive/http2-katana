@@ -1187,7 +1187,7 @@ namespace OpenSSL.SSL
 			}
 
 			// Now format the return string
-			return String.Format("{0}:!ADH:!aNULL:!eNULL:@STRENGTH", str);
+            return ":HIGH:MEDIUM:!LOW:!ADH:!aNULL:!eNULL:@STRENGTH";
 		}
 
 	}

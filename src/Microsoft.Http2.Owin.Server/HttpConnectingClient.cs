@@ -244,13 +244,14 @@ namespace Microsoft.Http2.Owin.Server
             //Server checks selected protocol and calls http2 or http11 layer
             if (backToHttp11 || alpnSelectedProtocol == Protocols.Http1)
             {
-                Http2Logger.LogDebug("Ssl chose http11");
+                Http2Logger.LogDebug("Selected protocol: HTTP/1.1");
 
                 new Http11ProtocolOwinAdapter(incomingClient, SslProtocols.Tls, _next.Invoke).ProcessRequest();
                 return;
             }
 
             //ALPN selected http2. No need to perform upgrade handshake.
+            Http2Logger.LogDebug("Selected protocol (ALPN): http/2");
             OpenHttp2Session(incomingClient);
         }
 

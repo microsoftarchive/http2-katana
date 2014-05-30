@@ -85,8 +85,7 @@ namespace Microsoft.Http2.Owin.Server
             {
                 Http2Logger.LogInfo("Unable to start server. Check certificate. Exception: " + ex.Message);
                 return;
-            }
-            
+            }            
 
             _isSecure = _port == securePort;
 
@@ -100,7 +99,7 @@ namespace Microsoft.Http2.Owin.Server
 
         private void Listen()
         {
-            Http2Logger.LogInfo("Started on port " + _port);
+            Http2Logger.LogInfo("Server running at port " + _port);
             _server.Start();
             while (!_disposed)
             {
