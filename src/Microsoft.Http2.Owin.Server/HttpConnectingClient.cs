@@ -196,7 +196,16 @@ namespace Microsoft.Http2.Owin.Server
                 return;
             }  
             Http2Logger.LogDebug("New connection accepted");
-            Task.Run(() => HandleAcceptedClient(client.GetStream()));
+            Task.Run(() =>
+                {
+                    try
+                    {
+                        HandleAcceptedClient(client.GetStream());
+                    }
+                    catch(Exception ex)
+                    {                       
+                    }                    
+                });
         }
 
         private void HandleAcceptedClient(Stream incomingClient)
@@ -272,7 +281,7 @@ namespace Microsoft.Http2.Owin.Server
                 }
             }
 
-            GC.Collect();
+           // GC.Collect();
         }
 
         public void Dispose()

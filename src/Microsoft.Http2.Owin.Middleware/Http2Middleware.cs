@@ -68,7 +68,7 @@ namespace Microsoft.Http2.Owin.Middleware
                                 )
                             {
                                 await http2MessageHandler.StartSessionAsync(requestCopy);
-                                GC.Collect();
+                               // GC.Collect();
                             }
                         }
                         catch (Exception ex)

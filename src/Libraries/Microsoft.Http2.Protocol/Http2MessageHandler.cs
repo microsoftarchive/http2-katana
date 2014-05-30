@@ -141,7 +141,16 @@ namespace Microsoft.Http2.Protocol
             _session.InitialWindowSize = initialWindowSize;
             _session.OurMaxConcurrentStreams = maxStreams;
 
-            return Task.Run(async () => await _session.Start(initRequest));
+            return Task.Run(async () =>
+                {
+                    try
+                    {
+                        await _session.Start(initRequest);
+                    }
+                    catch (Exception ex)
+                    {                        
+                    }                   
+                });
         }
 
         private void OnSettingsSentHandler(object sender, SettingsSentEventArgs e)
