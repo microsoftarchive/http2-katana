@@ -1138,6 +1138,8 @@ namespace OpenSSL.SSL
 
 		#endregion
 
+        // see https://www.openssl.org/docs/apps/ciphers.html
+        // for details about OpenSSL cipher string
 		internal string GetCipherString(bool FIPSmode, SslProtocols sslProtocols, SslStrength sslStrength)
 		{
 			string str = "";
@@ -1187,7 +1189,7 @@ namespace OpenSSL.SSL
 			}
 
 			// Now format the return string
-            return ":HIGH:MEDIUM:!LOW:!ADH:!aNULL:!eNULL:@STRENGTH";
+            return String.Format("{0}:!ADH:!aNULL:!eNULL:@STRENGTH", str);
 		}
 
 	}

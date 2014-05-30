@@ -669,7 +669,7 @@ namespace OpenSSL.SSL
 		/// <returns></returns>
 		public virtual IAsyncResult BeginAuthenticateAsClient(string targetHost, AsyncCallback asyncCallback, Object asyncState)
 		{
-			return BeginAuthenticateAsClient(targetHost, null, null, SslProtocols.Tls, SslStrength.All, false, asyncCallback, asyncState);
+            return BeginAuthenticateAsClient(targetHost, null, null, SslProtocols.Tls, SslStrength.All, false, asyncCallback, asyncState);
 		}
 
 		/// <summary>
@@ -764,7 +764,7 @@ namespace OpenSSL.SSL
 			AsyncCallback asyncCallback,
 			Object asyncState)
 		{
-			return BeginAuthenticateAsServer(serverCertificate, false, null, SslProtocols.Tls, SslStrength.All, false, asyncCallback, asyncState);
+            return BeginAuthenticateAsServer(serverCertificate, false, null, SslProtocols.Tls, SslStrength.All, false, asyncCallback, asyncState);
 		}
 
 		/// <summary>
