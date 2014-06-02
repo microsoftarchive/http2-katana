@@ -12,50 +12,40 @@ namespace Microsoft.Http2.Protocol.Compression.Huffman
 {
     internal class HuffmanCompressionProcessor
     {
-        private BitTree _requestTree;
-        private HuffmanCodesTable _requestTable;
-
-        private BitTree _responseTree;
-        private HuffmanCodesTable _responseTable;
+        private BitTree _tree;
+        private HuffmanCodesTable _table;
 
         public HuffmanCompressionProcessor()
         {
-            _requestTable = new HuffmanCodesTable(isRequest: true);
-            _requestTree = new BitTree(_requestTable, true);
-
-            _responseTable = new HuffmanCodesTable(isRequest: false);
-            _responseTree = new BitTree(_responseTable, false);
+            _table = new HuffmanCodesTable();
+            _tree = new BitTree(_table);
         }
 
-        public byte[] Compress(byte[] data, bool isRequest)
+        public byte[] Compress(byte[] data)
         {
             var huffmanEncodedMessage = new List<bool>();
 
-            var table = isRequest ? _requestTable : _responseTable;
-
             foreach (var bt in data)
             {
-                huffmanEncodedMessage.AddRange(table.GetBits(bt));
+                huffmanEncodedMessage.AddRange(_table.GetBits(bt));
             }
 
-            //TODO clear this out.
-            //add finish symbol
-            //huffmanEncodedMessage.AddRange(isRequest ? HuffmanCodesTable.ReqEos : HuffmanCodesTable.RespEos);
-            for (byte i = 0; i < huffmanEncodedMessage.Count % 8; i++)
+            // Adds most significant bytes of EOS
+            int temp = 8 - huffmanEncodedMessage.Count % 8;
+            int numberOfBitsInPadding = temp == 8 ? 0 : temp;
+
+            for (int i = 0; i < numberOfBitsInPadding; i++)
             {
-                huffmanEncodedMessage.Add(true);
+                huffmanEncodedMessage.Add(HuffmanCodesTable.Eos[i]);
             }
             
             return BinaryConverter.ToBytes(huffmanEncodedMessage);
         }
 
-        public byte[] Decompress(byte[] compressed, bool isRequest)
+        public byte[] Decompress(byte[] compressed)
         {
             var bits = BinaryConverter.ToBits(compressed);
-
-            var tree = isRequest ? _requestTree : _responseTree;
-
-            return tree.GetBytes(bits);
+            return _tree.GetBytes(bits);
         }
     }
 }

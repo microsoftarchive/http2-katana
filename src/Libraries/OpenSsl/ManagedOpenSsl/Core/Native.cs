@@ -2456,6 +2456,15 @@ namespace OpenSSL.Core
 		[DllImport(SSLDLLNAME, CallingConvention=CallingConvention.Cdecl)]
         public extern static IntPtr TLSv1_1_server_method();
 
+        [DllImport(SSLDLLNAME, CallingConvention = CallingConvention.Cdecl)]
+        public extern static IntPtr TLSv1_2_method();
+
+        [DllImport(SSLDLLNAME, CallingConvention = CallingConvention.Cdecl)]
+        public extern static IntPtr TLSv1_2_client_method();
+
+        [DllImport(SSLDLLNAME, CallingConvention = CallingConvention.Cdecl)]
+        public extern static IntPtr TLSv1_2_server_method();
+
 		[DllImport(SSLDLLNAME, CallingConvention=CallingConvention.Cdecl)]
 		public extern static IntPtr DTLSv1_method();
 

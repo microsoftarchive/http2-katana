@@ -196,7 +196,7 @@ namespace OpenSSL.SSL
         protected SniCallback sniCb;
         protected Sni sniExt;
 
-        protected string srvName = "http2Srv";
+        protected string srvName = "localhost";
 
 	    public string AlpnSelectedProtocol { get; protected set; }
 
@@ -1138,6 +1138,8 @@ namespace OpenSSL.SSL
 
 		#endregion
 
+        // see https://www.openssl.org/docs/apps/ciphers.html
+        // for details about OpenSSL cipher string
 		internal string GetCipherString(bool FIPSmode, SslProtocols sslProtocols, SslStrength sslStrength)
 		{
 			string str = "";
@@ -1187,7 +1189,7 @@ namespace OpenSSL.SSL
 			}
 
 			// Now format the return string
-			return String.Format("{0}:!ADH:!aNULL:!eNULL:@STRENGTH", str);
+            return String.Format("{0}:!ADH:!aNULL:!eNULL:@STRENGTH", str);
 		}
 
 	}

@@ -54,7 +54,7 @@ namespace Http2.TestClient.Adapters
                 return;
             }
 
-            stream.ReceivedDataAmount += dataFrame.FrameLength;
+            stream.ReceivedDataAmount += dataFrame.Data.Count;
 
             if (dataFrame.IsEndStream)
             {
@@ -65,7 +65,7 @@ namespace Http2.TestClient.Adapters
                     Http2Logger.LogConsole("Terminator was sent");
                 }
                 _fileHelper.RemoveStream(path);
-                Http2Logger.LogConsole("Bytes received " + stream.ReceivedDataAmount);
+                Http2Logger.LogConsole("Bytes received: " + stream.ReceivedDataAmount);
             }
         }
 

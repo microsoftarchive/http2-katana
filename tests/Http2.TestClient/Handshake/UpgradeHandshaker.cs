@@ -87,7 +87,7 @@ namespace Http2.TestClient.Handshake
                 //TODO pass here requested filename
                 builder.AppendFormat("Host: {0}\r\n", _headers[CommonHeaders.Host]);
                 builder.Append(String.Format("{0}: {1}, {2}\r\n", CommonHeaders.Connection, CommonHeaders.Upgrade, CommonHeaders.Http2Settings));
-                builder.Append(String.Format("{0}: {1}\r\n", CommonHeaders.Upgrade, Protocols.Http2));
+                builder.Append(String.Format("{0}: {1}\r\n", CommonHeaders.Upgrade, Protocols.Http2NoTls));
                 var settingsPayload = String.Format("{0}, {1}", 200000, 100);
                 var settingsBytes = Encoding.UTF8.GetBytes(settingsPayload);
                 var settingsBase64 = Convert.ToBase64String(settingsBytes);
@@ -113,7 +113,7 @@ namespace Http2.TestClient.Handshake
                     var builder = new StringBuilder();
                     builder.AppendFormat("{0} {1} {2}\r\n", protocol, status, postfix);
                     builder.Append(String.Format("{0}: {1}\r\n", CommonHeaders.Connection, CommonHeaders.Upgrade));
-                    builder.Append(String.Format("{0}: {1}\r\n", CommonHeaders.Upgrade, Protocols.Http2));
+                    builder.Append(String.Format("{0}: {1}\r\n", CommonHeaders.Upgrade, Protocols.Http2NoTls));
                     builder.Append("\r\n");
 
                     byte[] requestBytes = Encoding.ASCII.GetBytes(builder.ToString());
@@ -225,7 +225,7 @@ namespace Http2.TestClient.Handshake
                                             StringComparison.OrdinalIgnoreCase)
                     && response.IndexOf(String.Format("\r\n{0}: {1}\r\n", CommonHeaders.Connection, CommonHeaders.Upgrade), 
                                             StringComparison.OrdinalIgnoreCase) >= 0
-                    &&  response.IndexOf(String.Format("\r\n{0}: {1}\r\n", CommonHeaders.Upgrade, Protocols.Http2),
+                    && response.IndexOf(String.Format("\r\n{0}: {1}\r\n", CommonHeaders.Upgrade, Protocols.Http2NoTls),
                                             StringComparison.OrdinalIgnoreCase) >= 0)
                 {
                     handshake.Result = HandshakeResult.Upgrade;
@@ -240,7 +240,7 @@ namespace Http2.TestClient.Handshake
                 if (
                     response.IndexOf(String.Format("\r\n{0}: {1}, {2}\r\n", CommonHeaders.Connection, CommonHeaders.Upgrade, CommonHeaders.Http2Settings), 
                                     StringComparison.OrdinalIgnoreCase) >= 0
-                    && response.IndexOf(String.Format("\r\n{0}: {1}\r\n", CommonHeaders.Upgrade, Protocols.Http2),
+                    && response.IndexOf(String.Format("\r\n{0}: {1}\r\n", CommonHeaders.Upgrade, Protocols.Http2NoTls),
                                     StringComparison.OrdinalIgnoreCase) >= 0
                     && response.IndexOf(String.Format("\r\n{0}:", CommonHeaders.Http2Settings), StringComparison.OrdinalIgnoreCase) >= 0)
                 {

@@ -101,7 +101,7 @@ namespace OpenSSL.Extensions
 
         ~Sni()
         {
-            Marshal.FreeHGlobal(_serverNamePtr);
+            //Marshal.FreeHGlobal(_serverNamePtr);
         }
     }
 }

@@ -43,7 +43,10 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Framing\IEndSegmentFrame.cs" />
+    <Compile Include="Framing\IPaddingFrame.cs" />
     <Compile Include="StreamDictionary.cs" />
+    <Compile Include="Compression\HeadersDeltaCompression\UVarIntPrefix.cs" />
     <Compile Include="CommonHeaders.cs" />
     <Compile Include="Compression\HeadersDeltaCompression\CompressionProcessor\CompressionProcessor.cs" />
     <Compile Include="Compression\HeadersDeltaCompression\CompressionProcessor\CompressionProcStaticTable.cs" />
@@ -75,7 +78,7 @@
     <Compile Include="ForbiddenHeaders.cs" />
     <Compile Include="Framing\ContinuationFrame.cs" />
     <Compile Include="Framing\HeadersSequence.cs" />
-    <Compile Include="Framing\IEndStreamFrames.cs" />
+    <Compile Include="Framing\IEndStreamFrame.cs" />
     <Compile Include="Framing\IHeadersFrame.cs" />
     <Compile Include="Framing\PriorityFrame.cs" />
     <Compile Include="Framing\PushPromiseFrame.cs" />
@@ -98,7 +101,7 @@
     <Compile Include="Framing\DataFrame.cs" />
     <Compile Include="Framing\Frame.cs" />
     <Compile Include="Framing\FrameFlags.cs" />
-    <Compile Include="Framing\FrameHelpers.cs" />
+    <Compile Include="Framing\FrameHelper.cs" />
     <Compile Include="Framing\FrameReader.cs" />
     <Compile Include="Framing\FrameType.cs" />
     <Compile Include="Framing\GoAwayFrame.cs" />
@@ -110,7 +113,7 @@
     <Compile Include="Framing\SettingsPair.cs" />
     <Compile Include="Framing\SettingsFlags.cs" />
     <Compile Include="Framing\SettingsFrame.cs" />
-    <Compile Include="Framing\Headers.cs" />
+    <Compile Include="Framing\HeadersFrame.cs" />
     <Compile Include="Framing\WindowUpdateFrame.cs" />
     <Compile Include="Http2Session\Http2SessionDesc.cs" />
     <Compile Include="Http2Stream.cs" />

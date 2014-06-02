@@ -29,7 +29,7 @@ namespace Microsoft.Http2.Protocol.Framing
         {
             StreamId = id;//32 bit
             FrameType = FrameType.RstStream;//8bit
-            FrameLength = InitialFrameSize - Constants.FramePreambleSize; // 16bit
+            PayloadLength = InitialFrameSize - Constants.FramePreambleSize; // 16bit
             StatusCode = statusCode;//32bit
         }
 
@@ -38,11 +38,11 @@ namespace Microsoft.Http2.Protocol.Framing
         {
             get
             {
-                return (ResetStatusCode)FrameHelpers.Get32BitsAt(Buffer, 8);
+                return (ResetStatusCode)FrameHelper.Get32BitsAt(Buffer, 8);
             }
             set
             {
-                FrameHelpers.Set32BitsAt(Buffer, 8, (int)value);
+                FrameHelper.Set32BitsAt(Buffer, 8, (int)value);
             }
         }
     }

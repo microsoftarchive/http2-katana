@@ -29,7 +29,7 @@ namespace Microsoft.Http2.Protocol.Framing
         {
             StreamId = id;
             FrameType = FrameType.WindowUpdate;
-            FrameLength = InitialFrameSize - Constants.FramePreambleSize; // 8
+            PayloadLength = InitialFrameSize - Constants.FramePreambleSize; // 8
             Delta = delta;
         }
 
@@ -38,11 +38,11 @@ namespace Microsoft.Http2.Protocol.Framing
         {
             get
             {
-                return FrameHelpers.Get31BitsAt(Buffer, Constants.FramePreambleSize);
+                return FrameHelper.Get31BitsAt(Buffer, Constants.FramePreambleSize);
             }
             set
             {
-                FrameHelpers.Set31BitsAt(Buffer, Constants.FramePreambleSize, value);
+                FrameHelper.Set31BitsAt(Buffer, Constants.FramePreambleSize, value);
             }
         }
     }

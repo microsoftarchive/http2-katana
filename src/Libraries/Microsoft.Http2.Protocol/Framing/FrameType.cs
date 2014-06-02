@@ -9,20 +9,21 @@
 namespace Microsoft.Http2.Protocol.Framing
 {
     /// <summary>
-    /// Frame type enum.
+    /// see 12 -> 6.  Frame Definitions
     /// </summary>
     public enum FrameType : byte
     {
-        Data = 0,
-        Headers = 1,
-        Priority = 2,
-        RstStream = 3,
-        Settings = 4,
-        PushPromise = 5,
-        Ping = 6,
-        GoAway = 7,
-        //8?
-        WindowUpdate = 9,
-        Continuation = 10,
+        Data = 0x0,
+        Headers = 0x1,
+        Priority = 0x2,
+        RstStream = 0x3,
+        Settings = 0x4,
+        PushPromise = 0x5,
+        Ping = 0x6,
+        GoAway = 0x7,
+        WindowUpdate = 0x8,
+        Continuation = 0x9,
+        AltSvc = 0xA,
+        Blocked = 0xB
     }
 }

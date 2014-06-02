@@ -1,20 +1,14 @@
-﻿using System.Globalization;
-using System.IO;
-using System.Text;
-using Microsoft.Http2.Protocol;
+﻿using Microsoft.Http2.Protocol;
 using Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression;
 using Microsoft.Http2.Protocol.Compression.Huffman;
 using Microsoft.Http2.Protocol.Extensions;
-using Microsoft.Http2.Protocol.FlowControl;
-using Microsoft.Http2.Protocol.Framing;
 using Microsoft.Http2.Protocol.IO;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
-using System.Threading;
-using Microsoft.Http2.Push;
-using OpenSSL;
+using System.Text;
 using Xunit;
 
 namespace Http2.Katana.Tests
@@ -30,7 +24,7 @@ namespace Http2.Katana.Tests
         }
 
         [StandardFact]
-        public void MinExtendedMathMultipleNumbersSuccessful()
+        public void ExtendedMathMultipleNumbers()
         {
             var tests = new List<int[]>
                 {
@@ -48,7 +42,7 @@ namespace Http2.Katana.Tests
         }
 
         [StandardFact]
-        public void MinExtendedMathWithComparerSuccessful()
+        public void ExtendedMathComparer()
         {
             var tests = new List<string[]>
                 {
@@ -66,7 +60,7 @@ namespace Http2.Katana.Tests
         }
 
         [StandardFact]
-        public void HeadersCollectionSuccessful()
+        public void HeadersList()
         {
             var collection = new HeadersList(new[]
                 {
@@ -97,7 +91,7 @@ namespace Http2.Katana.Tests
         }
 
         [Fact]
-        public void CompressionSuccessful()
+        public void HeadersCompression()
         {
             var clientHeaders = new HeadersList
                 {
@@ -107,8 +101,8 @@ namespace Http2.Katana.Tests
                     new KeyValuePair<string, string>(":host", "localhost"),
                     new KeyValuePair<string, string>(":scheme", "https"),
                 };
-            var clientCompressionProc = new CompressionProcessor(ConnectionEnd.Client);
-            var serverCompressionProc = new CompressionProcessor(ConnectionEnd.Server);
+            var clientCompressionProc = new CompressionProcessor();
+            var serverCompressionProc = new CompressionProcessor();
 
             var serializedHeaders = clientCompressionProc.Compress(clientHeaders);
             var decompressedHeaders = new HeadersList(serverCompressionProc.Decompress(serializedHeaders));
@@ -184,33 +178,66 @@ namespace Http2.Katana.Tests
         }
 
         [StandardFact]
-        public void BitConverterBitsToBytesSuccessful()
+        public void BinaryConverter()
         {
             const bool T = true;
             const bool F = false;
             var testInput = new List<bool>(new[] {T, T, T, F, F, F, T, F, T, F, T, F, F});
-            var bytes = BinaryConverter.ToBytes(testInput);
+            var bytes = Microsoft.Http2.Protocol.Compression.Huffman.BinaryConverter.ToBytes(testInput);
 
             Assert.Equal(bytes[0], 0xe2);
             Assert.Equal(bytes[1], 0xa0);
         }
+        
+        [StandardFact]
+        public void NeverIndexedEmission()
+        {
+            var serverCompressionProc = new CompressionProcessor();
+            var header = new KeyValuePair<string, string>("custom-key", "custom-value");
+
+            byte[] index = { 0x10 };
+            byte[] name = Encoding.UTF8.GetBytes(header.Key);
+            byte[] nameLength = name.Length.ToUVarInt(7);
+            byte[] value = Encoding.UTF8.GetBytes(header.Value);
+            byte[] valueLength = value.Length.ToUVarInt(7);
+
+            byte[] encodedHeader = new byte[index.Length + name.Length +
+                value.Length + nameLength.Length + valueLength.Length];
+
+            // creates encoded header
+            int offset = 0;
+            Buffer.BlockCopy(index, 0, encodedHeader, 0, index.Length);
+            offset += index.Length;
+            Buffer.BlockCopy(nameLength, 0, encodedHeader, offset , nameLength.Length);
+            offset += nameLength.Length;
+            Buffer.BlockCopy(name, 0, encodedHeader, offset, name.Length);
+            offset += name.Length;
+            Buffer.BlockCopy(valueLength, 0, encodedHeader, offset, valueLength.Length);
+            offset += valueLength.Length;
+            Buffer.BlockCopy(value, 0, encodedHeader, offset, value.Length);
+
+            HeadersList deserializedHeaders = serverCompressionProc.Decompress(encodedHeader);
+
+            Assert.Equal(deserializedHeaders[0].Key, header.Key);
+            Assert.Equal(deserializedHeaders[0].Value, header.Value);
+        }
 
         [Fact]
-        public void HuffmanCompressionSuccessful()
+        public void HuffmanCompression()
         {
             var compressor = new HuffmanCompressionProcessor();
 
-            const string input = "|";/* "cabacabaababbababcacacacaedfghijklmnopqrstuvwxyz"
+            const string input =  "cabacabaababbababcacacacaedfghijklmnopqrstuvwxyz"
                                     + "Adsasd131221453!~[]{}{}~~`\'\\!@#$%^&*()_+=90klasdmnvzxcciuhakdkasdfioads"
                                     + "ADBSADLGUCJNZCXNJSLKDGYSADHIASDMNKJLDBOCXBVCXJIMSAD<NSKLDBHCBIUXHCXZNCMSN"
-                                    + ",<>?|";*/
+                                    + ",<>?|";
 
             var inputBytes = Encoding.UTF8.GetBytes(input);
 
             var now = DateTime.Now.Millisecond;
 
-            var compressed = compressor.Compress(inputBytes, true);
-            var decompressed = compressor.Decompress(compressed, true);
+            var compressed = compressor.Compress(inputBytes);
+            var decompressed = compressor.Decompress(compressed);
 
             var newNow = DateTime.Now.Millisecond;
 
@@ -223,7 +250,7 @@ namespace Http2.Katana.Tests
         }
 
         [StandardFact]
-        public void UVarIntConversionSuccessful()
+        public void UVarIntConversion()
         {
             var test1337 = 1337.ToUVarInt(5);
             Assert.Equal(Int32Extensions.FromUVarInt(test1337), 1337);
@@ -246,33 +273,33 @@ namespace Http2.Katana.Tests
         }
 
         [StandardFact]
-        public void FrameHelperSuccessful()
+        public void FrameHelper()
         {
             const byte input = 1;
-            byte result = FrameHelpers.SetBit(input, true, 3);
+            byte result = Microsoft.Http2.Protocol.Framing.FrameHelper.SetBit(input, true, 3);
             Assert.Equal(result, 9);
-            result = FrameHelpers.SetBit(result, false, 3);
+            result = Microsoft.Http2.Protocol.Framing.FrameHelper.SetBit(result, false, 3);
             Assert.Equal(result, 1);
-            result = FrameHelpers.SetBit(result, false, 0);
+            result = Microsoft.Http2.Protocol.Framing.FrameHelper.SetBit(result, false, 0);
             Assert.Equal(result, 0);
-            result = FrameHelpers.SetBit(result, true, 7);
+            result = Microsoft.Http2.Protocol.Framing.FrameHelper.SetBit(result, true, 7);
             Assert.Equal(result, 128);
-            result = FrameHelpers.SetBit(result, true, 6);
+            result = Microsoft.Http2.Protocol.Framing.FrameHelper.SetBit(result, true, 6);
             Assert.Equal(result, 192);
-            result = FrameHelpers.SetBit(result, true, 5);
+            result = Microsoft.Http2.Protocol.Framing.FrameHelper.SetBit(result, true, 5);
             Assert.Equal(result, 224);
-            result = FrameHelpers.SetBit(result, false, 7);
+            result = Microsoft.Http2.Protocol.Framing.FrameHelper.SetBit(result, false, 7);
             Assert.Equal(result, 96);
-            result = FrameHelpers.SetBit(result, false, 6);
+            result = Microsoft.Http2.Protocol.Framing.FrameHelper.SetBit(result, false, 6);
             Assert.Equal(result, 32);
-            result = FrameHelpers.SetBit(result, false, 5);
+            result = Microsoft.Http2.Protocol.Framing.FrameHelper.SetBit(result, false, 5);
             Assert.Equal(result, 0);
-            result = FrameHelpers.SetBit(result, true, 0);
+            result = Microsoft.Http2.Protocol.Framing.FrameHelper.SetBit(result, true, 0);
             Assert.Equal(result, input);
         }
 
         [StandardFact]
-        public void MinExtendedMathWithoutComparerSuccessful()
+        public void ExtendedMathWithoutComparer()
         {
             var tests = new List<double[]>
                 {
@@ -290,7 +317,7 @@ namespace Http2.Katana.Tests
         }
 
         [StandardFact]
-        public void PriorityTestSuccessful()
+        public void PriorityQueue()
         {
             var itemsCollection = new List<IPriorityItem>
                 {
@@ -337,42 +364,6 @@ namespace Http2.Katana.Tests
             Assert.Equal(((PriorityQueueEntry)item10).Priority,0);
             var item11 = queue.Dequeue();
             Assert.Equal(((PriorityQueueEntry)item11).Priority, 0);
-        }
-
-        [StandardFact]
-        public void StreamDictionarySuccessful()
-        {
-            var session = new Http2Session(Stream.Null, ConnectionEnd.Client, true, true, true, new CancellationToken());
-            var testCollection = session.StreamDictionary;
-            var fm = new FlowControlManager(session);
-
-            testCollection[1] = new Http2Stream(null, 1, null, fm);
-            testCollection[2] = new Http2Stream(null, 2, null, fm);
-            testCollection[3] = new Http2Stream(null, 3, null, fm);
-            testCollection[4] = new Http2Stream(null, 4, null, fm);
-
-            fm.DisableStreamFlowControl(testCollection[2]);
-            fm.DisableStreamFlowControl(testCollection[4]);
-
-            Assert.Equal(testCollection.NonFlowControlledStreams.Count, 2);
-            Assert.Equal(testCollection.FlowControlledStreams.Count, 2);
-
-            bool gotException = false;
-            try
-            {
-                testCollection[4] = new Http2Stream(null, 3, null, fm);
-            }
-            catch (ArgumentException)
-            {
-                gotException = true;
-            }
-
-            Assert.Equal(gotException, true);
-
-            testCollection.Remove(4);
-
-            Assert.Equal(testCollection.Count, 3);
-            Assert.Equal(testCollection.ContainsKey(4), false);
         }
     }
 }

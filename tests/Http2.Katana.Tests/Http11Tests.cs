@@ -85,7 +85,7 @@ namespace Http2.Katana.Tests
         }
 
         [StandardFact]
-        public void EnvironmentCreatedCorrect()
+        public void CreateEnvironment()
         {
             var creator = typeof(Http11ProtocolOwinAdapter).GetMethod("CreateOwinEnvironment", BindingFlags.NonPublic | BindingFlags.Static);
             const string method = "GET",
@@ -116,7 +116,7 @@ namespace Http2.Katana.Tests
         }
 
         [StandardFact]
-        public void HeadersParsedCorrect()
+        public void HeadersParsing()
         {
             const string request = "GET / HTTP/1.1\r\n" +
                                    "Host: localhost:80\r\n" +

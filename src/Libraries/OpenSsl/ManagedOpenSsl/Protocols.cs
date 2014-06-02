@@ -8,13 +8,13 @@
 // See the Apache 2 License for the specific language governing permissions and limitations under the License.
 namespace OpenSsl.Protocols
 {
-    //TODO move it from the http2 proto
     /// <summary>
-    /// Enum of supported protocols.
+    /// see 12 -> 3.1.  HTTP/2 Version Identification
     /// </summary>
     public static class Protocols
     {
-        public static string Http2 = "HTTP-draft-09/2.0";
+        public static string Http2 = "h2-12";
+        public static string Http2NoTls = "h2c-12";
         public static string Http1 = "http/1.1";
     }
 }

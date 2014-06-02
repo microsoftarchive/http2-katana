@@ -159,14 +159,12 @@ namespace Microsoft.Http2.Owin.Server.Adapters
         /// </summary>
         private void AddOpaqueUpgradeIfNeeded()
         {
-
             var headers = _request.Headers;
 
             if (headers.ContainsKey(CommonHeaders.Connection) && headers.ContainsKey(CommonHeaders.Upgrade))
             {
                 _environment[CommonOwinKeys.OpaqueUpgrade] = new UpgradeDelegate(OpaqueUpgradeDelegate);
             }
-       
         }
 
         /// <summary>

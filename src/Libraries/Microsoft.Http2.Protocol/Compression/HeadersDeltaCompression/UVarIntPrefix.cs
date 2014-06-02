@@ -6,15 +6,14 @@
 // THIS CODE IS PROVIDED ON AN *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION ANY IMPLIED WARRANTIES OR CONDITIONS OF TITLE, FITNESS FOR A PARTICULAR PURPOSE, MERCHANTABLITY OR NON-INFRINGEMENT.
 
 // See the Apache 2 License for the specific language governing permissions and limitations under the License.
-namespace Microsoft.Http2.Protocol
+namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
 {
-    /// <summary>
-    /// see 12 -> 3.1.  HTTP/2 Version Identification
-    /// </summary>
-    public static class Protocols
+    public enum UVarIntPrefix : byte
     {
-        public static string Http2 = "h2-12";
-        public static string Http2NoTls = "h2c-12";
-        public static string Http1 = "http/1.1";
+        WithoutIndexing = 4,
+        NeverIndexed = 4,
+        EncodingContextUpdate = 4,
+        Incremental = 6,
+        Indexed = 7
     }
 }

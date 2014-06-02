@@ -87,6 +87,9 @@
     <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Compression\HeadersDeltaCompression\CompressionProcessor\CompressionProcStaticTable.cs">
       <Link>Sources\Libraries\Microsoft.Http2.Protocol\Compression\HeadersDeltaCompression\CompressionProcessor\CompressionProcStaticTable.cs</Link>
     </Compile>
+    <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Compression\HeadersDeltaCompression\UVarIntPrefix.cs">
+      <Link>Sources\Libraries\Microsoft.Http2.Protocol\Compression\HeadersDeltaCompression\UVarIntPrefix.cs</Link>
+    </Compile>
     <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Compression\HuffmanCompression\BinaryConverter.cs">
       <Link>Sources\Libraries\Microsoft.Http2.Protocol\Compression\Huffman\BinaryConverter.cs</Link>
     </Compile>
@@ -114,11 +117,26 @@
     <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Framing\ContinuationFrame.cs">
       <Link>Sources\Libraries\Microsoft.Http2.Protocol\Framing\ContinuationFrame.cs</Link>
     </Compile>
+    <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Framing\FrameHelper.cs">
+      <Link>Sources\Libraries\Microsoft.Http2.Protocol\Framing\FrameHelper.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Framing\HeadersFrame.cs">
+      <Link>Sources\Libraries\Microsoft.Http2.Protocol\Framing\HeadersFrame.cs</Link>
+    </Compile>
     <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Framing\HeadersSequence.cs">
       <Link>Sources\Libraries\Microsoft.Http2.Protocol\Framing\HeadersSequence.cs</Link>
     </Compile>
+    <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Framing\IEndSegmentFrame.cs">
+      <Link>Sources\Libraries\Microsoft.Http2.Protocol\Framing\IEndSegmentFrame.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Framing\IEndStreamFrame.cs">
+      <Link>Sources\Libraries\Microsoft.Http2.Protocol\Framing\IEndStreamFrame.cs</Link>
+    </Compile>
     <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Framing\IHeadersFrame.cs">
       <Link>Sources\Libraries\Microsoft.Http2.Protocol\Framing\IHeadersFrame.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Framing\IPaddingFrame.cs">
+      <Link>Sources\Libraries\Microsoft.Http2.Protocol\Framing\IPaddingFrame.cs</Link>
     </Compile>
     <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Framing\PushPromiseFrame.cs">
       <Link>Sources\Libraries\Microsoft.Http2.Protocol\Framing\PushPromiseFrame.cs</Link>
@@ -400,6 +418,8 @@
       <Link>Sources\Client\IO\FileHelper.cs</Link>
     </Compile>
     <Compile Include="BasicTests.cs" />
+    <Compile Include="CompProcState.cs" />
+    <Compile Include="EncContextUpdateTests.cs" />
     <Compile Include="GlobalSuppressions.cs" />
     <Compile Include="HandshakeTests.cs" />
     <Compile Include="Http11Tests.cs" />
@@ -474,9 +494,6 @@
     <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Framing\FrameFlags.cs">
       <Link>Sources\Libraries\Microsoft.Http2.Protocol\Framing\FrameFlags</Link>
     </Compile>
-    <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Framing\FrameHelpers.cs">
-      <Link>Sources\Libraries\Microsoft.Http2.Protocol\Framing\FrameHelpers</Link>
-    </Compile>
     <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Framing\FrameReader.cs">
       <Link>Sources\Libraries\Microsoft.Http2.Protocol\Framing\FrameReader</Link>
     </Compile>
@@ -488,12 +505,6 @@
     </Compile>
     <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Framing\GoAwayStatusCode.cs">
       <Link>Sources\Libraries\Microsoft.Http2.Protocol\Framing\GoAwayStatusCode</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Framing\Headers.cs">
-      <Link>Sources\Libraries\Microsoft.Http2.Protocol\Framing\Headers</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Framing\IEndStreamFrames.cs">
-      <Link>Sources\Libraries\Microsoft.Http2.Protocol\Framing\IEndStreamFrames</Link>
     </Compile>
     <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Framing\PingFrame.cs">
       <Link>Sources\Libraries\Microsoft.Http2.Protocol\Framing\PingFrame</Link>

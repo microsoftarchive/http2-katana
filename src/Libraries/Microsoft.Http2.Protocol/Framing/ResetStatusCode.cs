@@ -8,6 +8,9 @@
 // See the Apache 2 License for the specific language governing permissions and limitations under the License.
 namespace Microsoft.Http2.Protocol.Framing
 {
+    /// <summary>
+    /// see 12 -> 7. Error Codes
+    /// </summary>
     public enum ResetStatusCode : uint
     {
         None = 0,
@@ -21,6 +24,7 @@ namespace Microsoft.Http2.Protocol.Framing
         Cancel = 8,
         CompressionError = 9,
         ConnectError = 10,
-        EnhanceYourCalm = 420,
+        EnhanceYourCalm = 11,
+        InadequateSecurity = 12
     }
 }

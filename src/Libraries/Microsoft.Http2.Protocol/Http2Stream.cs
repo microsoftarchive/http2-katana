@@ -258,7 +258,7 @@ namespace Microsoft.Http2.Protocol
             if (Closed)
                 return;
 
-            var frame = new HeadersFrame(_id, Priority)
+            var frame = new HeadersFrame(_id, true)
                 {
                     IsEndHeaders = isEndHeaders,
                     IsEndStream = isEndStream,
@@ -297,7 +297,12 @@ namespace Microsoft.Http2.Protocol
             if (Closed)
                 return;
 
-            var dataFrame = new DataFrame(_id, data, isEndStream);
+            var dataFrame = new DataFrame(_id, data, isEndStream, true);
+
+            Http2Logger.LogDebug(
+                    "Sending DATA frame: stream id={0}, payload len={1}, has pad={2}, pad high={3}, pad low={4}, " +
+                    "end stream={5}", dataFrame.StreamId, dataFrame.PayloadLength,
+                    dataFrame.HasPadding, dataFrame.PadHigh, dataFrame.PadLow, dataFrame.IsEndStream);
 
             //We cant let lesser frame that were passed through flow control window
             //be sent before greater frames that were not passed through flow control window
@@ -313,15 +318,16 @@ namespace Microsoft.Http2.Protocol
             }
 
             if (!IsFlowControlBlocked)
-            {
+            {        
                 _writeQueue.WriteFrame(dataFrame);
-                SentDataAmount += dataFrame.FrameLength;
+                SentDataAmount += dataFrame.Data.Count;
 
                 _flowCrtlManager.DataFrameSentHandler(this, new DataFrameSentEventArgs(dataFrame));
 
                 if (dataFrame.IsEndStream)
                 {
                     Http2Logger.LogDebug("Transfer end");
+                    Http2Logger.LogDebug("Sent bytes: {0}", SentDataAmount);
                     HalfClosedLocal = true;
                 }
 
@@ -353,13 +359,13 @@ namespace Microsoft.Http2.Protocol
             if (!IsFlowControlBlocked)
             {
                 _writeQueue.WriteFrame(dataFrame);
-                SentDataAmount += dataFrame.FrameLength;
+                SentDataAmount += dataFrame.Data.Count;
 
                 _flowCrtlManager.DataFrameSentHandler(this, new DataFrameSentEventArgs(dataFrame));
 
                 if (dataFrame.IsEndStream)
                 {
-                    Http2Logger.LogDebug("Transfer end");
+                    Http2Logger.LogDebug("Bytes sent: {0}", SentDataAmount);
                     HalfClosedLocal = true;
                 }
 
@@ -377,7 +383,7 @@ namespace Microsoft.Http2.Protocol
         public void WriteWindowUpdate(Int32 windowSize)
         {
             if (windowSize <= 0)
-                throw new ArgumentOutOfRangeException("windowSize should be greater thasn 0");
+                throw new ArgumentOutOfRangeException("windowSize should be greater than 0");
 
             if (windowSize > Constants.MaxWindowSize)
                 throw new ProtocolError(ResetStatusCode.FlowControlError, "window size is too large");
@@ -393,6 +399,8 @@ namespace Microsoft.Http2.Protocol
 
             var frame = new WindowUpdateFrame(_id, windowSize);
             _writeQueue.WriteFrame(frame);
+
+            Http2Logger.LogDebug("Sending WINDOW_UPDATE: stream id={0}, delta={1}", frame.StreamId, frame.Delta);
 
             if (OnFrameSent != null)
             {
@@ -425,9 +433,7 @@ namespace Microsoft.Http2.Protocol
                 return;
 
             var headers = new HeadersList(pairs);
-
-            //TODO IsEndPushPromise should be computationable
-            var frame = new PushPromiseFrame(Id, promisedId, true, headers);
+            var frame = new PushPromiseFrame(Id, promisedId, true, true, headers);
 
             ReservedLocal = true;
 

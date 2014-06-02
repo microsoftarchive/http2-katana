@@ -14,7 +14,7 @@ using System.Text;
 namespace Microsoft.Http2.Protocol.Framing
 {
     // Helpers for reading binary fields of various sizes
-    internal static class FrameHelpers
+    internal static class FrameHelper
     {
         public static byte SetBit(byte input, bool value, byte offset)
         {
@@ -26,6 +26,18 @@ namespace Microsoft.Http2.Protocol.Framing
             }
 
             return (byte)(input ^ (1 << offset));
+        }
+
+        public static void SetBit(ref byte input, bool value, byte offset)
+        {
+            Contract.Assert(offset <= 7);
+
+            if (value == GetBit(input, offset))
+            {
+                return;
+            }
+
+            input ^= (byte)(1 << offset);
         }
 
         public static bool GetBit(byte input, byte offset)
@@ -84,7 +96,7 @@ namespace Microsoft.Http2.Protocol.Framing
             buffer[offset] = (byte)(upper3Bits | lower5Bits);
         }
 
-        public static int Get8BitsAt(byte[] buffer, int offset, byte value)
+        public static int Get8BitsAt(byte[] buffer, int offset)
         {
             Contract.Assert(offset >= 0 && offset < buffer.Length);
             return (0x1F & buffer[offset]);

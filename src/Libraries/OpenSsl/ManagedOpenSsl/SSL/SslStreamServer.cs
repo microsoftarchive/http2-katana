@@ -268,8 +268,8 @@ namespace OpenSSL.SSL
                 throw new ArgumentException("Server certificate must have a private key", "serverCertificate");
             }
 
-            // Initialize the context
-            sslContext = new SslContext(SslMethod.TLSv1_server_method, ConnectionEnd.Server, true, new[] { Protocols.Http2, Protocols.Http1 });
+            // Initialize the context with specified TLS version
+            sslContext = new SslContext(SslMethod.TLSv12_server_method, ConnectionEnd.Server, true, new[] { Protocols.Http2, Protocols.Http1 });
             
             // Remove support for protocols not specified in the enabledSslProtocols
             if ((enabledSslProtocols & SslProtocols.Ssl2) != SslProtocols.Ssl2)

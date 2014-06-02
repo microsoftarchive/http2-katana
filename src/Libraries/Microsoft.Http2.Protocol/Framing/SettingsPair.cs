@@ -10,24 +10,29 @@ using System;
 
 namespace Microsoft.Http2.Protocol.Framing
 {
+    /// <summary>
+    /// see 12 -> 6.5.1
+    /// </summary>
     public struct SettingsPair
     {
-        //TODO Make sure, that 8 bytes instead of 7. (3 bytes to settings Id, 4 for value)
-        public const int PairSize = 8; // Bytes
+        /* The payload of a SETTINGS frame consists of zero or more parameters,
+        each consisting of an unsigned 8-bit identifier and an unsigned 32-bit value. */
+
+        // 1 byte for identifier, 4 bytes for value
+        public const int PairSize = 5;
 
         private readonly ArraySegment<byte> _bufferSegment;
 
-        // Incoming
+        // for incoming
         public SettingsPair(ArraySegment<byte> bufferSegment)
         {
             _bufferSegment = bufferSegment;
         }
 
-        // Outgoing
-        public SettingsPair(SettingsFlags flags, SettingsIds id, int value)
+        // for outgoing
+        public SettingsPair(SettingsIds id, int value)
         {
             _bufferSegment = new ArraySegment<byte>(new byte[PairSize], 0, PairSize);
-            Flags = flags;
             Id = id;
             Value = value;
         }
@@ -40,27 +45,15 @@ namespace Microsoft.Http2.Protocol.Framing
             }
         }
 
-        public SettingsFlags Flags
-        {
-            get
-            {
-                return (SettingsFlags)_bufferSegment.Array[_bufferSegment.Offset];
-            }
-            set
-            {
-                _bufferSegment.Array[_bufferSegment.Offset] = (byte)value;
-            }
-        }
-
         public SettingsIds Id
         {
             get
             {
-                return (SettingsIds)FrameHelpers.Get24BitsAt(_bufferSegment.Array, _bufferSegment.Offset + 1);
+                return (SettingsIds)FrameHelper.Get8BitsAt(_bufferSegment.Array, _bufferSegment.Offset);
             }
             set
             {
-                FrameHelpers.Set24BitsAt(_bufferSegment.Array, _bufferSegment.Offset + 1, (int)value);
+                FrameHelper.Set8BitsAt(_bufferSegment.Array, _bufferSegment.Offset, (int)value);
             }
         }
 
@@ -68,11 +61,11 @@ namespace Microsoft.Http2.Protocol.Framing
         {
             get
             {
-                return FrameHelpers.Get32BitsAt(_bufferSegment.Array, _bufferSegment.Offset + 4);
+                return FrameHelper.Get32BitsAt(_bufferSegment.Array, _bufferSegment.Offset + 1);
             }
             set
             {
-                FrameHelpers.Set32BitsAt(_bufferSegment.Array, _bufferSegment.Offset + 4, value);
+                FrameHelper.Set32BitsAt(_bufferSegment.Array, _bufferSegment.Offset + 1, value);
             }
         }
     }

@@ -10,6 +10,7 @@ using System;
 using System.Linq;
 using System.Collections.Generic;
 using System.IO;
+using Microsoft.Http2.Protocol.Exceptions;
 
 namespace Microsoft.Http2.Protocol.Compression.Huffman
 {
@@ -17,14 +18,12 @@ namespace Microsoft.Http2.Protocol.Compression.Huffman
     {
         private Node _root;
         private HuffmanCodesTable _table;
-        private bool _isRequest;
         private readonly bool[] _eos;
 
-        public BitTree(HuffmanCodesTable table, bool isRequest)
+        public BitTree(HuffmanCodesTable table)
         {
             _table = table;
-            _isRequest = isRequest;
-            _eos = _isRequest ? HuffmanCodesTable.ReqEos : HuffmanCodesTable.RespEos;
+            _eos = HuffmanCodesTable.Eos;
             _root = new Node(false, null);
             BuildTree(table);
         }
@@ -36,7 +35,7 @@ namespace Microsoft.Http2.Protocol.Compression.Huffman
                 Add(bits);
             }
 
-            Add(_isRequest ? HuffmanCodesTable.ReqEos : HuffmanCodesTable.RespEos);
+            Add(HuffmanCodesTable.Eos);
         }
 
         private void Add(bool[] bits)
@@ -96,18 +95,26 @@ namespace Microsoft.Http2.Protocol.Compression.Huffman
 
                         if (isEos && ++j == _eos.Length)
                         {
-                            result = new byte[stream.Position];
-                            Buffer.BlockCopy(stream.GetBuffer(), 0, result, 0, result.Length);
-                            return result;
+                            // see spec 07 - > 4.1.2.  String Literal Representation
+                            // A Huffman encoded string literal containing the EOS entry
+                            // MUST be treated as a decoding error.
+                            throw new CompressionError("EOS contains");
                         }
 
                         i++;
                     }
 
-                    //all bits are ones then eos is reached
-                    if (symbolBits.Count < 8 && symbolBits.All(bit => bit))
+                    if (IsValidPadding(symbolBits))
                         break;
 
+                    // See spec 07 -> 4.1.2.  String Literal Representation
+                    // A padding strictly longer than 7 bits MUST be treated as a decoding error.
+                    // A padding not corresponding to the most significant bits of the EOS
+                    // entry MUST be treated as a decoding error.
+
+                    // If padding is not valid or padding is longer than 7 bits
+                    // then decoding error will thrown by GetByte method 
+                    // since not turn recognize the symbol.
                     var symbol = _table.GetByte(symbolBits);
                     stream.WriteByte(symbol);
                 }         
@@ -116,6 +123,30 @@ namespace Microsoft.Http2.Protocol.Compression.Huffman
                 Buffer.BlockCopy(stream.GetBuffer(), 0, result, 0, result.Length);
                 return result;
             }
+        }
+
+        // See spec 07 -> 4.1.2.  String Literal Representation
+        // As the Huffman encoded data doesn't always end at an octet boundary,
+        // some padding is inserted after it up to the next octet boundary.  To
+        // prevent this padding to be misinterpreted as part of the string
+        // literal, the most significant bits of the EOS (end-of-string) entry
+        // in the Huffman table are used.
+        private bool IsValidPadding(List<bool> symbolBits)
+        {
+            if (symbolBits.Count >= 8)
+            {
+                return false;
+            }
+
+            for (int i = 0; i < symbolBits.Count; i++)
+            {
+                if (symbolBits[i] != HuffmanCodesTable.Eos[i])
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         private class Node

@@ -8,7 +8,6 @@
 // See the Apache 2 License for the specific language governing permissions and limitations under the License.
 namespace Microsoft.Http2.Protocol
 {
-    //TODO move it from the http2 proto
     /// <summary>
     /// Http status codes.
     /// </summary>

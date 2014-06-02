@@ -11,32 +11,72 @@ using System.Diagnostics.Contracts;
 namespace Microsoft.Http2.Protocol.Framing
 {
     /// <summary>
-    /// Priority frame class
-    /// See spec: http://tools.ietf.org/html/draft-ietf-httpbis-http2-04#section-6.3
+    /// PRIORITY frame class
+    /// see 12 -> 6.3
     /// </summary>
     internal class PriorityFrame : Frame
     {
-        public int Priority
-        {
-            get { return  FrameHelpers.Get31BitsAt(Buffer, 8); }
-            set { FrameHelpers.Set31BitsAt(Buffer, 8, value); }
-        }
+        // 4 bytes Stream Dependency field
+        private const int DependencyLength = 4;
 
-        /// <summary>
-        /// Create an incoming frame
-        /// </summary>
-        /// <param name="preamble">Frame preamble</param>
+        // 1 byte Weight field
+        private const int WeightLength = 1;
+
+        // for incoming
         public PriorityFrame(Frame preamble)
             : base(preamble)
         {
         }
 
-        public PriorityFrame(int priority, int streamId)
+        // for outgoing
+        public PriorityFrame(int streamId, int streamDependency, bool isExclusive, byte weight)
         {
             Contract.Assert(streamId != 0);
+
+            // construct frame
+            Buffer = new byte[Constants.FramePreambleSize + DependencyLength + WeightLength];
+
             StreamId = streamId;
-            Priority = priority;
             FrameType = FrameType.Priority;
+            Exclusive = isExclusive;
+            StreamDependency = streamDependency;
+            Weight = weight;
+        }
+
+        public bool Exclusive
+        {
+            get
+            {
+                return FrameHelper.GetBit(Buffer[Constants.FramePreambleSize], 7);
+            }
+            set
+            {
+                FrameHelper.SetBit(ref Buffer[Constants.FramePreambleSize], value, 7);
+            }
+        }
+
+        public int StreamDependency
+        {
+            get
+            {
+                return FrameHelper.Get31BitsAt(Buffer, Constants.FramePreambleSize);
+            }
+            set
+            {
+                FrameHelper.Set31BitsAt(Buffer, Constants.FramePreambleSize, value);
+            }
+        }
+
+        public byte Weight
+        {
+            get
+            {
+                return Buffer[Constants.FramePreambleSize + DependencyLength];
+            }
+            set
+            {
+                Buffer[Constants.FramePreambleSize + DependencyLength] = value;
+            }
         }
     }
 }

@@ -286,7 +286,7 @@ namespace OpenSSL.SSL
 	/// 
 	/// </summary>
 	[Flags]
-	public enum SslProtocols
+	public enum SslProtocols : long
 	{
 		/// <summary>
 		/// 

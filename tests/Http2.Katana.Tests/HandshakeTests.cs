@@ -76,7 +76,7 @@ namespace Http2.Katana.Tests
         }
 
         [StandardFact]
-        public void AlpnSelectionHttp2Successful()
+        public void AlpnSelectedHttp2()
         {
             const string requestStr = @"https://localhost:8443/";
             Uri uri;
@@ -102,7 +102,7 @@ namespace Http2.Katana.Tests
         }
 
         [StandardFact]
-        public void UpgradeHandshakeSuccessful()
+        public void UpgradeByHandshake()
         {
             const string requestStr = @"http://localhost:8080/";
             Uri uri;
@@ -124,7 +124,6 @@ namespace Http2.Katana.Tests
 
         public void Dispose()
         {
-
         }
     }
 }
