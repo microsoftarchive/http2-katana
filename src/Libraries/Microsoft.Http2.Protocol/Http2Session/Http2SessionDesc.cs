@@ -246,7 +246,7 @@ namespace Microsoft.Http2.Protocol
         /// <returns></returns>
         public async Task Start(IDictionary<string, string> initialRequest = null)
         {
-            Http2Logger.LogDebug("Session start");
+            Http2Logger.LogDebug("Http2 Session started");
 
             if (_ourEnd == ConnectionEnd.Server)
             {
@@ -415,7 +415,7 @@ namespace Microsoft.Http2.Protocol
                                             "Settings frame was not the first frame in the session");
                 }
 
-                Http2Logger.LogDebug("Incoming frame: " + frame.FrameType);
+                Http2Logger.LogDebug("Incoming frame: " + frame.FrameType.ToString().ToUpper());
 
                 switch (frame.FrameType)
                 {
@@ -504,9 +504,6 @@ namespace Microsoft.Http2.Protocol
                 Http2Logger.LogDebug("Frame for already Closed stream with stream id={0}", ex.Id);
                 var rstFrame = new RstStreamFrame(ex.Id, ResetStatusCode.StreamClosed);
 
-                Http2Logger.LogDebug("Sending RST_STREAM frame: stream id={0}, status code={1}",
-                    rstFrame.StreamId, rstFrame.StatusCode);
-
                 _writeQueue.WriteFrame(rstFrame);
                 stream.WasRstSent = true;
             }
@@ -542,7 +539,6 @@ namespace Microsoft.Http2.Protocol
         /// <returns></returns>
         public Http2Stream CreateStream(HeadersList headers, int streamId, int priority = -1)
         {
-
             if (headers == null)
                 throw new ArgumentNullException("pairs is null");
 
@@ -587,7 +583,6 @@ namespace Microsoft.Http2.Protocol
 
         internal Http2Stream CreateStream(HeadersSequence sequence)
         {
-
             if (sequence == null)
                 throw new ArgumentNullException("sequence is null");
 
@@ -755,14 +750,6 @@ namespace Microsoft.Http2.Protocol
 
             var frame = new SettingsFrame(new List<SettingsPair>(settings), isAck);
 
-            Http2Logger.LogDebug("Sending SETTINGS frame: stream id={0}, payload len={1}, is ack={2}, count={3}",
-                frame.StreamId, frame.PayloadLength, frame.IsAck, frame.EntryCount);
-
-            foreach(var s in settings)
-            {
-                Http2Logger.LogDebug("{0}: {1}", s.Id.ToString(), s.Value);
-            }
-
             _writeQueue.WriteFrame(frame);
 
             if (!isAck && !_settingsAckReceived.WaitOne(60000))
@@ -792,9 +779,6 @@ namespace Microsoft.Http2.Protocol
             }
 
             var frame = new GoAwayFrame(_lastId, code);
-
-            Http2Logger.LogDebug("Sending GOAWAY frame: stream id={0}, code={1}, last good id={2}",
-                frame.StreamId, frame.StatusCode, frame.LastGoodStreamId);
 
             _writeQueue.WriteFrame(frame);
         }
@@ -839,7 +823,7 @@ namespace Microsoft.Http2.Protocol
             if (_disposed)
                 return;
 
-            Http2Logger.LogDebug("Session closing");
+            Http2Logger.LogDebug("Http2 Session closing");
             _disposed = true;
 
             // Dispose of all streams
@@ -906,7 +890,7 @@ namespace Microsoft.Http2.Protocol
 
             OnSessionDisposed = null;
 
-            Http2Logger.LogDebug("Session closed");
+            Http2Logger.LogDebug("Http2 Session closed");
         }
     }
 }

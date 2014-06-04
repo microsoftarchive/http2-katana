@@ -299,11 +299,6 @@ namespace Microsoft.Http2.Protocol
 
             var dataFrame = new DataFrame(_id, data, isEndStream, true);
 
-            Http2Logger.LogDebug(
-                    "Sending DATA frame: stream id={0}, payload len={1}, has pad={2}, pad high={3}, pad low={4}, " +
-                    "end stream={5}", dataFrame.StreamId, dataFrame.PayloadLength,
-                    dataFrame.HasPadding, dataFrame.PadHigh, dataFrame.PadLow, dataFrame.IsEndStream);
-
             //We cant let lesser frame that were passed through flow control window
             //be sent before greater frames that were not passed through flow control window
 
@@ -398,9 +393,8 @@ namespace Microsoft.Http2.Protocol
             //TODO handle idle state
 
             var frame = new WindowUpdateFrame(_id, windowSize);
-            _writeQueue.WriteFrame(frame);
 
-            Http2Logger.LogDebug("Sending WINDOW_UPDATE: stream id={0}, delta={1}", frame.StreamId, frame.Delta);
+            _writeQueue.WriteFrame(frame);
 
             if (OnFrameSent != null)
             {

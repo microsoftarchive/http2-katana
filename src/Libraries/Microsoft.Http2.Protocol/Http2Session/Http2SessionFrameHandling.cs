@@ -42,11 +42,7 @@ namespace Microsoft.Http2.Protocol
 
         private void HandleHeaders(HeadersFrame headersFrame, out Http2Stream stream)
         {
-            Http2Logger.LogDebug("HEADERS frame: stream id={0}, payload len={1}, has pad={2}, pad high={3}, pad low={4}, " +
-                                 "end stream={5}, has priority={6}, exclusive={7}, dependency={8}, weight={9}", 
-                                 headersFrame.StreamId, headersFrame.PayloadLength,
-                                 headersFrame.HasPadding, headersFrame.PadHigh, headersFrame.PadLow, headersFrame.IsEndStream,
-                                 headersFrame.HasPriority, headersFrame.Exclusive, headersFrame.StreamDependency, headersFrame.Weight);
+            Http2Logger.LogFrameReceived(headersFrame);
 
             /* 12 -> 6.2 
             HEADERS frames MUST be associated with a stream.  If a HEADERS frame
@@ -123,9 +119,7 @@ namespace Microsoft.Http2.Protocol
 
         private void HandleContinuation(ContinuationFrame contFrame, out Http2Stream stream)
         {
-            Http2Logger.LogDebug("CONTINUATION frame: stream id={0}, payload len={1}, has pad={2}, pad high={3}," +
-                                 " pad low={4}, end headers={5}", contFrame.StreamId, contFrame.PayloadLength,
-                                 contFrame.HasPadding, contFrame.PadHigh, contFrame.PadLow, contFrame.IsEndHeaders);
+            Http2Logger.LogFrameReceived(contFrame);
 
             if (!(_lastFrame is ContinuationFrame || _lastFrame is HeadersFrame))
                 throw new ProtocolError(ResetStatusCode.ProtocolError,
@@ -194,9 +188,7 @@ namespace Microsoft.Http2.Protocol
 
         private void HandlePriority(PriorityFrame priorityFrame, out Http2Stream stream)
         {
-            Http2Logger.LogDebug("PRIORITY frame: stream id={0}, exclusive={1}, dependency={2}, weight={3}",
-                priorityFrame.StreamId, priorityFrame.Exclusive, priorityFrame.StreamDependency,
-                priorityFrame.Weight);
+            Http2Logger.LogFrameReceived(priorityFrame);
 
             /* 12 -> 6.3
             The PRIORITY frame is associated with an existing stream. If a
@@ -227,8 +219,7 @@ namespace Microsoft.Http2.Protocol
 
         private void HandleRstFrame(RstStreamFrame resetFrame, out Http2Stream stream)
         {
-            Http2Logger.LogDebug("RST_STREAM frame: stream id={0}, status code={1}",
-               resetFrame.StreamId, resetFrame.StatusCode);
+            Http2Logger.LogFrameReceived(resetFrame);
 
             /* 12 -> 6.4
             RST_STREAM frames MUST be associated with a stream.  If a RST_STREAM
@@ -259,9 +250,8 @@ namespace Microsoft.Http2.Protocol
 
         private void HandleDataFrame(DataFrame dataFrame, out Http2Stream stream)
         {
-            Http2Logger.LogDebug("DATA frame: stream id={0}, payload len={1}, has pad={2}, pad high={3}, pad low={4}, " +
-                                 "end stream={5}", dataFrame.StreamId, dataFrame.PayloadLength, 
-                                 dataFrame.HasPadding, dataFrame.PadHigh, dataFrame.PadLow, dataFrame.IsEndStream);
+            Http2Logger.LogFrameReceived(dataFrame);
+
             /* 12 -> 6.1
             DATA frames MUST be associated with a stream. If a DATA frame is
             received whose stream identifier field is 0x0, the recipient MUST 
@@ -294,8 +284,7 @@ namespace Microsoft.Http2.Protocol
 
         private void HandlePingFrame(PingFrame pingFrame)
         {
-            Http2Logger.LogDebug("PING frame: stream id={0}, payload={1}", pingFrame.StreamId,
-                pingFrame.Payload.Count);
+            Http2Logger.LogFrameReceived(pingFrame);
 
             /* 12 -> 6.7
             PING frames are not associated with any individual stream.  If a PING
@@ -323,8 +312,7 @@ namespace Microsoft.Http2.Protocol
 
         private void HandleSettingsFrame(SettingsFrame settingsFrame)
         {
-            Http2Logger.LogDebug("SETTINGS frame: stream id={0}, payload len={1}, is ack={2}, count={3}",
-                settingsFrame.StreamId, settingsFrame.PayloadLength, settingsFrame.IsAck, settingsFrame.EntryCount);
+            Http2Logger.LogFrameReceived(settingsFrame);
 
             _wasSettingsReceived = true;
             
@@ -404,8 +392,7 @@ namespace Microsoft.Http2.Protocol
 
         private void HandleWindowUpdateFrame(WindowUpdateFrame windowUpdateFrame, out Http2Stream stream)
         {
-            Http2Logger.LogDebug("WINDOW_UPDATE frame: stream id={0}, delta={1}",windowUpdateFrame.StreamId,
-                 windowUpdateFrame.Delta);
+            Http2Logger.LogFrameReceived(windowUpdateFrame);
 
             if (!_useFlowControl)
             {
@@ -454,8 +441,7 @@ namespace Microsoft.Http2.Protocol
 
         private void HandleGoAwayFrame(GoAwayFrame goAwayFrame)
         {
-            Http2Logger.LogDebug("GOAWAY frame: stream id={0}, status code={1}", goAwayFrame.StreamId,
-                goAwayFrame.StatusCode);
+            Http2Logger.LogFrameReceived(goAwayFrame);
 
             if (goAwayFrame.StreamId != 0)
                 throw new ProtocolError(ResetStatusCode.ProtocolError, "GoAway Stream id should always be null");
@@ -468,10 +454,7 @@ namespace Microsoft.Http2.Protocol
 
         private void HandlePushPromiseFrame(PushPromiseFrame frame, out Http2Stream stream)
         {
-            Http2Logger.LogDebug("PUSH_PROMISE frame: stream id={0}, payload len={1}, promised id={2}, " +
-                                 "has pad={3}, pad high={4}, pad low={5}, end headers={6}",
-                                 frame.StreamId, frame.PayloadLength, frame.PromisedStreamId, frame.HasPadding,
-                                 frame.PadHigh, frame.PadLow, frame.IsEndHeaders);
+            Http2Logger.LogFrameReceived(frame);
 
             /* 12 -> 6.6. 
             PUSH_PROMISE frames MUST be associated with an existing, peer- initiated stream.
@@ -591,8 +574,7 @@ namespace Microsoft.Http2.Protocol
 
         private void HandleAltSvcFrame(Frame altSvcFrame)
         {
-            Http2Logger.LogDebug("ALTSVC frame: stream id={0}, payload len={1}", 
-                altSvcFrame.StreamId, altSvcFrame.PayloadLength);
+            Http2Logger.LogFrameReceived(altSvcFrame);
 
             /* 12 -> 6.11 
             The ALTSVC frame is intended for receipt by clients; a server that receives 
@@ -610,8 +592,7 @@ namespace Microsoft.Http2.Protocol
 
         private void HandleBlockedFrame(Frame blockedFrame)
         {
-            Http2Logger.LogDebug("BLOCKED frame: stream id={0}, payload len={1}",
-                blockedFrame.StreamId, blockedFrame.PayloadLength);
+            Http2Logger.LogFrameReceived(blockedFrame);
 
             /* 12 -> 6.12 
             The BLOCKED frame defines no flags and contains no payload. A

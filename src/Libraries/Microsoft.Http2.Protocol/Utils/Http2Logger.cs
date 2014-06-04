@@ -44,6 +44,7 @@ using System.IO;
 using System;
 using System.Reflection;
 using System.Threading;
+using Microsoft.Http2.Protocol.Framing;
 
 namespace Microsoft.Http2.Protocol.Utils
 {
@@ -140,6 +141,146 @@ namespace Microsoft.Http2.Protocol.Utils
                 Console.WriteLine(outString);
                 LogToFile(outString);
             }
+        }
+
+        public static void LogFrameSend(Frame frame)
+        {
+            LogDebug("Sending " + frame.FrameType.ToString().ToUpper());
+            LogFrame(frame);
+        }
+
+        public static void LogFrameReceived(Frame frame)
+        {
+            LogFrame(frame);
+        }
+
+        public static void LogFrame(Frame frame)
+        {
+            switch (frame.FrameType)
+            {
+                case FrameType.Settings:
+                    LogSettingsFrame(frame as SettingsFrame);
+                    break;
+                case FrameType.Headers:
+                    LogHeadersFrame(frame as HeadersFrame);
+                    break;
+                case FrameType.Data:
+                    LogDataFrame(frame as DataFrame);
+                    break;
+                case FrameType.Continuation:
+                    LogContinuationFrame(frame as ContinuationFrame);
+                    break;
+                case FrameType.WindowUpdate:
+                    LogWindowUpdateFrame(frame as WindowUpdateFrame);
+                    break;
+                case FrameType.Ping:
+                    LogPingFrame(frame as PingFrame);
+                    break;
+                case FrameType.Priority:
+                    LogPriorityFrame(frame as PriorityFrame);
+                    break;
+                case FrameType.PushPromise:
+                    LogPushPromiseFrame(frame as PushPromiseFrame);
+                    break;
+                case FrameType.RstStream:
+                    LogRstFrame(frame as RstStreamFrame);
+                    break;
+                case FrameType.GoAway:
+                    LogGoAwayFrame(frame as GoAwayFrame);
+                    break;
+                case FrameType.AltSvc:
+                    LogAltSvcFrame(frame);
+                    break;
+                case FrameType.Blocked:
+                    LogBlockedFrame(frame);
+                    break;
+            }
+        }
+
+        private static void LogSettingsFrame(SettingsFrame frame)
+        {
+            LogDebug("SETTINGS frame: stream id={0}, payload len={1}, is ack={2}, count={3}",
+                frame.StreamId, frame.PayloadLength, frame.IsAck, frame.EntryCount);
+
+            for (int i = 0; i < frame.EntryCount; i++)
+            {
+                LogDebug("{0}: {1}", frame[i].Id.ToString(), frame[i].Value);
+            }
+        }
+
+        private static void LogHeadersFrame(HeadersFrame frame)
+        {
+            LogDebug("HEADERS frame: stream id={0}, payload len={1}, has pad={2}, " +
+                     "pad high={3}, pad low={4}, end stream={5}, has priority={6}, " +
+                     "exclusive={7}, dependency={8}, weight={9}",
+                     frame.StreamId, frame.PayloadLength, frame.HasPadding,
+                     frame.PadHigh, frame.PadLow, frame.IsEndStream,
+                     frame.HasPriority, frame.Exclusive, frame.StreamDependency, frame.Weight);
+        }
+
+        private static void LogDataFrame(DataFrame frame)
+        {
+            LogDebug("DATA frame: stream id={0}, payload len={1}, has pad={2}, pad high={3}, " +
+                     "pad low={4}, end stream={5}", frame.StreamId, frame.PayloadLength,
+                     frame.HasPadding, frame.PadHigh, frame.PadLow, frame.IsEndStream);
+        }
+
+        private static void LogWindowUpdateFrame(WindowUpdateFrame frame)
+        {
+            LogDebug("WINDOW_UPDATE frame: stream id={0}, delta={1}", frame.StreamId,
+                 frame.Delta);
+        }
+
+        private static void LogPushPromiseFrame(PushPromiseFrame frame)
+        {
+            LogDebug("PUSH_PROMISE frame: stream id={0}, payload len={1}, promised id={2}, " +
+                     "has pad={3}, pad high={4}, pad low={5}, end headers={6}",
+                     frame.StreamId, frame.PayloadLength, frame.PromisedStreamId, frame.HasPadding,
+                     frame.PadHigh, frame.PadLow, frame.IsEndHeaders);
+        }
+
+        private static void LogRstFrame(RstStreamFrame frame)
+        {
+            LogDebug("RST_STREAM frame: stream id={0}, status code={1}",
+                     frame.StreamId, frame.StatusCode);
+        }
+
+        private static void LogGoAwayFrame(GoAwayFrame frame)
+        {
+            LogDebug("GOAWAY frame: stream id={0}, status code={1}", frame.StreamId,
+                     frame.StatusCode);
+        }
+
+        private static void LogPingFrame(PingFrame frame)
+        {
+            LogDebug("PING frame: stream id={0}, payload={1}", frame.StreamId,
+                frame.Payload.Count);
+        }
+
+        private static void LogPriorityFrame(PriorityFrame frame)
+        {
+            LogDebug("PRIORITY frame: stream id={0}, exclusive={1}, dependency={2}, weight={3}",
+                     frame.StreamId, frame.Exclusive, frame.StreamDependency,
+                     frame.Weight);
+        }
+
+        private static void LogContinuationFrame(ContinuationFrame frame)
+        {
+            LogDebug("CONTINUATION frame: stream id={0}, payload len={1}, has pad={2}, pad high={3}," +
+                     " pad low={4}, end headers={5}", frame.StreamId, frame.PayloadLength,
+                     frame.HasPadding, frame.PadHigh, frame.PadLow, frame.IsEndHeaders);
+        }
+
+        private static void LogAltSvcFrame(Frame frame)
+        {
+            LogDebug("ALTSVC frame: stream id={0}, payload len={1}",
+                     frame.StreamId, frame.PayloadLength);
+        }
+
+        private static void LogBlockedFrame(Frame frame)
+        {
+            LogDebug("BLOCKED frame: stream id={0}, payload len={1}",
+                     frame.StreamId, frame.PayloadLength);
         }
 
         public static void LogHeaders(HeadersList headers)
