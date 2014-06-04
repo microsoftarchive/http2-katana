@@ -102,7 +102,7 @@ namespace Http2.Katana.Tests
         }
 
         [StandardFact]
-        public void UpgradeByHandshake()
+        public void Upgrade()
         {
             const string requestStr = @"http://localhost:8080/";
             Uri uri;

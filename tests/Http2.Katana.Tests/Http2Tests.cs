@@ -155,6 +155,7 @@ namespace Http2.Katana.Tests
             finally
             {
                 adapter.Dispose();
+                iostream.Dispose();
             }
         }
 
@@ -248,18 +249,13 @@ namespace Http2.Katana.Tests
             }
             finally
             {
-                finalFrameReceivedEvent.Dispose();
-                finalFrameReceivedEvent = null;
-
                 iostream.Dispose();
                 adapter.Dispose();
-
-                GC.Collect();
             }
         }
 
-        [StandardFact]
-        public void UpgradeByHttp11()
+        [LongTaskFact]
+        public void UpgradeAndFileDownload()
         {
             var requestStr = ConfigurationManager.AppSettings["smallTestFile"];
             Uri uri;
@@ -285,8 +281,8 @@ namespace Http2.Katana.Tests
                                  {
                                      var dataFrame = frame as DataFrame;
                                      responseBody.Append(Encoding.UTF8.GetString(
-                                         dataFrame.Payload.Array.Skip(dataFrame.Payload.Offset)
-                                                  .Take(dataFrame.Payload.Count)
+                                         dataFrame.Data.Array.Skip(dataFrame.Data.Offset)
+                                                  .Take(dataFrame.Data.Count)
                                                   .ToArray()));
                                      isFin = dataFrame.IsEndStream;
                                  } while (!isFin && stream.ReceivedDataAmount > 0);
@@ -297,32 +293,11 @@ namespace Http2.Katana.Tests
                                  }
                              });
 
-            // process http/1.1 headers
-            var http11Headers = "GET " + uri.AbsolutePath + " HTTP/1.1\r\n" +
-                                "Host: " + uri.Host + "\r\n" +
-                                "Connection: Upgrade, HTTP2-Settings\r\n" +
-                                "Upgrade: " + Protocols.Http2NoTls + "\r\n" +
-                                "HTTP2-Settings: \r\n" + // TODO send any valid settings
-                                "\r\n";
-            clientStream.Write(Encoding.UTF8.GetBytes(http11Headers));
-            clientStream.Flush();
-
             try
             {
-                var response = Http11Helper.ReadHeaders(clientStream);
-                Assert.Equal(
-                    "HTTP/1.1 " + StatusCode.Code101SwitchingProtocols + " " + StatusCode.Reason101SwitchingProtocols,
-                    response[0]);
-                var headers = Http11Helper.ParseHeaders(response.Skip(1));
-                Assert.Contains("Connection", headers.Keys);
-                Assert.Equal("Upgrade", headers["Connection"][0]);
-                Assert.Contains("Upgrade", headers.Keys);
-                Assert.Equal(Protocols.Http2NoTls, headers["Upgrade"][0]);
-
                 adapter.StartSessionAsync();
 
-                // there are http2 frames after upgrade headers - we don't need to send request explicitly
-                finalFrameReceivedRaisedEvent.WaitOne(10000);
+                finalFrameReceivedRaisedEvent.WaitOne(60000);
 
                 Assert.True(finalFrameReceived);
                 Assert.Equal(TestHelpers.FileContentSimpleTest, responseBody.ToString());
@@ -330,6 +305,7 @@ namespace Http2.Katana.Tests
             finally
             {
                 adapter.Dispose();
+                clientStream.Dispose();
             }
         }
 
@@ -534,12 +510,8 @@ namespace Http2.Katana.Tests
             }
             finally
             {
-                finalFrameReceivedEvent.Dispose();
-
                 iostream.Dispose();
                 adapter.Dispose();
-
-                GC.Collect();
             }
         }
 
@@ -599,14 +571,8 @@ namespace Http2.Katana.Tests
             }
             finally
             {
-                protocolErrorRaisedEvent.Dispose();
-                protocolErrorRaisedEvent = null;
-
                 iostream.Dispose();
                 adapter.Dispose();
-                adapter = null;
-
-                GC.Collect();
             }
         }
 
