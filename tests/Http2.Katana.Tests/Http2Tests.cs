@@ -254,7 +254,7 @@ namespace Http2.Katana.Tests
             }
         }
 
-        [LongTaskFact]
+        [VeryLongTaskFact]
         public void UpgradeAndFileDownload()
         {
             var requestStr = ConfigurationManager.AppSettings["smallTestFile"];
@@ -297,7 +297,7 @@ namespace Http2.Katana.Tests
             {
                 adapter.StartSessionAsync();
 
-                finalFrameReceivedRaisedEvent.WaitOne(60000);
+                finalFrameReceivedRaisedEvent.WaitOne(180 * 1000);
 
                 Assert.True(finalFrameReceived);
                 Assert.Equal(TestHelpers.FileContentSimpleTest, responseBody.ToString());

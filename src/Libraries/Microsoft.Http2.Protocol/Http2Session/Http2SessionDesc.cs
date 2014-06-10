@@ -54,7 +54,7 @@ namespace Microsoft.Http2.Protocol
         private Frame _lastFrame;
         private readonly CancellationToken _cancelSessionToken;
         private readonly HeadersSequenceList _headersSequences; 
-        private const string ClientSessionHeader = "PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n";
+        private const string ConnectionPreface = "PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n";
         private Dictionary<int, string> _promisedResources; 
 
         /// <summary>
@@ -186,15 +186,15 @@ namespace Microsoft.Http2.Protocol
             _writeQueue.SetStreamDictionary(StreamDictionary);
         }
 
-        private void SendSessionHeader()
+        private void SendConnectionPreface()
         {
-            var bytes = Encoding.UTF8.GetBytes(ClientSessionHeader);
+            var bytes = Encoding.UTF8.GetBytes(ConnectionPreface);
             _ioStream.Write(bytes, 0 , bytes.Length);
         }
 
         private async Task<bool> GetSessionHeaderAndVerifyIt(Stream incomingClient)
         {
-            var sessionHeaderBuffer = new byte[ClientSessionHeader.Length];
+            var sessionHeaderBuffer = new byte[ConnectionPreface.Length];
 
             int read = await incomingClient.ReadAsync(sessionHeaderBuffer, 0, 
                                             sessionHeaderBuffer.Length,
@@ -206,7 +206,7 @@ namespace Microsoft.Http2.Protocol
 
             var receivedHeader = Encoding.UTF8.GetString(sessionHeaderBuffer);
 
-            return string.Equals(receivedHeader, ClientSessionHeader, StringComparison.OrdinalIgnoreCase);
+            return string.Equals(receivedHeader, ConnectionPreface, StringComparison.OrdinalIgnoreCase);
         }
 
         //Calls only in unsecure connection case
@@ -228,11 +228,11 @@ namespace Microsoft.Http2.Protocol
             if (_ourEnd == ConnectionEnd.Client)
             {
                 GetNextId();
-                initialStream.HalfClosedRemote = true;
+                initialStream.HalfClosedLocal = true;
             }
             else
             {
-                initialStream.HalfClosedLocal = true;
+                initialStream.HalfClosedRemote = true;
                 if (OnFrameReceived != null)
                 {
                     OnFrameReceived(this, new FrameReceivedEventArgs(initialStream, new HeadersFrame(1, true)));
@@ -250,7 +250,6 @@ namespace Microsoft.Http2.Protocol
 
             if (_ourEnd == ConnectionEnd.Server)
             {
-
                 if (!await GetSessionHeaderAndVerifyIt(_ioStream))
                 {
                     /*Dispose();
@@ -261,7 +260,7 @@ namespace Microsoft.Http2.Protocol
             }
             else
             {
-                SendSessionHeader();
+                SendConnectionPreface();
             }
             // Listen for incoming Http/2 frames
             var incomingTask = new Task(() =>
@@ -414,8 +413,6 @@ namespace Microsoft.Http2.Protocol
                     throw new ProtocolError(ResetStatusCode.ProtocolError,
                                             "Settings frame was not the first frame in the session");
                 }
-
-                Http2Logger.LogDebug("Incoming frame: " + frame.FrameType.ToString().ToUpper());
 
                 switch (frame.FrameType)
                 {

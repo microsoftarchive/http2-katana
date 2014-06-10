@@ -159,14 +159,15 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
 // THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+using OpenSSL.Core;
+using OpenSSL.Crypto;
+using OpenSSL.Crypto.EC;
+using OpenSSL.Extensions;
+using OpenSSL.X509;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
-using OpenSSL.Extensions;
-using OpenSSL.Core;
-using OpenSSL.Crypto;
-using OpenSSL.X509;
 
 namespace OpenSSL.SSL
 {
@@ -453,6 +454,18 @@ namespace OpenSSL.SSL
         {
             _clientCertCallbackThunk = new ClientCertCallbackThunk(callback);
             Native.SSL_CTX_set_client_cert_cb(ptr, _clientCertCallbackThunk.Callback);
+        }
+
+        public void ActivateDhCipher()
+        {
+            var activator = new DhActivator(Handle);
+            activator.Activate();
+        }
+
+        public void ActivateEcCipher()
+        {
+            var activator = new EcActivator(Handle);
+            activator.Activate();
         }
 
         public List<string> GetCipherList()

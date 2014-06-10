@@ -222,6 +222,9 @@
     <Compile Include="..\..\src\Libraries\OpenSsl\ManagedOpenSsl\Crypto\DH.cs">
       <Link>Sources\Libraries\OpenSsl\Crypto\DH.cs</Link>
     </Compile>
+    <Compile Include="..\..\src\Libraries\OpenSsl\ManagedOpenSsl\Crypto\DhActivator.cs">
+      <Link>Sources\Libraries\OpenSsl\Crypto\DhActivator.cs</Link>
+    </Compile>
     <Compile Include="..\..\src\Libraries\OpenSsl\ManagedOpenSsl\Crypto\DSA.cs">
       <Link>Sources\Libraries\OpenSsl\Crypto\DSA.cs</Link>
     </Compile>
@@ -230,6 +233,9 @@
     </Compile>
     <Compile Include="..\..\src\Libraries\OpenSsl\ManagedOpenSsl\Crypto\EC\DSASignature.cs">
       <Link>Sources\Libraries\OpenSsl\Crypto\EC\DSASignature.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Libraries\OpenSsl\ManagedOpenSsl\Crypto\EC\EcActivator.cs">
+      <Link>Sources\Libraries\OpenSsl\Crypto\EC\EcActivator.cs</Link>
     </Compile>
     <Compile Include="..\..\src\Libraries\OpenSsl\ManagedOpenSsl\Crypto\EC\Group.cs">
       <Link>Sources\Libraries\OpenSsl\Crypto\EC\Group.cs</Link>
@@ -245,6 +251,9 @@
     </Compile>
     <Compile Include="..\..\src\Libraries\OpenSsl\ManagedOpenSsl\Crypto\HMAC.cs">
       <Link>Sources\Libraries\OpenSsl\Crypto\HMAC.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Libraries\OpenSsl\ManagedOpenSsl\Crypto\ICipherActivator.cs">
+      <Link>Sources\Libraries\OpenSsl\Crypto\ICipherActivator.cs</Link>
     </Compile>
     <Compile Include="..\..\src\Libraries\OpenSsl\ManagedOpenSsl\Crypto\MessageDigest.cs">
       <Link>Sources\Libraries\OpenSsl\Crypto\MessageDigest.cs</Link>

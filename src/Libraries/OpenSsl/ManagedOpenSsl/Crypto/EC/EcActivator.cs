@@ -134,7 +134,7 @@
 * [including the GNU Public Licence.]
 */
 
-// Copyright (c) 2009 Ben Henderson
+// Copyright (c) 2006-2007 Frank Laub
 // All rights reserved.
 
 // Redistribution and use in source and binary forms, with or without
@@ -160,177 +160,34 @@
 // THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 using System;
-using System.Text;
-using System.IO;
 using OpenSSL.Core;
-using OpenSSL.X509;
-using OpenSsl.Protocols;
 
-namespace OpenSSL.SSL
+namespace OpenSSL.Crypto.EC
 {
-    internal class SslStreamServer : SslStreamBase
+    internal class EcActivator : ICipherActivator
     {
-        public SslStreamServer(
-            Stream stream, 
-            bool ownStream,
-            X509Certificate serverCertificate,
-            bool clientCertificateRequired,
-            X509Chain caCerts,
-            SslProtocols enabledSslProtocols,
-            SslStrength sslStrength,
-            bool checkCertificateRevocation,
-            RemoteCertificateValidationHandler remote_callback)
-            : base(stream, ownStream)
+        private readonly IntPtr sslCtx;
+        private const int SSL_CTRL_SET_TMP_ECDH = 4;
+        private const int NID_X9_62_prime256v1 = 415;
+
+        public EcActivator(IntPtr sslCtx)
         {
-            checkCertificateRevocationStatus = checkCertificateRevocation;
-            remoteCertificateSelectionCallback = remote_callback;
-
-            // Initialize the SslContext object
-            InitializeServerContext(serverCertificate, clientCertificateRequired, caCerts, enabledSslProtocols, sslStrength, checkCertificateRevocation);
-            
-            // Initalize the Ssl object
-            ssl = new Ssl(sslContext);
-
-            sniCb = sniExt.ServerSniCb;
-            sniExt.AttachSniExtensionServer(ssl.Handle, sslContext.Handle, sniCb);
-
-            // Initialze the read/write bio
-            read_bio = BIO.MemoryBuffer(false);
-            write_bio = BIO.MemoryBuffer(false);
-            // Set the read/write bio's into the the Ssl object
-            ssl.SetBIO(read_bio, write_bio);
-            read_bio.SetClose(BIO.CloseOption.Close);
-            write_bio.SetClose(BIO.CloseOption.Close);
-            // Set the Ssl object into server mode
-            ssl.SetAcceptState();
+            this.sslCtx = sslCtx;
         }
 
-        internal protected override bool ProcessHandshake()
+        public void Activate()
         {
-            bool bRet = false;
-            int nRet = 0;
-            
-            if (handShakeState == HandshakeState.InProcess)
-            {
-                nRet = ssl.Accept();
-            }
-            else if (handShakeState == HandshakeState.RenegotiateInProcess)
-            {
-                nRet = ssl.DoHandshake();
-            }
-            else if (handShakeState == HandshakeState.Renegotiate)
-            {
-                nRet = ssl.DoHandshake();
-                ssl.State = Ssl.SSL_ST_ACCEPT;
-                handShakeState = HandshakeState.RenegotiateInProcess;
-            }
-            SslError lastError = ssl.GetError(nRet);
-            if (lastError == SslError.SSL_ERROR_WANT_READ || lastError == SslError.SSL_ERROR_WANT_WRITE || lastError == SslError.SSL_ERROR_NONE)
-            {
-                if (nRet == 1) // success
-                {
-                    bRet = true;
-                }
-            }
-            else
-            {
-                // Check to see if we have alert data in the write_bio that needs to be sent
-                if (write_bio.BytesPending > 0)
-                {
-                    // We encountered an error, but need to send the alert
-                    // set the handshakeException so that it will be processed
-                    // and thrown after the alert is sent
-                    handshakeException = new OpenSslException();
-                }
-                else
-                {
-                    // No alert to send, throw the exception
-                    throw new OpenSslException();
-                }
-            }
-            return bRet;
-        }
+            var ecdhPtr = Native.EC_KEY_new_by_curve_name(NID_X9_62_prime256v1);
 
-        private void InitializeServerContext(
-            X509Certificate serverCertificate,
-            bool clientCertificateRequired,
-            X509Chain caCerts,
-            SslProtocols enabledSslProtocols,
-            SslStrength sslStrength,
-            bool checkCertificateRevocation)
-        {
-            if (serverCertificate == null)
+            if (ecdhPtr == IntPtr.Zero)
             {
-                throw new ArgumentNullException("serverCertificate", "Server certificate cannot be null");
-            }
-            if (!serverCertificate.HasPrivateKey)
-            {
-                throw new ArgumentException("Server certificate must have a private key", "serverCertificate");
+                Console.WriteLine("Unable to create curve (nistp256)");
             }
 
-            // Initialize the context with specified TLS version
-            sslContext = new SslContext(SslMethod.TLSv12_server_method, ConnectionEnd.Server, true, new[] { Protocols.Http2, Protocols.Http1 });
-            
-            // Remove support for protocols not specified in the enabledSslProtocols
-            if ((enabledSslProtocols & SslProtocols.Ssl2) != SslProtocols.Ssl2)
-            {
-                sslContext.Options |= SslOptions.SSL_OP_NO_SSLv2;
-            }
-            if ((enabledSslProtocols & SslProtocols.Ssl3) != SslProtocols.Ssl3 &&
-                ((enabledSslProtocols & SslProtocols.Default) != SslProtocols.Default))
-            {
-                // no SSLv3 support
-                sslContext.Options |= SslOptions.SSL_OP_NO_SSLv3;
-            }
-            if ((enabledSslProtocols & SslProtocols.Tls) != SslProtocols.Tls &&
-                (enabledSslProtocols & SslProtocols.Default) != SslProtocols.Default)
-            {
-                sslContext.Options |= SslOptions.SSL_OP_NO_TLSv1;
-            }
+            //SSL_CTX_set_tmp_ecdh
+            Native.SSL_CTX_ctrl(sslCtx, SSL_CTRL_SET_TMP_ECDH, 0, ecdhPtr);
 
-            // Set the context mode
-            sslContext.Mode = SslMode.SSL_MODE_AUTO_RETRY;
-            // Set the workaround options
-            sslContext.Options = SslOptions.SSL_OP_ALL;
-            // Set the client certificate verification callback if we are requiring client certs
-            if (clientCertificateRequired)
-            {
-                sslContext.SetVerify(VerifyMode.SSL_VERIFY_PEER | VerifyMode.SSL_VERIFY_FAIL_IF_NO_PEER_CERT, remoteCertificateSelectionCallback);
-            }
-            else
-            {
-                sslContext.SetVerify(VerifyMode.SSL_VERIFY_NONE, null);
-            }
-
-            // Set the client certificate max verification depth
-            sslContext.SetVerifyDepth(10);
-            // Set the certificate store and ca list
-            if (caCerts != null)
-            {
-                // Don't take ownership of the X509Store IntPtr.  When we
-                // SetCertificateStore, the context takes ownership of the store pointer.
-                var cert_store = new X509Store(caCerts, false);
-                sslContext.SetCertificateStore(cert_store);
-                Stack<X509Name> name_stack = new Core.Stack<X509Name>();
-                foreach (X509Certificate cert in caCerts)
-                {
-                    X509Name subject = cert.Subject;
-                    name_stack.Add(subject);
-                }
-                // Assign the stack to the context
-                sslContext.CAList = name_stack;
-            }
-            // Set the cipher string
-            sslContext.SetCipherList(GetCipherString(false, enabledSslProtocols, sslStrength));
-            // Set the certificate
-            sslContext.UseCertificate(serverCertificate);
-            // Set the private key
-            sslContext.UsePrivateKey(serverCertificate.PrivateKey);
-            // Set the session id context
-            sslContext.SetSessionIdContext(Encoding.ASCII.GetBytes("AppDomainHost: UnitTests12345678"/*AppDomain.CurrentDomain.FriendlyName*/));
-            // Setup default DH/ECDH parameters
-            sslContext.ActivateDhCipher();
-            sslContext.ActivateEcCipher();
+            Native.EC_KEY_free(ecdhPtr);
         }
     }
 }

@@ -94,6 +94,9 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Crypto\DhActivator.cs" />
+    <Compile Include="Crypto\EC\EcActivator.cs" />
+    <Compile Include="Crypto\ICipherActivator.cs" />
     <Compile Include="Extensions\Alpn.cs" />
     <Compile Include="Extensions\Errors.cs" />
     <Compile Include="ConnectionEnd.cs" />

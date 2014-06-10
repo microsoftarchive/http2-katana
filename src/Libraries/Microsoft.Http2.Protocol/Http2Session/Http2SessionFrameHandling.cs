@@ -481,7 +481,8 @@ namespace Microsoft.Http2.Protocol
                 || frame.PromisedStreamId == 0
                 || (frame.PromisedStreamId % 2) != 0
                 || frame.PromisedStreamId < _lastPromisedId
-                || !((StreamDictionary[frame.StreamId].Opened || StreamDictionary[frame.StreamId].HalfClosedLocal)))
+                /*|| !((StreamDictionary[frame.StreamId].Opened || StreamDictionary[frame.StreamId].HalfClosedLocal)))*/
+                || !StreamDictionary[frame.PromisedStreamId].Idle)
             { 
                 throw new ProtocolError(ResetStatusCode.ProtocolError, "Incorrect Promised Stream id");
             }         

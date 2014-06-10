@@ -378,6 +378,22 @@ namespace OpenSSL.Crypto
 		#endregion
 
 		#region Methods
+
+	    public IntPtr ModifyCipherParams(byte[] p, byte[] g)
+	    {
+	        var raw = Raw;
+            raw.p = Native.BN_bin2bn(p, p.Length, IntPtr.Zero);
+            raw.g = Native.BN_bin2bn(g, g.Length, IntPtr.Zero);
+	        Raw = raw;
+
+	        if (raw.p == IntPtr.Zero || raw.g == IntPtr.Zero)
+	        {
+	            return IntPtr.Zero;
+	        }
+
+	        return ptr;
+	    }
+
 		/// <summary>
 		/// Calls DH_generate_key().
 		/// </summary>

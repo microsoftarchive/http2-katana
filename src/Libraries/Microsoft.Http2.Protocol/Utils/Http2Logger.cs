@@ -145,48 +145,47 @@ namespace Microsoft.Http2.Protocol.Utils
 
         public static void LogFrameSend(Frame frame)
         {
-            LogDebug("Sending " + frame.FrameType.ToString().ToUpper());
-            LogFrame(frame);
+            LogFrame(frame, "Sending");
         }
 
         public static void LogFrameReceived(Frame frame)
         {
-            LogFrame(frame);
+            LogFrame(frame, "Incoming");
         }
 
-        public static void LogFrame(Frame frame)
+        public static void LogFrame(Frame frame, string action = null)
         {
             switch (frame.FrameType)
             {
                 case FrameType.Settings:
-                    LogSettingsFrame(frame as SettingsFrame);
+                    LogSettingsFrame(frame as SettingsFrame, action);
                     break;
                 case FrameType.Headers:
-                    LogHeadersFrame(frame as HeadersFrame);
+                    LogHeadersFrame(frame as HeadersFrame, action);
                     break;
                 case FrameType.Data:
-                    LogDataFrame(frame as DataFrame);
+                    LogDataFrame(frame as DataFrame, action);
                     break;
                 case FrameType.Continuation:
-                    LogContinuationFrame(frame as ContinuationFrame);
+                    LogContinuationFrame(frame as ContinuationFrame, action);
                     break;
                 case FrameType.WindowUpdate:
-                    LogWindowUpdateFrame(frame as WindowUpdateFrame);
+                    LogWindowUpdateFrame(frame as WindowUpdateFrame, action);
                     break;
                 case FrameType.Ping:
-                    LogPingFrame(frame as PingFrame);
+                    LogPingFrame(frame as PingFrame, action);
                     break;
                 case FrameType.Priority:
-                    LogPriorityFrame(frame as PriorityFrame);
+                    LogPriorityFrame(frame as PriorityFrame, action);
                     break;
                 case FrameType.PushPromise:
-                    LogPushPromiseFrame(frame as PushPromiseFrame);
+                    LogPushPromiseFrame(frame as PushPromiseFrame, action);
                     break;
                 case FrameType.RstStream:
-                    LogRstFrame(frame as RstStreamFrame);
+                    LogRstFrame(frame as RstStreamFrame, action);
                     break;
                 case FrameType.GoAway:
-                    LogGoAwayFrame(frame as GoAwayFrame);
+                    LogGoAwayFrame(frame as GoAwayFrame, action);
                     break;
                 case FrameType.AltSvc:
                     LogAltSvcFrame(frame);
@@ -197,10 +196,10 @@ namespace Microsoft.Http2.Protocol.Utils
             }
         }
 
-        private static void LogSettingsFrame(SettingsFrame frame)
+        private static void LogSettingsFrame(SettingsFrame frame, string action = null)
         {
-            LogDebug("SETTINGS frame: stream id={0}, payload len={1}, is ack={2}, count={3}",
-                frame.StreamId, frame.PayloadLength, frame.IsAck, frame.EntryCount);
+            LogDebug("{0} SETTINGS frame: stream id={1}, payload len={2}, is ack={3}, count={4}",
+                action, frame.StreamId, frame.PayloadLength, frame.IsAck, frame.EntryCount);
 
             for (int i = 0; i < frame.EntryCount; i++)
             {
@@ -208,66 +207,65 @@ namespace Microsoft.Http2.Protocol.Utils
             }
         }
 
-        private static void LogHeadersFrame(HeadersFrame frame)
+        private static void LogHeadersFrame(HeadersFrame frame, string action = null)
         {
-            LogDebug("HEADERS frame: stream id={0}, payload len={1}, has pad={2}, " +
-                     "pad high={3}, pad low={4}, end stream={5}, has priority={6}, " +
-                     "exclusive={7}, dependency={8}, weight={9}",
+            LogDebug("{0} HEADERS frame: stream id={1}, payload len={2}, has pad={3}, " +
+                     "pad high={4}, pad low={5}, end stream={6}, has priority={7}, " +
+                     "exclusive={8}, dependency={9}, weight={10}", action,
                      frame.StreamId, frame.PayloadLength, frame.HasPadding,
                      frame.PadHigh, frame.PadLow, frame.IsEndStream,
                      frame.HasPriority, frame.Exclusive, frame.StreamDependency, frame.Weight);
         }
 
-        private static void LogDataFrame(DataFrame frame)
+        private static void LogDataFrame(DataFrame frame, string action = null)
         {
-            LogDebug("DATA frame: stream id={0}, payload len={1}, has pad={2}, pad high={3}, " +
-                     "pad low={4}, end stream={5}", frame.StreamId, frame.PayloadLength,
+            LogDebug("{0} DATA frame: stream id={1}, payload len={2}, has pad={3}, pad high={4}, " +
+                     "pad low={5}, end stream={6}", action, frame.StreamId, frame.PayloadLength,
                      frame.HasPadding, frame.PadHigh, frame.PadLow, frame.IsEndStream);
         }
 
-        private static void LogWindowUpdateFrame(WindowUpdateFrame frame)
+        private static void LogWindowUpdateFrame(WindowUpdateFrame frame, string action = null)
         {
-            LogDebug("WINDOW_UPDATE frame: stream id={0}, delta={1}", frame.StreamId,
+            LogDebug("{0} WINDOW_UPDATE frame: stream id={1}, delta={2}", action, frame.StreamId,
                  frame.Delta);
         }
 
-        private static void LogPushPromiseFrame(PushPromiseFrame frame)
+        private static void LogPushPromiseFrame(PushPromiseFrame frame, string action = null)
         {
-            LogDebug("PUSH_PROMISE frame: stream id={0}, payload len={1}, promised id={2}, " +
-                     "has pad={3}, pad high={4}, pad low={5}, end headers={6}",
+            LogDebug("{0} PUSH_PROMISE frame: stream id={1}, payload len={2}, promised id={3}, " +
+                     "has pad={4}, pad high={5}, pad low={6}, end headers={7}", action,
                      frame.StreamId, frame.PayloadLength, frame.PromisedStreamId, frame.HasPadding,
                      frame.PadHigh, frame.PadLow, frame.IsEndHeaders);
         }
 
-        private static void LogRstFrame(RstStreamFrame frame)
+        private static void LogRstFrame(RstStreamFrame frame, string action = null)
         {
-            LogDebug("RST_STREAM frame: stream id={0}, status code={1}",
+            LogDebug("{0} RST_STREAM frame: stream id={1}, status code={2}", action,
                      frame.StreamId, frame.StatusCode);
         }
 
-        private static void LogGoAwayFrame(GoAwayFrame frame)
+        private static void LogGoAwayFrame(GoAwayFrame frame, string action = null)
         {
-            LogDebug("GOAWAY frame: stream id={0}, status code={1}", frame.StreamId,
-                     frame.StatusCode);
+            LogDebug("{0} GOAWAY frame: stream id={1}, status code={2}", action, 
+                frame.StreamId, frame.StatusCode);
         }
 
-        private static void LogPingFrame(PingFrame frame)
+        private static void LogPingFrame(PingFrame frame, string action = null)
         {
-            LogDebug("PING frame: stream id={0}, payload={1}", frame.StreamId,
+            LogDebug("{0} PING frame: stream id={1}, payload={2}", action, frame.StreamId,
                 frame.Payload.Count);
         }
 
-        private static void LogPriorityFrame(PriorityFrame frame)
+        private static void LogPriorityFrame(PriorityFrame frame, string action = null)
         {
-            LogDebug("PRIORITY frame: stream id={0}, exclusive={1}, dependency={2}, weight={3}",
-                     frame.StreamId, frame.Exclusive, frame.StreamDependency,
-                     frame.Weight);
+            LogDebug("{0} PRIORITY frame: stream id={1}, exclusive={2}, dependency={3}, weight={4}",
+                     action, frame.StreamId, frame.Exclusive, frame.StreamDependency, frame.Weight);
         }
 
-        private static void LogContinuationFrame(ContinuationFrame frame)
+        private static void LogContinuationFrame(ContinuationFrame frame, string action = null)
         {
-            LogDebug("CONTINUATION frame: stream id={0}, payload len={1}, has pad={2}, pad high={3}," +
-                     " pad low={4}, end headers={5}", frame.StreamId, frame.PayloadLength,
+            LogDebug("{0} CONTINUATION frame: stream id={1}, payload len={2}, has pad={3}, pad high={4}," +
+                     " pad low={5}, end headers={6}", action, frame.StreamId, frame.PayloadLength,
                      frame.HasPadding, frame.PadHigh, frame.PadLow, frame.IsEndHeaders);
         }
 
