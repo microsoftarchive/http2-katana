@@ -65,7 +65,7 @@ namespace Http2.TestClient.Adapters
                     Http2Logger.LogConsole("Terminator was sent");
                 }
                 _fileHelper.RemoveStream(path);
-                Http2Logger.LogConsole("Bytes received: " + stream.ReceivedDataAmount);
+                Http2Logger.LogDebug("Received for stream id={0}: {1} bytes", stream.Id, stream.ReceivedDataAmount);
             }
         }
 

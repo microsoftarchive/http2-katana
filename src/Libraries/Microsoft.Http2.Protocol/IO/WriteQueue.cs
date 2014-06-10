@@ -113,9 +113,7 @@ namespace Microsoft.Http2.Protocol.IO
                             // frame reconstruction: add padding
                             var paddingFrame = entry.Frame as IPaddingFrame;
                             byte[] padding = new byte[paddingFrame.PadHigh * 256 + paddingFrame.PadLow];
-                            entry.Frame.PayloadLength += padding.Length;
-
-                            Http2Logger.LogFrameSend(entry.Frame);
+                            entry.Frame.PayloadLength += padding.Length;                     
 
                             // write frame preamble
                             _stream.Write(entry.Buffer, 0, entry.Buffer.Length);
@@ -125,8 +123,7 @@ namespace Microsoft.Http2.Protocol.IO
                             _stream.Write(padding, 0, padding.Length);
                         }
                         else
-                        {
-                            Http2Logger.LogFrameSend(entry.Frame);                
+                        {            
                             _stream.Write(entry.Buffer, 0, entry.Buffer.Length);
                         }
                     }

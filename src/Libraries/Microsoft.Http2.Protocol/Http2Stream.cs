@@ -265,6 +265,8 @@ namespace Microsoft.Http2.Protocol
                     Headers = headers,
                 };
 
+            Http2Logger.LogFrameSend(frame);
+
             _writeQueue.WriteFrame(frame);
 
             if (frame.IsEndStream)
@@ -313,16 +315,16 @@ namespace Microsoft.Http2.Protocol
             }
 
             if (!IsFlowControlBlocked)
-            {        
+            {
+                Http2Logger.LogFrameSend(dataFrame);
+
                 _writeQueue.WriteFrame(dataFrame);
                 SentDataAmount += dataFrame.Data.Count;
-
                 _flowCrtlManager.DataFrameSentHandler(this, new DataFrameSentEventArgs(dataFrame));
 
                 if (dataFrame.IsEndStream)
                 {
-                    Http2Logger.LogDebug("Transfer end");
-                    Http2Logger.LogDebug("Sent bytes: {0}", SentDataAmount);
+                    Http2Logger.LogDebug("Sent for stream id={0}: {1} bytes", dataFrame.StreamId, SentDataAmount);
                     HalfClosedLocal = true;
                 }
 
@@ -353,14 +355,15 @@ namespace Microsoft.Http2.Protocol
 
             if (!IsFlowControlBlocked)
             {
+                Http2Logger.LogFrameSend(dataFrame);
+
                 _writeQueue.WriteFrame(dataFrame);
                 SentDataAmount += dataFrame.Data.Count;
-
                 _flowCrtlManager.DataFrameSentHandler(this, new DataFrameSentEventArgs(dataFrame));
 
                 if (dataFrame.IsEndStream)
                 {
-                    Http2Logger.LogDebug("Bytes sent: {0}", SentDataAmount);
+                    Http2Logger.LogDebug("Bytes sent for stream id={0}: {1}", dataFrame.StreamId, SentDataAmount);
                     HalfClosedLocal = true;
                 }
 
@@ -394,6 +397,8 @@ namespace Microsoft.Http2.Protocol
 
             var frame = new WindowUpdateFrame(_id, windowSize);
 
+            Http2Logger.LogFrameSend(frame);
+
             _writeQueue.WriteFrame(frame);
 
             if (OnFrameSent != null)
@@ -408,7 +413,9 @@ namespace Microsoft.Http2.Protocol
                 return;
 
             var frame = new RstStreamFrame(_id, code);
-            
+
+            Http2Logger.LogFrameSend(frame);
+
             _writeQueue.WriteFrame(frame);
 
             if (OnFrameSent != null)
@@ -421,7 +428,7 @@ namespace Microsoft.Http2.Protocol
         public void WritePushPromise(IDictionary<string, string[]> pairs, Int32 promisedId)
         {
             if (Id % 2 != 0 && promisedId % 2 != 0)
-                throw new InvalidOperationException("Client cant send push_promise frames");
+                throw new InvalidOperationException("Client can't send push_promise frames");
 
             if (Closed)
                 return;
@@ -430,6 +437,8 @@ namespace Microsoft.Http2.Protocol
             var frame = new PushPromiseFrame(Id, promisedId, true, true, headers);
 
             ReservedLocal = true;
+
+            Http2Logger.LogFrameSend(frame);
 
             _writeQueue.WriteFrame(frame);
 

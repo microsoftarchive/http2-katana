@@ -215,6 +215,11 @@ namespace Microsoft.Http2.Protocol.Utils
                      frame.StreamId, frame.PayloadLength, frame.HasPadding,
                      frame.PadHigh, frame.PadLow, frame.IsEndStream,
                      frame.HasPriority, frame.Exclusive, frame.StreamDependency, frame.Weight);
+
+            foreach (var h in frame.Headers)
+            {
+                LogDebug("{0}: {1}", h.Key, h.Value);
+            }
         }
 
         private static void LogDataFrame(DataFrame frame, string action = null)

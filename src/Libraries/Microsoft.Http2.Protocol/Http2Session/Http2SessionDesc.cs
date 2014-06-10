@@ -474,7 +474,7 @@ namespace Microsoft.Http2.Protocol
                 if (frame is IEndStreamFrame && ((IEndStreamFrame) frame).IsEndStream)
                 {
                     //Tell the stream that it was the last frame
-                    Http2Logger.LogDebug("Final frame received for stream id=" + stream.Id);
+                    Http2Logger.LogDebug("Final frame for stream id=" + stream.Id);
                     stream.HalfClosedRemote = true;
 
                     //Promised resource has been pushed
@@ -747,6 +747,8 @@ namespace Microsoft.Http2.Protocol
 
             var frame = new SettingsFrame(new List<SettingsPair>(settings), isAck);
 
+            Http2Logger.LogFrameSend(frame);
+
             _writeQueue.WriteFrame(frame);
 
             if (!isAck && !_settingsAckReceived.WaitOne(60000))
@@ -776,6 +778,8 @@ namespace Microsoft.Http2.Protocol
             }
 
             var frame = new GoAwayFrame(_lastId, code);
+
+            Http2Logger.LogFrameSend(frame);
 
             _writeQueue.WriteFrame(frame);
         }

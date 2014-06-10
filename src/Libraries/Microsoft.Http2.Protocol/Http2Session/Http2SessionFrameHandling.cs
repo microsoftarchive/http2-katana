@@ -340,7 +340,6 @@ namespace Microsoft.Http2.Protocol
             for (int i = 0; i < settingsFrame.EntryCount; i++)
             {
                 var setting = settingsFrame[i];
-                Http2Logger.LogDebug("{0}: {1}", setting.Id.ToString(), setting.Value);
 
                 switch (setting.Id)
                 {
