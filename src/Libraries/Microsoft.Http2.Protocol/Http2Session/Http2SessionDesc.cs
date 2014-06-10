@@ -407,8 +407,13 @@ namespace Microsoft.Http2.Protocol
                 /* 12 -> 6.5
                 A SETTINGS frame MUST be sent by both endpoints at the start of a
                 connection, and MAY be sent at any other time by either endpoint over
-                the lifetime of the connection.*/
-                if (frame.FrameType != FrameType.Settings && !_wasSettingsReceived)
+                the lifetime of the connection. */
+                /* 12 -> 3.2.1
+                The content of the "HTTP2-Settings" header field is the payload of a
+                SETTINGS frame, encoded as a base64url string. Acknowledgement of the 
+                SETTINGS parameters is not necessary, since a 101 response serves as
+                implicit acknowledgment. */
+                if (frame.FrameType != FrameType.Settings && !_wasSettingsReceived && _isSecure)
                 {
                     throw new ProtocolError(ResetStatusCode.ProtocolError,
                                             "Settings frame was not the first frame in the session");

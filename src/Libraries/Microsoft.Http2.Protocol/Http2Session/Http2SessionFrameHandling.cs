@@ -469,18 +469,20 @@ namespace Microsoft.Http2.Protocol
                 throw new Http2StreamNotFoundException(frame.StreamId);
 
 
-            //... a receiver MUST
-            //treat the receipt of a PUSH_PROMISE that promises an illegal stream
-            //identifier (Section 5.1.1) (that is, an identifier for a stream that
-            //is not currently in the "idle" state) as a connection error
-            //(Section 5.4.1) of type PROTOCOL_ERROR, unless the receiver recently
-            //sent a RST_STREAM frame to cancel the associated stream (see
-            //Section 5.1).  
+            /* 12 -> 6.6
+            Since PUSH_PROMISE reserves a stream, ignoring a PUSH_PROMISE frame
+            causes the stream state to become indeterminate.  A receiver MUST
+            treat the receipt of a PUSH_PROMISE on a stream that is neither
+            "open" nor "half-closed (local)" as a connection error of type
+            PROTOCOL_ERROR.  Similarly, a receiver MUST treat the receipt of a 
+            PUSH_PROMISE that promises an illegal stream identifier (that is,
+            an identifier for a stream that is not currently in the "idle" state) 
+            as a connection error of type PROTOCOL_ERROR. */
             if (frame.StreamId % 2 == 0
                 || frame.PromisedStreamId == 0
                 || (frame.PromisedStreamId % 2) != 0
                 || frame.PromisedStreamId < _lastPromisedId
-                /*|| !((StreamDictionary[frame.StreamId].Opened || StreamDictionary[frame.StreamId].HalfClosedLocal)))*/
+                || !((StreamDictionary[frame.StreamId].Opened || StreamDictionary[frame.StreamId].HalfClosedLocal))
                 || !StreamDictionary[frame.PromisedStreamId].Idle)
             { 
                 throw new ProtocolError(ResetStatusCode.ProtocolError, "Incorrect Promised Stream id");

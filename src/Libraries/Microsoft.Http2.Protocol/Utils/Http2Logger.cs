@@ -211,10 +211,11 @@ namespace Microsoft.Http2.Protocol.Utils
         {
             LogDebug("{0} HEADERS frame: stream id={1}, payload len={2}, has pad={3}, " +
                      "pad high={4}, pad low={5}, end stream={6}, has priority={7}, " +
-                     "exclusive={8}, dependency={9}, weight={10}", action,
+                     "exclusive={8}, dependency={9}, weight={10}, count={11}", action,
                      frame.StreamId, frame.PayloadLength, frame.HasPadding,
                      frame.PadHigh, frame.PadLow, frame.IsEndStream,
-                     frame.HasPriority, frame.Exclusive, frame.StreamDependency, frame.Weight);
+                     frame.HasPriority, frame.Exclusive, frame.StreamDependency,
+                     frame.Weight, frame.Headers.Count);
 
             foreach (var h in frame.Headers)
             {
@@ -238,9 +239,14 @@ namespace Microsoft.Http2.Protocol.Utils
         private static void LogPushPromiseFrame(PushPromiseFrame frame, string action = null)
         {
             LogDebug("{0} PUSH_PROMISE frame: stream id={1}, payload len={2}, promised id={3}, " +
-                     "has pad={4}, pad high={5}, pad low={6}, end headers={7}", action,
+                     "has pad={4}, pad high={5}, pad low={6}, end headers={7}, count={8}", action,
                      frame.StreamId, frame.PayloadLength, frame.PromisedStreamId, frame.HasPadding,
-                     frame.PadHigh, frame.PadLow, frame.IsEndHeaders);
+                     frame.PadHigh, frame.PadLow, frame.IsEndHeaders, frame.Headers.Count);
+
+            foreach (var h in frame.Headers)
+            {
+                LogDebug("{0}: {1}", h.Key, h.Value);
+            }
         }
 
         private static void LogRstFrame(RstStreamFrame frame, string action = null)
