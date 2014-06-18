@@ -184,10 +184,11 @@ namespace OpenSSL.SSL
 			X509Chain caCertificates,
 			SslProtocols enabledSslProtocols,
 			SslStrength sslStrength,
+            string serverName,
 			bool checkCertificateRevocationStatus,
 			RemoteCertificateValidationHandler remoteCallback,
 			LocalCertificateSelectionHandler localCallback)
-			: base(stream, ownStream)
+            : base(stream, ownStream, serverName)
 		{
 			this.targetHost = targetHost;
 			this.clientCertificates = clientCertificates;

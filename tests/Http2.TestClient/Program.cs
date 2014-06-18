@@ -9,6 +9,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Configuration;
 using Http2.TestClient.CommandParser;
@@ -27,25 +28,35 @@ namespace Http2.TestClient
         private static Dictionary<string, Http2SessionHandler> _sessions;
         private static IDictionary<string, object> _environment;
 
+        private static Dictionary<string, object> CreateEnvironment(Uri uri)
+        {
+            var serverName = uri.Host;
+            var useHandshake = ConfigurationManager.AppSettings[Strings.UseHandshake] == Strings.True;
+            var environment = new Dictionary<string, object>
+                {
+                    {Strings.ServerName, serverName},
+                    {Strings.UseHandshake, useHandshake}
+                };
+
+            return environment;
+        }
+
         public static void Main(string[] args)
         {
             Console.SetWindowSize(125, 29);
             Http2Logger.WriteToFile = false;
 
             _sessions = new Dictionary<string, Http2SessionHandler>();
-            _environment = ArgsHelper.GetEnvironment(args);
-
-            var isTestsEnabled = ConfigurationManager.AppSettings["testModeEnabled"] == "true";
+       
+            var isTestsEnabled = ConfigurationManager.AppSettings[Strings.TestMode] == Strings.True;
+            
             var waitForTestsFinish = new ManualResetEvent(!isTestsEnabled);
 
-            Console.WriteLine();
-            Console.WriteLine();
             Http2Logger.LogDebug("Tests enabled: " + isTestsEnabled);
 
             ThreadPool.SetMaxThreads(10, 10);
 
-            var uri = ArgsHelper.TryGetUri(args);
-
+            var uri = args.FirstOrDefault(a => a.Contains(Strings.Http));
             if (!isTestsEnabled)
             {
                 HelpDisplayer.ShowMainMenuHelp();
@@ -87,9 +98,9 @@ namespace Http2.TestClient
                         case CommandType.Dir:
                             Http2Logger.LogConsole("Uri command detected");
                             var uriCmd = (IUriCommand) cmd;
+                            var method = uriCmd.Method;
 
-                            string method = uriCmd.Method;
-
+                            _environment = CreateEnvironment(uriCmd.Uri);
                             //Only unique sessions can be opened
                             if (_sessions.ContainsKey(uriCmd.Uri.Authority))
                             {

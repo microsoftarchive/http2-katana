@@ -28,14 +28,10 @@ namespace Microsoft.Http2.Owin.Server
 
         public static IDisposable Create(AppFunc app, IDictionary<string, object> properties)
         {
-            bool useHandshake = ConfigurationManager.AppSettings["handshakeOptions"] != "no-handshake";
-            bool usePriorities = ConfigurationManager.AppSettings["prioritiesOptions"] != "no-priorities";
-            bool useFlowControl = ConfigurationManager.AppSettings["flowcontrolOptions"] != "no-flowcontrol";
-
+            var useHandshake = ConfigurationManager.AppSettings["handshakeOptions"] != "no-handshake";
+            var serverName = ConfigurationManager.AppSettings["server-name"];
             properties.Add("use-handshake", useHandshake);
-            properties.Add("use-priorities", usePriorities);
-            properties.Add("use-flowControl", useFlowControl);
-
+            properties.Add("server-name", serverName);
             return new HttpSocketServer(app, properties);
         }
     }

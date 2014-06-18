@@ -178,9 +178,10 @@ namespace OpenSSL.SSL
             X509Chain caCerts,
             SslProtocols enabledSslProtocols,
             SslStrength sslStrength,
+            string serverName,
             bool checkCertificateRevocation,
             RemoteCertificateValidationHandler remote_callback)
-            : base(stream, ownStream)
+            : base(stream, ownStream, serverName)
         {
             checkCertificateRevocationStatus = checkCertificateRevocation;
             remoteCertificateSelectionCallback = remote_callback;

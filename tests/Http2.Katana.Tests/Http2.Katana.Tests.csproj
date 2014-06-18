@@ -366,6 +366,9 @@
     <Compile Include="..\..\src\Microsoft.Http2.Owin.Server\CommonOwinKeys.cs">
       <Link>Sources\Microsoft.Http2.Owin.Server\Adapters\CommonOwinKeys.cs</Link>
     </Compile>
+    <Compile Include="..\..\src\Microsoft.Http2.Owin.Server\Strings.cs">
+      <Link>Sources\Microsoft.Http2.Owin.Server\Strings.cs</Link>
+    </Compile>
     <Compile Include="..\..\src\Microsoft.Http2.PushMiddleware\Bing\BingHelpers\BingHelper.cs">
       <Link>Sources\Microsoft.Http2.PushMiddleware\Bing\BingHelpers\BingHelper.cs</Link>
     </Compile>
@@ -491,9 +494,6 @@
     <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\FlowControl\FlowControlManager.cs">
       <Link>Sources\Libraries\Microsoft.Http2.Protocol\FlowControl\FlowControlManager</Link>
     </Compile>
-    <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\FlowControl\FlowControlOptions.cs">
-      <Link>Sources\Libraries\Microsoft.Http2.Protocol\FlowControl\FlowControlOptions</Link>
-    </Compile>
     <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Framing\DataFrame.cs">
       <Link>Sources\Libraries\Microsoft.Http2.Protocol\Framing\DataFrame</Link>
     </Compile>
@@ -562,15 +562,6 @@
     </Compile>
     <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\IO\PriorityQueueEntry.cs">
       <Link>Sources\Libraries\Microsoft.Http2.Protocol\IO\PriorityQueueEntry</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\IO\QueueEntry.cs">
-      <Link>Sources\Libraries\Microsoft.Http2.Protocol\IO\QueueEntry</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\IO\QueueWrapper.cs">
-      <Link>Sources\Libraries\Microsoft.Http2.Protocol\IO\QueueWrapper</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\IO\StreamBuffer.cs">
-      <Link>Sources\Libraries\Microsoft.Http2.Protocol\IO\StreamBuffer</Link>
     </Compile>
     <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\IO\WriteQueue.cs">
       <Link>Sources\Libraries\Microsoft.Http2.Protocol\IO\WriteQueue</Link>

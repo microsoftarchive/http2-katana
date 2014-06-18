@@ -40,8 +40,26 @@ namespace Microsoft.Http2.Owin.Server.Adapters
             var headers = _protocolStream.Headers;
             _owinContext = new OwinContext();
             _responseHeaders = _owinContext.Response.Headers;
+            var headersAsDict = new Dictionary<string, string[]>();
 
-            var headersAsDict = headers.ToDictionary(header => header.Key, header => new[] { header.Value }, StringComparer.OrdinalIgnoreCase);
+            //Handles multiple headers entries
+            foreach (var kv in headers)
+            {
+                foreach (var toAddKv in headersAsDict)
+                {
+                    if (headersAsDict.ContainsKey(toAddKv.Key))
+                    {
+                        var value = new List<string>(headersAsDict[toAddKv.Key]);
+                        value.AddRange(toAddKv.Value);
+                        headersAsDict[toAddKv.Key] = value.ToArray();
+                    }
+                    else
+                    {
+                        headersAsDict.Add(kv.Key, new[] {kv.Value});
+                    }
+                } 
+            }
+
             _owinContext.Environment[CommonOwinKeys.RequestHeaders] = headersAsDict;
 
             var owinRequest = _owinContext.Request;

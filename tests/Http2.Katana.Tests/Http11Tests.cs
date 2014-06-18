@@ -57,12 +57,8 @@ namespace Http2.Katana.Tests
             properties.Add("host.Addresses", addresses);
 
             bool useHandshake = ConfigurationManager.AppSettings["handshakeOptions"] != "no-handshake";
-            bool usePriorities = ConfigurationManager.AppSettings["prioritiesOptions"] != "no-priorities";
-            bool useFlowControl = ConfigurationManager.AppSettings["flowcontrolOptions"] != "no-flowcontrol";
 
             properties.Add("use-handshake", useHandshake);
-            properties.Add("use-priorities", usePriorities);
-            properties.Add("use-flowControl", useFlowControl);
 
             Server = new HttpSocketServer(new Http2Middleware(new ResponseMiddleware(null)).Invoke, properties);
         }

@@ -211,9 +211,6 @@ namespace Microsoft.Http2.Protocol
             if (!(stream.Opened || stream.ReservedRemote || stream.HalfClosedLocal))
                 throw new ProtocolError(ResetStatusCode.ProtocolError, "priority for non opened or reserved stream");
 
-            if (!_usePriorities) 
-                return;
-
             stream.Priority = priorityFrame.Weight;
         }
 
@@ -392,12 +389,6 @@ namespace Microsoft.Http2.Protocol
         private void HandleWindowUpdateFrame(WindowUpdateFrame windowUpdateFrame, out Http2Stream stream)
         {
             Http2Logger.LogFrameReceived(windowUpdateFrame);
-
-            if (!_useFlowControl)
-            {
-                stream = null;
-                return;
-            }
 
             // TODO Remove this hack
             /* The WINDOW_UPDATE frame can be specific to a stream or to the entire

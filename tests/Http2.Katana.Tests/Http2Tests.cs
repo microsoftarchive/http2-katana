@@ -1,7 +1,5 @@
-using System.IO;
 using System.Linq;
 using Http2.TestClient.Adapters;
-using Microsoft.Http1.Protocol;
 using Microsoft.Http2.Owin.Middleware;
 using Microsoft.Http2.Owin.Server;
 using Microsoft.Http2.Protocol;
@@ -75,13 +73,9 @@ namespace Http2.Katana.Tests
 
             properties.Add("host.Addresses", addresses);
 
-            bool useHandshake = ConfigurationManager.AppSettings["handshakeOptions"] != "no-handshake";
-            bool usePriorities = ConfigurationManager.AppSettings["prioritiesOptions"] != "no-priorities";
-            bool useFlowControl = ConfigurationManager.AppSettings["flowcontrolOptions"] != "no-flowcontrol";
+            var useHandshake = ConfigurationManager.AppSettings["handshakeOptions"] != "no-handshake";
 
             properties.Add("use-handshake", useHandshake);
-            properties.Add("use-priorities", usePriorities);
-            properties.Add("use-flowControl", useFlowControl);
 
             return properties;
         }
@@ -310,8 +304,7 @@ namespace Http2.Katana.Tests
         }
 
         [Theory(Timeout = 70000)]
-        [InlineData(true, true)] // use priorities and flow control
-        public void MultipleStreamsInOneSession(bool usePriorities, bool useFlowControl)
+        public void MultipleStreamsInOneSession()
         {
             string requestStr = string.Empty;
             // do not request file, test only request sending

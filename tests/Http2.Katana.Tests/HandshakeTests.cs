@@ -43,12 +43,8 @@ namespace Http2.Katana.Tests
             properties.Add("host.Addresses", addresses);
 
             const bool useHandshake = true;
-            const bool usePriorities = false;
-            const bool useFlowControl = false;
 
             properties.Add("use-handshake", useHandshake);
-            properties.Add("use-priorities", usePriorities);
-            properties.Add("use-flowControl", useFlowControl);
 
             return properties;
         }

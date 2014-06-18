@@ -159,23 +159,21 @@ namespace Microsoft.Http2.Owin.Server
         private readonly TcpListener _server;
         private readonly AppFunc _next;     
         private readonly bool _useHandshake;
-        private readonly bool _usePriorities;
-        private readonly bool _useFlowControl;
+        private readonly string _serverName;
         private readonly CancellationTokenSource _cancelClientHandling;
         private bool _isDisposed;
-        private X509Certificate _cert;
-        private bool _isSecure;
-        private TcpClient client;
+        private readonly X509Certificate _cert;
+        private readonly bool _isSecure;
+        private TcpClient _client;
 
-        internal HttpConnectingClient(TcpListener server, AppFunc next, X509Certificate cert, bool isSecure,
-                                     bool useHandshake, bool usePriorities, bool useFlowControl)
+        internal HttpConnectingClient(TcpListener server, AppFunc next, X509Certificate cert,
+                                       string serverName, bool isSecure, bool useHandshake)
         {
             _isDisposed = false;
-            _usePriorities = usePriorities;
             _useHandshake = useHandshake;
-            _useFlowControl = useFlowControl;
             _server = server;
             _isSecure = isSecure;
+            _serverName = serverName;
             _next = next;
             _cert = cert;
             _cancelClientHandling = new CancellationTokenSource();
@@ -188,7 +186,7 @@ namespace Microsoft.Http2.Owin.Server
         {
             try
             {
-                client = _server.AcceptTcpClient();
+                _client = _server.AcceptTcpClient();
             }
             catch (OperationCanceledException)
             {
@@ -200,10 +198,11 @@ namespace Microsoft.Http2.Owin.Server
                 {
                     try
                     {
-                        HandleAcceptedClient(client.GetStream());
+                        HandleAcceptedClient(_client.GetStream());
                     }
                     catch(Exception ex)
-                    {                       
+                    {   
+                        Http2Logger.LogError("Error occured in Handle client stream" + ex.Message);
                     }                    
                 });
         }
@@ -219,7 +218,7 @@ namespace Microsoft.Http2.Owin.Server
                 {
                     if (_isSecure)
                     {
-                        incomingClient = new SslStream(incomingClient, false);
+                        incomingClient = new SslStream(incomingClient, false, _serverName);
 
                         (incomingClient as SslStream).AuthenticateAsServer(_cert);
 
@@ -280,8 +279,6 @@ namespace Microsoft.Http2.Owin.Server
                     Http2Logger.LogError("Client was disconnected");
                 }
             }
-
-           // GC.Collect();
         }
 
         public void Dispose()

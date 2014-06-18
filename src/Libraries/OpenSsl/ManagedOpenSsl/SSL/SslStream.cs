@@ -200,8 +200,8 @@ namespace OpenSSL.SSL
 		/// Create an SslStream based on an existing stream.
 		/// </summary>
 		/// <param name="stream"></param>
-		public SslStream(Stream stream)
-			: this(stream, false)
+        public SslStream(Stream stream, string serverName)
+            : this(stream, false, serverName)
 		{
 		}
 
@@ -210,11 +210,12 @@ namespace OpenSSL.SSL
 		/// </summary>
 		/// <param name="stream"></param>
 		/// <param name="leaveInnerStreamOpen"></param>
-		public SslStream(Stream stream, bool leaveInnerStreamOpen)
+        public SslStream(Stream stream, bool leaveInnerStreamOpen, string serverName)
 			: base(stream, leaveInnerStreamOpen)
 		{
 			remoteCertificateValidationCallback = null;
 			localCertificateSelectionCallback = null;
+		    this.serverName = serverName;
 		}
 
 		/// <summary>
@@ -223,8 +224,10 @@ namespace OpenSSL.SSL
 		/// <param name="stream"></param>
 		/// <param name="leaveInnerStreamOpen"></param>
 		/// <param name="remote_callback"></param>
-		public SslStream(Stream stream, bool leaveInnerStreamOpen, RemoteCertificateValidationHandler remote_callback)
-			: this(stream, leaveInnerStreamOpen, remote_callback, null)
+		public SslStream(Stream stream, bool leaveInnerStreamOpen, 
+                        string serverName,
+                        RemoteCertificateValidationHandler remote_callback)
+            : this(stream, leaveInnerStreamOpen, serverName, remote_callback, null)
 		{
 		}
 
@@ -235,11 +238,15 @@ namespace OpenSSL.SSL
 		/// <param name="leaveInnerStreamOpen"></param>
 		/// <param name="remote_callback"></param>
 		/// <param name="local_callback"></param>
-		public SslStream(Stream stream, bool leaveInnerStreamOpen, RemoteCertificateValidationHandler remote_callback, LocalCertificateSelectionHandler local_callback)
+		public SslStream(Stream stream, bool leaveInnerStreamOpen, 
+                        string serverName,
+                        RemoteCertificateValidationHandler remote_callback, 
+                        LocalCertificateSelectionHandler local_callback)
 			: base(stream, leaveInnerStreamOpen)
 		{
 			remoteCertificateValidationCallback = remote_callback;
 			localCertificateSelectionCallback = local_callback;
+            this.serverName = serverName;
 		}
 		#endregion
 
@@ -702,7 +709,12 @@ namespace OpenSSL.SSL
             End = ConnectionEnd.Client;
 
 			// Create the stream
-			var client_stream = new SslStreamClient(InnerStream, false, targetHost, clientCertificates, caCertificates, enabledSslProtocols, sslStrength, checkCertificateRevocation, remoteCertificateValidationCallback, localCertificateSelectionCallback);
+			var client_stream = new SslStreamClient(InnerStream, false, targetHost, 
+                                                    clientCertificates, caCertificates, 
+                                                    enabledSslProtocols, sslStrength,
+                                                    serverName, checkCertificateRevocation, 
+                                                    remoteCertificateValidationCallback, 
+                                                    localCertificateSelectionCallback);
 			// set the internal stream
 			sslStream = client_stream;
 			// start the write operation
@@ -797,7 +809,11 @@ namespace OpenSSL.SSL
             End = ConnectionEnd.Server;
 		    
 			// Initialize the server stream
-			var server_stream = new SslStreamServer(InnerStream, false, serverCertificate, clientCertificateRequired, caCerts, enabledSslProtocols, sslStrength, checkCertificateRevocation, remoteCertificateValidationCallback);
+			var server_stream = new SslStreamServer(InnerStream, false, serverCertificate, 
+                                                    clientCertificateRequired, caCerts, 
+                                                    enabledSslProtocols, sslStrength,
+                                                    serverName, checkCertificateRevocation, 
+                                                    remoteCertificateValidationCallback);
 			// Set the internal sslStream
 			sslStream = server_stream;
 			// Start the read operation
@@ -890,6 +906,7 @@ namespace OpenSSL.SSL
 		internal RemoteCertificateValidationHandler remoteCertificateValidationCallback = null;
 		internal LocalCertificateSelectionHandler localCertificateSelectionCallback = null;
 		internal bool m_bCheckCertRevocationStatus = false;
-		#endregion
+	    private string serverName;
+	    #endregion
 	}
 }

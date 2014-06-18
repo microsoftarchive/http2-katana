@@ -196,7 +196,7 @@ namespace OpenSSL.SSL
         protected SniCallback sniCb;
         protected Sni sniExt;
 
-        protected string srvName = "localhost";
+        protected string srvName;
 
 	    public string AlpnSelectedProtocol { get; protected set; }
 
@@ -363,7 +363,7 @@ namespace OpenSSL.SSL
 		}
 		#endregion
 
-		public SslStreamBase(Stream stream, bool ownStream)
+	    protected SslStreamBase(Stream stream, bool ownStream, string serverName)
 		{
 			if (stream == null)
 			{
@@ -379,6 +379,7 @@ namespace OpenSSL.SSL
 			read_buffer = new byte[16384];
 			//inHandshakeLoop = false;
 			decrypted_data_stream = new MemoryStream();
+		    srvName = serverName;
             sniExt = new Sni(srvName);
 		}
 

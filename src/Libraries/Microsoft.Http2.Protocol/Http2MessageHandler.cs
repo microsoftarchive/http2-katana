@@ -57,7 +57,7 @@ namespace Microsoft.Http2.Protocol
             _end = end;
             _wereFirstSettingsSent = false;
 
-            _session = new Http2Session(_stream, _end, true, true, _isSecure, _cancToken);
+            _session = new Http2Session(_stream, _end, _isSecure, _cancToken);
         }
 
         /// <summary>

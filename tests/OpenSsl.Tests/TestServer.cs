@@ -98,7 +98,7 @@ namespace UnitTests
 				try {
 					testName = "BasicServerTest";
 					AcceptConnection(); // sets the client member
-					sslStream = new SslStream(client.GetStream(), false);
+					sslStream = new SslStream(client.GetStream(), false, "localhost");
 					sslStream.AuthenticateAsServer(testServer.serverCertificate);
 					// Do the server read, and write of the messages
 					if (DoServerReadWrite()) {
@@ -156,7 +156,7 @@ namespace UnitTests
 				try {
 					testName = "BasicClientTest";
 					client = new TcpClient("localhost", 8443);
-					sslStream = new SslStream(client.GetStream(), false);
+					sslStream = new SslStream(client.GetStream(), false, "localhost");
 					sslStream.AuthenticateAsClient("localhost");
 
 					if (DoClientReadWrite()) {

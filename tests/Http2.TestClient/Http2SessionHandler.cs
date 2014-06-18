@@ -164,12 +164,10 @@ namespace Http2.TestClient
         private Http2ClientMessageHandler _sessionAdapter;
         private Stream _clientStream;
         private static readonly string AssemblyName = Path.GetDirectoryName(Assembly.GetExecutingAssembly().CodeBase.Substring(8));
-        private const string CertificatePath = @"\client.pfx";
+        private readonly string _certificatePath;
         private string _selectedProtocol;
         private bool _useHttp20 = true;
-        private readonly bool _usePriorities;
         private readonly bool _useHandshake;
-        private readonly bool _useFlowControl;
         private bool _isSecure;
         private bool _isDisposed;
         private string _path;
@@ -178,7 +176,7 @@ namespace Http2.TestClient
         private string _scheme;
         private string _host;
         private readonly IDictionary<string, object> _environment;
-
+        private readonly string _serverName;
         private X509Chain _chain;
         private X509Certificate _certificate;
 
@@ -219,34 +217,20 @@ namespace Http2.TestClient
         public Http2SessionHandler(IDictionary<string, object> environment)
         {
             Protocol = SslProtocols.None;
-            
+            _certificatePath = Strings.ClientCertName;
             _environment = new Dictionary<string, object>();
             //Copy environment
             _environment.AddRange(environment);
-            if (_environment["useFlowControl"] is bool)
+            if (_environment[Strings.UseHandshake] is bool)
             {
-                _useFlowControl = (bool) environment["useFlowControl"];
-            }
-            else
-            {
-                _useFlowControl = true;
-            }
-            if (_environment["usePriorities"] is bool)
-            {
-                _usePriorities = (bool) environment["usePriorities"];
-            }
-            else
-            {
-                _usePriorities = true;
-            }
-            if (_environment["useHandshake"] is bool)
-            {
-                _useHandshake = (bool) environment["useHandshake"];
+                _useHandshake = (bool) environment[Strings.UseHandshake];
             }
             else
             {
                 _useHandshake = true;
             }
+            var s = _environment[Strings.ServerName] as string;
+            _serverName = s ?? Strings.Localhost;
         }
 
         private void MakeHandshakeEnvironment()
@@ -282,7 +266,7 @@ namespace Http2.TestClient
 
                 int securePort;
 
-                if (!int.TryParse(ConfigurationManager.AppSettings["securePort"], out securePort))
+                if (!int.TryParse(ConfigurationManager.AppSettings[Strings.SecPort], out securePort))
                 {
                     Http2Logger.LogError("Incorrect port in the config file!");
                     return false;
@@ -297,8 +281,8 @@ namespace Http2.TestClient
                 {
                     if (_isSecure)
                     {
-                        _clientStream = new SslStream(_clientStream, false);
-                        _certificate = LoadPKCS12Certificate(AssemblyName + CertificatePath, String.Empty);
+                        _clientStream = new SslStream(_clientStream, false, _serverName);
+                        _certificate = LoadPKCS12Certificate(AssemblyName + _certificatePath, String.Empty);
 
                         _chain = new X509Chain {_certificate};
                         var certList = new X509List { _certificate };

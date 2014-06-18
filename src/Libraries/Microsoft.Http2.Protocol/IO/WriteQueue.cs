@@ -11,7 +11,6 @@ using Microsoft.Http2.Protocol.Compression;
 using Microsoft.Http2.Protocol.Framing;
 using System;
 using System.Threading;
-using Microsoft.Http2.Protocol.Utils;
 
 namespace Microsoft.Http2.Protocol.IO
 {
@@ -24,28 +23,14 @@ namespace Microsoft.Http2.Protocol.IO
         private readonly object _writeLock = new object();
         private StreamDictionary _streams;
         private readonly ICompressionProcessor _proc;
-        public bool IsPriorityTurnedOn { get; private set; }
         
-        public WriteQueue(Stream stream, ICompressionProcessor processor, bool isPriorityTurnedOn)
+        public WriteQueue(Stream stream, ICompressionProcessor processor)
         {
             if (stream == null)
                 throw new ArgumentNullException("io stream is null");
 
-            //if (streams == null)
-            //    throw new ArgumentNullException("streams collection is null");
-
-            //Priorities are turned on for debugging
-            IsPriorityTurnedOn = isPriorityTurnedOn;
-            //_streams = streams;
             _proc = processor;
-            if (IsPriorityTurnedOn)
-            {
-                _messageQueue = new PriorityQueue();
-            }
-            else
-            {
-                _messageQueue = new QueueWrapper();
-            }
+            _messageQueue = new PriorityQueue();
             _stream = stream;
             _disposed = false;
         }
@@ -63,16 +48,7 @@ namespace Microsoft.Http2.Protocol.IO
 
             var priority = frame.StreamId != 0 ? _streams[frame.StreamId].Priority : Constants.DefaultStreamPriority;
 
-            IQueueItem entry;
-
-            if (IsPriorityTurnedOn)
-            {
-                entry = new PriorityQueueEntry(frame, priority);
-            }
-            else
-            {
-                entry = new QueueEntry(frame);
-            }
+            IQueueItem entry = new PriorityQueueEntry(frame, priority);
 
             _messageQueue.Enqueue(entry);
         }
@@ -100,7 +76,7 @@ namespace Microsoft.Http2.Protocol.IO
                         compressed headers block as part of the frame's Buffer, because Queue has 
                         prioritization mechanism and we must compress headers list immediately before
                         sending it. */
-                        if (IsPriorityTurnedOn && entry.Frame is IHeadersFrame && entry.Frame is IPaddingFrame)
+                        if (entry.Frame is IHeadersFrame && entry.Frame is IPaddingFrame)
                         {
                             /* There are two frame types bears Headers Block Fragment: HEADERS and PUSH_PROMISE
                             and CONTINUATION, which implements IHeadersFrame interface. It can include additional 

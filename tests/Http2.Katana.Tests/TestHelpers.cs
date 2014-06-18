@@ -134,7 +134,7 @@ namespace Microsoft.Http2.Protocol.Tests
 
             if (uri.Port == SecurePort)
             {
-                clientStream = new SslStream(clientStream, false);
+                clientStream = new SslStream(clientStream, false, "localhost");
 
                 (clientStream as SslStream).AuthenticateAsClient(uri.AbsoluteUri);
 

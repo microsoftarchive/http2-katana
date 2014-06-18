@@ -43,8 +43,6 @@ namespace Microsoft.Http2.Protocol
         private readonly FlowControlManager _flowControlManager;
         private readonly ConnectionEnd _ourEnd;
         private readonly ConnectionEnd _remoteEnd;
-        private readonly bool _usePriorities;
-        private readonly bool _useFlowControl;
         private readonly bool _isSecure;
         // TODO: add _useGzip option here
         private int _lastId;            //streams creation
@@ -107,8 +105,7 @@ namespace Microsoft.Http2.Protocol
         internal bool IsPushEnabled { get; private set; }
 
         public Http2Session(Stream stream, ConnectionEnd end, 
-                            bool usePriorities, bool useFlowControl, bool isSecure,
-                            CancellationToken cancel,
+                            bool isSecure, CancellationToken cancel,
                             int initialWindowSize = Constants.InitialFlowControlWindowSize,
                             int maxConcurrentStreams = Constants.DefaultMaxConcurrentStreams)
         {
@@ -122,12 +119,10 @@ namespace Microsoft.Http2.Protocol
             if (maxConcurrentStreams <= 0)
                 throw new ArgumentOutOfRangeException("maxConcurrentStreams cant be less or equal then 0");
 
-            if (initialWindowSize <= 0 && useFlowControl)
+            if (initialWindowSize <= 0)
                 throw new ArgumentOutOfRangeException("initialWindowSize cant be less or equal then 0");
 
             _ourEnd = end;
-            _usePriorities = usePriorities;
-            _useFlowControl = useFlowControl;
             _isSecure = isSecure;
 
             _cancelSessionToken = cancel;
@@ -156,17 +151,12 @@ namespace Microsoft.Http2.Protocol
 
             _frameReader = new FrameReader(_ioStream);
 
-            _writeQueue = new WriteQueue(_ioStream, _comprProc, _usePriorities);
+            _writeQueue = new WriteQueue(_ioStream, _comprProc);
             OurMaxConcurrentStreams = maxConcurrentStreams;
             RemoteMaxConcurrentStreams = maxConcurrentStreams;
             InitialWindowSize = initialWindowSize;
 
             _flowControlManager = new FlowControlManager(this);
-
-            if (!_useFlowControl)
-            {
-                _flowControlManager.Options = (byte) FlowControlOptions.DontUseFlowControl;
-            }
 
             SessionWindowSize = 0;
             _headersSequences = new HeadersSequenceList();
@@ -284,25 +274,12 @@ namespace Microsoft.Http2.Protocol
             {
                 /* 12 -> 5.2.1 
                 Flow control cannot be disabled. */
+                WriteSettings(new[]
+                    {
+                        new SettingsPair(SettingsIds.InitialWindowSize,
+                                            Constants.MaxFramePayloadSize)
+                    }, false);
 
-                //if (_useFlowControl)
-                //{
-                    WriteSettings(new[]
-                        {
-                            new SettingsPair(SettingsIds.InitialWindowSize,
-                                             Constants.MaxFramePayloadSize)
-                        }, false);
-                //}
-                /*else
-                {
-                    WriteSettings(new[]
-                        {
-                            new SettingsPair(SettingsIds.InitialWindowSize,
-                                             Constants.MaxFramePayloadSize),
-                            new SettingsPair(SettingsIds.FlowControlOptions,
-                                             (byte) FlowControlOptions.DontUseFlowControl)
-                        }, false);
-                }*/
             }
 
             //Handle upgrade handshake headers.
