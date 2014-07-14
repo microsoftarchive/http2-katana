@@ -13,12 +13,12 @@ namespace Microsoft.Http2.Protocol.Framing
 {
     /// <summary>
     /// PUSH_PROMISE frame class
-    /// see 12 -> 6.6
+    /// see 13 -> 6.6
     /// </summary>
     internal class PushPromiseFrame : Frame, IHeadersFrame, IPaddingFrame
     {
-        // 1 byte Pad High, 1 byte Pad Low field
-        private const int PadHighLowLength = 2;
+        // 1 byte PadLength field
+        private const int PadLengthSize = 1;
 
         // 4 bytes Promised Stream Id field
         private const int PromisedIdLength = 4;
@@ -38,25 +38,21 @@ namespace Microsoft.Http2.Protocol.Framing
             Contract.Assert(streamId > 0 && promisedStreamId > 0);
 
             int preambleLength = Constants.FramePreambleSize + PromisedIdLength;
-            if (hasPadding) preambleLength += PadHighLowLength;
+            if (hasPadding) preambleLength += PadLengthSize;
 
             // construct frame without Headers Block and Padding bytes
             Buffer = new byte[preambleLength];
 
-            /* 12 -> 6.6 
+            /* 13 -> 6.6 
             The PUSH_PROMISE frame includes optional padding. Padding fields and
             flags are identical to those defined for DATA frames. */
 
             if (hasPadding)
             {
                 // generate padding
-                var padHigh = (byte)1;
-                var padLow = (byte)new Random().Next(1, 7);
-
-                HasPadHigh = true;
-                HasPadLow = true;
-                PadHigh = padHigh;
-                PadLow = padLow;
+                var padLength = (byte)new Random().Next(1, 7);
+                HasPadding = true;
+                PadLength = padLength;
             }
 
             PayloadLength = Buffer.Length - Constants.FramePreambleSize;
@@ -84,42 +80,22 @@ namespace Microsoft.Http2.Protocol.Framing
             }
         }
 
-        public bool HasPadHigh
-        {
-            get
-            {
-                return (Flags & FrameFlags.PadHight) == FrameFlags.PadHight;
-            }
-            set
-            {
-                if (value)
-                {
-                    Flags |= FrameFlags.PadHight;
-                }
-            }
-        }
-
-        public bool HasPadLow
-        {
-            get
-            {
-                return (Flags & FrameFlags.PadLow) == FrameFlags.PadLow;
-            }
-            set
-            {
-                if (value)
-                {
-                    Flags |= FrameFlags.PadLow;
-                }
-            }
-        }
-
         public bool HasPadding
         {
-            get { return HasPadHigh && HasPadLow; }
+            get
+            {
+                return (Flags & FrameFlags.Padded) == FrameFlags.Padded;
+            }
+            set
+            {
+                if (value)
+                {
+                    Flags |= FrameFlags.Padded;
+                }
+            }
         }
 
-        public byte PadHigh
+        public byte PadLength
         {
             get
             {
@@ -128,22 +104,13 @@ namespace Microsoft.Http2.Protocol.Framing
             set { Buffer[Constants.FramePreambleSize] = value; }
         }
 
-        public byte PadLow
-        {
-            get
-            {
-                return HasPadding ? Buffer[Constants.FramePreambleSize + 1] : (byte)0;
-            }
-            set { Buffer[Constants.FramePreambleSize + 1] = value; }
-        }
-
         public Int32 PromisedStreamId
         {
             get
             {
                 if (HasPadding)
                 {
-                    return FrameHelper.Get31BitsAt(Buffer, Constants.FramePreambleSize + PadHighLowLength);
+                    return FrameHelper.Get31BitsAt(Buffer, Constants.FramePreambleSize + PadLengthSize);
                 }
                 return FrameHelper.Get31BitsAt(Buffer, Constants.FramePreambleSize);
             }
@@ -153,7 +120,7 @@ namespace Microsoft.Http2.Protocol.Framing
 
                 if (HasPadding)
                 {
-                    FrameHelper.Set31BitsAt(Buffer, Constants.FramePreambleSize + PadHighLowLength, value);
+                    FrameHelper.Set31BitsAt(Buffer, Constants.FramePreambleSize + PadLengthSize, value);
                     return;
                 }
                 FrameHelper.Set31BitsAt(Buffer, Constants.FramePreambleSize, value);
@@ -164,12 +131,9 @@ namespace Microsoft.Http2.Protocol.Framing
         {
             get
             {
-                int padLength = PadHigh * 256 + PadLow;
                 int offset = Constants.FramePreambleSize + PromisedIdLength;
-
-                if (HasPadding) offset += PadHighLowLength;
-
-                int count = Buffer.Length - offset - padLength;
+                if (HasPadding) offset += PadLengthSize;
+                int count = Buffer.Length - offset - PadLength;
 
                 return new ArraySegment<byte>(Buffer, offset, count);
             }

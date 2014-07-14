@@ -210,10 +210,10 @@ namespace Microsoft.Http2.Protocol.Utils
         private static void LogHeadersFrame(HeadersFrame frame, string action = null)
         {
             LogDebug("{0} HEADERS frame: stream id={1}, payload len={2}, has pad={3}, " +
-                     "pad high={4}, pad low={5}, end stream={6}, has priority={7}, " +
-                     "exclusive={8}, dependency={9}, weight={10}, count={11}", action,
+                     "pad len={4}, end stream={5}, has priority={6}, " +
+                     "exclusive={7}, dependency={8}, weight={9}, count={10}", action,
                      frame.StreamId, frame.PayloadLength, frame.HasPadding,
-                     frame.PadHigh, frame.PadLow, frame.IsEndStream,
+                     frame.PadLength, frame.IsEndStream,
                      frame.HasPriority, frame.Exclusive, frame.StreamDependency,
                      frame.Weight, frame.Headers.Count);
 
@@ -225,9 +225,9 @@ namespace Microsoft.Http2.Protocol.Utils
 
         private static void LogDataFrame(DataFrame frame, string action = null)
         {
-            LogDebug("{0} DATA frame: stream id={1}, payload len={2}, has pad={3}, pad high={4}, " +
-                     "pad low={5}, end stream={6}", action, frame.StreamId, frame.PayloadLength,
-                     frame.HasPadding, frame.PadHigh, frame.PadLow, frame.IsEndStream);
+            LogDebug("{0} DATA frame: stream id={1}, payload len={2}, has pad={3}, pad len={4}, " +
+                     "end stream={5}", action, frame.StreamId, frame.PayloadLength,
+                     frame.HasPadding, frame.PadLength, frame.IsEndStream);
         }
 
         private static void LogWindowUpdateFrame(WindowUpdateFrame frame, string action = null)
@@ -239,9 +239,9 @@ namespace Microsoft.Http2.Protocol.Utils
         private static void LogPushPromiseFrame(PushPromiseFrame frame, string action = null)
         {
             LogDebug("{0} PUSH_PROMISE frame: stream id={1}, payload len={2}, promised id={3}, " +
-                     "has pad={4}, pad high={5}, pad low={6}, end headers={7}, count={8}", action,
+                     "has pad={4}, pad len={5}, end headers={6}, count={7}", action,
                      frame.StreamId, frame.PayloadLength, frame.PromisedStreamId, frame.HasPadding,
-                     frame.PadHigh, frame.PadLow, frame.IsEndHeaders, frame.Headers.Count);
+                     frame.PadLength, frame.IsEndHeaders, frame.Headers.Count);
 
             foreach (var h in frame.Headers)
             {
@@ -275,9 +275,9 @@ namespace Microsoft.Http2.Protocol.Utils
 
         private static void LogContinuationFrame(ContinuationFrame frame, string action = null)
         {
-            LogDebug("{0} CONTINUATION frame: stream id={1}, payload len={2}, has pad={3}, pad high={4}," +
-                     " pad low={5}, end headers={6}", action, frame.StreamId, frame.PayloadLength,
-                     frame.HasPadding, frame.PadHigh, frame.PadLow, frame.IsEndHeaders);
+            LogDebug("{0} CONTINUATION frame: stream id={1}, payload len={2}" +
+                     " end headers={3}", action, frame.StreamId, frame.PayloadLength,
+                     frame.IsEndHeaders);
         }
 
         private static void LogAltSvcFrame(Frame frame)

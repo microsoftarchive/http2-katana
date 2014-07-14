@@ -88,7 +88,7 @@ namespace Microsoft.Http2.Protocol.IO
                             entry.Frame.PayloadLength += compressedHeaders.Length;
                             // frame reconstruction: add padding
                             var paddingFrame = entry.Frame as IPaddingFrame;
-                            byte[] padding = new byte[paddingFrame.PadHigh * 256 + paddingFrame.PadLow];
+                            byte[] padding = new byte[paddingFrame.PadLength];
                             entry.Frame.PayloadLength += padding.Length;                     
 
                             // write frame preamble

@@ -13,12 +13,12 @@ namespace Microsoft.Http2.Protocol.Framing
 {
     /// <summary>
     /// DATA frame class
-    /// see 12 -> 6.1.
+    /// see 13 -> 6.1
     /// </summary>
     public class DataFrame : Frame, IEndStreamFrame, IEndSegmentFrame, IPaddingFrame
     {
-        // 1 byte Pad High, 1 byte Pad Low field
-        private const int PadHighLowLength = 2;
+        // 1 byte PadLength field
+        private const int PadLengthSize = 1;
 
         // for incoming
         public DataFrame(Frame preamble)
@@ -31,28 +31,22 @@ namespace Microsoft.Http2.Protocol.Framing
         {
             Contract.Assert(data.Array != null);
 
-            /* 12 -> 6.1
-            DATA frames MAY also contain arbitrary padding.  Padding can be added
-            to DATA frames to hide the size of messages. The total number of padding
-            octets is determined by multiplying the value of the Pad High field by 256 
-            and adding the value of the Pad Low field. */
-                       
+            /* 13 -> 6.1
+            DATA frames MAY also contain arbitrary padding. Padding can be added
+            to DATA frames to obscure the size of messages. */
+
             if (hasPadding)
             {
                 // generate padding
-                var padHigh = (byte) 1;
-                var padLow = (byte) new Random().Next(1, 7);
-                int padLength = padHigh * 256 + padLow;
+                int padLength = new Random().Next(1, 7);
 
                 // construct frame with padding
-                Buffer = new byte[Constants.FramePreambleSize + PadHighLowLength + data.Count + padLength];
-                HasPadHigh = true;
-                HasPadLow = true;
-                PadHigh = padHigh;
-                PadLow = padLow;
-                PayloadLength = PadHighLowLength + data.Count + padLength;
+                Buffer = new byte[Constants.FramePreambleSize + PadLengthSize + data.Count + padLength];
+                HasPadding = true;
+                PadLength = (byte) padLength;
+                PayloadLength = PadLengthSize + data.Count + padLength;
 
-                System.Buffer.BlockCopy(data.Array, data.Offset, Buffer, Constants.FramePreambleSize + PadHighLowLength, data.Count);
+                System.Buffer.BlockCopy(data.Array, data.Offset, Buffer, Constants.FramePreambleSize + PadLengthSize, data.Count);
             }
             else
             {
@@ -66,12 +60,6 @@ namespace Microsoft.Http2.Protocol.Framing
             IsEndStream = isEndStream;
             FrameType = FrameType.Data;
             StreamId = streamId;
-
-            //TODO: add optional gzip compression in constructor and properties
-            /* 12 -> 6.1
-            Data frames are optionally compressed using GZip compression.
-            Each frame is individually compressed; the state of the compressor is
-            reset for each frame.*/
         }
 
         public bool IsEndStream
@@ -104,73 +92,29 @@ namespace Microsoft.Http2.Protocol.Framing
             }
         }
 
-        public bool HasPadLow
-        {
-            get
-            {
-                return (Flags & FrameFlags.PadLow) == FrameFlags.PadLow;
-            }
-            set
-            {
-                if (value)
-                {
-                    Flags |= FrameFlags.PadLow;
-                }
-            }
-        }
-
-        public bool HasPadHigh
-        {
-            get
-            {
-                return (Flags & FrameFlags.PadHight) == FrameFlags.PadHight;
-            } 
-            set
-            {
-                if (value)
-                {
-                    Flags |= FrameFlags.PadHight;
-                }
-            }
-        }
-
         public bool HasPadding
         {
-            get { return HasPadHigh && HasPadLow; }
+            get
+            {
+                return (Flags & FrameFlags.Padded) == FrameFlags.Padded;
+            }
+            set
+            {
+                if (value)
+                {
+                    Flags |= FrameFlags.Padded;
+                }
+            }
         }
 
-        public byte PadHigh
+        public byte PadLength
         {
             get
             {
                 return HasPadding ? Buffer[Constants.FramePreambleSize] : (byte) 0;
             }
             set { Buffer[Constants.FramePreambleSize] = value; }
-        }
-
-        public byte PadLow
-        {
-            get
-            {
-                return HasPadding ? Buffer[Constants.FramePreambleSize + 1] : (byte) 0;
-            }
-            set { Buffer[Constants.FramePreambleSize + 1] = value; }
-        }
-
-        public bool IsCompressed
-        {
-            get
-            {
-                return (Flags & FrameFlags.Compressed) == FrameFlags.Compressed;
-            }
-            set
-            {
-                if (value)
-                {
-                    Flags |= FrameFlags.Compressed;
-                }
-            }
-        }      
+        }    
 
         public ArraySegment<byte> Data
         {
@@ -178,10 +122,8 @@ namespace Microsoft.Http2.Protocol.Framing
             {
                 if (HasPadding)
                 {
-                    int padLength = PadHigh * 256 + PadLow;
-
-                    return new ArraySegment<byte>(Buffer, Constants.FramePreambleSize + PadHighLowLength,
-                        Buffer.Length - Constants.FramePreambleSize - PadHighLowLength - padLength);
+                    return new ArraySegment<byte>(Buffer, Constants.FramePreambleSize + PadLengthSize,
+                        Buffer.Length - Constants.FramePreambleSize - PadLengthSize - PadLength);
                 }
                 return new ArraySegment<byte>(Buffer, Constants.FramePreambleSize,
                         Buffer.Length - Constants.FramePreambleSize);

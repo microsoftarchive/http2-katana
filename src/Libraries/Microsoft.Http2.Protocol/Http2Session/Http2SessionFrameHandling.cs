@@ -256,13 +256,6 @@ namespace Microsoft.Http2.Protocol
             if (dataFrame.StreamId == 0)
                 throw new ProtocolError(ResetStatusCode.ProtocolError,
                                         "Incoming continuation frame with stream id=0");
-            /* 12 -> 6.1 
-            An endpoint that has not enabled DATA frame compression MUST
-            treat the receipt of a DATA frame with the COMPRESSED flag set as a
-            connection error of type PROTOCOL_ERROR. */
-            if (dataFrame.IsCompressed)
-                throw new ProtocolError(ResetStatusCode.ProtocolError,
-                                        "GZIP compression is not enabled");
 
             stream = GetStream(dataFrame.StreamId);
 
