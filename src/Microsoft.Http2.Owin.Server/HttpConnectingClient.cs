@@ -259,7 +259,7 @@ namespace Microsoft.Http2.Owin.Server
             }
 
             //ALPN selected http2. No need to perform upgrade handshake.
-            Http2Logger.LogDebug("Selected protocol (ALPN): " + alpnSelectedProtocol);
+            Http2Logger.LogDebug("ALPN selected protocol: " + alpnSelectedProtocol);
             Http2Logger.LogDebug("TLS Handshake done");
             OpenHttp2Session(incomingClient);
         }

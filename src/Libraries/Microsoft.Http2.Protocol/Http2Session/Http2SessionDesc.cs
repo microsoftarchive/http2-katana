@@ -821,7 +821,6 @@ namespace Microsoft.Http2.Protocol
                 WriteGoAway(status);
 
                 //TODO fix delay. wait for goAway send and then dispose WriteQueue
-                //Wait for GoAway send
                 using (var goAwayDelay = new ManualResetEvent(false))
                 {
                     goAwayDelay.WaitOne(500);

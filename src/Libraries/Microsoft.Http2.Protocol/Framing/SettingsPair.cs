@@ -11,15 +11,16 @@ using System;
 namespace Microsoft.Http2.Protocol.Framing
 {
     /// <summary>
-    /// see 12 -> 6.5.1
+    /// see 13 -> 6.5.1
     /// </summary>
     public struct SettingsPair
     {
         /* The payload of a SETTINGS frame consists of zero or more parameters,
-        each consisting of an unsigned 8-bit identifier and an unsigned 32-bit value. */
+        each consisting of an unsigned 16-bit identifier and an unsigned 32-bit value. */
 
-        // 1 byte for identifier, 4 bytes for value
-        public const int PairSize = 5;
+        // 2 bytes for identifier, 4 bytes for value
+        public const int PairSize = 6;
+        private const int IdSize = 2;
 
         private readonly ArraySegment<byte> _bufferSegment;
 
@@ -49,11 +50,11 @@ namespace Microsoft.Http2.Protocol.Framing
         {
             get
             {
-                return (SettingsIds)FrameHelper.Get8BitsAt(_bufferSegment.Array, _bufferSegment.Offset);
+                return (SettingsIds)FrameHelper.Get16BitsAt(_bufferSegment.Array, _bufferSegment.Offset);
             }
             set
             {
-                FrameHelper.Set8BitsAt(_bufferSegment.Array, _bufferSegment.Offset, (int)value);
+                FrameHelper.Set16BitsAt(_bufferSegment.Array, _bufferSegment.Offset, (int)value);
             }
         }
 
@@ -61,11 +62,11 @@ namespace Microsoft.Http2.Protocol.Framing
         {
             get
             {
-                return FrameHelper.Get32BitsAt(_bufferSegment.Array, _bufferSegment.Offset + 1);
+                return FrameHelper.Get32BitsAt(_bufferSegment.Array, _bufferSegment.Offset + IdSize);
             }
             set
             {
-                FrameHelper.Set32BitsAt(_bufferSegment.Array, _bufferSegment.Offset + 1, value);
+                FrameHelper.Set32BitsAt(_bufferSegment.Array, _bufferSegment.Offset + IdSize, value);
             }
         }
     }

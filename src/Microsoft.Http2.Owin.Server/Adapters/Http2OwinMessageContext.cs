@@ -86,7 +86,6 @@ namespace Microsoft.Http2.Owin.Server.Adapters
         {
             Debug.Assert(!_responseStarted, "Response started more than once");
             _responseStarted = true;
-            Http2Logger.LogDebug("Transfer begin");
 
             SendHeaders(final: false);
         }
@@ -96,11 +95,7 @@ namespace Microsoft.Http2.Owin.Server.Adapters
         {
             if (!_responseStarted)
             {
-                Http2Logger.LogDebug("Transfer begin");
-
                 SendHeaders(final: true);
-
-                Http2Logger.LogDebug("Transfer end");
             }
             else
             {
