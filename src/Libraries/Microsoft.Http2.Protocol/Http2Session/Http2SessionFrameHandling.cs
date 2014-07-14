@@ -365,12 +365,7 @@ namespace Microsoft.Http2.Protocol
 
                         _flowControlManager.StreamsInitialWindowSize = newInitWindowSize;
                         InitialWindowSize = newInitWindowSize;
-                        break;
-                    // TODO:
-                    // _GzipCompressionProcessor.Enabled = true;
-                    // ignore CompressData setting for now
-                    case SettingsIds.CompressData:
-                        break;      
+                        break;     
 
                     /* 12 -> 5.2.1 
                     Flow control cannot be disabled. */
