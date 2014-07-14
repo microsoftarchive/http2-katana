@@ -444,11 +444,10 @@ namespace Microsoft.Http2.Protocol
                         HandleBlockedFrame(frame);
                         break;
                     default:
-                        /* 12 -> 4.1
-                        Implementations MUST treat the receipt of an unknown frame type
-                        (any frame types not defined in this document) as a connection
-                        error of type PROTOCOL_ERROR. */
-                        throw new ProtocolError(ResetStatusCode.ProtocolError, "Unknown frame type detected");
+                        /* 13 -> 5.5
+                        Implementations MUST discard frames that 
+                        unknown or unsupported types */
+                        break;
                 }
 
                 _lastFrame = frame;

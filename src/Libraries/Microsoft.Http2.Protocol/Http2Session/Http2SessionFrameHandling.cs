@@ -358,18 +358,13 @@ namespace Microsoft.Http2.Protocol
 
                         _flowControlManager.StreamsInitialWindowSize = newInitWindowSize;
                         InitialWindowSize = newInitWindowSize;
-                        break;     
+                        break;
 
-                    /* 12 -> 5.2.1 
-                    Flow control cannot be disabled. */
-                    /*case SettingsIds.FlowControlOptions:
-                        _flowControlManager.Options = settingsFrame[i].Value;
-                        break;*/
                     default:
-                        /* 12 -> 6.5.2 
-                        An endpoint that receives a SETTINGS frame with any other identifier
-                        MUST treat this as a connection error of type PROTOCOL_ERROR. */
-                        throw new ProtocolError(ResetStatusCode.ProtocolError, "Unknown setting identifier");
+                        /* 13 -> 6.5.2 
+                        An endpoint that receives a SETTINGS frame with any unknown or
+                        unsupported identifier MUST ignore that setting.*/
+                        break;
                 }
             }
         }
