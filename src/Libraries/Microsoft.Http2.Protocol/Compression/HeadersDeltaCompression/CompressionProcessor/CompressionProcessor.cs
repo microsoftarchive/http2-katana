@@ -359,6 +359,8 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
 
         private string DecodeString(byte[] bytes, byte prefix)
         {
+            const int lengthStringLimit = 255;
+
             int maxPrefixVal = (1 << prefix) - 1;
 
             // Get first bit. If true => huffman used
@@ -403,16 +405,31 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
 
                 _currentOffset += len;
 
+                /* 08 -> 8.4
+                An implementation has to set a limit for the values it accepts for
+                integers, as well as for the encoded length (see Section 6.1).  In
+                the same way, it has to set a limit to the length it accepts for
+                string literals */
+                if (result.Length > lengthStringLimit)
+                    throw new CompressionError("string length more than 255 bytes");
+
                 return result;
             }
 
             result = Encoding.UTF8.GetString(bytes, _currentOffset, len);
             _currentOffset += len;
 
+            /* 08 -> 8.4
+            An implementation has to set a limit for the values it accepts for
+            integers, as well as for the encoded length (see Section 6.1).  In
+            the same way, it has to set a limit to the length it accepts for
+            string literals */
+            if (result.Length > lengthStringLimit)
+                throw new CompressionError("string length more than 255 bytes");
+
             return result;
         }
-
-       
+    
         private void ProcessCookie(HeadersList toProcess)
         {
             /* 13 -> 8.1.2.4
@@ -614,8 +631,7 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
             return null;
         }
 
-        private Tuple<string, string, IndexationType> ProcessNeverIndexed(byte [] bytes, 
-            int index)
+        private Tuple<string, string, IndexationType> ProcessNeverIndexed(byte [] bytes, int index)
         {
             /* 08 -> 7.2.2
             The encoding of the representation is the same as for the literal
@@ -650,20 +666,27 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
 
             int index = GetIndex(bytes, type);
 
-            switch (type)
+            try
             {
-                case IndexationType.Indexed:
-                    return ProcessIndexed(index);
-                case IndexationType.Incremental:
-                    return ProcessIncremental(bytes, index);
-                case IndexationType.EncodingContextUpdate:
-                    return ProcessEncodingContextUpdate(index, changeTypeFlag);
-                case IndexationType.NeverIndexed:
-                    return ProcessNeverIndexed(bytes, index);
-                case IndexationType.WithoutIndexation:
-                    return ProcessWithoutIndexing(bytes, index);
+                switch (type)
+                {
+                    case IndexationType.Indexed:
+                        return ProcessIndexed(index);
+                    case IndexationType.Incremental:
+                        return ProcessIncremental(bytes, index);
+                    case IndexationType.EncodingContextUpdate:
+                        return ProcessEncodingContextUpdate(index, changeTypeFlag);
+                    case IndexationType.NeverIndexed:
+                        return ProcessNeverIndexed(bytes, index);
+                    case IndexationType.WithoutIndexation:
+                        return ProcessWithoutIndexing(bytes, index);
+                }
             }
-
+            catch (IndexOutOfRangeException ex)
+            {
+                throw new CompressionError(ex.Message);
+            }
+            
             throw new CompressionError("Unknown indexation type");
         }
         
