@@ -71,7 +71,7 @@ namespace Http2.TestClient.Adapters
 
         protected override void ProcessIncomingData(Http2Stream stream, Frame frame)
         {
-            //wont process incoming non data frames for now.
+            // wont process incoming non data frames for now.
             if (!(frame is DataFrame))
                 return;
 
@@ -82,30 +82,34 @@ namespace Http2.TestClient.Adapters
 
         protected override void ProcessRequest(Http2Stream stream, Frame frame)
         {
-            //spec 09 -> 8.1.3.2.  Response Header Fields
-            //A single ":status" header field is defined that carries the HTTP
-            //status code field (see [HTTP-p2], Section 6).  This header field MUST
-            //be included in all responses, otherwise the response is malformed
+            /* 13 -> 8.1.2.2
+            A single ":status" header field is defined that carries the HTTP
+            status code field This header field MUST
+            be included in all responses, otherwise the response is malformed */
             if (stream.Headers.GetValue(CommonHeaders.Status) == null)
             {
                 throw new ProtocolError(ResetStatusCode.ProtocolError,
-                                        "no status header in response. StreamId = " + stream.Id);
+                                        "no ':status' header in response, stream id=" + stream.Id);
             }
 
             int code;
             if (!int.TryParse(stream.Headers.GetValue(CommonHeaders.Status), out code))
             {
-                stream.WriteRst(ResetStatusCode.ProtocolError);  //Got something strange in the status field
+                // the status code is not an integer
+                stream.WriteRst(ResetStatusCode.ProtocolError);
                 stream.Close(ResetStatusCode.ProtocolError);
             }
 
-            //got some king of error
             if (code != StatusCode.Code200Ok)
             {
-                //Close server's stream
-                stream.Close(ResetStatusCode.Cancel); //will dispose client's stream and close server's one.
+                // close server's stream
+                // will dispose client's stream and close server's one.
+                stream.Close(ResetStatusCode.Cancel); 
             }
-            //Do nothing. Client may not process requests for now
+
+            //
+            // do nothing. Client may not process requests for now
+            //
         }
 
         public TimeSpan Ping()
@@ -123,7 +127,7 @@ namespace Http2.TestClient.Adapters
             {
                 OnFirstSettingsSent += (o, args) =>
                     {
-                        //unsec handled via upgrade handshake
+                        // unsec handled via upgrade handshake
                         if (_isSecure)
                             _session.SendRequest(pairs, priority, isEndStream);
                     };

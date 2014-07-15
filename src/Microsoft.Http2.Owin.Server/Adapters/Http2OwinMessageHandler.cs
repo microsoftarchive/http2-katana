@@ -48,11 +48,11 @@ namespace Microsoft.Http2.Owin.Server.Adapters
         /// <returns></returns>
         protected override void ProcessRequest(Http2Stream stream, Frame frame)
         {
-            /* 12 -> 8.1.3.1
+            /* 13 -> 8.1.2.1
             All HTTP/2 requests MUST include exactly one valid value for the
             ":method", ":scheme", and ":path" header fields, unless this is a
-            CONNECT request (Section 8.3).  An HTTP request that omits mandatory
-            header fields is malformed (Section 8.1.3.5). */
+            CONNECT request.  An HTTP request that omits mandatory header fields 
+            is malformed. */
 
             if (stream.Headers.GetValue(CommonHeaders.Method) == null
                 || stream.Headers.GetValue(CommonHeaders.Path) == null
