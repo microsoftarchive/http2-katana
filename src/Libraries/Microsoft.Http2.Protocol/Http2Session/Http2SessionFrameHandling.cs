@@ -109,7 +109,7 @@ namespace Microsoft.Http2.Protocol
             }
             else if (stream.HalfClosedRemote)
             {
-                throw new ProtocolError(ResetStatusCode.ProtocolError, "headers for half closed remote stream");
+                throw new ProtocolError(ResetStatusCode.ProtocolError, "headers for half closed (remote) stream");
             }
             else
             {
@@ -178,7 +178,7 @@ namespace Microsoft.Http2.Protocol
             }
             else if (stream.HalfClosedRemote)
             {
-                throw new ProtocolError(ResetStatusCode.ProtocolError, "continuation for half closed remote stream");
+                throw new ProtocolError(ResetStatusCode.ProtocolError, "continuation for half closed (remote) stream");
             }
             else
             {
@@ -208,7 +208,7 @@ namespace Microsoft.Http2.Protocol
             if (stream.Closed)
                 throw new Http2StreamNotFoundException(priorityFrame.StreamId);
 
-            if (!(stream.Opened || stream.ReservedRemote || stream.HalfClosedLocal))
+            if (!(stream.Opened || stream.ReservedRemote || stream.HalfClosedLocal || stream.HalfClosedRemote))
                 throw new ProtocolError(ResetStatusCode.ProtocolError, "priority for non opened or reserved stream");
 
             stream.Priority = priorityFrame.Weight;
@@ -239,7 +239,7 @@ namespace Microsoft.Http2.Protocol
                 return;
             }
 
-            if (!(stream.ReservedRemote || stream.Opened || stream.HalfClosedLocal))
+            if (!(stream.ReservedRemote || stream.Opened || stream.HalfClosedLocal || stream.HalfClosedRemote))
                 throw new ProtocolError(ResetStatusCode.ProtocolError, "Rst for non opened or reserved stream");
 
             stream.Close(ResetStatusCode.None);
@@ -252,10 +252,10 @@ namespace Microsoft.Http2.Protocol
             /* 12 -> 6.1
             DATA frames MUST be associated with a stream. If a DATA frame is
             received whose stream identifier field is 0x0, the recipient MUST 
-            respond with a connection error of type PROTOCOL_ERROR. */
+            respond with a connection error of type PROTOCOL_ERROR */
             if (dataFrame.StreamId == 0)
                 throw new ProtocolError(ResetStatusCode.ProtocolError,
-                                        "Incoming continuation frame with stream id=0");
+                                        "Incoming data frame with stream id=0");
 
             stream = GetStream(dataFrame.StreamId);
 
@@ -263,7 +263,7 @@ namespace Microsoft.Http2.Protocol
                 throw new Http2StreamNotFoundException(dataFrame.StreamId);
 
             if (!(stream.Opened || stream.HalfClosedLocal))
-                throw new ProtocolError(ResetStatusCode.ProtocolError, "data in non opened or half closed local stream");
+                throw new ProtocolError(ResetStatusCode.ProtocolError, "data in non opened or half closed (local) stream");
 
             
             if (stream.IsFlowControlEnabled && !dataFrame.IsEndStream)
