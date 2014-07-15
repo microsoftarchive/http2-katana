@@ -187,12 +187,6 @@ namespace Microsoft.Http2.Protocol.Utils
                 case FrameType.GoAway:
                     LogGoAwayFrame(frame as GoAwayFrame, action);
                     break;
-                case FrameType.AltSvc:
-                    LogAltSvcFrame(frame);
-                    break;
-                case FrameType.Blocked:
-                    LogBlockedFrame(frame);
-                    break;
             }
         }
 
@@ -278,18 +272,6 @@ namespace Microsoft.Http2.Protocol.Utils
             LogDebug("{0} CONTINUATION frame: stream id={1}, payload len={2}" +
                      " end headers={3}", action, frame.StreamId, frame.PayloadLength,
                      frame.IsEndHeaders);
-        }
-
-        private static void LogAltSvcFrame(Frame frame)
-        {
-            LogDebug("ALTSVC frame: stream id={0}, payload len={1}",
-                     frame.StreamId, frame.PayloadLength);
-        }
-
-        private static void LogBlockedFrame(Frame frame)
-        {
-            LogDebug("BLOCKED frame: stream id={0}, payload len={1}",
-                     frame.StreamId, frame.PayloadLength);
         }
 
         public static void LogHeaders(HeadersList headers)

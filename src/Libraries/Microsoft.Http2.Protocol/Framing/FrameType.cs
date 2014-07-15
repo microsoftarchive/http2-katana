@@ -9,7 +9,7 @@
 namespace Microsoft.Http2.Protocol.Framing
 {
     /// <summary>
-    /// see 12 -> 6.  Frame Definitions
+    /// see 13 -> 6.  Frame Definitions
     /// </summary>
     public enum FrameType : byte
     {
@@ -22,8 +22,6 @@ namespace Microsoft.Http2.Protocol.Framing
         Ping = 0x6,
         GoAway = 0x7,
         WindowUpdate = 0x8,
-        Continuation = 0x9,
-        AltSvc = 0xA,
-        Blocked = 0xB
+        Continuation = 0x9
     }
 }

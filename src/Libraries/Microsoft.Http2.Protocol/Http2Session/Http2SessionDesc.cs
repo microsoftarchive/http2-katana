@@ -39,12 +39,10 @@ namespace Microsoft.Http2.Protocol
         private ManualResetEvent _settingsAckReceived = new ManualResetEvent(false);
         private bool _disposed;
         private ICompressionProcessor _comprProc;
-        // TODO: add GzipCompressionProcessor here
         private readonly FlowControlManager _flowControlManager;
         private readonly ConnectionEnd _ourEnd;
         private readonly ConnectionEnd _remoteEnd;
         private readonly bool _isSecure;
-        // TODO: add _useGzip option here
         private int _lastId;            //streams creation
         private int _lastPromisedId;    //check pushed  (server) streams ids
         private bool _wasSettingsReceived;
@@ -436,12 +434,6 @@ namespace Microsoft.Http2.Protocol
                         {
                             _promisedResources.Add(stream.Id, stream.Headers.GetValue(CommonHeaders.Path));
                         }
-                        break;
-                    case FrameType.AltSvc:
-                        HandleAltSvcFrame(frame);
-                        break;                  
-                    case FrameType.Blocked:
-                        HandleBlockedFrame(frame);
                         break;
                     default:
                         /* 13 -> 5.5
