@@ -13,8 +13,8 @@ namespace OpenSsl.Protocols
     /// </summary>
     public static class Protocols
     {
-        public static string Http2 = "h2-12";
-        public static string Http2NoTls = "h2c-12";
+        public static string Http2 = "h2-13";
+        public static string Http2NoTls = "h2c-13";
         public static string Http1 = "http/1.1";
     }
 }
