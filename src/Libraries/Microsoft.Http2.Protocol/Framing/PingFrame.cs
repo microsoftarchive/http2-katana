@@ -10,19 +10,12 @@ namespace Microsoft.Http2.Protocol.Framing
 {
     /// <summary>
     /// PING frame class
-    /// see 12 -> 6.7.
+    /// see 13 -> 6.7
     /// </summary>
     internal class PingFrame : Frame
     {
-        /// <summary>
-        /// Ping frame expected payload length
-        /// </summary>
-        public const int DefPayloadLength = 8;
-
-        /// <summary>
-        /// The number of bytes in the frame.
-        /// </summary>
-        public const int FrameSize = DefPayloadLength + Constants.FramePreambleSize;
+        // 8 bytes Opaque Data
+        public const int OpaqueDataLength = 8;
 
         public bool IsAck 
         {
@@ -39,26 +32,25 @@ namespace Microsoft.Http2.Protocol.Framing
             }
         }
 
-        // Incoming
+        // for incoming
         public PingFrame(Frame preamble)
             : base(preamble)
         {
         }
 
-        // Outgoing
-        public PingFrame(bool isAck, byte[] payload = null)
-            : base(new byte[FrameSize])
+        // for outgoing
+        public PingFrame(bool isAck, byte[] opaqueData = null)
+            : base(new byte[Constants.FramePreambleSize + OpaqueDataLength])
         {
             FrameType = FrameType.Ping;
-            PayloadLength = FrameSize - Constants.FramePreambleSize; // 4
-
+            PayloadLength = OpaqueDataLength;
             IsAck = isAck;
             StreamId = 0;
 
-            if (payload != null)
+            if (opaqueData != null)
             {
                 System.Buffer.BlockCopy(Buffer, Constants.FramePreambleSize, Buffer,
-                    Constants.FramePreambleSize, FrameSize - Constants.FramePreambleSize);
+                    Constants.FramePreambleSize, OpaqueDataLength);
             }
         }
     }

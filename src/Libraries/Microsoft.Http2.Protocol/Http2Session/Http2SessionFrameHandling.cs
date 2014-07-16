@@ -276,7 +276,7 @@ namespace Microsoft.Http2.Protocol
         {
             Http2Logger.LogFrameReceived(pingFrame);
 
-            /* 12 -> 6.7
+            /* 13 -> 6.7
             PING frames are not associated with any individual stream.  If a PING
             frame is received with a stream identifier field value other than
             0x0, the recipient MUST respond with a connection error of type PROTOCOL_ERROR. */
@@ -284,9 +284,9 @@ namespace Microsoft.Http2.Protocol
                 throw new ProtocolError(ResetStatusCode.ProtocolError,
                                         "Incoming ping frame with stream id != 0");            
 
-            if (pingFrame.PayloadLength != PingFrame.DefPayloadLength)
+            if (pingFrame.PayloadLength != PingFrame.OpaqueDataLength)
             {
-                throw new ProtocolError(ResetStatusCode.FrameSizeError, "Ping payload size is not equal to 8");
+                throw new ProtocolError(ResetStatusCode.FrameSizeError, "Ping frame with invalid Opaque Data size");
             }
 
             if (pingFrame.IsAck)
@@ -295,6 +295,9 @@ namespace Microsoft.Http2.Protocol
             }
             else
             {
+                /* 13 -> 6.7 
+                Receivers of a PING frame that does not include an ACK flag MUST send
+                a PING frame with the ACK flag set in response, with an identical payload. */
                 var pingAckFrame = new PingFrame(true, pingFrame.Payload.ToArray());
                 _writeQueue.WriteFrame(pingAckFrame);
             }
