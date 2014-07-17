@@ -53,12 +53,13 @@ namespace Http2.Katana.Tests
                             {"path", uri.AbsolutePath}
                         }
                 };
-
             properties.Add("host.Addresses", addresses);
 
             bool useHandshake = ConfigurationManager.AppSettings["handshakeOptions"] != "no-handshake";
-
             properties.Add("use-handshake", useHandshake);
+
+            string serverName = appSettings[Strings.ServerName];
+            properties.Add(Strings.ServerName, serverName);
 
             Server = new HttpSocketServer(new Http2Middleware(new ResponseMiddleware(null)).Invoke, properties);
         }

@@ -43,8 +43,10 @@ namespace Http2.Katana.Tests
             properties.Add("host.Addresses", addresses);
 
             const bool useHandshake = true;
-
             properties.Add("use-handshake", useHandshake);
+
+            string serverName = appSettings[Strings.ServerName];
+            properties.Add(Strings.ServerName, serverName);
 
             return properties;
         }

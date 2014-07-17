@@ -196,21 +196,23 @@ namespace OpenSSL.SSL
 	{
 		#region Initialization
 
-		/// <summary>
-		/// Create an SslStream based on an existing stream.
-		/// </summary>
-		/// <param name="stream"></param>
-        public SslStream(Stream stream, string serverName)
+	    /// <summary>
+	    /// Create an SslStream based on an existing stream.
+	    /// </summary>
+	    /// <param name="stream"></param>
+	    /// <param name="serverName"></param>
+	    public SslStream(Stream stream, string serverName)
             : this(stream, false, serverName)
 		{
 		}
 
-		/// <summary>
-		/// Create an SslStream based on an existing stream.
-		/// </summary>
-		/// <param name="stream"></param>
-		/// <param name="leaveInnerStreamOpen"></param>
-        public SslStream(Stream stream, bool leaveInnerStreamOpen, string serverName)
+	    /// <summary>
+	    /// Create an SslStream based on an existing stream.
+	    /// </summary>
+	    /// <param name="stream"></param>
+	    /// <param name="leaveInnerStreamOpen"></param>
+	    /// <param name="serverName"></param>
+	    public SslStream(Stream stream, bool leaveInnerStreamOpen, string serverName)
 			: base(stream, leaveInnerStreamOpen)
 		{
 			remoteCertificateValidationCallback = null;
@@ -218,27 +220,29 @@ namespace OpenSSL.SSL
 		    this.serverName = serverName;
 		}
 
-		/// <summary>
-		/// Create an SslStream based on an existing stream.
-		/// </summary>
-		/// <param name="stream"></param>
-		/// <param name="leaveInnerStreamOpen"></param>
-		/// <param name="remote_callback"></param>
-		public SslStream(Stream stream, bool leaveInnerStreamOpen, 
+	    /// <summary>
+	    /// Create an SslStream based on an existing stream.
+	    /// </summary>
+	    /// <param name="stream"></param>
+	    /// <param name="leaveInnerStreamOpen"></param>
+	    /// <param name="serverName"></param>
+	    /// <param name="remote_callback"></param>
+	    public SslStream(Stream stream, bool leaveInnerStreamOpen, 
                         string serverName,
                         RemoteCertificateValidationHandler remote_callback)
             : this(stream, leaveInnerStreamOpen, serverName, remote_callback, null)
 		{
 		}
 
-		/// <summary>
-		/// Create an SslStream based on an existing stream.
-		/// </summary>
-		/// <param name="stream"></param>
-		/// <param name="leaveInnerStreamOpen"></param>
-		/// <param name="remote_callback"></param>
-		/// <param name="local_callback"></param>
-		public SslStream(Stream stream, bool leaveInnerStreamOpen, 
+	    /// <summary>
+	    /// Create an SslStream based on an existing stream.
+	    /// </summary>
+	    /// <param name="stream"></param>
+	    /// <param name="leaveInnerStreamOpen"></param>
+	    /// <param name="serverName"></param>
+	    /// <param name="remote_callback"></param>
+	    /// <param name="local_callback"></param>
+	    public SslStream(Stream stream, bool leaveInnerStreamOpen, 
                         string serverName,
                         RemoteCertificateValidationHandler remote_callback, 
                         LocalCertificateSelectionHandler local_callback)

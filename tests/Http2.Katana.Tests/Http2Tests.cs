@@ -74,8 +74,10 @@ namespace Http2.Katana.Tests
             properties.Add("host.Addresses", addresses);
 
             var useHandshake = ConfigurationManager.AppSettings["handshakeOptions"] != "no-handshake";
-
             properties.Add("use-handshake", useHandshake);
+
+            string serverName = appSettings[Strings.ServerName];
+            properties.Add(Strings.ServerName, serverName);
 
             return properties;
         }
@@ -303,7 +305,7 @@ namespace Http2.Katana.Tests
             }
         }
 
-        [Theory(Timeout = 70000)]
+        [VeryLongTaskFact]
         public void MultipleStreamsInOneSession()
         {
             string requestStr = string.Empty;
