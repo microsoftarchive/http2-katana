@@ -9,7 +9,7 @@
 namespace OpenSsl.Protocols
 {
     /// <summary>
-    /// see 12 -> 3.1.  HTTP/2 Version Identification
+    /// see 13 -> 3.1
     /// </summary>
     public static class Protocols
     {

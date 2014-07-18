@@ -19,7 +19,7 @@ namespace Microsoft.Http2.Protocol.FlowControl
     /// </summary>
     internal class FlowControlManager
     {
-        private readonly Http2Session _flowControlledSession;
+        private readonly Http2Session.Http2Session _flowControlledSession;
         private StreamDictionary _streamDictionary;
         private Int32 _options;
         private bool _wasFlowControlSet;
@@ -73,15 +73,15 @@ namespace Microsoft.Http2.Protocol.FlowControl
 
         public bool IsSessionBlocked { get; set; }
 
-        public FlowControlManager(Http2Session flowControlledSession)
+        public FlowControlManager(Http2Session.Http2Session flowControlledSession)
         {
             if (flowControlledSession == null)
                 throw new ArgumentNullException("flowControlledSession");
 
-            //09 -> 6.9.2.  Initial Flow Control Window Size
-            //When a HTTP/2.0 connection is first established, new streams are
-            //created with an initial flow control window size of 65535 bytes.  The
-            //connection flow control window is 65535 bytes.  
+            /* 13 -> 6.9.2
+            When a HTTP/2.0 connection is first establishe, new streams are
+            created with an initial flow control window size of 65535 bytes. 
+            The connection flow control window is 65535 bytes. */
             SessionInitialWindowSize = Constants.InitialFlowControlWindowSize;
             StreamsInitialWindowSize = Constants.InitialFlowControlWindowSize;
 

@@ -10,36 +10,27 @@ using System;
 
 namespace Microsoft.Http2.Protocol.Framing
 {
-    //0                   1                   2                   3
-    //0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-    //+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-    //|         Length (16)           |   Type (8)    |   Flags (8)   |
-    //+-+-------------+---------------+-------------------------------+
-    //|R|                 Stream Identifier (31)                      |
-    //+-+-------------------------------------------------------------+
-    //|                     Frame Payload (0...)                    ...
-    //+---------------------------------------------------------------+
     /// <summary>
-    /// Represents the initial frame fields on every frame.
+    /// see 13 -> 4.1 Frame Format
     /// </summary>
     public class Frame
     {
         protected byte[] _buffer;
 
-        // For reading the preamble to determine the frame type and length
+        // for reading the preamble to determine the frame type and length
         public Frame()
             : this(new byte[Constants.FramePreambleSize])
         {
         }
 
-        // For incoming frames
+        // for incoming frames
         protected Frame(Frame preamble)
             : this(new byte[Constants.FramePreambleSize + preamble.PayloadLength])
         {
             System.Buffer.BlockCopy(preamble.Buffer, 0, Buffer, 0, Constants.FramePreambleSize);
         }
 
-        // For outgoing frames
+        // for outgoing frames
         protected Frame(byte[] buffer)
         {
             _buffer = buffer;
@@ -68,10 +59,9 @@ namespace Microsoft.Http2.Protocol.Framing
             get { return FrameType != FrameType.Data; }
         }
 
-        // 16 bits, 0-15
-        /* 12 -> 4.1.
+        /* 13 -> 4.1
         The length of the frame payload. The 8 octets of the frame header
-        are not included in this value */
+        are not included in this value. */
         public int PayloadLength
         {
             get
@@ -84,7 +74,9 @@ namespace Microsoft.Http2.Protocol.Framing
             }
         }
 
-        // 8 bits, 16-23
+        /* 13 -> 4.1
+        The 8-bit type of the frame. The frame type determines the
+        format and semantics of the frame. */
         public FrameType FrameType
         {
             get
@@ -97,7 +89,8 @@ namespace Microsoft.Http2.Protocol.Framing
             }
         }
 
-        // 8 bits, 24-31
+        /* 13 -> 4.1
+        An 8-bit field reserved for frame-type specific boolean flags. */
         public FrameFlags Flags
         {
             get
@@ -110,7 +103,8 @@ namespace Microsoft.Http2.Protocol.Framing
             }
         }
 
-        // 31 bits, 33-63
+        /* 13 -> 4.1
+        A 31-bit stream identifier. */
         public Int32 StreamId
         {
             get

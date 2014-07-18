@@ -6,6 +6,7 @@
 // THIS CODE IS PROVIDED ON AN *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION ANY IMPLIED WARRANTIES OR CONDITIONS OF TITLE, FITNESS FOR A PARTICULAR PURPOSE, MERCHANTABLITY OR NON-INFRINGEMENT.
 
 // See the Apache 2 License for the specific language governing permissions and limitations under the License.
+
 using System.IO;
 using System.Text;
 using System.Threading;
@@ -23,7 +24,7 @@ using System.Threading.Tasks;
 using Microsoft.Http2.Protocol.Utils;
 using OpenSSL.SSL;
 
-namespace Microsoft.Http2.Protocol
+namespace Microsoft.Http2.Protocol.Http2Session
 {
     /// <summary>
     /// This class creates and closes session, pumps incoming and outcoming frames and dispatches them.
@@ -197,7 +198,7 @@ namespace Microsoft.Http2.Protocol
             return string.Equals(receivedHeader, ConnectionPreface, StringComparison.OrdinalIgnoreCase);
         }
 
-        //Calls only in unsecure connection case
+        // Calls only in unsecure connection case
         private void DispatchInitialRequest(IDictionary<string, string> initialRequest)
         {
             if (!initialRequest.ContainsKey(CommonHeaders.Path))
@@ -207,12 +208,12 @@ namespace Microsoft.Http2.Protocol
 
             var initialStream = CreateStream(new HeadersList(initialRequest), 1);
 
-            //09 -> 5.1.1.  Stream Identifiers
-            //A stream identifier of one (0x1) is used to respond to the HTTP/1.1
-            //request which was specified during Upgrade (see Section 3.2).  After
-            //the upgrade completes, stream 0x1 is "half closed (local)" to the
-            //client.  Therefore, stream 0x1 cannot be selected as a new stream
-            //identifier by a client that upgrades from HTTP/1.1.
+            /* 13 -> 5.1.1
+            A stream identifier of one (0x1) is used to respond to the HTTP/1.1
+            request which was specified during Upgrade. After the upgrade completes, 
+            stream 0x1 is "half closed (local)" to the client. Therefore, stream 0x1 
+            cannot be selected as a new stream identifier by a client that upgrades
+            from HTTP/1.1. */
             if (_ourEnd == ConnectionEnd.Client)
             {
                 GetNextId();
@@ -270,8 +271,6 @@ namespace Microsoft.Http2.Protocol
             // Write settings. Settings must be the first frame in session.
             if (_ourEnd == ConnectionEnd.Client)
             {
-                /* 12 -> 5.2.1 
-                Flow control cannot be disabled. */
                 WriteSettings(new[]
                     {
                         new SettingsPair(SettingsIds.InitialWindowSize,
@@ -280,13 +279,13 @@ namespace Microsoft.Http2.Protocol
 
             }
 
-            //Handle upgrade handshake headers.
+            // Handle upgrade handshake headers.
             if (initialRequest != null && !_isSecure)
                 DispatchInitialRequest(initialRequest);
             
             var endPumpsTask = Task.WhenAll(incomingTask, outgoingTask);
 
-            //Cancellation token
+            // Cancellation token
             endPumpsTask.Wait();
         }
 
@@ -309,7 +308,7 @@ namespace Microsoft.Http2.Protocol
                 }
                 catch (IOException)
                 {
-                    //Connection was closed by the remote endpoint
+                    // Connection was closed by the remote endpoint
                     Http2Logger.LogInfo("Connection was closed by the remote endpoint");
                     Dispose();
                     break;
@@ -379,11 +378,11 @@ namespace Microsoft.Http2.Protocol
                                                           frame.PayloadLength));
                 }
 
-                /* 12 -> 6.5
+                /* 13 -> 6.5
                 A SETTINGS frame MUST be sent by both endpoints at the start of a
                 connection, and MAY be sent at any other time by either endpoint over
                 the lifetime of the connection. */
-                /* 12 -> 3.2.1
+                /* 13 -> 3.2.1
                 The content of the "HTTP2-Settings" header field is the payload of a
                 SETTINGS frame, encoded as a base64url string. Acknowledgement of the 
                 SETTINGS parameters is not necessary, since a 101 response serves as
@@ -446,11 +445,11 @@ namespace Microsoft.Http2.Protocol
 
                 if (frame is IEndStreamFrame && ((IEndStreamFrame) frame).IsEndStream)
                 {
-                    //Tell the stream that it was the last frame
+                    // Tell the stream that it was the last frame
                     Http2Logger.LogDebug("Final frame for stream id=" + stream.Id);
                     stream.HalfClosedRemote = true;
 
-                    //Promised resource has been pushed
+                    // Promised resource has been pushed
                     if (_promisedResources.ContainsKey(stream.Id))
                         _promisedResources.Remove(stream.Id);
                 }
@@ -462,13 +461,10 @@ namespace Microsoft.Http2.Protocol
                 stream.FramesReceived++;
             }
 
-            //09
-            //5.1.  Stream States
-            //An endpoint MUST NOT send frames on a closed stream.  An endpoint
-            //that receives a frame after receiving a RST_STREAM [RST_STREAM] or
-            //a frame containing a END_STREAM flag on that stream MUST treat
-            //that as a stream error (Section 5.4.2) of type STREAM_CLOSED
-            //[STREAM_CLOSED].
+            /* 13 -> 5.1
+            An endpoint MUST NOT send frames on a closed stream.  An endpoint
+            that receives any frame other than PRIORITY after receiving a
+            RST_STREAM MUST treat that as a stream error of type STREAM_CLOSED. */
             catch (Http2StreamNotFoundException ex)
             {
                 Http2Logger.LogDebug("Frame for already Closed stream with stream id={0}", ex.Id);
@@ -479,7 +475,7 @@ namespace Microsoft.Http2.Protocol
             }
             catch (CompressionError ex)
             {
-                //The endpoint is unable to maintain the compression context for the connection.
+                // The endpoint is unable to maintain the compression context for the connection.
                 Http2Logger.LogError("Compression error occurred: " + ex.Message);
                 Close(ResetStatusCode.CompressionError);
             }
@@ -490,7 +486,7 @@ namespace Microsoft.Http2.Protocol
             }
             catch (MaxConcurrentStreamsLimitException)
             {
-                //Remote side tries to open more streams than allowed
+                // Remote side tries to open more streams than allowed
                 Dispose();
             }
             catch (Exception ex)
@@ -673,10 +669,11 @@ namespace Microsoft.Http2.Protocol
             if (path == null)
                 throw new ProtocolError(ResetStatusCode.ProtocolError, "Invalid request ex");
 
-            //09 -> 8.2.2.  Push Responses
-            //Once a client receives a PUSH_PROMISE frame and chooses to accept the
-            //pushed resource, the client SHOULD NOT issue any requests for the
-            //promised resource until after the promised stream has closed.
+            /* 13 -> 8.2.2
+            Once a client receives a PUSH_PROMISE frame and chooses to accept the
+            pushed resource, the client SHOULD NOT issue any requests for the
+            promised resource until after the promised stream has closed. */
+
             if (_promisedResources.ContainsValue(path))
                 throw new ProtocolError(ResetStatusCode.ProtocolError, "Resource has been promised. Client should not request it.");
 
@@ -803,7 +800,7 @@ namespace Microsoft.Http2.Protocol
             // Dispose of all streams
             foreach (var stream in StreamDictionary.Values)
             {
-                //Cancel all opened streams
+                // Cancel all opened streams
                 stream.Close(ResetStatusCode.None);
             }
 

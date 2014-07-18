@@ -11,14 +11,14 @@ using System.Collections.Generic;
 
 namespace Microsoft.Http2.Protocol
 {
-    //09 -> 8.1.3 item
-    //The semantics of HTTP header fields are not altered by this
-    //specification, though header fields relating to connection management
-    //or request framing are no longer necessary.  An HTTP/2.0 request or
-    //response MUST NOT include any of the following header fields:
-    //Connection, Keep-Alive, Proxy-Connection, TE, Transfer-Encoding, and
-    //Upgrade.  A request or response containing these header fields MUST
-    //be treated as malformed (Section 8.1.3.5).
+    /* 13 -> 8.1.2 
+    This means that an intermediary transforming an HTTP/1.x message to
+    HTTP/2 will need to remove any header fields nominated by the
+    Connection header field, along with the Connection header field
+    itself.  Such intermediaries SHOULD also remove other connection-
+    specific header fields, such as Keep-Alive, Proxy-Connection,
+    Transfer-Encoding and Upgrade, even if they are not nominated by
+    Connection.*/
 
     public static class ForbiddenHeaders
     {

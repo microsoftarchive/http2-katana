@@ -23,7 +23,7 @@ namespace Microsoft.Http2.Protocol
     /// </summary>
     public abstract class Http2MessageHandler : IDisposable
     {
-        protected Http2Session _session;
+        protected Http2Session.Http2Session _session;
         protected bool _isDisposed;
         protected readonly Stream _stream;
         protected readonly CancellationToken _cancToken;
@@ -44,12 +44,9 @@ namespace Microsoft.Http2.Protocol
         {
             _isSecure = isSecure;
 
-            //09 spec:
-            //SETTINGS_ENABLE_PUSH (2):  This setting can be use to disable server
-            //push (Section 8.2).  An endpoint MUST NOT send a PUSH_PROMISE
-            //frame if it receives this setting set to a value of 0.  The
-            //initial value is 1, which indicates that push is permitted.
-
+            /* 13 -> 6.5.2
+            This setting can be use to disable server push. An endpoint MUST NOT 
+            send a PUSH_PROMISE frame if it receives this parameter set to a value of 0. */
             _isPushEnabled = true;
             _isDisposed = false;
             _cancToken = cancel;
@@ -57,7 +54,7 @@ namespace Microsoft.Http2.Protocol
             _end = end;
             _wereFirstSettingsSent = false;
 
-            _session = new Http2Session(_stream, _end, _isSecure, _cancToken);
+            _session = new Http2Session.Http2Session(_stream, _end, _isSecure, _cancToken);
         }
 
         /// <summary>

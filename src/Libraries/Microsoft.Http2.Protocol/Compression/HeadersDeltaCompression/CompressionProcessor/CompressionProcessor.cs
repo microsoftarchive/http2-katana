@@ -36,7 +36,7 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
 
         private int _maxHeaderByteSize;
 
-        /* 07 -> 4.4
+        /* 08 -> 7.3
         This new maximum size MUST be lower than or equal to the value 
         of the setting SETTINGS_HEADER_TABLE_SIZE */
         private int _settingsHeaderTableSize;
@@ -44,16 +44,18 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
 
         public CompressionProcessor()
         {
-            /* 12 -> 6.5.2
+            /* 13 -> 6.5.2
             The initial value is 4,096 bytes. */
             _maxHeaderByteSize = 4096;
             _isSettingHeaderTableSizeReceived = false;
 
-            /* 07 -> 3.1.2
+            /* 08 -> 3.2
             The header table is initially empty. */
             _remoteHeadersTable = new HeadersList();
             _localHeadersTable = new HeadersList();
 
+            /* 08 -> 3.3
+            The reference set is initially empty. */
             _remoteRefSet = new HeadersList();
             _localRefSet = new HeadersList();
 
@@ -65,7 +67,7 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
 
         private void EvictHeaderTableEntries(HeadersList headersTable, HeadersList refTable)
         {
-            /* 07 -> 3.3.2
+            /* 08 -> 5.2
             Whenever the maximum size for the header table is made smaller,
             entries are evicted from the end of the header table until the size
             of the header table is less than or equal to the maximum size. */
@@ -74,7 +76,7 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
                 var header = headersTable[headersTable.Count - 1];
                 headersTable.RemoveAt(headersTable.Count - 1);
 
-                /* 07 -> 3.3.2
+                /* 08 -> 5.2
                 Whenever an entry is evicted from the header table, any reference to
                 that entry contained by the reference set is removed. */
                 if (refTable.Contains(header))
@@ -124,13 +126,13 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
         private void InsertToHeadersTable(KeyValuePair<string, string> header, HeadersList refSet,
             HeadersList headersTable)
         {
-            /* 07 -> 3.3.1
+            /* 08 -> 5.1
             The size of an entry is the sum of its name's length in octets (as
             defined in Section 4.1.2), of its value's length in octets
             (Section 4.1.2) and of 32 octets. */
             int headerLen = header.Key.Length + header.Value.Length + 32;
 
-            /* 07 -> 3.3.2 
+            /* 08 -> 5.3
             Whenever a new entry is to be added to the table, any name referenced
             by the representation of this new entry is cached, and then entries
             are evicted from the end of the header table until the size of the
@@ -145,7 +147,7 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
             {
                 headersTable.RemoveAt(headersTable.Count - 1);
 
-                /* 07 -> 3.3.2
+                /* 08 -> 5.2
                 Whenever an entry is evicted from the header table, any reference to
                 that entry contained by the reference set is removed. */
 
@@ -153,7 +155,7 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
                     refSet.Remove(header);
             }
 
-            /* 07 -> 3.2.1
+            /* 08 -> 3.2.1
             We should always insert into 
             begin of the headers table. */
             headersTable.Insert(0, header);
@@ -198,24 +200,9 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
         private void CompressIncremental(KeyValuePair<string, string> header)
         {
             const byte prefix = (byte)UVarIntPrefix.Incremental;
-            /* 12 -> 8.1.3
-            Just as in HTTP/1.x, header field names are strings of ASCII
-            characters that are compared in a case-insensitive fashion.  However,
-            header field names MUST be converted to lowercase prior to their
-            encoding in HTTP/2. */
             int index = _remoteHeadersTable.FindIndex(kv => kv.Key.Equals(header.Key, StringComparison.OrdinalIgnoreCase));
             bool isFound = index != -1;
 
-            /* 07 -> 3.1.4
-                    <----------  Index Address Space ---------->
-                    <-- Header  Table -->  <-- Static  Table -->
-                    +---+-----------+---+  +---+-----------+---+
-                    | 1 |    ...    | k |  |k+1|    ...    | n |
-                    +---+-----------+---+  +---+-----------+---+
-                    ^                   |
-                    |                   V
-            Insertion Point       Drop Point
-            */
             // It's necessary to form result array because partial writeToOutput stream
             // can cause problems because of multithreading
             using (var stream = new MemoryStream(64))
@@ -253,7 +240,7 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
 
         private void CompressIndexed(KeyValuePair<string, string> header)
         {
-            /* 07 -> 3.2.1
+            /* 08 -> 4.1
             An _indexed representation_ corresponding to an entry _not present_
             in the reference set entails the following actions:
 
@@ -272,16 +259,6 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
             int index = _remoteHeadersTable.FindIndex(kv => kv.Key.Equals(header.Key) && kv.Value.Equals(header.Value));
             bool isFound = index != -1;
 
-            /* 07 -> 3.1.4
-                    <----------  Index Address Space ---------->
-                    <-- Header  Table -->  <-- Static  Table -->
-                    +---+-----------+---+  +---+-----------+---+
-                    | 1 |    ...    | k |  |k+1|    ...    | n |
-                    +---+-----------+---+  +---+-----------+---+
-                    ^                   |
-                    |                   V
-            Insertion Point       Drop Point
-            */
             if (!isFound)
             {
                 index = _staticTable.FindIndex(kv => kv.Key.Equals(header.Key,StringComparison.OrdinalIgnoreCase) 
@@ -291,7 +268,7 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
                 if (isFound)
                 {
                     index += _remoteHeadersTable.Count;
-                    /* 07 -> 3.2.1
+                    /* 08 -> 4.1
                     The referenced static entry is inserted at the beginning of the
                     header table. */
                     _remoteHeadersTable.Insert(0, header);
@@ -375,7 +352,7 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
 
         private int _currentOffset;
 
-        /* 07 -> 4.1.2
+        /* 08 -> 6.2
         String Length:  The number of octets used to encode the string
         literal, encoded as an integer with 7-bit prefix. */
         private const byte stringPrefix = 7;
@@ -438,7 +415,7 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
        
         private void ProcessCookie(HeadersList toProcess)
         {
-            /* 12 -> 8.1.3.4.
+            /* 13 -> 8.1.2.4
             If there are multiple Cookie header fields after
             decompression, these MUST be concatenated into a single octet string
             using the two octet delimiter of 0x3B, 0x20 (the ASCII string "; "). */
@@ -466,7 +443,7 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
 
         private Tuple<string, string, IndexationType> ProcessIndexed(int index)
         {
-            /* 07 -> 4.2
+            /* 08 -> 7.1
             The index value of 0 is not used. It MUST be treated as a decoding
             error if found in an indexed header field representation. */
             if (index == 0)
@@ -489,7 +466,7 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
                 throw new IndexOutOfRangeException("no such index nor in static neither in headers tables");
             }
 
-            /* 07 -> 3.2.1
+            /* 08 -> 4.1
             An _indexed representation_ corresponding to an entry _present_ in
             the reference set entails the following actions:
 
@@ -500,7 +477,7 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
                 return null;
             }
 
-            /* 07 -> 3.2.1
+            /* 08 -> 4.1
             An _indexed representation_ corresponding to an entry _not present_
             in the reference set entails the following actions:
 
@@ -551,7 +528,7 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
 
             value = DecodeString(bytes, stringPrefix);
 
-            /* 07 -> 3.2.1
+            /* 08 -> 4.1
             A _literal representation_ that is _not added_ to the header table
             entails the following action:
 
@@ -578,7 +555,7 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
 
             value = DecodeString(bytes, stringPrefix);
 
-            /* 07 -> 3.2.1
+            /* 08 -> 4.1
             A _literal representation_ that is _added_ to the header table
             entails the following actions:
 
@@ -606,7 +583,7 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
         {
             if (!changeTypeFlag)
             {
-                /* 07 -> 4.4
+                /* 08 -> 7.3
                 This new maximum size MUST be lower than
                 or equal to the value of the setting SETTINGS_HEADER_TABLE_SIZE */
                 //spec tells that in this case command should be interpreted as new table size
@@ -640,7 +617,7 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
         private Tuple<string, string, IndexationType> ProcessNeverIndexed(byte [] bytes, 
             int index)
         {
-            /* 07 -> 4.3.3
+            /* 08 -> 7.2.2
             The encoding of the representation is the same as for the literal
             header field without indexing representation. */
 
@@ -773,7 +750,7 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
             return indexationType;
         }
 
-        /* 07 -> 4.4
+        /* 08 -> 7.3
         An encoding context update starts with the '001' 3-bit pattern.        
         It is followed by a flag specifying the type of the change, and by
         any data necessary to describe the change itself. */

@@ -10,24 +10,24 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
 {
     public enum IndexationType : byte
     {
-        // See spec 07 -> 4.3.2.  Literal Header Field without Indexing
+        // see 08 -> 7.2.2
         // The literal header field without indexing representation starts with
         // the '0000' 4-bit pattern.
-        WithoutIndexation = 0x00,    //07: Literal without indexation            | 0 | 0 | 0 | 0 | Index (4+)       |
+        WithoutIndexation = 0x00,    //08: Literal without indexation            | 0 | 0 | 0 | 0 | Index (4+)       |
 
-        // See spec 07 -> 4.3.3.  Literal Header Field never Indexed
+        // see 08 -> 7.2.3
         // The literal header field never indexed representation starts with the
         // '0001' 4-bit pattern.
-        NeverIndexed = 0x10,         //07: Literal Never Indexed                 | 0 | 0 | 0 | 1 | Index (4+)       |
+        NeverIndexed = 0x10,         //08: Literal Never Indexed                 | 0 | 0 | 0 | 1 | Index (4+)       |
 
-        // See spec 07 -> 4.4.  Encoding Context Update
+        // see 08 -> 7.3
         // An encoding context update starts with the '001' 3-bit pattern.
-        EncodingContextUpdate = 0x20, //07:Encoding Context Update                | 0 | 0 | 1 |    Index (4+)       |
+        EncodingContextUpdate = 0x20, //08:Encoding Context Update                | 0 | 0 | 1 |    Index (4+)       |
 
-        // See spec 07 -> 4.3.1.  Literal Header Field with Incremental Indexing
+        // see 08 -> 7.2.1
         // This representation starts with the '01' 2-bit pattern.
-        Incremental = 0x40,          //07: Literal with incremental indexing     | 0 | 1 |         Index (6+)       |
+        Incremental = 0x40,          //08: Literal with incremental indexing     | 0 | 1 |         Index (6+)       |
 
-        Indexed = 0x80               //07: Indexed                                | 1 |            Index (7+)       |
+        Indexed = 0x80               //08: Indexed                                | 1 |            Index (7+)       |
     }
 }

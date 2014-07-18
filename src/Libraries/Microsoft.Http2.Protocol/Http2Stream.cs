@@ -187,13 +187,14 @@ namespace Microsoft.Http2.Protocol
         {
             if (IsFlowControlEnabled)
             {
-                //09 -> 6.9.1.  The Flow Control Window
-                //A sender MUST NOT allow a flow control window to exceed 2^31 - 1
-                //bytes.  If a sender receives a WINDOW_UPDATE that causes a flow
-                //control window to exceed this maximum it MUST terminate either the
-                //stream or the connection, as appropriate.  For streams, the sender
-                //sends a RST_STREAM with the error code of FLOW_CONTROL_ERROR code;
-                //for the connection, a GOAWAY frame with a FLOW_CONTROL_ERROR code.
+                /* 13 -> 6.9.1
+                A sender MUST NOT allow a flow control window to exceed 2^31 - 1
+                bytes. If a sender receives a WINDOW_UPDATE that causes a flow
+                control window to exceed this maximum it MUST terminate either the
+                stream or the connection, as appropriate.  For streams, the sender
+                sends a RST_STREAM with the error code of FLOW_CONTROL_ERROR code;
+                for the connection, a GOAWAY frame with a FLOW_CONTROL_ERROR code. */
+
                 WindowSize += delta;
 
                 if (WindowSize > Constants.MaxWindowSize)
@@ -203,7 +204,7 @@ namespace Microsoft.Http2.Protocol
                 }
             }
 
-            //Unblock stream if it was blocked by flowCtrlManager
+            // Unblock stream if it was blocked by flowCtrlManager
             if (WindowSize > 0 && IsFlowControlBlocked)
             {
                 IsFlowControlBlocked = false;
@@ -220,7 +221,7 @@ namespace Microsoft.Http2.Protocol
             if (Closed)
                 return;
 
-            //Handle window update one at a time
+            // Handle window update one at a time
             lock (_unshippedDeliveryLock)
             {
                 while (_unshippedFrames.Count > 0 && IsFlowControlBlocked == false)
@@ -301,13 +302,13 @@ namespace Microsoft.Http2.Protocol
 
             var dataFrame = new DataFrame(_id, data, isEndStream, true);
 
-            //We cant let lesser frame that were passed through flow control window
-            //be sent before greater frames that were not passed through flow control window
+            // We cant let lesser frame that were passed through flow control window
+            // be sent before greater frames that were not passed through flow control window
 
-            //09 -> 6.9.1.  The Flow Control Window
-            //The sender MUST NOT
-            //send a flow controlled frame with a length that exceeds the space
-            //available in either of the flow control windows advertised by the receiver.
+            /* 13 -> 6.9.1
+            The sender MUST NOT
+            send a flow controlled frame with a length that exceeds the space
+            available in either of the flow control windows advertised by the receiver. */
             if (_unshippedFrames.Count != 0 || WindowSize - dataFrame.Data.Count < 0)
             {
                 _unshippedFrames.Enqueue(dataFrame);
@@ -386,10 +387,6 @@ namespace Microsoft.Http2.Protocol
             if (windowSize > Constants.MaxWindowSize)
                 throw new ProtocolError(ResetStatusCode.FlowControlError, "window size is too large");
 
-            //09 -> 6.9.4.  Ending Flow Control
-            //After a receiver reads in a frame that marks the end of a stream (for
-            //example, a data stream with a END_STREAM flag set), it MUST cease
-	        //transmission of WINDOW_UPDATE frames for that stream.
             if (Closed)
                 return;
 
