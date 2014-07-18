@@ -23,6 +23,10 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
     /// </summary>
     internal partial class CompressionProcessor : ICompressionProcessor
     {
+        /* 08 -> 3.1
+        When used for bidirectional communication, such as in HTTP, the
+        encoding and decoding contexts maintained by an endpoint are
+        completely independent. */
         private HeadersList _remoteHeadersTable;
         private HeadersList _remoteRefSet;
         private HeadersList _localHeadersTable;
@@ -35,19 +39,24 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
         private MemoryStream _serializerStream;
 
         private int _maxHeaderByteSize;
+        private const int MaxStringLength = 255;
 
         /* 08 -> 7.3
         This new maximum size MUST be lower than or equal to the value 
         of the setting SETTINGS_HEADER_TABLE_SIZE */
         private int _settingsHeaderTableSize;
-        private bool _isSettingHeaderTableSizeReceived;
+        private bool _wasSettingHeaderTableSizeReceived;
+
+        // This flag is set after the applying SETTINGS_HEADER_TABLE_SIZE 
+        // and is reset the first calling Compress().
+        private bool _needToSendEncodingContextUpdate;
 
         public CompressionProcessor()
         {
             /* 13 -> 6.5.2
             The initial value is 4,096 bytes. */
             _maxHeaderByteSize = 4096;
-            _isSettingHeaderTableSizeReceived = false;
+            _wasSettingHeaderTableSizeReceived = false;
 
             /* 08 -> 3.2
             The header table is initially empty. */
@@ -89,13 +98,15 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
             if (newMaxVal <= 0)
                 throw new CompressionError("invalid max header table size in settings");
 
-            _isSettingHeaderTableSizeReceived = true;
+            _wasSettingHeaderTableSizeReceived = true;
             _settingsHeaderTableSize = newMaxVal;
 
             _maxHeaderByteSize = newMaxVal;
 
             EvictHeaderTableEntries(_remoteHeadersTable, _remoteRefSet);
             EvictHeaderTableEntries(_localHeadersTable, _localRefSet);
+
+            _needToSendEncodingContextUpdate = true;
         }
 
         /// <summary>
@@ -111,6 +122,12 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
 
             EvictHeaderTableEntries(_remoteHeadersTable, _remoteRefSet);
             EvictHeaderTableEntries(_localHeadersTable, _localRefSet);
+        }
+
+        private void WriteEncodingContextUpdate(byte[] buffer)
+        {
+            WriteToOutput(buffer, 0, buffer.Length);
+            _needToSendEncodingContextUpdate = false;
         }
 
         private void InitCompressor()
@@ -314,6 +331,20 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
                 }
             }
 
+            /* 08 -> 5.1
+            After applying an updated value of the HTTP/2 setting
+            SETTINGS_HEADER_TABLE_SIZE that changes the maximum size of the
+            header table used by the encoder, the encoder MUST signal this change
+            via an encoding context update (see Section 7.3).  This encoding
+            context update MUST occur at the beginning of the first header block
+            following the SETTINGS frame sent to acknowledge the application of
+            the updated settings.
+            */
+            if (_needToSendEncodingContextUpdate)
+            {
+                WriteEncodingContextUpdate(EncodingContextHelper.GetUpdateBytes(_settingsHeaderTableSize));
+            }
+
             foreach (var header in toDelete)
             {
                 // Anything left in toDelete, should send, so it is deleted from ref set.
@@ -359,8 +390,6 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
 
         private string DecodeString(byte[] bytes, byte prefix)
         {
-            const int lengthStringLimit = 255;
-
             int maxPrefixVal = (1 << prefix) - 1;
 
             // Get first bit. If true => huffman used
@@ -404,28 +433,19 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
                 result = Encoding.UTF8.GetString(decodedBytes);
 
                 _currentOffset += len;
-
-                /* 08 -> 8.4
-                An implementation has to set a limit for the values it accepts for
-                integers, as well as for the encoded length (see Section 6.1).  In
-                the same way, it has to set a limit to the length it accepts for
-                string literals */
-                if (result.Length > lengthStringLimit)
-                    throw new CompressionError("string length more than 255 bytes");
-
-                return result;
             }
-
-            result = Encoding.UTF8.GetString(bytes, _currentOffset, len);
-            _currentOffset += len;
+            else
+            {
+                result = Encoding.UTF8.GetString(bytes, _currentOffset, len);
+                _currentOffset += len;
+            }
 
             /* 08 -> 8.4
             An implementation has to set a limit for the values it accepts for
-            integers, as well as for the encoded length (see Section 6.1).  In
-            the same way, it has to set a limit to the length it accepts for
-            string literals */
-            if (result.Length > lengthStringLimit)
-                throw new CompressionError("string length more than 255 bytes");
+            integers, as well as for the encoded length. In the same way, it has
+            to set a limit to the length it accepts for string literals. */
+            if (result.Length > MaxStringLength)
+                throw new CompressionError("Header name or value is too large");
 
             return result;
         }
@@ -596,21 +616,20 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
             return new Tuple<string, string, IndexationType>(name, value, IndexationType.Incremental);
         }
 
-        private Tuple<string, string, IndexationType> ProcessEncodingContextUpdate(int command, bool changeTypeFlag)
+        private Tuple<string, string, IndexationType> ProcessEncodingContextUpdate(int index, bool clearReferenceSet)
         {
-            if (!changeTypeFlag)
+            if (!clearReferenceSet)
             {
                 /* 08 -> 7.3
                 This new maximum size MUST be lower than
-                or equal to the value of the setting SETTINGS_HEADER_TABLE_SIZE */
-                //spec tells that in this case command should be interpreted as new table size
-                int newTableSize = command; 
-
-                if (_isSettingHeaderTableSizeReceived && (newTableSize <= _settingsHeaderTableSize))
+                or equal to the value of the setting SETTINGS_HEADER_TABLE_SIZE */                
+                int newTableSize = index;
+                 
+                if (_wasSettingHeaderTableSizeReceived && (newTableSize <= _settingsHeaderTableSize))
                 {
                     ChangeMaxHeaderTableSize(newTableSize);
                 }
-                else if (!_isSettingHeaderTableSizeReceived)
+                else if (!_wasSettingHeaderTableSizeReceived)
                 {
                     ChangeMaxHeaderTableSize(newTableSize);
                 }
@@ -619,7 +638,7 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
                     throw new CompressionError("incorrect max header table size in Encoding Context Update");
                 }
             }
-            else if (command == 0)
+            else if (index == 0)
             {
                 _localRefSet.Clear();                
             }
@@ -659,10 +678,13 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
         {
             var type = GetHeaderType(bytes);
 
-            // If type is EncodingContextUpdate then it contains also flag
-            bool changeTypeFlag = false;
+            /* 08 -> 7.3
+            The flag bit being set to '1' signals that the reference set is
+            emptied. The flag bit being set to '0' signals that a change to the maximum
+            size of the header table. */
+            bool clearReferenceSet = false;
             if (type == IndexationType.EncodingContextUpdate)
-                changeTypeFlag = GetFlagOfEncodingContextUpdate(bytes);
+                clearReferenceSet = GetClearFlag(bytes);
 
             int index = GetIndex(bytes, type);
 
@@ -675,7 +697,7 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
                     case IndexationType.Incremental:
                         return ProcessIncremental(bytes, index);
                     case IndexationType.EncodingContextUpdate:
-                        return ProcessEncodingContextUpdate(index, changeTypeFlag);
+                        return ProcessEncodingContextUpdate(index, clearReferenceSet);
                     case IndexationType.NeverIndexed:
                         return ProcessNeverIndexed(bytes, index);
                     case IndexationType.WithoutIndexation:
@@ -777,12 +799,12 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
         An encoding context update starts with the '001' 3-bit pattern.        
         It is followed by a flag specifying the type of the change, and by
         any data necessary to describe the change itself. */
-        private bool GetFlagOfEncodingContextUpdate(byte[] bytes)
+        private bool GetClearFlag(byte[] bytes)
         {
-            const byte flagMask = 0x10; // depends on the pattern length
-            var changeTypeFlag = (bytes[_currentOffset] & flagMask) == flagMask;
-            bytes[_currentOffset] = (byte)(bytes[_currentOffset] & (~flagMask));
-            return changeTypeFlag;
+            const byte mask = 0x10; // depends on the pattern length
+            bool flag = (bytes[_currentOffset] & mask) == mask;
+            bytes[_currentOffset] = (byte)(bytes[_currentOffset] & (~mask));
+            return flag;
         }
 
         public HeadersList Decompress(byte[] serializedHeaders)

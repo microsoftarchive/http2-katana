@@ -11,15 +11,15 @@ namespace Http2.Katana.Tests
     /// </summary>
     internal class CompProcState
     {
-        public bool IsSettingHeaderTableSizeReceived { get; private set; }
+        public bool WasSettingHeaderTableSizeReceived { get; private set; }
         public int SettingsHeaderTableSize { get; private set; }
         public int MaxHeaderByteSize { get; private set; }
         public HeadersList LocalRefSet { get; private set; }
 
         public CompProcState(CompressionProcessor proc)
         {
-            IsSettingHeaderTableSizeReceived = (bool)GetFieldValue(typeof(CompressionProcessor),
-                "_isSettingHeaderTableSizeReceived", proc);
+            WasSettingHeaderTableSizeReceived = (bool)GetFieldValue(typeof(CompressionProcessor),
+                "_wasSettingHeaderTableSizeReceived", proc);
             SettingsHeaderTableSize = (int)GetFieldValue(typeof(CompressionProcessor),
                 "_settingsHeaderTableSize", proc);
             MaxHeaderByteSize = (int)GetFieldValue(typeof(CompressionProcessor),

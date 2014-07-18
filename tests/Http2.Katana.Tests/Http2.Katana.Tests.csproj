@@ -87,6 +87,9 @@
     <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Compression\HeadersDeltaCompression\CompressionProcessor\CompressionProcStaticTable.cs">
       <Link>Sources\Libraries\Microsoft.Http2.Protocol\Compression\HeadersDeltaCompression\CompressionProcessor\CompressionProcStaticTable.cs</Link>
     </Compile>
+    <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Compression\HeadersDeltaCompression\EncodingContextHelper.cs">
+      <Link>Sources\Libraries\Microsoft.Http2.Protocol\Compression\HeadersDeltaCompression\EncodingContextHelper.cs</Link>
+    </Compile>
     <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Compression\HeadersDeltaCompression\UVarIntPrefix.cs">
       <Link>Sources\Libraries\Microsoft.Http2.Protocol\Compression\HeadersDeltaCompression\UVarIntPrefix.cs</Link>
     </Compile>

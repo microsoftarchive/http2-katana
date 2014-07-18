@@ -40,8 +40,8 @@ namespace Http2.Katana.Tests
             Assert.Equal(validHeaderTableSize, stateAfter.MaxHeaderByteSize);
             Assert.Equal(stateBefore.SettingsHeaderTableSize, 
                 stateAfter.SettingsHeaderTableSize);
-            Assert.Equal(stateBefore.IsSettingHeaderTableSizeReceived, 
-                stateAfter.IsSettingHeaderTableSizeReceived);
+            Assert.Equal(stateBefore.WasSettingHeaderTableSizeReceived, 
+                stateAfter.WasSettingHeaderTableSizeReceived);
         }
 
         /// <summary>
@@ -79,7 +79,7 @@ namespace Http2.Katana.Tests
             Assert.Equal(stateBefore.SettingsHeaderTableSize, 
                 stateAfter.SettingsHeaderTableSize);
             Assert.Equal(stateBefore.MaxHeaderByteSize, stateBefore.SettingsHeaderTableSize);
-            Assert.True(stateAfter.IsSettingHeaderTableSizeReceived);
+            Assert.True(stateAfter.WasSettingHeaderTableSizeReceived);
             Assert.NotEqual(invalidHeaderTableSize, stateAfter.MaxHeaderByteSize);
             Assert.True(stateAfter.MaxHeaderByteSize <= stateAfter.SettingsHeaderTableSize);
             Assert.Equal(stateBefore.MaxHeaderByteSize, stateAfter.MaxHeaderByteSize);
@@ -111,9 +111,9 @@ namespace Http2.Katana.Tests
                 stateAfter.SettingsHeaderTableSize);
             Assert.Equal(stateBefore.MaxHeaderByteSize, 
                 stateBefore.SettingsHeaderTableSize);
-            Assert.True(stateAfter.IsSettingHeaderTableSizeReceived == 
-                stateBefore.IsSettingHeaderTableSizeReceived);
-            Assert.True(stateAfter.IsSettingHeaderTableSizeReceived);
+            Assert.True(stateAfter.WasSettingHeaderTableSizeReceived == 
+                stateBefore.WasSettingHeaderTableSizeReceived);
+            Assert.True(stateAfter.WasSettingHeaderTableSizeReceived);
             Assert.Equal(validHeaderTableSize, stateAfter.MaxHeaderByteSize);
             Assert.True(stateAfter.MaxHeaderByteSize <= stateAfter.SettingsHeaderTableSize);
         }
