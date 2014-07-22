@@ -77,6 +77,13 @@ namespace Microsoft.Http2.Protocol.Compression.Huffman
 
                 while (i < bits.Length)
                 {
+                    if (IsZeroOctet(bits, i))
+                    {
+                        stream.WriteByte(0x0);
+                        i = i + HuffmanCodesTable.ZeroOctet.Length;
+                        continue;
+                    }
+
                     Node temp = _root;
                     var symbolBits = new List<bool>();
 
@@ -144,6 +151,25 @@ namespace Microsoft.Http2.Protocol.Compression.Huffman
                 {
                     return false;
                 }
+            }
+
+            return true;
+        }
+
+        /* 13 -> 8.1.2.3
+        To preserve the order of multiple occurrences of a header field with
+        the same name, its ordered values are concatenated into a single
+        value using a zero-valued octet (0x0) to delimit them. */
+        private bool IsZeroOctet(bool [] bits, int index)
+        {
+            if (bits.Length - index + 1 < HuffmanCodesTable.ZeroOctet.Length)
+                return false;
+
+            int j = 0;
+            for (int i = index; i < index + HuffmanCodesTable.ZeroOctet.Length; i++, j++)
+            {
+                if (bits[i] != HuffmanCodesTable.ZeroOctet[j])
+                    return false;
             }
 
             return true;

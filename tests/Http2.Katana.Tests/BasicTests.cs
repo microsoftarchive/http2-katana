@@ -2,6 +2,7 @@
 using Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression;
 using Microsoft.Http2.Protocol.Compression.Huffman;
 using Microsoft.Http2.Protocol.Extensions;
+using Microsoft.Http2.Protocol.Http2Session;
 using Microsoft.Http2.Protocol.IO;
 using System;
 using System.Collections;
@@ -364,6 +365,38 @@ namespace Http2.Katana.Tests
             Assert.Equal(((PriorityQueueEntry)item10).Priority,0);
             var item11 = queue.Dequeue();
             Assert.Equal(((PriorityQueueEntry)item11).Priority, 0);
+        }
+
+        [StandardFact]
+        public void ConcatAndSplitMultipleHeaders()
+        {
+            var headers = new HeadersList()
+                {
+                    new KeyValuePair<string, string>(":scheme", "https"),
+                    new KeyValuePair<string, string>(":scheme", "http"),
+                    new KeyValuePair<string, string>("another-custom-key", "custom-value"),
+
+                    // this headers must match after decompression
+                    new KeyValuePair<string, string>("custom-key", "custom-value"),
+                    new KeyValuePair<string, string>("custom-key", "another-custom-value"),
+                    new KeyValuePair<string, string>("custom-key", "custom-value"),
+                };
+
+            var concatenatingHeaders = new HeadersList(headers);
+            Http2Session.ConcatMultipleHeaders(concatenatingHeaders);
+
+            var compressionProc = new CompressionProcessor();
+            var compressedHeaders = compressionProc.Compress(concatenatingHeaders);
+            var decompressedHeaders = compressionProc.Decompress(compressedHeaders);
+
+            Http2Session.SplitMultipleHeaders(decompressedHeaders);
+
+            for (int i = 0; i < headers.Count; i++)
+            {
+                Assert.Equal(headers[i], decompressedHeaders[i]);
+            }
+
+            Assert.Equal(headers.Count, decompressedHeaders.Count);
         }
     }
 }

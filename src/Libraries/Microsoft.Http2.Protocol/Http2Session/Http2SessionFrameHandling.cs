@@ -8,6 +8,7 @@
 // See the Apache 2 License for the specific language governing permissions and limitations under the License.
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression;
@@ -553,6 +554,52 @@ namespace Microsoft.Http2.Protocol.Http2Session
                 is not currently in the "idle" state) as a connection error of type PROTOCOL_ERROR. */
                 throw new ProtocolError(ResetStatusCode.ProtocolError, "Remote endpoint tried to Promise incorrect Stream id");
             }
-        }       
+        }
+
+        /* 13 -> 8.1.2.3
+        Header fields containing multiple values MUST be concatenated into a
+        single value unless the ordering of that header field is known to be
+        not significant. */
+        public static void ConcatMultipleHeaders(HeadersList headers)
+        {
+            for (int i = 0; i < headers.Count; i++)
+            {
+                for (int j = i + 1; j < headers.Count; j++)
+                {
+                    var anotherHeader = headers[j];
+                    if (headers[i].Key == anotherHeader.Key && headers[i].Key[0] != ':')
+                    {
+                        string value = headers[i].Value + "\0" + anotherHeader.Value;
+                        var newHeader = new KeyValuePair<string, string>(headers[i].Key, value);
+                        headers[i] = newHeader;
+                        headers.RemoveAt(j);
+                        j--;
+                    }
+                }
+            }
+        }
+
+        /* 13 -> 8.1.2.3
+        After decompression, header fields that have values containing zero
+        octets (0x0) MUST be split into multiple header fields before being
+        processed. */
+        public static void SplitMultipleHeaders(HeadersList headers)
+        {
+            for (int i = 0; i < headers.Count; i++)
+            {
+                var header = headers[i];
+                if (header.Value.Contains("\0"))
+                {
+                    string[] values = header.Value.Split(new[] {"\0"}, StringSplitOptions.None);
+                    for (int j = 0; j < values.Length; j++ )
+                    {
+                        string value = values[j];
+                        headers.Insert(i + j, new KeyValuePair<string, string>(header.Key, value));
+                    }
+                    headers.RemoveAt(i + values.Length);
+                    i = i + values.Length;
+                }
+            }
+        }
     }
 }
