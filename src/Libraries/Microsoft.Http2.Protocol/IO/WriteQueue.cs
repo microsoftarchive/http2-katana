@@ -84,6 +84,11 @@ namespace Microsoft.Http2.Protocol.IO
 
                             // frame reconstruction: headers compression
                             var headers = (entry.Frame as IHeadersFrame).Headers;
+
+                            // Header block is equal to one frame in this implementation. 
+                            // We do not send continuation frames.
+                            HeadersHelper.ConcatMultipleHeaders(headers);
+
                             var compressedHeaders = _proc.Compress(headers);
                             entry.Frame.PayloadLength += compressedHeaders.Length;
                             // frame reconstruction: add padding

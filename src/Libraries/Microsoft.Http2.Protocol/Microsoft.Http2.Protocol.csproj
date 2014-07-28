@@ -44,6 +44,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Compression\HeadersDeltaCompression\EncodingContextHelper.cs" />
+    <Compile Include="Framing\HeadersHelper.cs" />
     <Compile Include="Framing\IEndSegmentFrame.cs" />
     <Compile Include="Framing\IPaddingFrame.cs" />
     <Compile Include="StreamDictionary.cs" />

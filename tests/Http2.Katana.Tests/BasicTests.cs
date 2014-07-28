@@ -2,6 +2,7 @@
 using Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression;
 using Microsoft.Http2.Protocol.Compression.Huffman;
 using Microsoft.Http2.Protocol.Extensions;
+using Microsoft.Http2.Protocol.Framing;
 using Microsoft.Http2.Protocol.Http2Session;
 using Microsoft.Http2.Protocol.IO;
 using System;
@@ -374,29 +375,61 @@ namespace Http2.Katana.Tests
                 {
                     new KeyValuePair<string, string>(":scheme", "https"),
                     new KeyValuePair<string, string>(":scheme", "http"),
-                    new KeyValuePair<string, string>("another-custom-key", "custom-value"),
-
-                    // this headers must match after decompression
                     new KeyValuePair<string, string>("custom-key", "custom-value"),
+                    new KeyValuePair<string, string>("single-header-key", "single-header-value"),
+                    new KeyValuePair<string, string>("another-custom-key", "custom-value"),
                     new KeyValuePair<string, string>("custom-key", "another-custom-value"),
                     new KeyValuePair<string, string>("custom-key", "custom-value"),
+                    new KeyValuePair<string, string>("another-custom-key", "another-custom-value"),
                 };
 
             var concatenatingHeaders = new HeadersList(headers);
-            Http2Session.ConcatMultipleHeaders(concatenatingHeaders);
+            HeadersHelper.ConcatMultipleHeaders(concatenatingHeaders);
 
             var compressionProc = new CompressionProcessor();
             var compressedHeaders = compressionProc.Compress(concatenatingHeaders);
             var decompressedHeaders = compressionProc.Decompress(compressedHeaders);
 
-            Http2Session.SplitMultipleHeaders(decompressedHeaders);
-
-            for (int i = 0; i < headers.Count; i++)
-            {
-                Assert.Equal(headers[i], decompressedHeaders[i]);
-            }
+            HeadersHelper.SplitMultipleHeaders(decompressedHeaders);
 
             Assert.Equal(headers.Count, decompressedHeaders.Count);
+            Assert.True(headers.All(header => decompressedHeaders.Contains(header)));
+
+            var keys = new List<string>();
+            foreach (var header in headers)
+            {
+                if (!keys.Contains(header.Key))
+                    keys.Add(header.Key);
+            }
+
+            var handled = keys.ToDictionary(key => key, key => 0);
+
+            // check that duplicate header keys are not changed the order.
+            for (int i = 0; i < headers.Count; i++)
+            {
+                if (headers[i].Key[0] == ':')
+                {
+                    continue;
+                }
+
+                int numberOfSkipped = 0;
+                for (int j = 0; j < decompressedHeaders.Count; j++)
+                {
+                    if (decompressedHeaders[j].Key != headers[i].Key)
+                    {
+                        continue;
+                    }
+
+                    if (handled[decompressedHeaders[j].Key] == numberOfSkipped)
+                    {
+                        Assert.True(decompressedHeaders[j].Value == headers[i].Value);
+                        handled[headers[i].Key]++;
+                        break;
+                    }
+
+                    numberOfSkipped++;
+                }
+            }
         }
     }
 }
