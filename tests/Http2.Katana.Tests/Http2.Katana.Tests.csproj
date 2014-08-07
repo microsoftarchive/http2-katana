@@ -126,9 +126,6 @@
     <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Framing\HeadersFrame.cs">
       <Link>Sources\Libraries\Microsoft.Http2.Protocol\Framing\HeadersFrame.cs</Link>
     </Compile>
-    <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Framing\HeadersHelper.cs">
-      <Link>Sources\Libraries\Microsoft.Http2.Protocol\Framing\HeadersHelper.cs</Link>
-    </Compile>
     <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Framing\HeadersSequence.cs">
       <Link>Sources\Libraries\Microsoft.Http2.Protocol\Framing\HeadersSequence.cs</Link>
     </Compile>

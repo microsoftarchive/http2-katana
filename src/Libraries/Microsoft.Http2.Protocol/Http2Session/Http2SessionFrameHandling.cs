@@ -132,8 +132,6 @@ namespace Microsoft.Http2.Protocol.Http2Session
                 return;
             }
 
-            Http2Logger.LogDebug("Stream {0} splitting of headers", headersFrame.StreamId);
-            HeadersHelper.SplitMultipleHeaders(sequence.Headers);
             stream = GetStream(headersFrame.StreamId);
             /* 14 -> 8.1.
             A HEADERS frame (and associated CONTINUATION frames) can only appear
@@ -220,9 +218,6 @@ namespace Microsoft.Http2.Protocol.Http2Session
                 stream = null;
                 return;
             }
-
-            Http2Logger.LogDebug("Stream {0} splitting of headers", contFrame.StreamId);
-            HeadersHelper.SplitMultipleHeaders(sequence.Headers);
 
             stream = GetStream(contFrame.StreamId);
             if (stream.Idle || stream.ReservedRemote)
@@ -591,9 +586,6 @@ namespace Microsoft.Http2.Protocol.Http2Session
                 stream = null;
                 return;
             }
-
-            Http2Logger.LogDebug("Stream {0} splitting of headers", frame.StreamId);
-            HeadersHelper.SplitMultipleHeaders(sequence.Headers);
 
             /* 14 -> 8.2.1
             The server MUST include a method in the ":method" header field that is safe.
