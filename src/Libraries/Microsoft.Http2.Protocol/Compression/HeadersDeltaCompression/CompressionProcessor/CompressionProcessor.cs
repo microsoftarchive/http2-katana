@@ -69,10 +69,10 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
 
         private void EvictHeaderTableEntries(HeadersList headersTable)
         {
-            /* 08 -> 5.2
-            Whenever the maximum size for the header table is made smaller,
-            entries are evicted from the end of the header table until the size
-            of the header table is less than or equal to the maximum size. */
+            /* 09 -> 5.2
+            Whenever the maximum size for the header table is reduced, entries
+            are evicted from the end of the header table until the size of the
+            header table is less than or equal to the maximum size. */
             while (headersTable.StoredHeadersSize >= _maxHeaderByteSize && headersTable.Count > 0)
             {
                 var header = headersTable[headersTable.Count - 1];
@@ -97,7 +97,7 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
         }
 
         /// <summary>
-        /// Change Max Header Table Size when receiving appropriate Encoding Context Update
+        /// Change Max Header Table Size when receiving appropriate Header Table Size Update
         /// </summary>
         /// <param name="newMaxVal"></param>
         private void ChangeMaxHeaderTableSize(int newMaxVal)
@@ -130,22 +130,23 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
         private void InsertToHeadersTable(KeyValuePair<string, string> header,
             HeadersList headersTable)
         {
-            /* 08 -> 5.1
+            /* 09 -> 5.1
             The size of an entry is the sum of its name's length in octets (as
             defined in Section 6.2), its value's length in octets (see
             Section 6.2), plus 32. */
             int headerLen = header.Key.Length + header.Value.Length + 32;
 
             /* 08 -> 5.3
-            Whenever a new entry is to be added to the table, any name referenced
-            by the representation of this new entry is cached, and then entries
-            are evicted from the end of the header table until the size of the
-            header table is less than or equal to (maximum size - new entry
-            size), or until the table is empty. 
+            Whenever a new entry is to be added to the header table, entries are
+            evicted from the end of the header table until the size of the header
+            table is less than or equal to (maximum size - new entry size), or
+            until the table is empty.
             
             If the size of the new entry is less than or equal to the maximum
             size, that entry is added to the table.  It is not an error to
-            attempt to add an entry that is larger than the maximum size. */
+            attempt to add an entry that is larger than the maximum size; an
+            attempt to add an entry larger than the entire table causes the table
+            to be emptied of all existing entries. */
 
             while (headersTable.StoredHeadersSize + headerLen >= _maxHeaderByteSize && headersTable.Count > 0)
             {
@@ -199,6 +200,20 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
             int index = _remoteHeadersTable.FindIndex(kv => kv.Key.Equals(header.Key, StringComparison.OrdinalIgnoreCase));
             bool isFound = index != -1;
 
+            /* 09 -> 7.2.1
+            If the header field name matches the header field name of an entry
+            stored in the static table or the header table, the header field name
+            can be represented using the index of that entry. */
+            if (!isFound)
+            {
+                index = _staticTable.FindIndex(kv => kv.Key.Equals(header.Key, StringComparison.OrdinalIgnoreCase));
+                isFound = index != -1;
+            }
+            else
+            {
+                index += _staticTable.Count;
+            }
+
             // It's necessary to form result array because partial writeToOutput stream
             // can cause problems because of multithreading
             using (var stream = new MemoryStream(64))
@@ -209,7 +224,7 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
 
                 if (isFound)
                 {
-                    // Header key was found in the header table. Hence we should encode only value
+                    // Header key was found in the header table or static table. Hence we should encode only value
                     indexBinary = (index + 1).ToUVarInt(prefix);
                     valueBinary = EncodeString(header.Value, true);
                 }
@@ -244,11 +259,10 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
                 index = _staticTable.FindIndex(kv => kv.Key.Equals(header.Key,StringComparison.OrdinalIgnoreCase) 
                                                     && kv.Value.Equals(header.Value, StringComparison.OrdinalIgnoreCase));
                 isFound = index != -1;
-
-                if (isFound)
-                {
-                    index += _remoteHeadersTable.Count;
-                }
+            }
+            else
+            {
+                index += _staticTable.Count;
             }
 
             if (!isFound)
@@ -422,16 +436,16 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
                 throw new CompressionError("indexed representation with zero value");
 
             var header = default(KeyValuePair<string, string>);
-            bool isInStatic = index > _localHeadersTable.Count & index <= _localHeadersTable.Count + _staticTable.Count;
-            bool isInHeaders = index <= _localHeadersTable.Count;
+            bool isInStatic = index <= _staticTable.Count;
+            bool isInHeaders = index > _staticTable.Count & index <= _staticTable.Count + _localHeadersTable.Count;
 
             if (isInStatic)
             {
-                header = _staticTable[index - _localHeadersTable.Count - 1];
+                header = _staticTable[index - 1];
             }
             else if (isInHeaders)
             {
-                header = _localHeadersTable[index - 1];           
+                header = _localHeadersTable[index - _staticTable.Count - 1];          
             }
             else
             {
@@ -461,7 +475,9 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
             else
             {
                 // Index increased by 1 was sent
-                name = index < _localHeadersTable.Count ? _localHeadersTable[index - 1].Key : _staticTable[index - 1].Key;
+                name = index <= _staticTable.Count ? 
+                    _staticTable[index - 1].Key : 
+                    _localHeadersTable[index - _staticTable.Count - 1].Key;
             }
 
             value = DecodeString(bytes, stringPrefix);
@@ -486,9 +502,9 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
             else
             {
                 // Index increased by 1 was sent
-                name = index - 1 < _localHeadersTable.Count ? 
-                                _localHeadersTable[index - 1].Key :
-                                _staticTable[index - _localHeadersTable.Count - 1].Key;
+                name = index <= _staticTable.Count ? 
+                    _staticTable[index - 1].Key : 
+                    _localHeadersTable[index - _staticTable.Count - 1].Key;
             }
 
             value = DecodeString(bytes, stringPrefix);
@@ -509,7 +525,7 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
             return new Tuple<string, string, IndexationType>(name, value, IndexationType.Incremental);
         }
 
-        private Tuple<string, string, IndexationType> ProcessEncodingContextUpdate(int headerTableSize)
+        private Tuple<string, string, IndexationType> ProcessHeaderTableSizeUpdate(int headerTableSize)
         {
             /* 09 -> 7.3
             The new maximum size MUST be lower than or equal to the last value of
@@ -548,7 +564,9 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
             else
             {
                 // Index increased by 1 was sent
-                name = index < _localHeadersTable.Count ? _localHeadersTable[index - 1].Key : _staticTable[index - 1].Key;
+                name = index <= _staticTable.Count ?
+                    _staticTable[index - 1].Key :
+                    _localHeadersTable[index - _staticTable.Count - 1].Key;
             }
 
             value = DecodeString(bytes, stringPrefix);
@@ -570,7 +588,7 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
                     case IndexationType.Incremental:
                         return ProcessIncremental(bytes, index);
                     case IndexationType.HeaderTableSizeUpdate:
-                        return ProcessEncodingContextUpdate(index);
+                        return ProcessHeaderTableSizeUpdate(index);
                     case IndexationType.NeverIndexed:
                         return ProcessNeverIndexed(bytes, index);
                     case IndexationType.WithoutIndexation:
