@@ -14,7 +14,6 @@ namespace Http2.Katana.Tests
         public bool WasSettingHeaderTableSizeReceived { get; private set; }
         public int SettingsHeaderTableSize { get; private set; }
         public int MaxHeaderByteSize { get; private set; }
-        public HeadersList LocalRefSet { get; private set; }
 
         public CompProcState(CompressionProcessor proc)
         {
@@ -24,8 +23,6 @@ namespace Http2.Katana.Tests
                 "_settingsHeaderTableSize", proc);
             MaxHeaderByteSize = (int)GetFieldValue(typeof(CompressionProcessor),
                 "_maxHeaderByteSize", proc);
-            LocalRefSet = (HeadersList)GetFieldValue(typeof(CompressionProcessor),
-                "_localRefSet", proc);
         }
 
         private object GetFieldValue(Type type, string fieldName, object instance)

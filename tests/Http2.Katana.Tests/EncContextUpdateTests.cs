@@ -117,38 +117,5 @@ namespace Http2.Katana.Tests
             Assert.Equal(validHeaderTableSize, stateAfter.MaxHeaderByteSize);
             Assert.True(stateAfter.MaxHeaderByteSize <= stateAfter.SettingsHeaderTableSize);
         }
-
-        /// <summary>
-        /// Sends Encoding Context Update for Reference Set emptying
-        /// </summary>
-        [StandardFact]
-        public void ClearReferenceSet()
-        {
-            var bytes = new byte[] { 0x30 }; // this value depends on pattern
-
-            var clientHeaders = new HeadersList
-                {
-                    new KeyValuePair<string, string>(":method", "get")
-                };
-
-            var clientCompressionProc = new CompressionProcessor();
-            var serverCompressionProc = new CompressionProcessor();
-
-            serverCompressionProc.Decompress(clientCompressionProc.Compress(clientHeaders));
-
-            stateBefore = new CompProcState(serverCompressionProc);
-
-            Assert.True(stateBefore.LocalRefSet.Count > 0);
-
-            serverCompressionProc.Decompress(bytes);
-
-            stateAfter = new CompProcState(serverCompressionProc);
-
-            serverCompressionProc.Dispose();
-            clientCompressionProc.Dispose();
-
-            Assert.True(stateAfter.LocalRefSet == null || 
-                stateAfter.LocalRefSet.Count == 0);
-        }
     }
 }

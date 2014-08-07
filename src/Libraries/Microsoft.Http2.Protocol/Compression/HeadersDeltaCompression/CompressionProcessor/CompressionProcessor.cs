@@ -17,20 +17,18 @@ using Microsoft.Http2.Protocol.Compression.Huffman;
 namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
 {
     // This headers compression algorithm is described in
-    // http://tools.ietf.org/html/draft-ietf-httpbis-header-compression-07
+    // http://tools.ietf.org/html/draft-ietf-httpbis-header-compression-09
     /// <summary>
-    /// This class implement header compression.
+    /// This class implements header compression.
     /// </summary>
     internal partial class CompressionProcessor : ICompressionProcessor
     {
-        /* 08 -> 3.1
+        /* 09 -> 3.2
         When used for bidirectional communication, such as in HTTP, the
         encoding and decoding contexts maintained by an endpoint are
         completely independent. */
         private HeadersList _remoteHeadersTable;
-        private HeadersList _remoteRefSet;
         private HeadersList _localHeadersTable;
-        private HeadersList _localRefSet;
 
         private HuffmanCompressionProcessor _huffmanProc;
 
@@ -63,18 +61,13 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
             _remoteHeadersTable = new HeadersList();
             _localHeadersTable = new HeadersList();
 
-            /* 08 -> 3.3
-            The reference set is initially empty. */
-            _remoteRefSet = new HeadersList();
-            _localRefSet = new HeadersList();
-
             _huffmanProc = new HuffmanCompressionProcessor();
 
             InitCompressor();
             InitDecompressor();
         }
 
-        private void EvictHeaderTableEntries(HeadersList headersTable, HeadersList refTable)
+        private void EvictHeaderTableEntries(HeadersList headersTable)
         {
             /* 08 -> 5.2
             Whenever the maximum size for the header table is made smaller,
@@ -84,12 +77,6 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
             {
                 var header = headersTable[headersTable.Count - 1];
                 headersTable.RemoveAt(headersTable.Count - 1);
-
-                /* 08 -> 5.2
-                Whenever an entry is evicted from the header table, any reference to
-                that entry contained by the reference set is removed. */
-                if (refTable.Contains(header))
-                    refTable.Remove(header);
             }
         }
 
@@ -103,8 +90,8 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
 
             _maxHeaderByteSize = newMaxVal;
 
-            EvictHeaderTableEntries(_remoteHeadersTable, _remoteRefSet);
-            EvictHeaderTableEntries(_localHeadersTable, _localRefSet);
+            EvictHeaderTableEntries(_remoteHeadersTable);
+            EvictHeaderTableEntries(_localHeadersTable);
 
             _needToSendEncodingContextUpdate = true;
         }
@@ -120,8 +107,8 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
 
             _maxHeaderByteSize = newMaxVal;
 
-            EvictHeaderTableEntries(_remoteHeadersTable, _remoteRefSet);
-            EvictHeaderTableEntries(_localHeadersTable, _localRefSet);
+            EvictHeaderTableEntries(_remoteHeadersTable);
+            EvictHeaderTableEntries(_localHeadersTable);
         }
 
         private void WriteEncodingContextUpdate(byte[] buffer)
@@ -140,7 +127,7 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
             _currentOffset = 0;
         }
 
-        private void InsertToHeadersTable(KeyValuePair<string, string> header, HeadersList refSet,
+        private void InsertToHeadersTable(KeyValuePair<string, string> header,
             HeadersList headersTable)
         {
             /* 08 -> 5.1
@@ -163,13 +150,6 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
             while (headersTable.StoredHeadersSize + headerLen >= _maxHeaderByteSize && headersTable.Count > 0)
             {
                 headersTable.RemoveAt(headersTable.Count - 1);
-
-                /* 08 -> 5.2
-                Whenever an entry is evicted from the header table, any reference to
-                that entry contained by the reference set is removed. */
-
-                if (refSet.Contains(header))
-                    refSet.Remove(header);
             }
 
             /* 08 -> 3.2.1
@@ -252,27 +232,11 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
                 WriteToOutput(stream.GetBuffer(), 0, (int)stream.Position);
             }
 
-            InsertToHeadersTable(header, _remoteRefSet, _remoteHeadersTable);
+            InsertToHeadersTable(header, _remoteHeadersTable);
         }
 
         private void CompressIndexed(KeyValuePair<string, string> header)
         {
-            /* 08 -> 4.1
-            An _indexed representation_ corresponding to an entry _not present_
-            in the reference set entails the following actions:
-
-            o  If referencing an element of the static table:
-
-                *  The header field corresponding to the referenced entry is
-                    emitted.
-
-                *  The referenced static entry is inserted at the beginning of the
-                    header table.
-
-                *  A reference to this new header table entry is added to the
-                    reference set, except if this new entry didn't fit in the
-                    header table. */
-
             int index = _remoteHeadersTable.FindIndex(kv => kv.Key.Equals(header.Key) && kv.Value.Equals(header.Value));
             bool isFound = index != -1;
 
@@ -285,10 +249,6 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
                 if (isFound)
                 {
                     index += _remoteHeadersTable.Count;
-                    /* 08 -> 4.1
-                    The referenced static entry is inserted at the beginning of the
-                    header table. */
-                    _remoteHeadersTable.Insert(0, header);
                 }
             }
 
@@ -308,30 +268,9 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
 
         public byte[] Compress(HeadersList headers)
         {
-            var toSend = new HeadersList();
-            var toDelete = new HeadersList(_remoteRefSet);
-
             ClearStream(_serializerStream, (int) _serializerStream.Position);
 
-            foreach (var header in headers)
-            {
-                if (header.Key == null || header.Value == null)
-                {
-                    throw new InvalidHeaderException(header);
-                }
-                if (!_remoteRefSet.Contains(header))
-                {
-                    // Not there, Will send
-                    toSend.Add(header);
-                }
-                else
-                {
-                    // Already there, don't delete
-                    toDelete.Remove(header);
-                }
-            }
-
-            /* 08 -> 5.1
+            /* 09 -> 5.1
             After applying an updated value of the HTTP/2 setting
             SETTINGS_HEADER_TABLE_SIZE that changes the maximum size of the
             header table used by the encoder, the encoder MUST signal this change
@@ -345,16 +284,13 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
                 WriteEncodingContextUpdate(EncodingContextHelper.GetUpdateBytes(_settingsHeaderTableSize));
             }
 
-            foreach (var header in toDelete)
+            foreach (var header in headers)
             {
-                // Anything left in toDelete, should send, so it is deleted from ref set.
-                CompressIndexed(header);
-                _remoteRefSet.Remove(header); // Update our copy
-            }
+                if (header.Key == null || header.Value == null)
+                {
+                    throw new InvalidHeaderException(header);
+                }
 
-            foreach (var header in toSend)
-            {
-                // Send whatever was left in headersCopy
                 if (_remoteHeadersTable.Contains(header) || _staticTable.Contains(header))
                 {
                     CompressIndexed(header);
@@ -363,8 +299,6 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
                 {
                     CompressIncremental(header);
                 }
-
-                _remoteRefSet.Add(header);
             }
 
             _serializerStream.Flush();
@@ -383,7 +317,7 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
 
         private int _currentOffset;
 
-        /* 08 -> 6.2
+        /* 09 -> 6.2
         String Length:  The number of octets used to encode the string
         literal, encoded as an integer with 7-bit prefix. */
         private const byte stringPrefix = 7;
@@ -440,7 +374,7 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
                 _currentOffset += len;
             }
 
-            /* 08 -> 8.4
+            /* 09 -> 8.4
             An implementation has to set a limit for the values it accepts for
             integers, as well as for the encoded length. In the same way, it has
             to set a limit to the length it accepts for string literals. */
@@ -480,7 +414,7 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
 
         private Tuple<string, string, IndexationType> ProcessIndexed(int index)
         {
-            /* 08 -> 7.1
+            /* 09 -> 7.1
             The index value of 0 is not used. It MUST be treated as a decoding
             error if found in an indexed header field representation. */
             if (index == 0)
@@ -503,47 +437,13 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
                 throw new IndexOutOfRangeException("no such index nor in static neither in headers tables");
             }
 
-            /* 08 -> 4.1
-            An _indexed representation_ corresponding to an entry _present_ in
-            the reference set entails the following actions:
+            /* 09 -> 4.2
+            An _indexed representation_ entails the following actions:
 
-            o  The entry is removed from the reference set. */
-            if (_localRefSet.Contains(header))
-            {
-                _localRefSet.Remove(header);
-                return null;
-            }
-
-            /* 08 -> 4.1
-            An _indexed representation_ corresponding to an entry _not present_
-            in the reference set entails the following actions:
-
-            o  If referencing an element of the static table:
-
-                *  The header field corresponding to the referenced entry is
-                    emitted.
-
-                *  The referenced static entry is inserted at the beginning of the
-                    header table.
-
-                *  A reference to this new header table entry is added to the
-                    reference set, except if this new entry didn't fit in the
-                    header table.
-
-            o  If referencing an element of the header table:
-
-                *  The header field corresponding to the referenced entry is
-                    emitted.
-
-                *  The referenced header table entry is added to the reference
-                    set.
+            o  The header field corresponding to the referenced entry in either
+                the static table or header table is added to the decoded header
+                list.
             */
-            if (isInStatic)
-            {
-                _localHeadersTable.Insert(0, header);
-            }
-
-            _localRefSet.Add(header);
 
             return new Tuple<string, string, IndexationType>(header.Key, header.Value, IndexationType.Indexed);
         }
@@ -565,11 +465,11 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
 
             value = DecodeString(bytes, stringPrefix);
 
-            /* 08 -> 4.1
+            /* 09 -> 4.2
             A _literal representation_ that is _not added_ to the header table
             entails the following action:
 
-            o  The header field is emitted. */
+            o  The header field is added to the decoded header list. */
             return new Tuple<string, string, IndexationType>(name, value, IndexationType.WithoutIndexation);
         }
 
@@ -592,26 +492,18 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
 
             value = DecodeString(bytes, stringPrefix);
 
-            /* 08 -> 4.1
+            /* 09 -> 4.2
             A _literal representation_ that is _added_ to the header table
             entails the following actions:
 
-            o  The header field is emitted.
+            o  The header field is added to the decoded header list.
 
-            o  The header field is inserted at the beginning of the header table.
-
-            o  A reference to the new entry is added to the reference set (except
-                if this new entry didn't fit in the header table). */
-
-            // o  The header field is inserted at the beginning of the header table.
+            o  The header field is inserted at the beginning of the header table. */
             // This action will be performed when ModifyTable will be called
 
             var header = new KeyValuePair<string, string>(name, value);
 
-            _localRefSet.Add(header);
-
-            //This action will be performed when ModifyTable will be called
-            InsertToHeadersTable(header, _localRefSet, _localHeadersTable);
+            InsertToHeadersTable(header, _localHeadersTable);
 
             return new Tuple<string, string, IndexationType>(name, value, IndexationType.Incremental);
         }
@@ -639,8 +531,7 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
                 }
             }
             else if (index == 0)
-            {
-                _localRefSet.Clear();                
+            {              
             }
             else
             {
@@ -652,9 +543,9 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
 
         private Tuple<string, string, IndexationType> ProcessNeverIndexed(byte [] bytes, int index)
         {
-            /* 08 -> 7.2.2
-            The encoding of the representation is the same as for the literal
-            header field without indexing representation. */
+            /* 09 -> 7.2.3
+            The encoding of the representation is identical to the literal header
+            field without indexing. */
 
             string name;
             string value;
@@ -732,7 +623,7 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
                     prefix = (byte)UVarIntPrefix.EncodingContextUpdate;
                     break;
                 case IndexationType.NeverIndexed:
-                    prefix = (byte) UVarIntPrefix.NeverIndexed;
+                    prefix = (byte)UVarIntPrefix.NeverIndexed;
                     break;
             }
 
@@ -812,31 +703,19 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
             try
             {
                 _currentOffset = 0;
-                var unindexedHeadersList = new HeadersList();
+                var result = new HeadersList();
 
                 while (_currentOffset != serializedHeaders.Length)
                 {
                     var entry = ParseHeader(serializedHeaders);
 
-                    // parsed indexed header which was already in the refSet 
+                    // representation is Header Table Size Update
                     if (entry == null) 
                         continue;
 
-                    var header = new KeyValuePair<string, string>(entry.Item1, entry.Item2);
-                    
-                    if (entry.Item3 == IndexationType.WithoutIndexation ||
-                        entry.Item3 == IndexationType.NeverIndexed)
-                    {
-                        unindexedHeadersList.Add(header);
-                    }
+                    var header = new KeyValuePair<string, string>(entry.Item1, entry.Item2);                    
+                    result.Add(header);
                 }
-
-                // Base result on already modified reference set
-                var result = new HeadersList(_localRefSet);
-
-                // Add to result Without indexation and Never Indexed
-                // They were not added into reference set
-                result.AddRange(unindexedHeadersList);
 
                 ProcessCookie(result);
 
