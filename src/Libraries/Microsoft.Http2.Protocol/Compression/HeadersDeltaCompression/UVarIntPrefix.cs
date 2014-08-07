@@ -12,7 +12,14 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
     {
         WithoutIndexing = 4,
         NeverIndexed = 4,
-        EncodingContextUpdate = 4,
+
+        /* 09 -> 7.3
+        A header table size update starts with the '001' 3-bit pattern,
+        followed by the new maximum size, represented as an integer with a
+        5-bit prefix.
+        */
+        HeaderTableSizeUpdate = 5,
+
         Incremental = 6,
         Indexed = 7
     }

@@ -20,14 +20,14 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
         // '0001' 4-bit pattern.
         NeverIndexed = 0x10,         //08: Literal Never Indexed                 | 0 | 0 | 0 | 1 | Index (4+)       |
 
-        // see 08 -> 7.3
-        // An encoding context update starts with the '001' 3-bit pattern.
-        EncodingContextUpdate = 0x20, //08:Encoding Context Update                | 0 | 0 | 1 |    Index (4+)       |
+        // 09 -> 7.3
+        // A header table size update starts with the '001' 3-bit pattern.
+        HeaderTableSizeUpdate = 0x20, //09: Header Table Size Update             | 0 | 0 | 1 |    Index (4+)       |
 
         // see 08 -> 7.2.1
         // This representation starts with the '01' 2-bit pattern.
         Incremental = 0x40,          //08: Literal with incremental indexing     | 0 | 1 |         Index (6+)       |
 
-        Indexed = 0x80               //08: Indexed                                | 1 |            Index (7+)       |
+        Indexed = 0x80               //08: Indexed                               | 1 |            Index (7+)       |
     }
 }

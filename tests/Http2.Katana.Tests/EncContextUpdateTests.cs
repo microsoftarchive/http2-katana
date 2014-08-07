@@ -9,7 +9,7 @@ namespace Http2.Katana.Tests
 {
     public class EncContextUpdateTests
     {
-        private const byte prefix = (byte)UVarIntPrefix.EncodingContextUpdate;
+        private const byte prefix = (byte)UVarIntPrefix.HeaderTableSizeUpdate;
         private const int validHeaderTableSize = 10000;
         private const int invalidHeaderTableSize = 99999;
         private const int newSettingsMaxHeaderTableSize = 15000;
@@ -18,14 +18,14 @@ namespace Http2.Katana.Tests
         private CompProcState stateAfter;
 
         /// <summary>
-        /// Sends Encoding Context Update with new max headers table size when
+        /// Sends Header Table Size Update with new max headers table size when
         /// SETTINGS_HEADER_TABLE_SIZE is not received
         /// </summary>
         [StandardFact]
         public void SendMaxHeaderTableSize()
         {
             byte[] bytes = validHeaderTableSize.ToUVarInt(prefix);
-            bytes[0] |= (byte)IndexationType.EncodingContextUpdate;
+            bytes[0] |= (byte)IndexationType.HeaderTableSizeUpdate;
 
             var serverCompressionProc = new CompressionProcessor();
 
@@ -45,7 +45,7 @@ namespace Http2.Katana.Tests
         }
 
         /// <summary>
-        /// Sends Encoding Context Update with invalid new max headers table size when
+        /// Sends Header Table Size Update with invalid new max headers table size when
         /// SETTINGS_HEADER_TABLE_SIZE was already received.
         /// </summary>
         [StandardFact]
@@ -54,7 +54,7 @@ namespace Http2.Katana.Tests
             bool isErrorThrown = false;
 
             var bytes = invalidHeaderTableSize.ToUVarInt(prefix);
-            bytes[0] |= (byte)IndexationType.EncodingContextUpdate;
+            bytes[0] |= (byte)IndexationType.HeaderTableSizeUpdate;
 
             var serverCompressionProc = new CompressionProcessor();
             serverCompressionProc.NotifySettingsChanges(newSettingsMaxHeaderTableSize);
@@ -86,14 +86,14 @@ namespace Http2.Katana.Tests
         }
 
         /// <summary>
-        /// Sends Encoding Context Update with valid new max headers table size when
+        /// Sends Header Table Size Update with valid new max headers table size when
         /// SETTINGS_HEADER_TABLE_SIZE was already received.
         /// </summary>
         [StandardFact]
         public void SendValidMaxHeaderTableSize()
         {
             var  bytes = validHeaderTableSize.ToUVarInt(prefix);
-            bytes[0] |= (byte)IndexationType.EncodingContextUpdate;
+            bytes[0] |= (byte)IndexationType.HeaderTableSizeUpdate;
 
             var serverCompressionProc = new CompressionProcessor();
             serverCompressionProc.NotifySettingsChanges(newSettingsMaxHeaderTableSize);
