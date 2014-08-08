@@ -14,7 +14,7 @@ namespace Microsoft.Http2.Protocol.Framing
     /// HEADERS frame class
     /// see 13 -> 6.2
     /// </summary>
-    public class HeadersFrame : Frame, IEndStreamFrame, /*IEndSegmentFrame,*/ IHeadersFrame, IPaddingFrame
+    public class HeadersFrame : Frame, IEndStreamFrame, IHeadersFrame, IPaddingFrame
     {
         // 1 byte PadLength field
         private const int PadLengthSize = 1;
@@ -87,21 +87,6 @@ namespace Microsoft.Http2.Protocol.Framing
                 }
             }
         }
-
-  /*      public bool IsEndSegment
-        {
-            get
-            {
-                return (Flags & FrameFlags.EndSegment) == FrameFlags.EndSegment;
-            }
-            set
-            {
-                if (value)
-                {
-                    Flags |= FrameFlags.EndSegment;
-                }
-            }
-        }*/
 
         public bool IsEndHeaders
         {
