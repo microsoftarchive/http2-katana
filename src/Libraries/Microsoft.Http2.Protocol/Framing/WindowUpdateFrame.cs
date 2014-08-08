@@ -15,7 +15,7 @@ namespace Microsoft.Http2.Protocol.Framing
     internal class WindowUpdateFrame : Frame
     {
         // The number of bytes in the frame.
-        private const int InitialFrameSize = 12;
+        private const int InitialFrameSize = Constants.FramePreambleSize + 4;//13;
                 
         // Incoming
         public WindowUpdateFrame(Frame preamble)

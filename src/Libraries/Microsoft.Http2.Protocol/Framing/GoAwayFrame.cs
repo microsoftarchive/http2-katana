@@ -15,7 +15,7 @@ namespace Microsoft.Http2.Protocol.Framing
     internal class GoAwayFrame : Frame
     {
         // The number of bytes in the frame.
-        private const int InitialFrameSize = 24;
+        private const int InitialFrameSize = Constants.FramePreambleSize + 16;//25
 
         // Incoming
         public GoAwayFrame(Frame preamble)

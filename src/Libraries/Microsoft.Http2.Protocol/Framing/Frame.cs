@@ -11,7 +11,7 @@ using System;
 namespace Microsoft.Http2.Protocol.Framing
 {
     /// <summary>
-    /// see 13 -> 4.1 Frame Format
+    /// see 14 -> 4.1 Frame Format
     /// </summary>
     public class Frame
     {
@@ -59,61 +59,61 @@ namespace Microsoft.Http2.Protocol.Framing
             get { return FrameType != FrameType.Data; }
         }
 
-        /* 13 -> 4.1
-        The length of the frame payload. The 8 octets of the frame header
-        are not included in this value. */
+        /* 14 -> 4.1
+        The length of the frame payload expressed as an unsigned
+        24-bit integer. */
         public int PayloadLength
         {
             get
             {
-                return FrameHelper.Get16BitsAt(Buffer, 0);
+                return FrameHelper.Get24BitsAt(Buffer, 0);
             }
             set
             {
-                FrameHelper.Set16BitsAt(Buffer, 0, value);
+                FrameHelper.Set24BitsAt(Buffer, 0, value);
             }
         }
 
-        /* 13 -> 4.1
+        /* 14 -> 4.1
         The 8-bit type of the frame. The frame type determines the
         format and semantics of the frame. */
         public FrameType FrameType
         {
             get
             {
-                return (FrameType) Buffer[2];
+                return (FrameType) Buffer[3];
             }
             set 
             { 
-                Buffer[2] = (byte)value;
+                Buffer[3] = (byte)value;
             }
         }
 
-        /* 13 -> 4.1
+        /* 14 -> 4.1
         An 8-bit field reserved for frame-type specific boolean flags. */
         public FrameFlags Flags
         {
             get
             {
-                return (FrameFlags) Buffer[3];
+                return (FrameFlags) Buffer[4];
             }
             set
             {
-                Buffer[3] = (byte) value;
+                Buffer[4] = (byte) value;
             }
         }
 
-        /* 13 -> 4.1
+        /* 14 -> 4.1
         A 31-bit stream identifier. */
         public Int32 StreamId
         {
             get
             {
-                return FrameHelper.Get31BitsAt(Buffer, 4);
+                return FrameHelper.Get31BitsAt(Buffer, 5);
             }
             set
             {
-                FrameHelper.Set31BitsAt(Buffer, 4, value);
+                FrameHelper.Set31BitsAt(Buffer, 5, value);
             }
         }
     }

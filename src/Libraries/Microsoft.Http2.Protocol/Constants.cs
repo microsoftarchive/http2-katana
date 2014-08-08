@@ -13,10 +13,10 @@ namespace Microsoft.Http2.Protocol
     /// </summary>
     public static class Constants
     {
-        /* 13 -> 4.1 
-        All frames begin with an 8-octet header followed by a payload of
-        between 0 and 16,383 octets. */
-        public const int FramePreambleSize = 8; // bytes
+        /* 14 -> 4.1 
+        All frames begin with a fixed 9-octet header followed by a variable-
+        length payload. */
+        public const int FramePreambleSize = 9; // bytes
         public const int DefaultClientCertVectorSize = 8;
         /* 13 -> 4.2 
         The absolute maximum size of a frame payload is 2^14-1 (16,383) octets,
