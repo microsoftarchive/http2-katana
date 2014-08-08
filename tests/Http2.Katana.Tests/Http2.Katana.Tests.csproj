@@ -431,7 +431,7 @@
     </Compile>
     <Compile Include="BasicTests.cs" />
     <Compile Include="CompProcState.cs" />
-    <Compile Include="EncContextUpdateTests.cs" />
+    <Compile Include="HeaderTableSizeUpdateTests.cs" />
     <Compile Include="GlobalSuppressions.cs" />
     <Compile Include="HandshakeTests.cs" />
     <Compile Include="Http11Tests.cs" />

@@ -7,12 +7,14 @@ using Xunit;
 
 namespace Http2.Katana.Tests
 {
-    public class EncContextUpdateTests
+    public class HeaderTableSizeUpdateTests
     {
         private const byte prefix = (byte)UVarIntPrefix.HeaderTableSizeUpdate;
         private const int validHeaderTableSize = 10000;
         private const int invalidHeaderTableSize = 99999;
         private const int newSettingsMaxHeaderTableSize = 15000;
+
+        private readonly int[] severalMaxHeaderTableSizeSettings = new int[] { 7000, 8000, 6000};
 
         private CompProcState stateBefore;
         private CompProcState stateAfter;
@@ -116,6 +118,43 @@ namespace Http2.Katana.Tests
             Assert.True(stateAfter.WasSettingHeaderTableSizeReceived);
             Assert.Equal(validHeaderTableSize, stateAfter.MaxHeaderByteSize);
             Assert.True(stateAfter.MaxHeaderByteSize <= stateAfter.SettingsHeaderTableSize);
+        }
+
+        /// <summary>
+        /// Sends several Header Table Size Updates.
+        /// </summary>
+        [StandardFact]
+        public void SendSeveralHeaderTableSizeUpdates()
+        {
+            var serverCompressionProc = new CompressionProcessor();
+
+            foreach (var settingSize in severalMaxHeaderTableSizeSettings)
+            {
+                serverCompressionProc.NotifySettingsChanges(settingSize);
+            }
+
+            var serverState = new CompProcState(serverCompressionProc);
+
+            var headers = new HeadersList() { new KeyValuePair<string, string>("key", "value") };
+            var bytes = serverCompressionProc.Compress(headers);
+
+            var clientCompressionProc = new CompressionProcessor();
+            var resultHeaders = clientCompressionProc.Decompress(bytes);
+            var clientState = new CompProcState(clientCompressionProc);
+
+            Assert.Equal(resultHeaders.Count, headers.Count);
+            for (int i = 0; i < headers.Count; i++)
+            {
+                Assert.Equal(headers[i].Key, resultHeaders[i].Key);
+                Assert.Equal(headers[i].Value, resultHeaders[i].Value);
+            }
+
+            Assert.Equal(severalMaxHeaderTableSizeSettings[severalMaxHeaderTableSizeSettings.Length - 1],
+                clientState.MaxHeaderByteSize);
+            Assert.Equal(severalMaxHeaderTableSizeSettings[severalMaxHeaderTableSizeSettings.Length - 1],
+                serverState.SettingsHeaderTableSize);
+            Assert.Equal(severalMaxHeaderTableSizeSettings[severalMaxHeaderTableSizeSettings.Length - 1],
+                serverState.MaxHeaderByteSize);
         }
     }
 }

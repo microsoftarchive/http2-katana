@@ -39,10 +39,11 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
         private int _maxHeaderByteSize;
         private const int MaxStringLength = 255;
 
-        /* 08 -> 7.3
-        This new maximum size MUST be lower than or equal to the value 
-        of the setting SETTINGS_HEADER_TABLE_SIZE */
+        /* 09 -> 7.3
+        The new maximum size MUST be lower than or equal to the last value of
+        the SETTINGS_HEADER_TABLE_SIZE parameter */
         private int _settingsHeaderTableSize;
+        private List<int> _settingsBetweenTwoHeaderBlock;
         private bool _wasSettingHeaderTableSizeReceived;
 
         // This flag is set after the applying SETTINGS_HEADER_TABLE_SIZE 
@@ -56,7 +57,9 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
             _maxHeaderByteSize = 4096;
             _wasSettingHeaderTableSizeReceived = false;
 
-            /* 08 -> 3.2
+            _settingsBetweenTwoHeaderBlock = new List<int>(); 
+
+            /* 09 -> 3.3.2
             The header table is initially empty. */
             _remoteHeadersTable = new HeadersList();
             _localHeadersTable = new HeadersList();
@@ -88,6 +91,16 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
             _wasSettingHeaderTableSizeReceived = true;
             _settingsHeaderTableSize = newMaxVal;
 
+            /* 09 -> 5.1
+            Several updates to the value of the SETTINGS_HEADER_TABLE_SIZE
+            parameter can occur between the sending of two header blocks.  In the
+            case that the value of this parameter is changed more that once, if
+            one of its value is smaller than the new maximum size, the smallest
+            value for the parameter MUST be sent before the new maximum size,
+            using two encoding context updates.  This ensures that the decoder is
+            able to perform eviction based on the decoder table size. */
+            _settingsBetweenTwoHeaderBlock.Add(_settingsHeaderTableSize);
+
             _maxHeaderByteSize = newMaxVal;
 
             EvictHeaderTableEntries(_remoteHeadersTable);
@@ -111,10 +124,22 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
             EvictHeaderTableEntries(_localHeadersTable);
         }
 
-        private void WriteHeaderTableSizeUpdate(byte[] buffer)
+        /* 09 -> 5.1
+        Several updates to the value of the SETTINGS_HEADER_TABLE_SIZE
+        parameter can occur between the sending of two header blocks.  In the
+        case that the value of this parameter is changed more that once, if
+        one of its value is smaller than the new maximum size, the smallest
+        value for the parameter MUST be sent before the new maximum size,
+        using two encoding context updates.  This ensures that the decoder is
+        able to perform eviction based on the decoder table size. */
+        private void SendHeaderTableSizeUpdates()
         {
-            WriteToOutput(buffer, 0, buffer.Length);
-            _needToSendHeaderTableSizeUpdate = false;
+            foreach (var settingSize in _settingsBetweenTwoHeaderBlock)
+            {
+                var payload = settingSize.ToUVarInt((byte)UVarIntPrefix.HeaderTableSizeUpdate);
+                payload[0] |= (byte)IndexationType.HeaderTableSizeUpdate;
+                WriteToOutput(payload, 0, payload.Length);
+            }
         }
 
         private void InitCompressor()
@@ -136,7 +161,7 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
             Section 6.2), plus 32. */
             int headerLen = header.Key.Length + header.Value.Length + 32;
 
-            /* 08 -> 5.3
+            /* 09 -> 5.3
             Whenever a new entry is to be added to the header table, entries are
             evicted from the end of the header table until the size of the header
             table is less than or equal to (maximum size - new entry size), or
@@ -294,9 +319,9 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
             */
             if (_needToSendHeaderTableSizeUpdate)
             {
-                var payload = _settingsHeaderTableSize.ToUVarInt((byte)UVarIntPrefix.HeaderTableSizeUpdate);
-                payload[0] |= (byte)IndexationType.HeaderTableSizeUpdate;
-                WriteHeaderTableSizeUpdate(payload);
+                SendHeaderTableSizeUpdates();
+                _settingsBetweenTwoHeaderBlock.Clear();
+                _needToSendHeaderTableSizeUpdate = false;
             }
 
             foreach (var header in headers)
