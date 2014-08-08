@@ -9,12 +9,12 @@
 namespace Microsoft.Http2.Protocol
 {
     /// <summary>
-    /// see 13 -> 3.1
+    /// see 14 -> 3.1
     /// </summary>
     public static class Protocols
     {
-        public static string Http2 = "h2-13";
-        public static string Http2NoTls = "h2c-13";
+        public static string Http2 = "h2-14";
+        public static string Http2NoTls = "h2c-14";
         public static string Http1 = "http/1.1";
     }
 }
