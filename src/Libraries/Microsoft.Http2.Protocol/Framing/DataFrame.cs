@@ -15,7 +15,7 @@ namespace Microsoft.Http2.Protocol.Framing
     /// DATA frame class
     /// see 13 -> 6.1
     /// </summary>
-    public class DataFrame : Frame, IEndStreamFrame, IEndSegmentFrame, IPaddingFrame
+    public class DataFrame : Frame, IEndStreamFrame, IPaddingFrame
     {
         // 1 byte PadLength field
         private const int PadLengthSize = 1;
@@ -73,21 +73,6 @@ namespace Microsoft.Http2.Protocol.Framing
                 if (value)
                 {
                     Flags |= FrameFlags.EndStream;
-                }
-            }
-        }
-
-        public bool IsEndSegment
-        {
-            get
-            {
-                return (Flags & FrameFlags.EndSegment) == FrameFlags.EndSegment;
-            }
-            set
-            {
-                if (value)
-                {
-                    Flags |= FrameFlags.EndSegment;
                 }
             }
         }
