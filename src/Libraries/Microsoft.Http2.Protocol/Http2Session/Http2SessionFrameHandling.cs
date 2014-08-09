@@ -321,7 +321,7 @@ namespace Microsoft.Http2.Protocol.Http2Session
             
             if (stream.IsFlowControlEnabled && !dataFrame.IsEndStream)
             {
-                stream.WriteWindowUpdate(Constants.MaxFramePayloadSize);
+                stream.WriteWindowUpdate(dataFrame.Buffer.Length - Constants.FramePreambleSize);
             }
         }
 
@@ -418,6 +418,20 @@ namespace Microsoft.Http2.Protocol.Http2Session
 
                         _flowControlManager.StreamsInitialWindowSize = newInitWindowSize;
                         InitialWindowSize = newInitWindowSize;
+                        break;
+                    case SettingsIds.MaxFrameSize:
+                        /* 14 -> 6.5.2
+                        The value advertised
+                        by an endpoint MUST be between this initial value and the maximum
+                        allowed frame size (2^24-1 or 16,777,215 octets), inclusive.
+                        Values outside this range MUST be treated as a connection error
+                        (Section 5.4.1) of type PROTOCOL_ERROR.*/
+                        //TODO: throw exception if value out of range (16,384 - 16,777,215)
+                        MaxFrameSize = setting.Value;
+                        foreach (var stream in StreamDictionary)
+                        {
+                            stream.Value.MaxFrameSize = MaxFrameSize;
+                        }
                         break;
 
                     default:

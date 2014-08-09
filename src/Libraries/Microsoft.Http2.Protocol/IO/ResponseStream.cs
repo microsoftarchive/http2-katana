@@ -83,7 +83,7 @@ namespace Microsoft.Http2.Protocol.IO
             while (sent < count)
             {
                 // maximum chunk length of the file to be read
-                int chunkSize = MathEx.Min(count - sent, Constants.MaxFramePayloadSize - Constants.MaxFramePaddingSize);
+                int chunkSize = MathEx.Min(count - sent, _stream.MaxFrameSize - Constants.MaxFramePaddingSize);
                 var segment = new ArraySegment<byte>(buffer, offset + sent, chunkSize);
                 _stream.WriteDataFrame(segment, isEndStream: false);
                 sent += chunkSize;

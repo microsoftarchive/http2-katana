@@ -168,7 +168,7 @@ namespace Microsoft.Http2.Protocol.Framing
         public static void Set31BitsAt(byte[] buffer, int offset, int value)
         {
             Contract.Assert(offset >= 0 && offset + 3 < buffer.Length);
-            Contract.Assert(value >= 0 && value <= 0x7FFFFF);
+            Contract.Assert(value >= 0 && value <= 0x7FFFFFFF);
             buffer[offset] |= (byte)((value >> 24) & 0x7F);
             buffer[offset + 1] = (byte)(value >> 16);
             buffer[offset + 2] = (byte)(value >> 8);

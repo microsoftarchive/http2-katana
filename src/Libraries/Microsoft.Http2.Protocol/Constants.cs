@@ -18,10 +18,12 @@ namespace Microsoft.Http2.Protocol
         length payload. */
         public const int FramePreambleSize = 9; // bytes
         public const int DefaultClientCertVectorSize = 8;
-        /* 13 -> 4.2 
-        The absolute maximum size of a frame payload is 2^14-1 (16,383) octets,
-        meaning that the maximum frame size is 16,391 octets. */
-        public const int MaxFramePayloadSize = 0x3fff; // 16383 bytes.
+        /* 14 -> 4.2 
+        The size of a frame payload is limited by the maximum size that a
+        receiver advertises in the SETTINGS_MAX_FRAME_SIZE setting.  This
+        setting can have any value between 2^14 (16,384) and 2^24-1
+        (16,777,215) octets, inclusive. */
+        public const int MaxFramePayloadSize = 0xffffff; // 16777215 bytes.
         public const int MaxFramePaddingSize = 300; // bytes
         public const int InitialFlowControlOptionsValue = 0;
         public const string DefaultMethod = Verbs.Get;

@@ -9,7 +9,7 @@
 namespace Microsoft.Http2.Protocol.Framing
 {
     /// <summary>
-    /// See 13 -> 6.5.2
+    /// See 14 -> 6.5.2
     /// </summary>
     public enum SettingsIds : int
     {
@@ -17,6 +17,7 @@ namespace Microsoft.Http2.Protocol.Framing
         HeadersTableSize = 1,
         EnablePush = 2,
         MaxConcurrentStreams = 3,
-        InitialWindowSize = 4
+        InitialWindowSize = 4,
+        MaxFrameSize = 5,
     }
 }

@@ -75,6 +75,11 @@ namespace Microsoft.Http2.Protocol.Http2Session
         public event EventHandler<System.EventArgs> OnSessionDisposed;
 
         /// <summary>
+        /// Setting for max payload of frames
+        /// </summary>
+        public Int32 MaxFrameSize { get; set; }
+
+        /// <summary>
         /// Gets the stream dictionary.
         /// </summary>
         /// <value>
@@ -100,7 +105,7 @@ namespace Microsoft.Http2.Protocol.Http2Session
         /// </value>
         internal Int32 RemoteMaxConcurrentStreams { get; set; }
         internal Int32 InitialWindowSize { get; set; }
-        internal Int32 SessionWindowSize { get; set; }
+        internal Int64 SessionWindowSize { get; set; }
         internal bool IsPushEnabled { get; private set; }
 
         public Http2Session(Stream stream, ConnectionEnd end, 
@@ -120,6 +125,12 @@ namespace Microsoft.Http2.Protocol.Http2Session
 
             if (initialWindowSize <= 0)
                 throw new ArgumentOutOfRangeException("initialWindowSize cant be less or equal then 0");
+
+            /*14 -> 6.5.2
+            SETTINGS_MAX_FRAME_SIZE (0x5):  Indicates the size of the largest
+            frame payload that a receiver is willing to accept.
+            The initial value is 2^14 (16,384) octets.*/
+            MaxFrameSize = 16384;
 
             _ourEnd = end;
             _isSecure = isSecure;
@@ -166,7 +177,8 @@ namespace Microsoft.Http2.Protocol.Http2Session
             {
                 var http2Stream = new Http2Stream(new HeadersList(), i + 1, _writeQueue, _flowControlManager)
                 {
-                    Idle = true
+                    Idle = true,
+                    MaxFrameSize = MaxFrameSize
                 };
                 StreamDictionary.Add(new KeyValuePair<int, Http2Stream>(i + 1, http2Stream));
             }
@@ -371,7 +383,7 @@ namespace Microsoft.Http2.Protocol.Http2Session
             
             try
             {
-                if (frame.PayloadLength > Constants.MaxFramePayloadSize)
+                if (frame.PayloadLength > MaxFrameSize)
                 {
                     throw new ProtocolError(ResetStatusCode.FrameSizeError,
                                             String.Format("Frame too large: Type: {0} {1}", frame.FrameType,

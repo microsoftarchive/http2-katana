@@ -6,6 +6,8 @@
 // THIS CODE IS PROVIDED ON AN *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION ANY IMPLIED WARRANTIES OR CONDITIONS OF TITLE, FITNESS FOR A PARTICULAR PURPOSE, MERCHANTABLITY OR NON-INFRINGEMENT.
 
 // See the Apache 2 License for the specific language governing permissions and limitations under the License.
+
+using System.Threading;
 using Microsoft.Http2.Protocol.Compression;
 using Microsoft.Http2.Protocol.EventArgs;
 using Microsoft.Http2.Protocol.Exceptions;
@@ -98,6 +100,7 @@ namespace Microsoft.Http2.Protocol
         public int FramesReceived { get; set; }
         public int Priority { get; set; }
         public bool WasRstSent { get; set; }
+        public Int32 MaxFrameSize { get; set; }
 
         public bool Opened
         {
@@ -238,7 +241,8 @@ namespace Microsoft.Http2.Protocol
             }
         }
 
-        public Int32 WindowSize { get; set; }
+        //It should be Int64 becouse if it can be greater 2^31, it will be < 0
+        public Int64 WindowSize { get; set; }
 
         public Int64 SentDataAmount { get; private set; }
 
