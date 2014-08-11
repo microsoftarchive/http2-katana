@@ -20,13 +20,17 @@ namespace Microsoft.Http2.Protocol
             public const int Code100Continue = 100;
             public const int Code101SwitchingProtocols = 101;
             public const int Code501NotImplemented = 501;
+            public const int Code102Processing = 102;
+            public const int Code105NameNotResolved = 105;
 
             public const string Reason500InternalServerError = "Internal Server Error";
-            public const string Reason100Continue = "Internal Server Error";
+            public const string Reason100Continue = "Continue";
             public const string Reason200Ok = "OK";
             public const string Reason404NotFound = "Not Found";
             public const string Reason101SwitchingProtocols = "Switching protocols";
             public const string Reason501NotImplemented = "Not implemented";
+            public const string Reason102Processing = "Processing";
+            public const string Reason105NameNotResolved = "Name Not Resolved";
 
             public static string GetReasonPhrase(int statusCode)
             {
@@ -38,6 +42,8 @@ namespace Microsoft.Http2.Protocol
                     case Code500InternalServerError: return Reason500InternalServerError;
                     case Code101SwitchingProtocols: return Reason101SwitchingProtocols;
                     case Code501NotImplemented: return Reason501NotImplemented;
+                    case Code102Processing: return Reason102Processing;
+                    case Code105NameNotResolved: return Reason105NameNotResolved;
                     default:
                         return null;
                 }
