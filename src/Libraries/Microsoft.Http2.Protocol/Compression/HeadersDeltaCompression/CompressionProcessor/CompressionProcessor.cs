@@ -426,7 +426,7 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
     
         private void ProcessCookie(HeadersList toProcess)
         {
-            /* 13 -> 8.1.2.4
+            /* 14 -> 8.1.2.5
             If there are multiple Cookie header fields after
             decompression, these MUST be concatenated into a single octet string
             using the two octet delimiter of 0x3B, 0x20 (the ASCII string "; "). */
