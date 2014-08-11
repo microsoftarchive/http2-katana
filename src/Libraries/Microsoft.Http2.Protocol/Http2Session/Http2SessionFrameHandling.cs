@@ -135,6 +135,17 @@ namespace Microsoft.Http2.Protocol.Http2Session
             Http2Logger.LogDebug("Stream {0} splitting of headers", headersFrame.StreamId);
             HeadersHelper.SplitMultipleHeaders(sequence.Headers);
             stream = GetStream(headersFrame.StreamId);
+            /* 14 -> 8.1.
+            A HEADERS frame (and associated CONTINUATION frames) can only appear
+            at the start or end of a stream.  An endpoint that receives a second
+            HEADERS frame without the END_STREAM flag set MUST treat the
+            corresponding request or response as malformed */
+            if (stream.WasHeadersFrameRecived && !headersFrame.IsEndStream)
+            {
+                throw new ProtocolError(ResetStatusCode.ProtocolError, "HEADERS frame is not on start or end of stream. "+(stream.HalfClosedLocal));
+            }
+            stream.WasHeadersFrameRecived = true;
+
             if (stream.Idle)
             {
                 stream = CreateStream(sequence);
@@ -426,7 +437,8 @@ namespace Microsoft.Http2.Protocol.Http2Session
                         allowed frame size (2^24-1 or 16,777,215 octets), inclusive.
                         Values outside this range MUST be treated as a connection error
                         (Section 5.4.1) of type PROTOCOL_ERROR.*/
-                        //TODO: throw exception if value out of range (16,384 - 16,777,215)
+                        if (setting.Value < 16384 || setting.Value > Constants.MaxFramePayloadSize)
+                            throw new ProtocolError(ResetStatusCode.ProtocolError, "value out of range (16,384 - 16,777,215)");
                         MaxFrameSize = setting.Value;
                         foreach (var stream in StreamDictionary)
                         {

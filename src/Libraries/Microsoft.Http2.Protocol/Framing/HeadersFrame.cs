@@ -32,7 +32,7 @@ namespace Microsoft.Http2.Protocol.Framing
             : base(preamble)
         {
         }
-
+        
         // for outgoing
         public HeadersFrame(int streamId, bool hasPadding, int streamDependency = -1, byte weight = 0, bool exclusive = false)
         {
