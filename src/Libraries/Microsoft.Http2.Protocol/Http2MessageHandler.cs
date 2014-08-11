@@ -44,7 +44,7 @@ namespace Microsoft.Http2.Protocol
         {
             _isSecure = isSecure;
 
-            /* 13 -> 6.5.2
+            /* 14 -> 6.5.2
             This setting can be use to disable server push. An endpoint MUST NOT 
             send a PUSH_PROMISE frame if it receives this parameter set to a value of 0. */
             _isPushEnabled = true;

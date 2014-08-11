@@ -11,7 +11,7 @@ using System;
 namespace Microsoft.Http2.Protocol.Framing
 {
     /// <summary>
-    /// see 13 -> 6.5.1
+    /// see 14 -> 6.5.1
     /// </summary>
     public struct SettingsPair
     {

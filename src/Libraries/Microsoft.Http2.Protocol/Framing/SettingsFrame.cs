@@ -14,7 +14,7 @@ namespace Microsoft.Http2.Protocol.Framing
 {
     /// <summary>
     /// SETTINGS frame class
-    /// see 13 -> 6.5
+    /// see 14 -> 6.5
     /// </summary>
     public class SettingsFrame : Frame
     {

@@ -87,7 +87,7 @@ namespace Microsoft.Http2.Protocol.Http2Session
         {
             Http2Logger.LogFrameReceived(headersFrame);
 
-            /* 13 -> 6.2 
+            /* 14 -> 6.2 
             HEADERS frames MUST be associated with a stream. If a HEADERS frame
             is received whose stream identifier field is 0x0, the recipient MUST
             respond with a connection error of type PROTOCOL_ERROR. */
@@ -182,7 +182,7 @@ namespace Microsoft.Http2.Protocol.Http2Session
                 throw new ProtocolError(ResetStatusCode.ProtocolError,
                                         "Last frame was not headers or continuation");
 
-            /* 13 -> 6.10
+            /* 14 -> 6.10
             CONTINUATION frames MUST be associated with a stream. If a CONTINUATION 
             frame is received whose stream identifier field is 0x0, the recipient MUST
             respond with a connection error of type PROTOCOL_ERROR. */
@@ -251,7 +251,7 @@ namespace Microsoft.Http2.Protocol.Http2Session
         {
             Http2Logger.LogFrameReceived(priorityFrame);
 
-            /* 13 -> 6.3
+            /* 14 -> 6.3
             The PRIORITY frame is associated with an existing stream. If a
             PRIORITY frame is received with a stream identifier of 0x0, the
             recipient MUST respond with a connection error of type PROTOCOL_ERROR. */
@@ -261,7 +261,7 @@ namespace Microsoft.Http2.Protocol.Http2Session
            
             stream = GetStream(priorityFrame.StreamId);
 
-            /* 13 -> 6.3
+            /* 14 -> 6.3
             The PRIORITY frame can be sent on a stream in any of the "reserved
             (remote)", "open", "half-closed (local)", or "half closed (remote)"
             states, though it cannot be sent between consecutive frames that
@@ -280,7 +280,7 @@ namespace Microsoft.Http2.Protocol.Http2Session
         {
             Http2Logger.LogFrameReceived(resetFrame);
 
-            /* 13 -> 6.4
+            /* 14 -> 6.4
             RST_STREAM frames MUST be associated with a stream.  If a RST_STREAM
             frame is received with a stream identifier of 0x0, the recipient MUST
             treat this as a connection error of type PROTOCOL_ERROR. */
@@ -312,7 +312,7 @@ namespace Microsoft.Http2.Protocol.Http2Session
         {
             Http2Logger.LogFrameReceived(dataFrame);
 
-            /* 13 -> 6.1
+            /* 14 -> 6.1
             DATA frames MUST be associated with a stream. If a DATA frame is
             received whose stream identifier field is 0x0, the recipient MUST 
             respond with a connection error of type PROTOCOL_ERROR */
@@ -340,7 +340,7 @@ namespace Microsoft.Http2.Protocol.Http2Session
         {
             Http2Logger.LogFrameReceived(pingFrame);
 
-            /* 13 -> 6.7
+            /* 14 -> 6.7
             PING frames are not associated with any individual stream.  If a PING
             frame is received with a stream identifier field value other than
             0x0, the recipient MUST respond with a connection error of type PROTOCOL_ERROR. */
@@ -360,7 +360,7 @@ namespace Microsoft.Http2.Protocol.Http2Session
             }
             else
             {
-                /* 13 -> 6.7 
+                /* 14 -> 6.7 
                 Receivers of a PING frame that does not include an ACK flag MUST send
                 a PING frame with the ACK flag set in response, with an identical payload. */
 
@@ -375,7 +375,7 @@ namespace Microsoft.Http2.Protocol.Http2Session
 
             _wasSettingsReceived = true;
             
-            /* 13 -> 6.5
+            /* 14 -> 6.5
             If an endpoint receives a SETTINGS frame whose stream identifier 
             field is other than 0x0, the endpoint MUST respond with a connection
             error of type PROTOCOL_ERROR. */
@@ -383,7 +383,7 @@ namespace Microsoft.Http2.Protocol.Http2Session
             if (settingsFrame.StreamId != 0)
                 throw new ProtocolError(ResetStatusCode.ProtocolError, "Settings frame stream id is not 0");
 
-            /* 13 -> 6.5
+            /* 14 -> 6.5
             Receipt of a SETTINGS frame with the ACK flag set and a length
             field value other than 0 MUST be treated as a connection error
             of type FRAME_SIZE_ERROR. */
@@ -413,7 +413,7 @@ namespace Microsoft.Http2.Protocol.Http2Session
                         break;
                     case SettingsIds.MaxConcurrentStreams:
                         RemoteMaxConcurrentStreams = setting.Value;
-                        /* 13 -> 8.2.2
+                        /* 14 -> 8.2.2
                         Advertising a SETTINGS_MAX_CONCURRENT_STREAMS value of zero disables
                         server push by preventing the server from creating the necessary streams. */
                         IsPushEnabled = setting.Value == 0;
@@ -447,7 +447,7 @@ namespace Microsoft.Http2.Protocol.Http2Session
                         break;
 
                     default:
-                        /* 13 -> 6.5.2 
+                        /* 14 -> 6.5.2 
                         An endpoint that receives a SETTINGS frame with any unknown or
                         unsupported identifier MUST ignore that setting.*/
                         break;
@@ -473,7 +473,7 @@ namespace Microsoft.Http2.Protocol.Http2Session
 
             stream = GetStream(windowUpdateFrame.StreamId);
 
-            /* 13 -> 6.9 
+            /* 14 -> 6.9 
             WINDOW_UPDATE can be sent by a peer that has sent a frame bearing the
             END_STREAM flag.  This means that a receiver could receive a
             WINDOW_UPDATE frame on a "half closed (remote)" or "closed" stream.
@@ -482,7 +482,7 @@ namespace Microsoft.Http2.Protocol.Http2Session
             if (!(stream.Opened || stream.HalfClosedRemote || stream.HalfClosedLocal || stream.Closed))
                 throw new ProtocolError(ResetStatusCode.ProtocolError, "window update in incorrect state");
 
-            /* 13 -> 6.9 
+            /* 14 -> 6.9 
             The payload of a WINDOW_UPDATE frame is one reserved bit, plus an
             unsigned 31-bit integer indicating the number of bytes that the
             sender can transmit in addition to the existing flow control window.
@@ -515,21 +515,21 @@ namespace Microsoft.Http2.Protocol.Http2Session
         {
             Http2Logger.LogFrameReceived(frame);
 
-            /* 13 -> 6.6. 
+            /* 14 -> 6.6. 
             PUSH_PROMISE frames MUST be associated with an existing, peer-initiated stream.
             If the stream identifier field specifies the value 0x0, a recipient MUST respond
             with a connection error of type PROTOCOL_ERROR. */
             if (frame.StreamId == 0)
                 throw new ProtocolError(ResetStatusCode.ProtocolError, "push promise frame with stream id=0");
 
-            /* 13 -> 5.1
+            /* 14 -> 5.1
             An endpoint that receives any frame after receiving a RST_STREAM MUST treat
             that as a stream error of type STREAM_CLOSED. */
             if (StreamDictionary[frame.StreamId].Closed)
                 throw new Http2StreamNotFoundException(frame.StreamId);
 
 
-            /* 13 -> 6.6
+            /* 14 -> 6.6
             Since PUSH_PROMISE reserves a stream, ignoring a PUSH_PROMISE frame
             causes the stream state to become indeterminate.  A receiver MUST
             treat the receipt of a PUSH_PROMISE on a stream that is neither
@@ -571,7 +571,7 @@ namespace Microsoft.Http2.Protocol.Http2Session
             }
             else
             {
-                /* 13 -> 6.6
+                /* 14 -> 6.6
                 A receiver MUST treat the receipt of a PUSH_PROMISE on a stream that
                 is neither "open" nor "half-closed (local)" as a connection error
                 of type PROTOCOL_ERROR. */
@@ -581,7 +581,7 @@ namespace Microsoft.Http2.Protocol.Http2Session
                                         "Got multiple push promises with same Promised Stream id's");
             }
 
-            /* 13 -> 6.6
+            /* 14 -> 6.6
             A PUSH_PROMISE frame without the END_HEADERS flag set MUST be
             followed by a CONTINUATION frame for the same stream.  A receiver
             MUST treat the receipt of any other type of frame or a frame on a
@@ -595,7 +595,7 @@ namespace Microsoft.Http2.Protocol.Http2Session
             Http2Logger.LogDebug("Stream {0} splitting of headers", frame.StreamId);
             HeadersHelper.SplitMultipleHeaders(sequence.Headers);
 
-            /* 13 -> 8.2.1
+            /* 14 -> 8.2.1
             The server MUST include a method in the ":method" header field that is safe.
             If a client receives a PUSH_PROMISE that does not include a complete and
             valid set of header fields, or the ":method" header field identifies a method
@@ -624,7 +624,7 @@ namespace Microsoft.Http2.Protocol.Http2Session
                 _lastPromisedId = stream.Id;
             }
             else {
-                /* 13 -> 6.6
+                /* 14 -> 6.6
                 Similarly, a receiver MUST treat the receipt of a PUSH_PROMISE that
                 promises an illegal stream identifier (that is, an identifier for a stream that
                 is not currently in the "idle" state) as a connection error of type PROTOCOL_ERROR. */

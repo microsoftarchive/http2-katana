@@ -12,7 +12,7 @@ namespace Microsoft.Http2.Protocol.Framing
 {
     /// <summary>
     /// HEADERS frame class
-    /// see 13 -> 6.2
+    /// see 14 -> 6.2
     /// </summary>
     public class HeadersFrame : Frame, IEndStreamFrame, IHeadersFrame, IPaddingFrame
     {
@@ -36,7 +36,7 @@ namespace Microsoft.Http2.Protocol.Framing
         // for outgoing
         public HeadersFrame(int streamId, bool hasPadding, int streamDependency = -1, byte weight = 0, bool exclusive = false)
         {
-            /* 13 -> 5.3 
+            /* 14 -> 5.3 
             A client can assign a priority for a new stream by including
             prioritization information in the HEADERS frame */
             bool hasPriority = (streamDependency != -1 && weight != 0);
@@ -48,7 +48,7 @@ namespace Microsoft.Http2.Protocol.Framing
             // construct frame without Headers Block and Padding bytes
             Buffer = new byte[preambleLength];
 
-            /* 13 -> 6.2 
+            /* 14 -> 6.2 
             The HEADERS frame includes optional padding.  Padding fields and
             flags are identical to those defined for DATA frames. */
 

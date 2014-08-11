@@ -13,7 +13,7 @@ namespace Microsoft.Http2.Protocol.Framing
 {
     /// <summary>
     /// DATA frame class
-    /// see 13 -> 6.1
+    /// see 14 -> 6.1
     /// </summary>
     public class DataFrame : Frame, IEndStreamFrame, IPaddingFrame
     {
@@ -31,7 +31,7 @@ namespace Microsoft.Http2.Protocol.Framing
         {
             Contract.Assert(data.Array != null);
 
-            /* 13 -> 6.1
+            /* 14 -> 6.1
             DATA frames MAY also contain arbitrary padding. Padding can be added
             to DATA frames to obscure the size of messages. */
 

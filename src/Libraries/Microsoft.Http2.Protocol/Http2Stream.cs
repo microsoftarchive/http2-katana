@@ -192,7 +192,7 @@ namespace Microsoft.Http2.Protocol
         {
             if (IsFlowControlEnabled)
             {
-                /* 13 -> 6.9.1
+                /* 14 -> 6.9.1
                 A sender MUST NOT allow a flow control window to exceed 2^31 - 1
                 bytes. If a sender receives a WINDOW_UPDATE that causes a flow
                 control window to exceed this maximum it MUST terminate either the
@@ -311,7 +311,7 @@ namespace Microsoft.Http2.Protocol
             // We cant let lesser frame that were passed through flow control window
             // be sent before greater frames that were not passed through flow control window
 
-            /* 13 -> 6.9.1
+            /* 14 -> 6.9.1
             The sender MUST NOT
             send a flow controlled frame with a length that exceeds the space
             available in either of the flow control windows advertised by the receiver. */

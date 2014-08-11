@@ -9,7 +9,7 @@
 namespace Microsoft.Http2.Protocol.Framing
 {
     /// <summary>
-    /// see 13 -> 6.  Frame Definitions
+    /// see 14 -> 6.  Frame Definitions
     /// </summary>
     public enum FrameType : byte
     {

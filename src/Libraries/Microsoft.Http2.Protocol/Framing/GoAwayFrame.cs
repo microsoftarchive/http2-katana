@@ -10,7 +10,7 @@ namespace Microsoft.Http2.Protocol.Framing
 {
     /// <summary>
     /// This class defines GoAway frame
-    /// See spec: http://tools.ietf.org/html/draft-ietf-httpbis-http2-04#section-6.8
+    /// See spec: http://tools.ietf.org/html/draft-ietf-httpbis-http2-14#section-6.8
     /// </summary>
     internal class GoAwayFrame : Frame
     {

@@ -220,12 +220,12 @@ namespace Microsoft.Http2.Protocol.Http2Session
 
             var initialStream = CreateStream(new HeadersList(initialRequest), 1);
 
-            /* 13 -> 5.1.1
-            A stream identifier of one (0x1) is used to respond to the HTTP/1.1
-            request which was specified during Upgrade. After the upgrade completes, 
-            stream 0x1 is "half closed (local)" to the client. Therefore, stream 0x1 
-            cannot be selected as a new stream identifier by a client that upgrades
-            from HTTP/1.1. */
+            /* 14 -> 5.1.1
+            HTTP/1.1 requests that are upgraded to HTTP/2 are
+            responded to with a stream identifier of one (0x1).  After the
+            upgrade completes, stream 0x1 is "half closed (local)" to the client.
+            Therefore, stream 0x1 cannot be selected as a new stream identifier
+            by a client that upgrades from HTTP/1.1. */
             if (_ourEnd == ConnectionEnd.Client)
             {
                 GetNextId();
@@ -390,11 +390,11 @@ namespace Microsoft.Http2.Protocol.Http2Session
                                                           frame.PayloadLength));
                 }
 
-                /* 13 -> 6.5
+                /* 14 -> 6.5
                 A SETTINGS frame MUST be sent by both endpoints at the start of a
                 connection, and MAY be sent at any other time by either endpoint over
                 the lifetime of the connection. */
-                /* 13 -> 3.2.1
+                /* 14 -> 3.2.1
                 The content of the "HTTP2-Settings" header field is the payload of a
                 SETTINGS frame, encoded as a base64url string. Acknowledgement of the 
                 SETTINGS parameters is not necessary, since a 101 response serves as
@@ -473,7 +473,7 @@ namespace Microsoft.Http2.Protocol.Http2Session
                 stream.FramesReceived++;
             }
 
-            /* 13 -> 5.1
+            /* 14 -> 5.1
             An endpoint MUST NOT send frames on a closed stream.  An endpoint
             that receives any frame other than PRIORITY after receiving a
             RST_STREAM MUST treat that as a stream error of type STREAM_CLOSED. */

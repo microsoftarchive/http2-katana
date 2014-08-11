@@ -10,7 +10,7 @@ namespace Microsoft.Http2.Protocol.Framing
 {
     /// <summary>
     /// PING frame class
-    /// see 13 -> 6.7
+    /// see 14 -> 6.7
     /// </summary>
     internal class PingFrame : Frame
     {

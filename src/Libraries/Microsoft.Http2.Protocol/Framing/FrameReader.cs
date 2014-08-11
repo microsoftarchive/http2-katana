@@ -41,7 +41,7 @@ namespace Microsoft.Http2.Protocol.Framing
             {
                 wholeFrame = GetFrameType(preamble);
             }
-            /* 13 -> 4.1
+            /* 14 -> 4.1
             Implementations MUST ignore and discard any frame that has a type that is unknown. */
             catch (NotImplementedException)
             {

@@ -28,23 +28,23 @@ namespace Microsoft.Http2.Protocol
         public const int InitialFlowControlOptionsValue = 0;
         public const string DefaultMethod = Verbs.Get;
         public const string DefaultHost = "localhost";
-        /* 13 -> 6.5.2 
+        /* 14 -> 6.5.2 
         It is recommended that this value be no smaller than 100, so as to not
         unnecessarily limit parallelism. */
         public const int DefaultMaxConcurrentStreams = 100;
-        /* 13 -> 6.9.1
+        /* 14 -> 6.9.1
         A sender MUST NOT allow a flow control window to exceed 2^31 - 1 bytes. */
         public const int MaxWindowSize = 0x7FFFFFFF;
         public const int MaxPriority = 0x7fffffff;
 
-        /* 13 -> 6.9.2
+        /* 14 -> 6.9.2
         When a HTTP/2 connection is first established, new streams are
         created with an initial flow control window size of 65535 bytes.
         The connection flow control window is 65535 bytes. */
         public const int InitialFlowControlWindowSize = 0xFFFF;
         public const int DefaultStreamPriority = 1 << 30;
 
-        /* 13 -> 5.3.5
+        /* 14 -> 5.3.5
         Streams are assigned a default dependency on stream 0x0.Pushed streams
         initially depend on their associated stream. In both cases, streams
         are assigned a default weight of 16. */

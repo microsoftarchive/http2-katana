@@ -9,7 +9,7 @@
 namespace Microsoft.Http2.Protocol.Framing
 {
     /// <summary>
-    /// see 13 -> 7. Error Codes
+    /// see 14 -> 7. Error Codes
     /// </summary>
     public enum ResetStatusCode : uint
     {

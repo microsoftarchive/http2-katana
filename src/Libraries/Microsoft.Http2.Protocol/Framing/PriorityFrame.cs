@@ -12,7 +12,7 @@ namespace Microsoft.Http2.Protocol.Framing
 {
     /// <summary>
     /// PRIORITY frame class
-    /// see 13 -> 6.3
+    /// see 14 -> 6.3
     /// </summary>
     internal class PriorityFrame : Frame
     {

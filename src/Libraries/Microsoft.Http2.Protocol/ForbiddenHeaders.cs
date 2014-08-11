@@ -11,7 +11,7 @@ using System.Collections.Generic;
 
 namespace Microsoft.Http2.Protocol
 {
-    /* 13 -> 8.1.2 
+    /* 14 -> 8.1.2.2 
     This means that an intermediary transforming an HTTP/1.x message to
     HTTP/2 will need to remove any header fields nominated by the
     Connection header field, along with the Connection header field

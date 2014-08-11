@@ -10,7 +10,7 @@ namespace Microsoft.Http2.Protocol.Framing
 {
     /// <summary>
     /// Window update class
-    /// See spec: http://tools.ietf.org/html/draft-ietf-httpbis-http2-04#section-6.9
+    /// See spec: http://tools.ietf.org/html/draft-ietf-httpbis-http2-14#section-6.9
     /// </summary>
     internal class WindowUpdateFrame : Frame
     {

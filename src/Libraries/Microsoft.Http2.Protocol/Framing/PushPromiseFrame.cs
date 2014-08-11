@@ -13,7 +13,7 @@ namespace Microsoft.Http2.Protocol.Framing
 {
     /// <summary>
     /// PUSH_PROMISE frame class
-    /// see 13 -> 6.6
+    /// see 14 -> 6.6
     /// </summary>
     internal class PushPromiseFrame : Frame, IHeadersFrame, IPaddingFrame
     {
@@ -43,7 +43,7 @@ namespace Microsoft.Http2.Protocol.Framing
             // construct frame without Headers Block and Padding bytes
             Buffer = new byte[preambleLength];
 
-            /* 13 -> 6.6 
+            /* 14 -> 6.6 
             The PUSH_PROMISE frame includes optional padding. Padding fields and
             flags are identical to those defined for DATA frames. */
 

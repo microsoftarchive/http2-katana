@@ -12,7 +12,7 @@ namespace Microsoft.Http2.Protocol.Framing
 {
     /// <summary>
     /// CONTINUATION frame class
-    /// see 13 -> 6.10
+    /// see 14 -> 6.10
     /// </summary>
     internal class ContinuationFrame : Frame, IHeadersFrame
     {
