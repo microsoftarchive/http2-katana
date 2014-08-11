@@ -1,4 +1,3 @@
-using System.Linq;
 using Http2.TestClient.Adapters;
 using Microsoft.Http2.Owin.Middleware;
 using Microsoft.Http2.Owin.Server;
@@ -9,17 +8,17 @@ using Microsoft.Http2.Protocol.Tests;
 using Microsoft.Http2.Push;
 using Moq;
 using Moq.Protected;
+using OpenSSL;
+using OpenSSL.SSL;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Globalization;
+using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using OpenSSL;
-using OpenSSL.SSL;
 using Xunit;
-using Xunit.Extensions;
 
 namespace Http2.Katana.Tests
 {
@@ -434,7 +433,7 @@ namespace Http2.Katana.Tests
             }
 
             Task.WhenAll(tasks).Wait();
-        }
+        }       
 
         [Fact]
         public void ServerPush()

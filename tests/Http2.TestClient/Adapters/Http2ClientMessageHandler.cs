@@ -82,14 +82,14 @@ namespace Http2.TestClient.Adapters
 
         protected override void ProcessRequest(Http2Stream stream, Frame frame)
         {
-            /* 13 -> 8.1.2.2
+            /* 14 -> 8.1.2.4
             A single ":status" header field is defined that carries the HTTP
-            status code field This header field MUST
-            be included in all responses, otherwise the response is malformed */
+            status code field.This header field MUST be included in all responses,
+            otherwise the response is malformed. */
             if (stream.Headers.GetValue(CommonHeaders.Status) == null)
             {
                 throw new ProtocolError(ResetStatusCode.ProtocolError,
-                                        "no ':status' header in response, stream id=" + stream.Id);
+                                        "no ':status' pseudo header in response, stream id=" + stream.Id);
             }
 
             int code;

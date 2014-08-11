@@ -3,7 +3,6 @@ using Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression;
 using Microsoft.Http2.Protocol.Compression.Huffman;
 using Microsoft.Http2.Protocol.Extensions;
 using Microsoft.Http2.Protocol.Framing;
-using Microsoft.Http2.Protocol.Http2Session;
 using Microsoft.Http2.Protocol.IO;
 using System;
 using System.Collections;

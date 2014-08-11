@@ -70,7 +70,7 @@ namespace Microsoft.Http2.Protocol
             switch (frame.FrameType)
             {
                 case FrameType.Headers:
-                    if (ForbiddenHeaders.HasForbiddenHeader(stream.Headers))
+                    if (!ForbiddenHeaders.IsValid(stream.Headers))
                     {
                         stream.WriteRst(ResetStatusCode.ProtocolError);
                         return;

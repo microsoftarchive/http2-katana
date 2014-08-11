@@ -14,6 +14,7 @@ using Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression;
 using Microsoft.Http2.Protocol.Exceptions;
 using Microsoft.Http2.Protocol.Framing;
 using Microsoft.Http2.Protocol.Utils;
+using OpenSSL;
 
 namespace Microsoft.Http2.Protocol.Http2Session
 {
@@ -22,22 +23,64 @@ namespace Microsoft.Http2.Protocol.Http2Session
         private const string lowerCasePattern = "^((?![A-Z]).)*$";
         private readonly Regex _matcher = new Regex(lowerCasePattern);
 
-        private void ValidateHeaders(Http2Stream stream)
+        private void ValidateHeaders(Http2Stream stream, HeadersList headers)
         {
-            /* 13 -> 8.1.2
+            /* 14 -> 8.1.2.1
             Header field names MUST be converted to lowercase prior to their 
-            encoding in HTTP/2.0. A request or response containing uppercase 
+            encoding in HTTP/2. A request or response containing uppercase 
             header field names MUST be treated as malformed. */
-            foreach (var header in stream.Headers)
+            foreach (var header in headers)
             {
-                string key = header.Key;
-                if (!_matcher.IsMatch(key) || key == ":")
-                {                    
-                    stream.WriteRst(ResetStatusCode.RefusedStream);
-                    stream.Close(ResetStatusCode.RefusedStream);
-                    break;
+                if (!_matcher.IsMatch(header.Key))
+                {
+                    stream.WriteRst(ResetStatusCode.ProtocolError);
+                    stream.Close(ResetStatusCode.ProtocolError);
+                    return;
                 }
             }
+
+            /* 14 -> 8.1.2.1
+            Endpoints MUST NOT generate pseudo-header fields other than those
+            defined in this document. Endpoints MUST treat a request or response
+            that contains undefined or invalid pseudo-header fields as malformed */
+            foreach (var header in headers)
+            {
+                string key = header.Key;
+                if (key.StartsWith(":")
+                    && key != CommonHeaders.Method
+                    && key != CommonHeaders.Path
+                    && key != CommonHeaders.Scheme
+                    && key != CommonHeaders.Authority
+                    && key != CommonHeaders.Version
+                    && key != CommonHeaders.Status)
+                {
+                    stream.WriteRst(ResetStatusCode.ProtocolError);
+                    stream.Close(ResetStatusCode.ProtocolError);
+                    return;
+                }
+            }
+
+            if (_ourEnd == ConnectionEnd.Server)
+            {
+                /* 14 -> 8.1.2.3
+                All HTTP/2 requests MUST include exactly one valid value for the
+                ":method", ":scheme", and ":path" header fields, unless this is a
+                CONNECT request.  An HTTP request that omits mandatory header fields 
+                is malformed. */
+
+                /* 14 -> 8.1.2.1
+                Pseudo-header fields defined for responses MUST NOT appear in requests */
+
+                if (headers.GetValue(CommonHeaders.Method) == null
+                    || headers.GetValue(CommonHeaders.Path) == null
+                    || headers.GetValue(CommonHeaders.Scheme) == null
+                    || headers.GetValue(CommonHeaders.Status) != null)
+                {
+                    stream.WriteRst(ResetStatusCode.ProtocolError);
+                    stream.Close(ResetStatusCode.ProtocolError);
+                }
+            }
+
         }
 
         private void HandleHeaders(HeadersFrame headersFrame, out Http2Stream stream)
@@ -96,19 +139,19 @@ namespace Microsoft.Http2.Protocol.Http2Session
             {
                 stream = CreateStream(sequence);
 
-                ValidateHeaders(stream);
+                ValidateHeaders(stream, headers);
             }
             else if (stream.ReservedRemote)
             {
                 stream = CreateStream(sequence);
                 stream.HalfClosedLocal = true;
-                ValidateHeaders(stream);
+                ValidateHeaders(stream, headers);
             }
             else if(stream.Opened || stream.HalfClosedLocal)
             {
                 stream.Headers = sequence.Headers;//Modify by the last accepted frame
 
-                ValidateHeaders(stream);
+                ValidateHeaders(stream, headers);
             }
             else if (stream.HalfClosedRemote)
             {
@@ -175,13 +218,13 @@ namespace Microsoft.Http2.Protocol.Http2Session
             {
                 stream = CreateStream(sequence);
 
-                ValidateHeaders(stream);
+                ValidateHeaders(stream, contHeaders);
             }
             else if (stream.Opened || stream.HalfClosedLocal)
             {
                 stream.Headers = sequence.Headers;//Modify by the last accepted frame
 
-                ValidateHeaders(stream);
+                ValidateHeaders(stream, contHeaders);
             }
             else if (stream.HalfClosedRemote)
             {
@@ -551,7 +594,7 @@ namespace Microsoft.Http2.Protocol.Http2Session
                 stream = CreateStream(sequence);
                 stream.ReservedRemote = true;
 
-                ValidateHeaders(stream);
+                ValidateHeaders(stream, headers);
                 _lastPromisedId = stream.Id;
             }
             else {

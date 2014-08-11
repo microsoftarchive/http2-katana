@@ -29,7 +29,7 @@ namespace Microsoft.Http2.Protocol
         public const string TransferEncoding = "Transfer-Encoding";
         public const string Upgrade = "Upgrade";
 
-        public static bool HasForbiddenHeader(IEnumerable<KeyValuePair<string, string>> collection)
+        public static bool IsValid(IEnumerable<KeyValuePair<string, string>> collection)
         {
             foreach (var header in collection)
             {
@@ -40,11 +40,11 @@ namespace Microsoft.Http2.Protocol
                     || header.Key.Equals(TransferEncoding, StringComparison.OrdinalIgnoreCase)
                     || header.Key.Equals(Upgrade, StringComparison.OrdinalIgnoreCase))
                 {
-                    return true;
+                    return false;
                 }
             }
 
-            return false;
+            return true;
         }
     }
 }

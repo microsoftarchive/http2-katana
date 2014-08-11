@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Http2.Protocol;
@@ -48,21 +49,6 @@ namespace Microsoft.Http2.Owin.Server.Adapters
         /// <returns></returns>
         protected override void ProcessRequest(Http2Stream stream, Frame frame)
         {
-            /* 13 -> 8.1.2.1
-            All HTTP/2 requests MUST include exactly one valid value for the
-            ":method", ":scheme", and ":path" header fields, unless this is a
-            CONNECT request.  An HTTP request that omits mandatory header fields 
-            is malformed. */
-
-            if (stream.Headers.GetValue(CommonHeaders.Method) == null
-                || stream.Headers.GetValue(CommonHeaders.Path) == null
-                || stream.Headers.GetValue(CommonHeaders.Scheme) == null)
-            {
-                stream.WriteRst(ResetStatusCode.ProtocolError);
-                stream.Close(ResetStatusCode.ProtocolError);
-                return;
-            }
-
             Task.Factory.StartNew(async () =>
             {
                 try
