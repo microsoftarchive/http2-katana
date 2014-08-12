@@ -9,28 +9,28 @@
 namespace Microsoft.Http2.Protocol.Framing
 {
     /// <summary>
-    /// RstStream frame class
-    /// See spec: http://tools.ietf.org/html/draft-ietf-httpbis-http2-14#section-6.4
+    /// RST_STREAM frame class
+    /// see 12 -> 6.4
     /// </summary>
     internal class RstStreamFrame : Frame
     {
-        // The number of bytes in the frame.
-        private const int InitialFrameSize = Constants.FramePreambleSize + 4;//13;
+        // 4 bytes Error Code field
+        private const int PayloadSize = 4;
 
-        // Incoming
+        // for incoming
         public RstStreamFrame(Frame preamble)
             : base(preamble)
         {
         }
 
-        // Outgoing
+        // for outgoing
         public RstStreamFrame(int id, ResetStatusCode statusCode)
-            : base(new byte[InitialFrameSize])
+            : base(new byte[Constants.FramePreambleSize + PayloadSize])
         {
-            StreamId = id;//32 bit
-            FrameType = FrameType.RstStream;//8bit
-            PayloadLength = InitialFrameSize - Constants.FramePreambleSize; // 16bit
-            StatusCode = statusCode;//32bit
+            StreamId = id;
+            FrameType = FrameType.RstStream;
+            PayloadLength = PayloadSize;
+            StatusCode = statusCode;
         }
 
         // 32 bits
@@ -38,11 +38,11 @@ namespace Microsoft.Http2.Protocol.Framing
         {
             get
             {
-                return (ResetStatusCode)FrameHelper.Get32BitsAt(Buffer, 8);
+                return (ResetStatusCode)FrameHelper.Get32BitsAt(Buffer, Constants.FramePreambleSize);
             }
             set
             {
-                FrameHelper.Set32BitsAt(Buffer, 8, (int)value);
+                FrameHelper.Set32BitsAt(Buffer, Constants.FramePreambleSize, (int)value);
             }
         }
     }
