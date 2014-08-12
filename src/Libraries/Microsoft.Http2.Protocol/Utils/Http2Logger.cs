@@ -197,23 +197,23 @@ namespace Microsoft.Http2.Protocol.Utils
 
             for (int i = 0; i < frame.EntryCount; i++)
             {
-                LogDebug("{0}: {1}", frame[i].Id.ToString(), frame[i].Value);
+                LogDebug("{0}={1}", frame[i].Id.ToString(), frame[i].Value);
             }
         }
 
         private static void LogHeadersFrame(HeadersFrame frame, string action = null)
         {
             LogDebug("{0} HEADERS frame: stream id={1}, payload len={2}, has pad={3}, " +
-                     "pad len={4}, end stream={5}, has priority={6}, " +
-                     "exclusive={7}, dependency={8}, weight={9}, count={10}", action,
+                     "pad len={4}, end stream={5}, end headers={6}, has priority={7}, " +
+                     "exclusive={8}, dependency={9}, weight={10}, count={11}", action,
                      frame.StreamId, frame.PayloadLength, frame.HasPadding,
-                     frame.PadLength, frame.IsEndStream,
+                     frame.PadLength, frame.IsEndStream, frame.IsEndHeaders,
                      frame.HasPriority, frame.Exclusive, frame.StreamDependency,
                      frame.Weight, frame.Headers.Count);
 
             foreach (var h in frame.Headers)
             {
-                LogDebug("{0}: {1}", h.Key, h.Value);
+                LogDebug("{0}={1}", h.Key, h.Value);
             }
         }
 
@@ -239,7 +239,7 @@ namespace Microsoft.Http2.Protocol.Utils
 
             foreach (var h in frame.Headers)
             {
-                LogDebug("{0}: {1}", h.Key, h.Value);
+                LogDebug("{0}={1}", h.Key, h.Value);
             }
         }
 
@@ -279,7 +279,7 @@ namespace Microsoft.Http2.Protocol.Utils
             Console.WriteLine("Headers set:");
             foreach (var header in headers)
             {
-                Console.WriteLine("{0}: {1}", header.Key, header.Value);
+                Console.WriteLine("{0}={1}", header.Key, header.Value);
             }
         }
 

@@ -84,17 +84,16 @@ namespace Microsoft.Http2.Protocol.Http2Session
         }
 
         private void HandleHeaders(HeadersFrame headersFrame, out Http2Stream stream)
-        {
-            Http2Logger.LogFrameReceived(headersFrame);
-
+        {          
             /* 14 -> 6.2 
             HEADERS frames MUST be associated with a stream. If a HEADERS frame
             is received whose stream identifier field is 0x0, the recipient MUST
             respond with a connection error of type PROTOCOL_ERROR. */
 
             if (headersFrame.StreamId == 0)
-                throw new ProtocolError(ResetStatusCode.ProtocolError, "Incoming headers frame with stream id=0");
+                throw new ProtocolError(ResetStatusCode.ProtocolError, "Incoming HEADERS frame with stream id=0");
 
+            // decompressing headers
             var serializedHeaders = new byte[headersFrame.CompressedHeaders.Count];
 
             Buffer.BlockCopy(headersFrame.CompressedHeaders.Array,
@@ -103,11 +102,9 @@ namespace Microsoft.Http2.Protocol.Http2Session
 
             var decompressedHeaders = _comprProc.Decompress(serializedHeaders);
             var headers = new HeadersList(decompressedHeaders);
-            foreach (var header in headers)
-            {
-                Http2Logger.LogDebug("{1}={2}", headersFrame.StreamId, header.Key, header.Value);
-            }
             headersFrame.Headers.AddRange(headers);
+
+            Http2Logger.LogFrameReceived(headersFrame);
 
             var sequence = _headersSequences.Find(headersFrame.StreamId);
             if (sequence == null)
