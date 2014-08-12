@@ -203,10 +203,10 @@ namespace Microsoft.Http2.Protocol.Utils
 
         private static void LogHeadersFrame(HeadersFrame frame, string action = null)
         {
-            LogDebug("{0} HEADERS frame: stream id={1}, payload len={2}, has pad={3}, " +
-                     "pad len={4}, end stream={5}, end headers={6}, has priority={7}, " +
-                     "exclusive={8}, dependency={9}, weight={10}, count={11}", action,
-                     frame.StreamId, frame.PayloadLength, frame.HasPadding,
+            LogDebug("{0} HEADERS frame: stream id={1}, has pad={2}, " +
+                     "pad len={3}, end stream={4}, end headers={5}, has priority={6}, " +
+                     "exclusive={7}, dependency={8}, weight={9}, count={10}", action,
+                     frame.StreamId, frame.HasPadding,
                      frame.PadLength, frame.IsEndStream, frame.IsEndHeaders,
                      frame.HasPriority, frame.Exclusive, frame.StreamDependency,
                      frame.Weight, frame.Headers.Count);
