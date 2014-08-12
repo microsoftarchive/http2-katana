@@ -232,9 +232,9 @@ namespace Microsoft.Http2.Protocol.Utils
 
         private static void LogPushPromiseFrame(PushPromiseFrame frame, string action = null)
         {
-            LogDebug("{0} PUSH_PROMISE frame: stream id={1}, payload len={2}, promised id={3}, " +
-                     "has pad={4}, pad len={5}, end headers={6}, count={7}", action,
-                     frame.StreamId, frame.PayloadLength, frame.PromisedStreamId, frame.HasPadding,
+            LogDebug("{0} PUSH_PROMISE frame: stream id={1}, promised id={2}, " +
+                     "has pad={3}, pad len={4}, end headers={5}, count={6}", action,
+                     frame.StreamId, frame.PromisedStreamId, frame.HasPadding,
                      frame.PadLength, frame.IsEndHeaders, frame.Headers.Count);
 
             foreach (var h in frame.Headers)
@@ -269,7 +269,7 @@ namespace Microsoft.Http2.Protocol.Utils
 
         private static void LogContinuationFrame(ContinuationFrame frame, string action = null)
         {
-            LogDebug("{0} CONTINUATION frame: stream id={1}, payload len={2}" +
+            LogDebug("{0} CONTINUATION frame: stream id={1}, payload len={2}, " +
                      " end headers={3}", action, frame.StreamId, frame.PayloadLength,
                      frame.IsEndHeaders);
         }
