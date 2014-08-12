@@ -110,10 +110,19 @@ namespace Microsoft.Http2.Owin.Server.Adapters
         /// <param name="final">if set to <c>true</c> then marks headers frame as final.</param>
         private void SendHeaders(bool final)
         {
-            var responseHeaders = new HeadersList(_responseHeaders)
-                {
-                    new KeyValuePair<string, string>(CommonHeaders.Status, _owinContext.Response.StatusCode.ToString(CultureInfo.InvariantCulture))
-                };
+            var responseHeaders = new HeadersList(_responseHeaders);
+
+            /* 14 -> 8.1.2.4
+            A single ":status" header field is defined that carries the HTTP
+            status code field. This header field MUST be included in all responses. */
+            var status = new KeyValuePair<string, string>(CommonHeaders.Status,
+                                                          _owinContext.Response.StatusCode.ToString());
+
+            /* 14 -> 8.1.2.1
+            All pseudo-header fields MUST appear in the header block before
+            regular header fields. */
+            responseHeaders.Insert(0, status);
+
             _protocolStream.WriteHeadersFrame(responseHeaders, final, true);
         }
     }
