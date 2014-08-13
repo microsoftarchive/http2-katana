@@ -126,7 +126,5 @@ namespace Microsoft.Http2.Protocol.Compression.Huffman
         // see spec 09 - > Appendix C.  Huffman Codes
         public static readonly bool[] Eos = new[] { T, T, T, T, T, T, T, T, T, T, T, T, T, T, T, T, T, T, T, T, T, T, T, T, T, T, T, T, T, T };
         // EOS (256)  |11111111|11111111|11111111|111111  
-
-        public static readonly bool[] ZeroOctet = new [] { T, T, T, T, T, T, T, T, T, T, F, F, F };
     }
 }

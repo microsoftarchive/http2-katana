@@ -99,11 +99,6 @@ namespace Microsoft.Http2.Protocol.Compression.Huffman
 
         public bool[] GetBits(byte c)
         {
-            if (c == 0x0)
-            {
-                return ZeroOctet;
-            }
-
             var bitsMap = _symbolBitsMap;
             var val = bitsMap.FirstOrDefault(pair => pair.Value == c).Key;
 
