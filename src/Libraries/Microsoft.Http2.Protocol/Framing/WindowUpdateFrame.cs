@@ -9,27 +9,27 @@
 namespace Microsoft.Http2.Protocol.Framing
 {
     /// <summary>
-    /// Window update class
-    /// See spec: http://tools.ietf.org/html/draft-ietf-httpbis-http2-14#section-6.9
+    /// WINDOW_UPDATE frame class
+    /// see 14 -> 6.9
     /// </summary>
     internal class WindowUpdateFrame : Frame
     {
-        // The number of bytes in the frame.
-        private const int InitialFrameSize = Constants.FramePreambleSize + 4;//13;
+        // 4 bytes Error Code field
+        private const int PayloadSize = 4;
                 
-        // Incoming
+        // for incoming
         public WindowUpdateFrame(Frame preamble)
             : base(preamble)
         {
         }
 
-        // Outgoing
+        // for outgoing
         public WindowUpdateFrame(int id, int delta)
-            : base(new byte[InitialFrameSize])
+            : base(new byte[Constants.FramePreambleSize + PayloadSize])
         {
             StreamId = id;
             FrameType = FrameType.WindowUpdate;
-            PayloadLength = InitialFrameSize - Constants.FramePreambleSize; // 8
+            PayloadLength = PayloadSize;
             Delta = delta;
         }
 
