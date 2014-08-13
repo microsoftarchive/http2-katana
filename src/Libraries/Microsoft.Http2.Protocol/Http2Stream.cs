@@ -306,6 +306,8 @@ namespace Microsoft.Http2.Protocol
             if (Closed)
                 return;
 
+            Http2Logger.LogDebug("Window size for stream " + this.Id + " : " + this.WindowSize.ToString());
+
             var dataFrame = new DataFrame(_id, data, isEndStream, true);
 
             // We cant let lesser frame that were passed through flow control window
@@ -359,6 +361,8 @@ namespace Microsoft.Http2.Protocol
 
             if (Closed)
                 return;
+
+            Http2Logger.LogDebug("Window size for stream " + this.Id + " : " + this.WindowSize.ToString());
 
             if (!IsFlowControlBlocked)
             {
