@@ -15,7 +15,7 @@ namespace Microsoft.Http2.Protocol.Compression.Huffman
 
     internal partial class HuffmanCodesTable
     {
-        // see spec 08 - > 4.1.2.  String Literal Representation
+        // see spec 09 - > 6.2.  String Literal Representation
         // String literals which use Huffman encoding are encoded with the
         // Huffman codes defined in Appendix C
 
@@ -123,7 +123,7 @@ namespace Microsoft.Http2.Protocol.Compression.Huffman
 
         #endregion
 
-        // see spec 08 - > Appendix C.  Huffman Codes
+        // see spec 09 - > Appendix C.  Huffman Codes
         public static readonly bool[] Eos = new[] { T, T, T, T, T, T, T, T, T, T, T, T, T, T, T, T, T, T, T, T, T, T, T, T, T, T, T, T, T, T };
         // EOS (256)  |11111111|11111111|11111111|111111  
 

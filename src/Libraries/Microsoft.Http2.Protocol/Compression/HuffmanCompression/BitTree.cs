@@ -102,7 +102,7 @@ namespace Microsoft.Http2.Protocol.Compression.Huffman
 
                         if (isEos && ++j == _eos.Length)
                         {
-                            /* 08 -> 6.2
+                            /* 09 -> 6.2
                             A Huffman encoded string literal containing the EOS symbol 
                             MUST be treated as a decoding error. */
                             throw new CompressionError("EOS contains");
@@ -111,7 +111,7 @@ namespace Microsoft.Http2.Protocol.Compression.Huffman
                         i++;
                     }
 
-                    /* 08 -> 6.2 
+                    /* 09 -> 6.2 
                     Upon decoding, an incomplete code at the end of the encoded data is
                     to be considered as padding and discarded. A padding strictly longer
                     than 7 bits MUST be treated as a decoding error. A padding not
@@ -132,7 +132,7 @@ namespace Microsoft.Http2.Protocol.Compression.Huffman
             }
         }
 
-        /* 08 -> 6.2
+        /* 09 -> 6.2
         As the Huffman encoded data doesn't always end at an octet boundary,
         some padding is inserted after it up to the next octet boundary. To
         prevent this padding to be misinterpreted as part of the string

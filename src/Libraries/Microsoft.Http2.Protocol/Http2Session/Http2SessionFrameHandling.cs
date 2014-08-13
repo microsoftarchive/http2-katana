@@ -284,7 +284,7 @@ namespace Microsoft.Http2.Protocol.Http2Session
             
             if (stream.Closed)
             {
-                /* 13 -> 5.4.2
+                /* 14 -> 5.4.2
                 An endpoint MUST NOT send a RST_STREAM in response to an RST_STREAM
                 frame, to avoid looping. */
                 if (!stream.WasRstSent)

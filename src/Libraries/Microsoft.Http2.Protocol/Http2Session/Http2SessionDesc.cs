@@ -447,7 +447,7 @@ namespace Microsoft.Http2.Protocol.Http2Session
                         }
                         break;
                     default:
-                        /* 13 -> 5.5
+                        /* 14 -> 5.5
                         Implementations MUST discard frames that 
                         unknown or unsupported types */
                         break;
@@ -681,7 +681,7 @@ namespace Microsoft.Http2.Protocol.Http2Session
             if (path == null)
                 throw new ProtocolError(ResetStatusCode.ProtocolError, "Invalid request ex");
 
-            /* 13 -> 8.2.2
+            /* 14 -> 8.2.2
             Once a client receives a PUSH_PROMISE frame and chooses to accept the
             pushed resource, the client SHOULD NOT issue any requests for the
             promised resource until after the promised stream has closed. */

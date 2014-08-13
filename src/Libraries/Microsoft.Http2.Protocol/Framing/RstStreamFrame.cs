@@ -10,7 +10,7 @@ namespace Microsoft.Http2.Protocol.Framing
 {
     /// <summary>
     /// RST_STREAM frame class
-    /// see 12 -> 6.4
+    /// see 14 -> 6.4
     /// </summary>
     internal class RstStreamFrame : Frame
     {

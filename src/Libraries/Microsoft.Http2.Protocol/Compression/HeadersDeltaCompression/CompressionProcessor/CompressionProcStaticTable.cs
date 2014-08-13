@@ -13,7 +13,7 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
 {
     internal partial class CompressionProcessor
     {
-        /* see spec 8 -> Appendix B.  Static Table
+        /* see spec 9 -> Appendix B.  Static Table
           +-------+-----------------------------+--------------+
           | Index | Header Name                 | Header Value |
           +-------+-----------------------------+--------------+
