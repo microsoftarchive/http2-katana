@@ -290,7 +290,8 @@ namespace Microsoft.Http2.Protocol.Http2Session
                 return;
             }
 
-            if (!(stream.ReservedRemote || stream.Opened || stream.HalfClosedLocal || stream.HalfClosedRemote))
+            if (!(stream.ReservedRemote || stream.Opened || stream.HalfClosedLocal || stream.HalfClosedRemote ||
+                stream.ReservedLocal))
                 throw new ProtocolError(ResetStatusCode.ProtocolError, "Rst for non opened or reserved stream");
 
             stream.Close(ResetStatusCode.None);
