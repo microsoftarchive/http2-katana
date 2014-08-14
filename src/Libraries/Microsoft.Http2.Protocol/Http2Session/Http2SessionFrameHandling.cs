@@ -478,7 +478,8 @@ namespace Microsoft.Http2.Protocol.Http2Session
             WINDOW_UPDATE frame on a "half closed (remote)" or "closed" stream.
             A receiver MUST NOT treat this as an error. */
 
-            if (!(stream.Opened || stream.HalfClosedRemote || stream.HalfClosedLocal || stream.Closed))
+            // TODO: remove check for reserved (local) state
+            if (!(stream.Opened || stream.HalfClosedRemote || stream.HalfClosedLocal || stream.Closed || stream.ReservedLocal))
                 throw new ProtocolError(ResetStatusCode.ProtocolError, "window update in incorrect state");
 
             /* 14 -> 6.9 
