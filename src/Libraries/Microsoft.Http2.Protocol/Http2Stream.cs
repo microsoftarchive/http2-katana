@@ -435,7 +435,7 @@ namespace Microsoft.Http2.Protocol
         public void WritePushPromise(IDictionary<string, string[]> pairs, Int32 promisedId)
         {
             if (Id % 2 != 0 && promisedId % 2 != 0)
-                throw new InvalidOperationException("Client can't send push_promise frames");
+                throw new InvalidOperationException("Client can't send PUSH_PROMISE frames");
 
             if (Closed)
                 return;
@@ -443,6 +443,9 @@ namespace Microsoft.Http2.Protocol
             var headers = new HeadersList(pairs);
             var frame = new PushPromiseFrame(Id, promisedId, true, true, headers);
 
+            /* 14 -> 5.1
+            Sending a PUSH_PROMISE frame marks the associated stream for later use.
+            The stream state for the reserved stream transitions to reserved (local). */
             ReservedLocal = true;
 
             Http2Logger.LogFrameSend(frame);

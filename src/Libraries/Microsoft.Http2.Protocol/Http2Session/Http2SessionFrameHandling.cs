@@ -411,6 +411,12 @@ namespace Microsoft.Http2.Protocol.Http2Session
                         IsPushEnabled = setting.Value == 0;
                         break;
                     case SettingsIds.InitialWindowSize:
+                        /* 14 -> 6.9.2
+                        A SETTINGS frame can alter the initial flow control window size for
+                        all current streams.  When the value of SETTINGS_INITIAL_WINDOW_SIZE
+                        changes, a receiver MUST adjust the size of all stream flow control
+                        windows that it maintains by the difference between the new value and
+                        the old value. */
                         int newInitWindowSize = setting.Value;
                         int windowSizeDiff = newInitWindowSize - _flowControlManager.StreamsInitialWindowSize;
 
