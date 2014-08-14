@@ -59,9 +59,7 @@ namespace Microsoft.Http2.Owin.Server.Adapters
                     pushDelegate = async pairs =>
                         {
                             var promisedStream = CreateStream();
-                            //assume that we have already received endStream
-                            promisedStream.HalfClosedLocal = true;
-                            stream.WritePushPromise(pairs, promisedStream.Id);
+                            promisedStream.WritePushPromise(pairs, stream.Id);
 
                             var headers = new HeadersList(pairs);
                             promisedStream.Headers.AddRange(headers);

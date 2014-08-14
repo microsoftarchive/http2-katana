@@ -258,12 +258,8 @@ namespace Microsoft.Http2.Protocol.Http2Session
             (remote)", "open", "half-closed (local)", or "half closed (remote)"
             states, though it cannot be sent between consecutive frames that
             comprise a single header block. */
-
-            if (stream.Closed)
-                throw new Http2StreamNotFoundException(priorityFrame.StreamId);
-
-            if (!(stream.Opened || stream.ReservedRemote || stream.HalfClosedLocal || stream.HalfClosedRemote))
-                throw new ProtocolError(ResetStatusCode.ProtocolError, "priority for non opened or reserved stream");
+            if (!(stream.Opened || stream.ReservedLocal || stream.HalfClosedLocal || stream.HalfClosedRemote || stream.Closed))
+                throw new ProtocolError(ResetStatusCode.ProtocolError, "PRIORITY frame in incorrect state");
 
             stream.Priority = priorityFrame.Weight;
         }
@@ -492,8 +488,7 @@ namespace Microsoft.Http2.Protocol.Http2Session
             WINDOW_UPDATE frame on a "half closed (remote)" or "closed" stream.
             A receiver MUST NOT treat this as an error. */
 
-            // TODO: remove check for reserved (local) state
-            if (!(stream.Opened || stream.HalfClosedRemote || stream.HalfClosedLocal || stream.Closed || stream.ReservedLocal))
+            if (!(stream.Opened || stream.HalfClosedRemote || stream.HalfClosedLocal || stream.Closed))
                 throw new ProtocolError(ResetStatusCode.ProtocolError, "window update in incorrect state");
 
             /* 14 -> 6.9 
