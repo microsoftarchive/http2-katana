@@ -20,7 +20,7 @@ ALTSVC        | No
 
 ##Public Test Server
 The following endpoints are available to try out http2-katana implementation:
-* https://http2katanatest.cloudapp.net:8443/root/index.html (TLS + ALPN)
+* https://http2katanatest.cloudapp.net:8443/root/index.html (TLSv1.2 + ALPN)
 
   This endpoint requires TLSv1.2 and DHE or EDCHE with GCM cipher suite.
 * http://http2katanatest.cloudapp.net:8080/root/index.html (Upgrade)
