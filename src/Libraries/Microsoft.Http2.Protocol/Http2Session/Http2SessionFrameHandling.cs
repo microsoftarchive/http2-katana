@@ -443,6 +443,14 @@ namespace Microsoft.Http2.Protocol.Http2Session
                             stream.Value.MaxFrameSize = MaxFrameSize;
                         }
                         break;
+                    case SettingsIds.MaxHeaderListSize:
+                        /* 14 -> 6.5.2
+                        SETTINGS_MAX_HEADER_LIST_SIZE (0x6):  This advisory setting informs a
+                        peer of the maximum size of header list that the sender is
+                        prepared to accept.  The value is based on the uncompressed size
+                        of header fields, including the length of the name and value in
+                        octets plus an overhead of 32 octets for each header field. */
+                        break;
 
                     default:
                         /* 14 -> 6.5.2 
@@ -494,7 +502,7 @@ namespace Microsoft.Http2.Protocol.Http2Session
             sender can transmit in addition to the existing flow control window.
             The legal range for the increment to the flow control window is 1 to
             2^31 - 1 (0x7fffffff) bytes. */
-            if (!(0 < windowUpdateFrame.Delta && windowUpdateFrame.Delta <= Constants.MaxPriority))
+            if (!(0 < windowUpdateFrame.Delta && windowUpdateFrame.Delta <= Constants.MaxWindowSize))
             {
                 Http2Logger.LogDebug("Incorrect window update delta : {0}", windowUpdateFrame.Delta);
                 throw new ProtocolError(ResetStatusCode.FlowControlError, String.Format("Incorrect window update delta : {0}", windowUpdateFrame.Delta));

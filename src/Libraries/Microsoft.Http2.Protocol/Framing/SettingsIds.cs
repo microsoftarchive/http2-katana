@@ -19,5 +19,6 @@ namespace Microsoft.Http2.Protocol.Framing
         MaxConcurrentStreams = 3,
         InitialWindowSize = 4,
         MaxFrameSize = 5,
+        MaxHeaderListSize = 6
     }
 }
