@@ -451,13 +451,20 @@ namespace Microsoft.Http2.Protocol.Http2Session
         {
             Http2Logger.LogFrameReceived(windowUpdateFrame);
 
-            // TODO Remove this hack
-            /* The WINDOW_UPDATE frame can be specific to a stream or to the entire
+            // TODO implement flow control window size
+            /* 14 -> 6.9
+            The WINDOW_UPDATE frame can be specific to a stream or to the entire
             connection.  In the former case, the frame's stream identifier
             indicates the affected stream; in the latter, the value "0" indicates
             that the _entire connection_ is the subject of the frame. */
             if (windowUpdateFrame.StreamId == 0)
             {
+                // TODO: applying connection window size to all existing streams 
+                // as work around to support mozilla firefox
+                foreach (var s in StreamDictionary.FlowControlledStreams.Values)
+                {
+                    s.WindowSize += windowUpdateFrame.Delta;
+                }
                 _flowControlManager.StreamsInitialWindowSize += windowUpdateFrame.Delta;
                 stream = null;
                 return; 

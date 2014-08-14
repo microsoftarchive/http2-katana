@@ -11,6 +11,7 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Http2.Protocol.Extensions;
+using Microsoft.Http2.Protocol.Utils;
 
 namespace Microsoft.Http2.Protocol.IO
 {
@@ -86,6 +87,7 @@ namespace Microsoft.Http2.Protocol.IO
                 int chunkSize = MathEx.Min(count - sent, _stream.MaxFrameSize - Constants.MaxFramePaddingSize);
                 var segment = new ArraySegment<byte>(buffer, offset + sent, chunkSize);
                 _stream.WriteDataFrame(segment, isEndStream: false);
+                Http2Logger.LogDebug("Window size for stream " + _stream.Id + " : " + _stream.WindowSize.ToString());
                 sent += chunkSize;
             }
         }
