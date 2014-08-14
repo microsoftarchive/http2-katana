@@ -536,6 +536,12 @@ namespace Microsoft.Http2.Protocol.Http2Session
 
             var stream = StreamDictionary[streamId];
 
+            if (stream == null)
+            {
+                Close(ResetStatusCode.None);
+                return null;
+            }
+
             stream.OnFrameSent += (o, args) =>
                 {
                     if (!(args.Frame is IHeadersFrame))
@@ -577,6 +583,12 @@ namespace Microsoft.Http2.Protocol.Http2Session
             var headers = sequence.Headers;
 
             var stream = StreamDictionary[id];
+
+            if (stream == null)
+            {
+                Close(ResetStatusCode.None);
+                return null;
+            }
 
             if (sequence.WasEndStreamReceived)
                 stream.HalfClosedLocal = sequence.WasEndStreamReceived;
@@ -632,6 +644,12 @@ namespace Microsoft.Http2.Protocol.Http2Session
             }
             int nextId = GetNextId();
             var stream = StreamDictionary[nextId];
+
+            if (stream == null)
+            {
+                Close(ResetStatusCode.None);
+                return null;
+            }
 
             var streamSequence = new HeadersSequence(nextId, (new HeadersFrame(nextId, true)));
             _headersSequences.Add(streamSequence);

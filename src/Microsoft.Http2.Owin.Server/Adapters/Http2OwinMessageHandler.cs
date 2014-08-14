@@ -59,6 +59,13 @@ namespace Microsoft.Http2.Owin.Server.Adapters
                     pushDelegate = async pairs =>
                         {
                             var promisedStream = CreateStream();
+
+                            // We need check stream, as it used outside of session.
+                            if (promisedStream == null)
+                            {
+                                return;
+                            }
+
                             promisedStream.WritePushPromise(pairs, stream.Id);
 
                             var headers = new HeadersList(pairs);
