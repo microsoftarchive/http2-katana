@@ -119,8 +119,8 @@ namespace Microsoft.Http2.Protocol.Http2Session
 
             if (headersFrame.HasPriority)
             {
-                //TODO: Priority was deprecated, now we need to use Dependency and Weight
-                //sequence.Priority = headersFrame.Priority;
+                // TODO: Priority was deprecated, now we need to use Dependency and Weight
+                // sequence.Priority = headersFrame.Priority;
             }
 
             if (!sequence.IsComplete)
@@ -465,7 +465,7 @@ namespace Microsoft.Http2.Protocol.Http2Session
         {
             Http2Logger.LogFrameReceived(windowUpdateFrame);
 
-            // TODO implement flow control window size
+            // TODO implement flow control connection window size
             /* 14 -> 6.9
             The WINDOW_UPDATE frame can be specific to a stream or to the entire
             connection.  In the former case, the frame's stream identifier

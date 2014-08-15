@@ -838,7 +838,7 @@ namespace Microsoft.Http2.Protocol.Http2Session
             {
                 WriteGoAway(status);
 
-                //TODO fix delay. wait for goAway send and then dispose WriteQueue
+                // TODO: fix delay. wait for goAway send and then dispose WriteQueue
                 using (var goAwayDelay = new ManualResetEvent(false))
                 {
                     goAwayDelay.WaitOne(500);
