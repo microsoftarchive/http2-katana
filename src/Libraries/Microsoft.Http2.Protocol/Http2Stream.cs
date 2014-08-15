@@ -400,7 +400,7 @@ namespace Microsoft.Http2.Protocol
             if (Closed)
                 return;
 
-            //TODO handle idle state
+            // TODO: handle idle state
 
             var frame = new WindowUpdateFrame(_id, windowSize);
 
