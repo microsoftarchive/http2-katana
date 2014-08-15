@@ -290,9 +290,12 @@ namespace Microsoft.Http2.Protocol.Http2Session
                 return;
             }
 
-            if (!(stream.ReservedRemote || stream.Opened || stream.HalfClosedLocal || stream.HalfClosedRemote ||
-                stream.ReservedLocal))
-                throw new ProtocolError(ResetStatusCode.ProtocolError, "Rst for non opened or reserved stream");
+            /* 14 -> 6.4
+            RST_STREAM frames MUST NOT be sent for a stream in the "idle" state.
+            If a RST_STREAM frame identifying an idle stream is received, the
+            recipient MUST treat this as a connection error of type PROTOCOL_ERROR. */
+            if (stream.Idle)
+                throw new ProtocolError(ResetStatusCode.ProtocolError, "RST_STREAM frame in incorrect state");
 
             stream.Close(ResetStatusCode.None);
         }
