@@ -6,8 +6,8 @@ This should only be used for interoperability testing.
 
 
 ##Development Status
-This prototype supports **h2-14** (http://tools.ietf.org/html/draft-ietf-httpbis-http2-14) and 
-**headers compression 09** (http://tools.ietf.org/html/draft-ietf-httpbis-header-compression-09).
+This prototype supports **h2-12** (http://tools.ietf.org/html/draft-ietf-httpbis-http2-12) and 
+**headers compression 07** (http://tools.ietf.org/html/draft-ietf-httpbis-header-compression-07).
 
 HTTP/2 Features  | Support
 ------------- | -------------
