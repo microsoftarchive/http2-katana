@@ -7,23 +7,41 @@
 
 // See the Apache 2 License for the specific language governing permissions and limitations under the License.
 using System;
+using System.Collections.Generic;
 
 namespace Http2.TestClient.CommandParser
 {
     internal static class HelpDisplayer
     {
-        internal static void ShowMainMenuHelp()
+        public static Dictionary<int, string> FrequentCommands = new Dictionary<int, string>
+                {
+                    {1, "get https://localhost:8443/root/simpletest.txt"},
+                    {2, "get https://localhost:8443/root/index.html"},
+                    {3, "get https://localhost:8443/root/5mbTest.txt"},
+                    {4, "get http://localhost:8080/root/simpletest.txt"},
+                    {5, "get http://localhost:8080/root/index.html"},
+                    {6, "get http://localhost:8080/root/5mbTest.txt"}
+                };
+
+        internal static void ShowMainMenu()
         {
-            Console.WriteLine("HTTP2 Prototype Client help\n");
-            Console.WriteLine("HELP                                                     Display this help information");
-            Console.WriteLine("HELP command                                             Display detailed help for command\n" +
-                              "                                                         Ex. HELP GET");
-            Console.WriteLine("GET <resource url>                                       Download resource from the specified url.\n" +
-                              "                                                         E.g.: get https://localhost:8443/test.txt");
-            Console.WriteLine("PING                                                     Pings opened connection\n" +
-                              "                                                         E.g.: ping https://localhost:8443/");
-            Console.WriteLine("EXIT                                                     Exit application");
+            Console.WriteLine("http2-katana client started\n");
+            Console.WriteLine("Enter HELP to list available commands\n");
+            Console.WriteLine("Enter command number to request one of the following url:\n");
+            ShowFrequentCommands();
             Console.WriteLine();
+        }
+
+        internal static void ShowHelp()
+        {
+            //ShowDeleteCommandHelp();
+            //ShowDirCommandHelp();
+            ShowExitCommandHelp();
+            ShowGetCommandHelp();
+            ShowHelpCommandHelp();
+            ShowPingCommandHelp();
+            //ShowPostCommandHelp();
+            //ShowPutCommandHelp();
         }
 
         internal static void ShowExitCommandHelp()
@@ -43,24 +61,21 @@ namespace Http2.TestClient.CommandParser
 
         internal static void ShowGetCommandHelp()
         {
-            Console.WriteLine("GET <resource url> Download web page and associated resources.\n");
-            Console.WriteLine("  <resource url> should be path to web page.");
-            Console.WriteLine("  Localy downloaded files are stored in directory relative to current.");
-            Console.WriteLine("  Directory structure is preserved.");
-            Console.WriteLine("  Download is done using HTTP2 protocol.");
-            Console.WriteLine("  Examples of GET:\n");
-            Console.WriteLine("  GET https://localhost:8443/test.txt");
+            Console.WriteLine("GET <url>\n");
+            Console.WriteLine("  Download files in working directory.");
+            Console.WriteLine("  Sample:\n");
+            Console.WriteLine("  GET https://localhost:8443/root/simpletest.txt");
             Console.WriteLine("\n");
         }
 
         internal static void ShowPutCommandHelp()
         {
-            Console.WriteLine("PUT <server url> <local url>");
-            Console.WriteLine(   "Upload local file to server.\n");
+            Console.WriteLine("PUT <url> <local url>\n");
+            Console.WriteLine("  Upload local file to server.\n");
             Console.WriteLine("  <local url> should be local path to resource.");
-            Console.WriteLine("  Upload is done using HTTP2 protocol.");
+            Console.WriteLine("  Upload is done using HTTP/2 protocol.");
             Console.WriteLine("  Examples of PUT:\n");
-            Console.WriteLine("  PUT https://localhost:8443/test.html  C:\test.txt");
+            Console.WriteLine("  PUT https://localhost:8443/test.html  C:\\test.txt");
             Console.WriteLine("\n");
         }
 
@@ -72,15 +87,15 @@ namespace Http2.TestClient.CommandParser
             Console.WriteLine("  <local url> should be local path to resource.");
             Console.WriteLine("  <server action> is file name which will be used as handler for incoming data");
             Console.WriteLine("  This attribute is used only for saving file for now");
-            Console.WriteLine("  Upload is done using HTTP2 protocol.");
+            Console.WriteLine("  Upload is done using HTTP/2 protocol.");
             Console.WriteLine("  Examples of POST:\n");
-            Console.WriteLine("  POST https://localhost:8443/test.html C:\test.txt view");
+            Console.WriteLine("  POST https://localhost:8443/test.html C:\\test.txt view");
             Console.WriteLine("\n");
         }
 
         internal static void ShowDirCommandHelp()
         {
-            Console.WriteLine("Dir <server url>");
+            Console.WriteLine("DIR <server url>\n");
             Console.WriteLine("  Get files located in a server's root\n");
             Console.WriteLine("  and save result to the index.html\n");
             Console.WriteLine("  located in the client's directory");
@@ -91,7 +106,7 @@ namespace Http2.TestClient.CommandParser
 
         internal static void ShowDeleteCommandHelp()
         {
-            Console.WriteLine("Delete <server url>/<filename>");
+            Console.WriteLine("DELETE <server url>/<filename>\n");
             Console.WriteLine("  Send delete request to the server\n");
             Console.WriteLine("  This command will always return AccessDenied webpage\n");
             Console.WriteLine("  Examples of Delete:\n");
@@ -101,8 +116,18 @@ namespace Http2.TestClient.CommandParser
 
         internal static void ShowPingCommandHelp()
         {
-            Console.WriteLine("Pings the remote endpoint if you are connected to it");
-            Console.WriteLine("ping https://localhost:8443/");
+            Console.WriteLine("PING <server url>\n");
+            Console.WriteLine(" Pings the remote endpoint if you are connected to it");
+            Console.WriteLine(" ping https://localhost:8443/");
+            Console.WriteLine("\n");
+        }
+
+        internal static void ShowFrequentCommands()
+        {
+            foreach (var command in FrequentCommands)
+            {
+                Console.WriteLine("{0} -> {1}", command.Key, command.Value);
+            }
         }
     }
 }

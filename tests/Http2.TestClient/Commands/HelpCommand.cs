@@ -28,13 +28,13 @@ namespace Http2.TestClient.Commands
         {
             if (cmdArgs.Length == 0)
             {
-                ShowHelp = HelpDisplayer.ShowMainMenuHelp;
+                ShowHelp = HelpDisplayer.ShowHelp;
                 return;
             }
 
             switch (cmdArgs[0].ToLower())
             {
-                case "delete":
+                /*case "delete":
                     ShowHelp = HelpDisplayer.ShowDeleteCommandHelp;
                     break;
                 case "dir":
@@ -45,7 +45,7 @@ namespace Http2.TestClient.Commands
                     break;
                 case "post":
                     ShowHelp = HelpDisplayer.ShowPostCommandHelp;
-                    break;
+                    break;*/
                 case "get":
                     ShowHelp = HelpDisplayer.ShowGetCommandHelp;
                     break;

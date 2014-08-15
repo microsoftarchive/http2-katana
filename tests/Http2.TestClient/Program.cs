@@ -59,8 +59,8 @@ namespace Http2.TestClient
             var uri = args.FirstOrDefault(a => a.Contains(Strings.Http));
             if (!isTestsEnabled)
             {
-                HelpDisplayer.ShowMainMenuHelp();
-                Console.WriteLine("Enter command");
+                HelpDisplayer.ShowMainMenu();
+                Console.WriteLine("Enter command:");
             }
             
             do
@@ -142,7 +142,8 @@ namespace Http2.TestClient
                             }
                             break;
                         case CommandType.Help:
-                            ((HelpCommand) cmd).ShowHelp.Invoke();
+                            if (((HelpCommand)cmd).ShowHelp != null)
+                                ((HelpCommand) cmd).ShowHelp.Invoke();
                             break;
                         case CommandType.Ping:
                             string url = ((PingCommand) cmd).Uri.Authority;

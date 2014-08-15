@@ -15,6 +15,8 @@ namespace Http2.TestClient.CommandParser
     {
         internal static Command Parse(string input)
         {
+            input = TryGetCommandByNumber(input);
+
             var splittedCmd = input.Split(new[] {' '}, StringSplitOptions.RemoveEmptyEntries);
 
             if (splittedCmd.Length == 0)
@@ -28,7 +30,7 @@ namespace Http2.TestClient.CommandParser
             Command cmd = null;
             switch (splittedCmd[0].ToLower())
             {
-                case "dir":
+                /*case "dir":
                     cmd = new DirCommand();
                     break;
                 case "post":
@@ -36,11 +38,11 @@ namespace Http2.TestClient.CommandParser
                     break;
                 case "put":
                     cmd = new PutCommand();
-                    break;
+                    break;*/
                 case "get":
                     cmd = new GetCommand();
                     break;
-                case "delete":
+                /*case "delete":
                     cmd = new DeleteCommand();
                     break;
                 case "connect":
@@ -50,7 +52,7 @@ namespace Http2.TestClient.CommandParser
                 case "capturestatson":
                     break;
                 case "capturestatsoff":
-                    break;
+                    break;*/
                 case "help":
                     cmd = new HelpCommand();
                     break;
@@ -66,6 +68,17 @@ namespace Http2.TestClient.CommandParser
             }
             cmd.Parse(cmdArgs);
             return cmd;
+        }
+
+        private static string TryGetCommandByNumber(string input)
+        {
+            int number;
+            if (int.TryParse(input, out number) && HelpDisplayer.FrequentCommands.ContainsKey(number))
+            {
+                input = HelpDisplayer.FrequentCommands[number];
+            }
+
+            return input;
         }
     }
 }
