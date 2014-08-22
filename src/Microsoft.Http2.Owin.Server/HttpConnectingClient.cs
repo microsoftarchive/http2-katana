@@ -158,7 +158,7 @@ namespace Microsoft.Http2.Owin.Server
     {
         private readonly TcpListener _server;
         private readonly AppFunc _next;     
-        private readonly bool _useHandshake;
+        private readonly bool _isDirectEnabled;
         private readonly string _serverName;
         private readonly CancellationTokenSource _cancelClientHandling;
         private bool _isDisposed;
@@ -167,10 +167,10 @@ namespace Microsoft.Http2.Owin.Server
         private TcpClient _client;
 
         internal HttpConnectingClient(TcpListener server, AppFunc next, X509Certificate cert,
-                                       string serverName, bool isSecure, bool useHandshake)
+                                       string serverName, bool isSecure, bool directEnabled)
         {
             _isDisposed = false;
-            _useHandshake = useHandshake;
+            _isDirectEnabled = directEnabled;
             _server = server;
             _isSecure = isSecure;
             _serverName = serverName;
@@ -212,7 +212,7 @@ namespace Microsoft.Http2.Owin.Server
             bool backToHttp11 = false;
             string selectedProtocol = Protocols.Http1;
 
-            if (_useHandshake)
+            if (!_isDirectEnabled)
             {
                 try
                 {

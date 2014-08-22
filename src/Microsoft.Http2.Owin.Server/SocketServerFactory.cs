@@ -26,12 +26,13 @@ namespace Microsoft.Http2.Owin.Server
             }
         }
 
+        // todo pass ServerOptions insted of properties
         public static IDisposable Create(AppFunc app, IDictionary<string, object> properties)
         {
-            var useHandshake = ConfigurationManager.AppSettings["handshakeOptions"] != "no-handshake";
-            var serverName = ConfigurationManager.AppSettings["server-name"];
-            properties.Add("use-handshake", useHandshake);
-            properties.Add("server-name", serverName);
+            var isDirectEnabled = ServerOptions.IsDirectEnabled;
+            var serverName = ServerOptions.ServerName;
+            properties.Add(Strings.DirectEnabled, isDirectEnabled);
+            properties.Add(Strings.ServerName, serverName);
             return new HttpSocketServer(app, properties);
         }
     }

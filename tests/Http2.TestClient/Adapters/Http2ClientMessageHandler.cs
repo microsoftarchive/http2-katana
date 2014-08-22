@@ -36,7 +36,7 @@ namespace Http2.TestClient.Adapters
 
         private void SaveDataFrame(Http2Stream stream, DataFrame dataFrame)
         {
-            string originalPath = stream.Headers.GetValue(CommonHeaders.Path.ToLower());
+            string originalPath = stream.Headers.GetValue(PseudoHeaders.Path.ToLower());
             //If user sets the empty file in get command we return notFound webpage
             string fileName = string.IsNullOrEmpty(Path.GetFileName(originalPath)) ? Index : Path.GetFileName(originalPath);
             string path = Path.Combine(AssemblyPath, fileName);
@@ -86,14 +86,14 @@ namespace Http2.TestClient.Adapters
             A single ":status" header field is defined that carries the HTTP
             status code field.This header field MUST be included in all responses,
             otherwise the response is malformed. */
-            if (stream.Headers.GetValue(CommonHeaders.Status) == null)
+            if (stream.Headers.GetValue(PseudoHeaders.Status) == null)
             {
                 throw new ProtocolError(ResetStatusCode.ProtocolError,
                                         "no ':status' pseudo header in response, stream id=" + stream.Id);
             }
 
             int code;
-            if (!int.TryParse(stream.Headers.GetValue(CommonHeaders.Status), out code))
+            if (!int.TryParse(stream.Headers.GetValue(PseudoHeaders.Status), out code))
             {
                 // the status code is not an integer
                 stream.WriteRst(ResetStatusCode.ProtocolError);

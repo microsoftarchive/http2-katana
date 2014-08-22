@@ -1,31 +1,32 @@
-﻿using System.Configuration;
-using Http2.TestClient.Handshake;
+﻿using Http2.TestClient.Handshake;
+using Microsoft.Http2.Owin.Server;
 using Microsoft.Http2.Owin.Server.Adapters;
 using Microsoft.Owin;
 using Moq;
-using System;
-using System.Collections.Generic;
-using System.Net.Sockets;
-using System.IO;
-using System.Text;
-using System.Threading.Tasks;
 using OpenSSL;
 using OpenSSL.Core;
 using OpenSSL.SSL;
 using OpenSSL.X509;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Net.Sockets;
+using System.Text;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace Microsoft.Http2.Protocol.Tests
 {
-    public static class TestHelpers
+    public static class TestHelper
     {
-        public static readonly byte[] ClientSessionHeader = Encoding.UTF8.GetBytes("PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n");
-        public static readonly bool UseSecurePort = ConfigurationManager.AppSettings["useSecurePort"] == "true";
+        public static readonly byte[] ClientSessionHeader = Encoding.UTF8.GetBytes(Constants.ConnectionPreface);
+        public static readonly bool UseSecurePort = ServerOptions.UseSecureAddress;
 
-        private static readonly int SecurePort = int.Parse(ConfigurationManager.AppSettings["securePort"]);
+        private static readonly int SecurePort = ServerOptions.SecurePort;
 
         public static readonly string IndexFileName = "index.html";
         public static readonly string SimpleTestFileName = "simpleTest.txt";
+        public static readonly string RootDir = "root";
 
         public static readonly string FileContent5bTest =
                                           new StreamReader(new FileStream(@"root\5mbTest.txt", FileMode.Open)).ReadToEnd(),
@@ -43,9 +44,8 @@ namespace Microsoft.Http2.Protocol.Tests
         {
             return new Dictionary<string, object>
                 {
-                    {CommonHeaders.Path, uri.PathAndQuery},
-                    {CommonHeaders.Version, Protocols.Http2},
-                    {CommonHeaders.Scheme, Uri.UriSchemeHttp},
+                    {PseudoHeaders.Path, uri.PathAndQuery},
+                    {PseudoHeaders.Scheme, Uri.UriSchemeHttp},
                     {CommonHeaders.Host, uri.Host},
                     {HandshakeKeys.Stream, stream},
                     {HandshakeKeys.ConnectionEnd, ConnectionEnd.Client}
@@ -121,10 +121,10 @@ namespace Microsoft.Http2.Protocol.Tests
         }
 
 
-        public static Stream GetHandshakedStream(Uri uri, bool allowHttp2Communication = true, bool useMock = false)
+        public static Stream GetHandshakedStream(Uri uri, bool allowHttp2 = true, bool useMock = false)
         {
             var protocols = new List<string> {Protocols.Http1};
-            if (allowHttp2Communication)
+            if (allowHttp2)
             {
                 protocols.Add(Protocols.Http2);
             }
@@ -157,14 +157,29 @@ namespace Microsoft.Http2.Protocol.Tests
             return useMock ? new Mock<Stream>(clientStream).Object : clientStream;
         }
 
-        public static string GetAddress()
+        /// <summary>
+        /// Gets the address depending on useSecurePort parameter.
+        /// </summary>
+        /// <param name="useSecurePort"></param>
+        /// <returns></returns>
+        public static string GetAddress(bool useSecurePort)
         {
-            if (UseSecurePort)
-            {
-                return ConfigurationManager.AppSettings["secureAddress"];
-            }
+            return useSecurePort
+                       ? FormatAddress(ServerOptions.SecureAddress)
+                       : FormatAddress(ServerOptions.UnsecureAddress);
+        }
 
-            return ConfigurationManager.AppSettings["unsecureAddress"];
+        public static string Address
+        {
+            get
+            {
+                return FormatAddress(ServerOptions.Address);
+            }
+        }
+
+        private static string FormatAddress(string address)
+        {
+            return String.Format("{0}{1}/", address, RootDir);
         }
     }
 }

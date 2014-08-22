@@ -21,24 +21,24 @@ namespace Http2.Katana.Tests
             switch (owinRequest.Path.Value)
             {
                 case "/root/10mbTest.txt":
-                    writer.Write(TestHelpers.FileContent5bTest);
-                    owinResponse.ContentLength = TestHelpers.FileContent5bTest.Length;
+                    writer.Write(TestHelper.FileContent5bTest);
+                    owinResponse.ContentLength = TestHelper.FileContent5bTest.Length;
                     break;
                 case "/root/simpleTest.txt":
-                    writer.Write(TestHelpers.FileContentSimpleTest);
-                    owinResponse.ContentLength = TestHelpers.FileContentSimpleTest.Length;
+                    writer.Write(TestHelper.FileContentSimpleTest);
+                    owinResponse.ContentLength = TestHelper.FileContentSimpleTest.Length;
                     break;
                 case "/root/index.html":
-                    writer.Write(TestHelpers.FileContentIndex);
-                    owinResponse.ContentLength = TestHelpers.FileContentIndex.Length;
+                    writer.Write(TestHelper.FileContentIndex);
+                    owinResponse.ContentLength = TestHelper.FileContentIndex.Length;
                     break;
                 case "/root/emptyFile.txt":
-                    writer.Write(TestHelpers.FileContentEmptyFile);
-                    owinResponse.ContentLength = TestHelpers.FileContentEmptyFile.Length;
+                    writer.Write(TestHelper.FileContentEmptyFile);
+                    owinResponse.ContentLength = TestHelper.FileContentEmptyFile.Length;
                     break;
                 default:
-                    writer.Write(TestHelpers.FileContentAnyFile);
-                    owinResponse.ContentLength = TestHelpers.FileContentAnyFile.Length;
+                    writer.Write(TestHelper.FileContentAnyFile);
+                    owinResponse.ContentLength = TestHelper.FileContentAnyFile.Length;
                     break;
             }
 

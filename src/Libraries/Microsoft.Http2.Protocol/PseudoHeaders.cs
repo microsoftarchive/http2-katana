@@ -6,22 +6,17 @@
 // THIS CODE IS PROVIDED ON AN *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION ANY IMPLIED WARRANTIES OR CONDITIONS OF TITLE, FITNESS FOR A PARTICULAR PURPOSE, MERCHANTABLITY OR NON-INFRINGEMENT.
 
 // See the Apache 2 License for the specific language governing permissions and limitations under the License.
-using Owin.Types;
-
-namespace Microsoft.Http2.Owin.Server
+namespace Microsoft.Http2.Protocol
 {
-    internal static class Strings
+    /// <summary>
+    /// see 14 -> 8.1.2.1
+    /// </summary>
+    public static class PseudoHeaders
     {
-        public const string UseSecureAddress = "useSecureAddress";
-        public const string DirectEnabled = "directEnabled";
-        public const string ServerName = "serverName";
-        public const string SecurePort = "securePort";
-        public const string UnsecurePort = "unsecurePort";
-        public const string FileName = "fileName";
-        public const string CertPassword = "p@ssw0rd";
-        public const string CertName = @"\server.pfx";
-        public const string Port = "port";
-        public const string Http = "http";
-        public const string Https = "https";
+        public const string Status = ":status";
+        public const string Path = ":path";
+        public const string Method = ":method";
+        public const string Scheme = ":scheme";
+        public const string Authority = ":authority";
     }
 }

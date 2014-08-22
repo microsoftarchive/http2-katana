@@ -17,9 +17,7 @@ namespace Http2.Owin.BingProxy.Sample
     {
         static void Main(string[] args)
         {
-            var address = ConfigurationManager.AppSettings["useSecurePort"] == "true"
-                                   ? ConfigurationManager.AppSettings["secureAddress"]
-                                   : ConfigurationManager.AppSettings["unsecureAddressAddress"];
+            var address = ServerOptions.Address;
 
             var startOpt = new StartOptions(address)
             {
@@ -41,9 +39,9 @@ namespace Http2.Owin.BingProxy.Sample
             }
             catch (Exception ex)
             {
-                Console.WriteLine(String.Format("Error => {0} : {1}", 
+                Console.WriteLine("Error => {0} : {1}", 
                     ex.Message, 
-                    (ex.InnerException != null) ? ex.InnerException.Message : String.Empty));
+                    (ex.InnerException != null) ? ex.InnerException.Message : String.Empty);
                	Console.ReadLine(); 
            
             }

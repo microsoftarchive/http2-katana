@@ -23,19 +23,12 @@ namespace Http2.Katana.Tests
     public class Http11Setup : IDisposable
     {
         public HttpSocketServer Server { get; private set; }
-        public bool UseSecurePort { get; private set; }
-        public bool UseHandshake { get; private set; }
 
         public static Uri Uri;
 
         public Http11Setup()
         {
-            var appSettings = ConfigurationManager.AppSettings;
-
-            UseSecurePort = appSettings["useSecurePort"] == "true";
-            UseHandshake = appSettings["handshakeOptions"] != "no-handshake";
-
-            string address = UseSecurePort ? appSettings["secureAddress"] : appSettings["unsecureAddress"];
+            string address = TestHelper.Address;
 
             Uri uri;
             Uri.TryCreate(address, UriKind.Absolute, out uri);
@@ -53,12 +46,12 @@ namespace Http2.Katana.Tests
                             {"path", uri.AbsolutePath}
                         }
                 };
-            properties.Add("host.Addresses", addresses);
+            properties.Add(Owin.Types.OwinConstants.CommonKeys.Addresses, addresses);
 
-            bool useHandshake = ConfigurationManager.AppSettings["handshakeOptions"] != "no-handshake";
-            properties.Add("use-handshake", useHandshake);
+            bool isDirectEnabled = ServerOptions.IsDirectEnabled;
+            properties.Add(Strings.DirectEnabled, isDirectEnabled);
 
-            string serverName = appSettings[Strings.ServerName];
+            string serverName = ServerOptions.ServerName;
             properties.Add(Strings.ServerName, serverName);
 
             Server = new HttpSocketServer(new Http2Middleware(new ResponseMiddleware(null)).Invoke, properties);

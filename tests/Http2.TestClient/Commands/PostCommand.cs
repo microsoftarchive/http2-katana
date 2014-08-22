@@ -44,7 +44,7 @@ namespace Http2.TestClient.Commands
 
             try
             {
-                securePort = int.Parse(ConfigurationManager.AppSettings["securePort"]);
+                securePort = ClientOptions.SecurePort;
             }
             catch (Exception)
             {

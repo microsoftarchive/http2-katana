@@ -167,7 +167,7 @@ namespace Http2.TestClient
         private readonly string _certificatePath;
         private string _selectedProtocol;
         private bool _useHttp20 = true;
-        private readonly bool _useHandshake;
+        private readonly bool _isDirectEnabled;
         private bool _isSecure;
         private bool _isDisposed;
         private string _path;
@@ -221,13 +221,13 @@ namespace Http2.TestClient
             _environment = new Dictionary<string, object>();
             //Copy environment
             _environment.AddRange(environment);
-            if (_environment[Strings.UseHandshake] is bool)
+            if (_environment[Strings.DirectEnabled] is bool)
             {
-                _useHandshake = (bool) environment[Strings.UseHandshake];
+                _isDirectEnabled = (bool)environment[Strings.DirectEnabled];
             }
             else
             {
-                _useHandshake = true;
+                _isDirectEnabled = false;
             }
             var s = _environment[Strings.ServerName] as string;
             _serverName = s ?? Strings.Localhost;
@@ -237,9 +237,8 @@ namespace Http2.TestClient
         {
             _environment.AddRange(new Dictionary<string, object>
 			{
-                {CommonHeaders.Path, _path},
-		        {CommonHeaders.Version, _version},
-                {CommonHeaders.Scheme, _scheme},
+                {PseudoHeaders.Path, _path},
+                {PseudoHeaders.Scheme, _scheme},
                 {CommonHeaders.Host, _host},
                 {HandshakeKeys.Stream, _clientStream},
                 {HandshakeKeys.ConnectionEnd, ConnectionEnd.Client}
@@ -264,20 +263,15 @@ namespace Http2.TestClient
             {
                 int port = connectUri.Port;
 
-                int securePort;
+                int securePort = ClientOptions.SecurePort;
 
-                if (!int.TryParse(ConfigurationManager.AppSettings[Strings.SecPort], out securePort))
-                {
-                    Http2Logger.LogError("Incorrect port in the config file!");
-                    return false;
-                }
                 _isSecure = port == securePort;
 
                 var tcpClnt = new TcpClient(connectUri.Host, port);
 
                 _clientStream = tcpClnt.GetStream();
 
-                if (_useHandshake)
+                if (!_isDirectEnabled)
                 {
                     if (_isSecure)
                     {
@@ -359,7 +353,7 @@ namespace Http2.TestClient
                 {
                     initialRequest = new Dictionary<string,string>
                         {
-                            {CommonHeaders.Path, _path},
+                            {PseudoHeaders.Path, _path},
                         };
                 }
  
@@ -382,10 +376,10 @@ namespace Http2.TestClient
 
             var headers = new HeadersList
                 {
-                    new KeyValuePair<string, string>(CommonHeaders.Method, method.ToLower()),
-                    new KeyValuePair<string, string>(CommonHeaders.Path, request.PathAndQuery.ToLower()),
-                    new KeyValuePair<string, string>(CommonHeaders.Authority, _host.ToLower()),
-                    new KeyValuePair<string, string>(CommonHeaders.Scheme, _scheme.ToLower()),
+                    new KeyValuePair<string, string>(PseudoHeaders.Method, method.ToLower()),
+                    new KeyValuePair<string, string>(PseudoHeaders.Path, request.PathAndQuery.ToLower()),
+                    new KeyValuePair<string, string>(PseudoHeaders.Authority, _host.ToLower()),
+                    new KeyValuePair<string, string>(PseudoHeaders.Scheme, _scheme.ToLower()),
                 };
             
             Http2Logger.LogHeaders(headers);

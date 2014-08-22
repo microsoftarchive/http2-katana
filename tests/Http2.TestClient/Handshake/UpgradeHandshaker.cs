@@ -44,16 +44,12 @@ namespace Http2.TestClient.Handshake
 
             if (_end == ConnectionEnd.Client)
             {
-                if (handshakeEnvironment.ContainsKey(CommonHeaders.Host) || (handshakeEnvironment[CommonHeaders.Host] is string)
-                    || handshakeEnvironment.ContainsKey(CommonHeaders.Version) || (handshakeEnvironment[CommonHeaders.Version] is string))
+                if (handshakeEnvironment.ContainsKey(CommonHeaders.Host) || (handshakeEnvironment[CommonHeaders.Host] is string))
                 {
                     _headers = new Dictionary<string, object>
                         {
-                            {CommonHeaders.Path, handshakeEnvironment[CommonHeaders.Path]},
-                            {CommonHeaders.Host, handshakeEnvironment[CommonHeaders.Host]},
-                            {CommonHeaders.Version, handshakeEnvironment[CommonHeaders.Version]},
-                            {CommonHeaders.MaxConcurrentStreams, Constants.DefaultMaxConcurrentStreams},
-                            {CommonHeaders.InitialWindowSize, Constants.InitialFlowControlWindowSize},
+                            {PseudoHeaders.Path, handshakeEnvironment[PseudoHeaders.Path]},
+                            {CommonHeaders.Host, handshakeEnvironment[CommonHeaders.Host]}
                         };
                 }
                 else
@@ -83,7 +79,7 @@ namespace Http2.TestClient.Handshake
             {
                 // Build the request
                 var builder = new StringBuilder();
-                builder.AppendFormat("{0} {1} {2}\r\n", Verbs.Get, _headers[CommonHeaders.Path], Protocols.Http1);
+                builder.AppendFormat("{0} {1} {2}\r\n", Verbs.Get, _headers[PseudoHeaders.Path], Protocols.Http1);
                 //TODO pass here requested filename
                 builder.AppendFormat("Host: {0}\r\n", _headers[CommonHeaders.Host]);
                 builder.Append(String.Format("{0}: {1}, {2}\r\n", CommonHeaders.Connection, CommonHeaders.Upgrade, CommonHeaders.Http2Settings));
@@ -96,7 +92,7 @@ namespace Http2.TestClient.Handshake
                 builder.Append("\r\n\r\n");
 
                 byte[] requestBytes = Encoding.UTF8.GetBytes(builder.ToString());
-                _handshakeResult = new Dictionary<string, object>(_headers) {{CommonHeaders.Method, Verbs.Get.ToLower()}};
+                _handshakeResult = new Dictionary<string, object>(_headers) {{PseudoHeaders.Method, Verbs.Get.ToLower()}};
                 IoStream.Write(requestBytes, 0, requestBytes.Length);
                 IoStream.Flush();
                 ReadHeadersAndInspectHandshake();
@@ -130,7 +126,7 @@ namespace Http2.TestClient.Handshake
             if (_response.Result != HandshakeResult.Upgrade)
             {
                 _handshakeResult.Add(HandshakeKeys.Successful, HandshakeKeys.False);
-                var path = _headers[CommonHeaders.Path] as string;
+                var path = _headers[PseudoHeaders.Path] as string;
                 
                 Http2Logger.LogDebug("Handling with http11");
                 var http11Adapter = new Http11ClientMessageHandler(IoStream, path);
@@ -263,8 +259,8 @@ namespace Http2.TestClient.Handshake
             int endPathIndex = clientResponse.IndexOf(" ", pathIndex, StringComparison.OrdinalIgnoreCase);
             string path = clientResponse.Substring(pathIndex, endPathIndex - pathIndex);
             string method = clientResponse.Substring(methodIndex, pathIndex).Trim().ToLower();
-            _handshakeResult.Add(CommonHeaders.Path, path);
-            _handshakeResult.Add(CommonHeaders.Method, method);
+            _handshakeResult.Add(PseudoHeaders.Path, path);
+            _handshakeResult.Add(PseudoHeaders.Method, method);
 
             string clientHeadersInBase64 = clientResponse.Substring(clientResponse.LastIndexOf(' ') + 1);
             byte[] buffer = Convert.FromBase64String(clientHeadersInBase64);

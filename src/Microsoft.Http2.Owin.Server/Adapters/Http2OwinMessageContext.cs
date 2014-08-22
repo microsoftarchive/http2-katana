@@ -65,19 +65,19 @@ namespace Microsoft.Http2.Owin.Server.Adapters
             var owinRequest = _owinContext.Request;
             var owinResponse = _owinContext.Response;
 
-            owinRequest.Method = headers.GetValue(CommonHeaders.Method);
+            owinRequest.Method = headers.GetValue(PseudoHeaders.Method);
 
-            var path = headers.GetValue(CommonHeaders.Path);
+            var path = headers.GetValue(PseudoHeaders.Path);
             owinRequest.Path = path.StartsWith(@"/") ? new PathString(path) : new PathString(@"/" + path);
 
             owinRequest.CallCancelled = CancellationToken.None;
 
-            owinRequest.Host = new HostString(headers.GetValue(CommonHeaders.Authority));
+            owinRequest.Host = new HostString(headers.GetValue(PseudoHeaders.Authority));
             owinRequest.PathBase = PathString.Empty;
             owinRequest.QueryString = QueryString.Empty;
             owinRequest.Body = Stream.Null;
             owinRequest.Protocol = Protocols.Http2;
-            owinRequest.Scheme = headers.GetValue(CommonHeaders.Scheme) == Uri.UriSchemeHttp ? Uri.UriSchemeHttp : Uri.UriSchemeHttps;
+            owinRequest.Scheme = headers.GetValue(PseudoHeaders.Scheme) == Uri.UriSchemeHttp ? Uri.UriSchemeHttp : Uri.UriSchemeHttps;
 
             owinResponse.Body = new ResponseStream(_protocolStream, StartResponse);
         }
@@ -115,7 +115,7 @@ namespace Microsoft.Http2.Owin.Server.Adapters
             /* 14 -> 8.1.2.4
             A single ":status" header field is defined that carries the HTTP
             status code field. This header field MUST be included in all responses. */
-            var status = new KeyValuePair<string, string>(CommonHeaders.Status,
+            var status = new KeyValuePair<string, string>(PseudoHeaders.Status,
                                                           _owinContext.Response.StatusCode.ToString());
 
             /* 14 -> 8.1.2.1

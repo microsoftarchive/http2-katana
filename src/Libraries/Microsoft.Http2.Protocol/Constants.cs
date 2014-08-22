@@ -50,5 +50,10 @@ namespace Microsoft.Http2.Protocol
         are assigned a default weight of 16. */
         public const int DefaultStreamDependency = 0;
         public const int DefaultStreamWeight = 16;
+        /* 14 -> 3.5
+        Upon establishment of a TCP connection and determination that HTTP/2
+        will be used by both peers, each endpoint MUST send a connection
+        preface as a final confirmation. */
+        public const string ConnectionPreface = "PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n";
     }
 }

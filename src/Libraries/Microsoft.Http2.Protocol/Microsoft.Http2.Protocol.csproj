@@ -45,6 +45,7 @@
   <ItemGroup>
     <Compile Include="Framing\IEndSegmentFrame.cs" />
     <Compile Include="Framing\IPaddingFrame.cs" />
+    <Compile Include="PseudoHeaders.cs" />
     <Compile Include="StreamDictionary.cs" />
     <Compile Include="Compression\HeadersDeltaCompression\UVarIntPrefix.cs" />
     <Compile Include="CommonHeaders.cs" />

@@ -137,7 +137,7 @@ namespace Microsoft.Http2.Owin.Server.Adapters
                 {
                 headers = new HeadersList();
             }
-            headers.Add(new KeyValuePair<string, string>(CommonHeaders.Status, statusCode.ToString(CultureInfo.InvariantCulture)));
+            headers.Add(new KeyValuePair<string, string>(PseudoHeaders.Status, statusCode.ToString(CultureInfo.InvariantCulture)));
 
             stream.WriteHeadersFrame(headers, final, true);
            

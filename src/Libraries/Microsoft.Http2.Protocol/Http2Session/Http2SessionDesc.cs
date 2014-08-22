@@ -51,7 +51,6 @@ namespace Microsoft.Http2.Protocol.Http2Session
         private Frame _lastFrame;
         private readonly CancellationToken _cancelSessionToken;
         private readonly HeadersSequenceList _headersSequences; 
-        private const string ConnectionPreface = "PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n";
         private Dictionary<int, string> _promisedResources; 
 
         /// <summary>
@@ -189,33 +188,32 @@ namespace Microsoft.Http2.Protocol.Http2Session
 
         private void SendConnectionPreface()
         {
-            var bytes = Encoding.UTF8.GetBytes(ConnectionPreface);
+            var bytes = Encoding.UTF8.GetBytes(Constants.ConnectionPreface);
             _ioStream.Write(bytes, 0 , bytes.Length);
         }
 
-        private async Task<bool> GetSessionHeaderAndVerifyIt(Stream incomingClient)
+        private async Task<bool> TryGetConnectionPreface(Stream incomingClient)
         {
-            var sessionHeaderBuffer = new byte[ConnectionPreface.Length];
+            var buffer = new byte[Constants.ConnectionPreface.Length];
 
-            int read = await incomingClient.ReadAsync(sessionHeaderBuffer, 0, 
-                                            sessionHeaderBuffer.Length,
-                                            _cancelSessionToken);
+            int read = await incomingClient.ReadAsync(buffer, 0, buffer.Length, _cancelSessionToken);
             if (read == 0)
             {
-                throw new TimeoutException(String.Format("Session header was not received in timeout {0}", incomingClient.ReadTimeout));
+                throw new TimeoutException(String.Format("Connection preface was not received in timeout {0}",
+                    incomingClient.ReadTimeout));
             }
 
-            var receivedHeader = Encoding.UTF8.GetString(sessionHeaderBuffer);
+            var receivedPreface = Encoding.UTF8.GetString(buffer);
 
-            return string.Equals(receivedHeader, ConnectionPreface, StringComparison.OrdinalIgnoreCase);
+            return string.Equals(receivedPreface, Constants.ConnectionPreface, StringComparison.OrdinalIgnoreCase);
         }
 
         // Calls only in unsecure connection case
         private void DispatchInitialRequest(IDictionary<string, string> initialRequest)
         {
-            if (!initialRequest.ContainsKey(CommonHeaders.Path))
+            if (!initialRequest.ContainsKey(PseudoHeaders.Path))
             {
-                initialRequest.Add(CommonHeaders.Path, "/");
+                initialRequest.Add(PseudoHeaders.Path, "/");
             }
 
             var initialStream = CreateStream(new HeadersList(initialRequest), 1);
@@ -251,7 +249,7 @@ namespace Microsoft.Http2.Protocol.Http2Session
 
             if (_ourEnd == ConnectionEnd.Server)
             {
-                if (!await GetSessionHeaderAndVerifyIt(_ioStream))
+                if (!await TryGetConnectionPreface(_ioStream))
                 {
                     /*Dispose();
                     //throw something?
@@ -443,7 +441,7 @@ namespace Microsoft.Http2.Protocol.Http2Session
                         HandlePushPromiseFrame(frame as PushPromiseFrame, out stream);
                         if (stream != null) //This means that sequence is complete
                         {
-                            _promisedResources.Add(stream.Id, stream.Headers.GetValue(CommonHeaders.Path));
+                            _promisedResources.Add(stream.Id, stream.Headers.GetValue(PseudoHeaders.Path));
                         }
                         break;
                     default:
@@ -694,7 +692,7 @@ namespace Microsoft.Http2.Protocol.Http2Session
             if (priority < 0 || priority > Constants.MaxPriority)
                 throw new ArgumentOutOfRangeException("priority is not between 0 and MaxPriority");
 
-            var path = pairs.GetValue(CommonHeaders.Path);
+            var path = pairs.GetValue(PseudoHeaders.Path);
 
             if (path == null)
                 throw new ProtocolError(ResetStatusCode.ProtocolError, "Invalid request ex");

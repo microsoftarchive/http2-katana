@@ -11,7 +11,6 @@ using System;
 using Microsoft.Http2.Owin.Server;
 using Microsoft.Owin.Hosting;
 using System.ServiceProcess;
-using System.Configuration;
 
 namespace Http2.Owin.Service.Sample
 {
@@ -27,10 +26,10 @@ namespace Http2.Owin.Service.Sample
             InitializeComponent();
         }
 
-        private void StartServer(string connectString)
+        private void StartServer(string address)
         {
 
-            var startOpt = new StartOptions(connectString)
+            var startOpt = new StartOptions(address)
             {
                 ServerFactory = typeof(SocketServerFactory).AssemblyQualifiedName,
             };
@@ -41,12 +40,7 @@ namespace Http2.Owin.Service.Sample
 
         protected override void OnStart(string[] args)
         {
-            bool isSecure = ConfigurationManager.AppSettings["useSecurePort"] == "true";
-            string connectString = isSecure
-                                       ? ConfigurationManager.AppSettings["secureAddress"]
-                                       : ConfigurationManager.AppSettings["unsecureAddress"];
-
-            StartServer(connectString);
+            StartServer(ServerOptions.Address);
         }
 
         protected override void OnStop()

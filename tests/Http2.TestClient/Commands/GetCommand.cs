@@ -40,20 +40,15 @@ namespace Http2.TestClient.Commands
             int securePort;
             try
             {
-                securePort = int.Parse(ConfigurationManager.AppSettings["securePort"]);
+                securePort = ClientOptions.SecurePort;
             }
             catch (Exception)
             {
                 throw new InvalidOperationException("Invalid port in the config file");
             }
 
-            if (Uri.Port == securePort
-                && 
-                Uri.Scheme == Uri.UriSchemeHttp
-                ||
-                Uri.Port != securePort
-                && 
-                Uri.Scheme == Uri.UriSchemeHttps)
+            if ((Uri.Port == securePort && Uri.Scheme == Uri.UriSchemeHttp) ||
+                (Uri.Port != securePort && Uri.Scheme == Uri.UriSchemeHttps))
             {
                 throw new InvalidOperationException("Invalid scheme or port! Use https for secure port");
             }

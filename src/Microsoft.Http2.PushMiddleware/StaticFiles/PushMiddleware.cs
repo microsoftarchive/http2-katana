@@ -174,17 +174,14 @@ namespace Microsoft.Http2.Push
                 new Dictionary<string, string[]>(request.Headers, StringComparer.OrdinalIgnoreCase));
 
             // Populate special HTTP2 headers
-            headers[CommonHeaders.Method] = request.Method.ToUpper(); // TODO: Not all methods are allowed for push.  Don't push, or change to GET?
-            headers[CommonHeaders.Scheme] = request.Scheme;
-            headers.Remove("Host");
-            headers[CommonHeaders.Authority] = request.Headers["Host"];
-            headers.Remove(CommonHeaders.ContentLength); // Push promises cannot emulate requests with bodies.
-            // TODO: What about cache headers? If-Match, If-None-Match, If-Modified-Since, If-Unmodified-Since.
-            // If-Match & If-None-Match are multi-value so the client could send e-tags for the primary resource and referenced resources.
-            // If-Modified-Since and If-Unmodified-Since are single value, so it may not make sense to apply them for secondary resources.
+            headers[PseudoHeaders.Method] = request.Method.ToUpper(); // TODO: Not all methods are allowed for push.  Don't push, or change to GET?
+            headers[PseudoHeaders.Scheme] = request.Scheme;
+            headers.Remove(CommonHeaders.Host);
+            headers[PseudoHeaders.Authority] = request.Headers[CommonHeaders.Host];
+            headers.Remove(CommonHeaders.ContentLength); // Push promises cannot emulate requests with bodies.        
 
             // Change the request path to the pushed resource
-            headers[CommonHeaders.Path] = pushReference;
+            headers[PseudoHeaders.Path] = pushReference;
 
             pushPromise(headers);
         }

@@ -31,11 +31,11 @@ namespace Http2.TestClient
         private static Dictionary<string, object> CreateEnvironment(Uri uri)
         {
             var serverName = uri.Host;
-            var useHandshake = ConfigurationManager.AppSettings[Strings.UseHandshake] == Strings.True;
+            var isDirectEnabled = ClientOptions.IsDirectEnabled;
             var environment = new Dictionary<string, object>
                 {
                     {Strings.ServerName, serverName},
-                    {Strings.UseHandshake, useHandshake}
+                    {Strings.DirectEnabled, isDirectEnabled}
                 };
 
             return environment;
@@ -48,7 +48,7 @@ namespace Http2.TestClient
 
             _sessions = new Dictionary<string, Http2SessionHandler>();
        
-            var isTestsEnabled = ConfigurationManager.AppSettings[Strings.TestMode] == Strings.True;
+            var isTestsEnabled = ClientOptions.IsTestModeEnabled;
             
             var waitForTestsFinish = new ManualResetEvent(!isTestsEnabled);
 

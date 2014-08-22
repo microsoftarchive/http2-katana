@@ -8,9 +8,9 @@ using Microsoft.Http2.Protocol;
 using Microsoft.Http2.Protocol.Tests;
 using System;
 using System.Collections.Generic;
-using System.Configuration;
 using OpenSSL.SSL;
 using Xunit;
+using Owin.Types;
 
 namespace Http2.Katana.Tests
 {
@@ -21,9 +21,7 @@ namespace Http2.Katana.Tests
 
         private IDictionary<string, object> GetProperties(bool useSecurePort)
         {
-            var appSettings = ConfigurationManager.AppSettings;
-
-            string address = useSecurePort ? appSettings["secureAddress"] : appSettings["unsecureAddress"];
+            string address = TestHelper.GetAddress(useSecurePort);
 
             Uri uri;
             Uri.TryCreate(address, UriKind.Absolute, out uri);
@@ -40,12 +38,12 @@ namespace Http2.Katana.Tests
                         }
                 };
 
-            properties.Add("host.Addresses", addresses);
+            properties.Add(OwinConstants.CommonKeys.Addresses, addresses);
 
-            const bool useHandshake = true;
-            properties.Add("use-handshake", useHandshake);
+            const bool isDirectEnabled = false;
+            properties.Add(Strings.DirectEnabled, isDirectEnabled);
 
-            string serverName = appSettings[Strings.ServerName];
+            string serverName = ServerOptions.ServerName;
             properties.Add(Strings.ServerName, serverName);
 
             return properties;
@@ -84,7 +82,7 @@ namespace Http2.Katana.Tests
             bool gotSecurityError = false;
             try
             {
-                clientStream = TestHelpers.GetHandshakedStream(uri);
+                clientStream = TestHelper.GetHandshakedStream(uri);
                 if (!(clientStream is SslStream))
                     gotSecurityError = true;
                 else
@@ -108,8 +106,8 @@ namespace Http2.Katana.Tests
             bool gotException = false;
             try
             {
-                var stream = TestHelpers.GetHandshakedStream(uri);
-                stream.Write(TestHelpers.ClientSessionHeader);
+                var stream = TestHelper.GetHandshakedStream(uri);
+                stream.Write(TestHelper.ClientSessionHeader);
                 stream.Flush();
             }
             catch (Http2HandshakeFailed)

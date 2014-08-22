@@ -8,7 +8,6 @@
 // See the Apache 2 License for the specific language governing permissions and limitations under the License.
 using System;
 using System.Collections.Generic;
-using System.Configuration;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -20,6 +19,7 @@ using Microsoft.Http2.Protocol.Utils;
 using Microsoft.Owin;
 using OpenSSL.Core;
 using OpenSSL.X509;
+using Owin.Types;
 
 namespace Microsoft.Http2.Owin.Server
 {
@@ -36,7 +36,7 @@ namespace Microsoft.Http2.Owin.Server
         private readonly CancellationTokenSource _cancelAccept;
         private readonly AppFunc _next;
         private readonly int _port;
-        private readonly bool _useHandshake;
+        private readonly bool _isDirectEnabled;
         private readonly string _serverName;
         private readonly string _certificateFilename;
         private bool _disposed;
@@ -55,22 +55,16 @@ namespace Microsoft.Http2.Owin.Server
         public HttpSocketServer(Func<IOwinContext, Task> next, IDictionary<string, object> properties)
         {
             _next = next;
-            var addresses = (IList<IDictionary<string, object>>)properties[Strings.Addresses];
+            var addresses = (IList<IDictionary<string, object>>)properties[OwinConstants.CommonKeys.Addresses];
 
             var address = addresses.First();
             _port = Int32.Parse(address.Get<string>(Strings.Port));
 
             _cancelAccept = new CancellationTokenSource();
 
-            _useHandshake = (bool) properties[Strings.UseHandshake];
-            _serverName = (string) properties[Strings.ServerName];
-            int securePort;
+            _isDirectEnabled = (bool)properties[Strings.DirectEnabled];
+            _serverName = (string)properties[Strings.ServerName];
 
-            if (!int.TryParse(ConfigurationManager.AppSettings[Strings.SecPort], out securePort))
-            {
-                Http2Logger.LogError("Incorrect port in the config file!");
-                return;
-            }
             _certificateFilename = Strings.CertName;
             try
             {
@@ -80,9 +74,9 @@ namespace Microsoft.Http2.Owin.Server
             {
                 Http2Logger.LogInfo("Unable to start server. Check certificate. Exception: " + ex.Message);
                 return;
-            }            
+            }
 
-            _isSecure = _port == securePort;
+            _isSecure = _port == ServerOptions.SecurePort;
 
             _server = new TcpListener(IPAddress.Any, _port);
 
@@ -101,7 +95,7 @@ namespace Microsoft.Http2.Owin.Server
                 try
                 {
                     var client = new HttpConnectingClient(_server, _next.Invoke, _serverCert,
-                                                            _serverName, _isSecure, _useHandshake);
+                                                            _serverName, _isSecure, _isDirectEnabled);
                     client.Accept(_cancelAccept.Token);
                 }
                 catch (Exception ex)

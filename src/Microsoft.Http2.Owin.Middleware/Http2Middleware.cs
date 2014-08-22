@@ -154,12 +154,10 @@ namespace Microsoft.Http2.Owin.Middleware
             return new Dictionary<string, string>
                 {
                     //Add more headers
-                    {CommonHeaders.Path, path},
-                    {CommonHeaders.Method, method},
-                    {CommonHeaders.InitialWindowSize, windowSize},
-                    {CommonHeaders.MaxConcurrentStreams, maxStreams},
-                    {CommonHeaders.Scheme, scheme},
-                    {CommonHeaders.Authority, host}
+                    {PseudoHeaders.Path, path},
+                    {PseudoHeaders.Method, method},
+                    {PseudoHeaders.Scheme, scheme},
+                    {PseudoHeaders.Authority, host}
                 };
         }
     }

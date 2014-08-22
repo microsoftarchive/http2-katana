@@ -12,35 +12,30 @@ using OpenSSL;
 using OpenSSL.SSL;
 using System;
 using System.Collections.Generic;
-using System.Configuration;
 using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
+using Owin.Types;
 
 namespace Http2.Katana.Tests
 {
     /// <summary>
     /// This class is a server setup for a future interaction
-    /// No handshake can be switched on by changing config file handshakeOptions to no-handshake
-    /// If this setting was set to no-handshake then server and incoming client created by test methods
+    /// IsDirectEnabled option can be switched on by changing config file
+    /// If this setting was set to false then server and incoming client created by test methods
     /// will work in the no handshake mode.
-    /// No priority and no flow control modes can be switched on in the .config file
-    /// ONLY for server. Clients and server can interact even if these modes are different 
-    /// for client and server.
     /// </summary>
     public class Http2Setup : IDisposable
     {
         public HttpSocketServer SecureServer { get; protected set; }
         public HttpSocketServer UnsecureServer { get; protected set; }
         public bool UseSecurePort { get; protected set; }
-        public bool UseHandshake { get; protected set; }
 
         public Http2Setup()
         {
-            UseHandshake = GetHandshakeNeed();
             SecureServer =
                 new HttpSocketServer(new Http2Middleware(new PushMiddleware(new ResponseMiddleware(null))).Invoke,
                                      GetProperties(true));
@@ -51,9 +46,7 @@ namespace Http2.Katana.Tests
 
         private static Dictionary<string, object> GetProperties(bool useSecurePort)
         {
-            var appSettings = ConfigurationManager.AppSettings;
-
-            string address = useSecurePort ? appSettings["secureAddress"] : appSettings["unsecureAddress"];
+            string address = TestHelper.GetAddress(useSecurePort);
 
             Uri uri;
             Uri.TryCreate(address, UriKind.Absolute, out uri);
@@ -70,20 +63,15 @@ namespace Http2.Katana.Tests
                         }
                 };
 
-            properties.Add("host.Addresses", addresses);
+            properties.Add(OwinConstants.CommonKeys.Addresses, addresses);
 
-            var useHandshake = ConfigurationManager.AppSettings["handshakeOptions"] != "no-handshake";
-            properties.Add("use-handshake", useHandshake);
+            var isDirectEnabled = ServerOptions.IsDirectEnabled;
+            properties.Add(Strings.DirectEnabled, isDirectEnabled);
 
-            string serverName = appSettings[Strings.ServerName];
+            string serverName = ServerOptions.ServerName;
             properties.Add(Strings.ServerName, serverName);
 
             return properties;
-        }
-
-        private static bool GetHandshakeNeed()
-        {
-            return ConfigurationManager.AppSettings["handshakeOptions"] != "no-handshake";
         }
 
         public void Dispose()
@@ -112,17 +100,17 @@ namespace Http2.Katana.Tests
         [StandardFact]
         public void StartHttp2Session()
         {
-            var requestStr = ConfigurationManager.AppSettings["smallTestFile"];
+            var requestStr = ServerOptions.FileName;
             Uri uri;
-            Uri.TryCreate(TestHelpers.GetAddress() + requestStr, UriKind.Absolute, out uri);
+            Uri.TryCreate(TestHelper.Address + requestStr, UriKind.Absolute, out uri);
 
             var wasHeadersReceived = false;
             var headersReceivedEvent = new ManualResetEvent(false);
 
-            var iostream = TestHelpers.GetHandshakedStream(uri);
+            var iostream = TestHelper.GetHandshakedStream(uri);
 
             var mockedAdapter = new Mock<Http2ClientMessageHandler>(iostream, ConnectionEnd.Client,
-                                                                    TestHelpers.UseSecurePort,
+                                                                    TestHelper.UseSecurePort,
                                                                     new CancellationToken()) {CallBase = true};
             var adapter = mockedAdapter.Object;
 
@@ -157,17 +145,17 @@ namespace Http2.Katana.Tests
         [StandardFact]
         public void StartAndCloseSession()
         {
-            var requestStr = ConfigurationManager.AppSettings["smallTestFile"];
+            var requestStr = ServerOptions.FileName;
             Uri uri;
-            Uri.TryCreate(TestHelpers.GetAddress() + requestStr, UriKind.Absolute, out uri);
+            Uri.TryCreate(TestHelper.Address + requestStr, UriKind.Absolute, out uri);
 
             bool gotException = false;
-            var stream = TestHelpers.GetHandshakedStream(uri);
+            var stream = TestHelper.GetHandshakedStream(uri);
 
             try
             {
                 using (
-                    var adapter = new Http2ClientMessageHandler(stream, ConnectionEnd.Client, TestHelpers.UseSecurePort,
+                    var adapter = new Http2ClientMessageHandler(stream, ConnectionEnd.Client, TestHelper.UseSecurePort,
                                                                 new CancellationToken()))
                 {
                     adapter.StartSessionAsync();
@@ -193,19 +181,19 @@ namespace Http2.Katana.Tests
         [VeryLongTaskFact]
         public void SimpleTestDownload()
         {
-            var requestStr = ConfigurationManager.AppSettings["smallTestFile"];
+            var requestStr = ServerOptions.FileName;
             Uri uri;
-            Uri.TryCreate(TestHelpers.GetAddress() + requestStr, UriKind.Absolute, out uri);
+            Uri.TryCreate(TestHelper.Address + requestStr, UriKind.Absolute, out uri);
 
             var wasFinalFrameReceived = false;
             var response = new StringBuilder();
 
             var finalFrameReceivedEvent = new ManualResetEvent(false);
 
-            var iostream = TestHelpers.GetHandshakedStream(uri);
+            var iostream = TestHelper.GetHandshakedStream(uri);
 
             var mockedAdapter = new Mock<Http2ClientMessageHandler>(iostream, ConnectionEnd.Client,
-                                                                    TestHelpers.UseSecurePort,
+                                                                    TestHelper.UseSecurePort,
                                                                     new CancellationToken()) {CallBase = true};
 
             var adapter = mockedAdapter.Object;
@@ -240,7 +228,7 @@ namespace Http2.Katana.Tests
                 finalFrameReceivedEvent.WaitOne(60*1000);
 
                 Assert.Equal(true, wasFinalFrameReceived);
-                Assert.Equal(TestHelpers.FileContentSimpleTest, response.ToString());
+                Assert.Equal(TestHelper.FileContentSimpleTest, response.ToString());
             }
             finally
             {
@@ -252,15 +240,18 @@ namespace Http2.Katana.Tests
         [VeryLongTaskFact]
         public void UpgradeAndFileDownload()
         {
-            var requestStr = ConfigurationManager.AppSettings["smallTestFile"];
+            var requestStr = ServerOptions.FileName;
             Uri uri;
-            Uri.TryCreate(ConfigurationManager.AppSettings["unsecureAddress"] + requestStr, UriKind.Absolute, out uri);
+            Uri.TryCreate(String.Format("{0}{1}",
+                                        TestHelper.GetAddress(false),
+                                        requestStr), 
+                                        UriKind.Absolute, out uri);
 
             bool finalFrameReceived = false;
             var responseBody = new StringBuilder();
             var finalFrameReceivedRaisedEvent = new ManualResetEvent(false);
 
-            var clientStream = TestHelpers.GetHandshakedStream(uri);
+            var clientStream = TestHelper.GetHandshakedStream(uri);
 
             var mockedAdapter = new Mock<Http2ClientMessageHandler>(clientStream, ConnectionEnd.Client,
                                                                     clientStream is SslStream,
@@ -295,7 +286,7 @@ namespace Http2.Katana.Tests
                 finalFrameReceivedRaisedEvent.WaitOne(180 * 1000);
 
                 Assert.True(finalFrameReceived);
-                Assert.Equal(TestHelpers.FileContentSimpleTest, responseBody.ToString());
+                Assert.Equal(TestHelper.FileContentSimpleTest, responseBody.ToString());
             }
             finally
             {
@@ -310,17 +301,17 @@ namespace Http2.Katana.Tests
             string requestStr = string.Empty;
             // do not request file, test only request sending
             Uri uri;
-            Uri.TryCreate(TestHelpers.GetAddress() + requestStr, UriKind.Absolute, out uri);
+            Uri.TryCreate(TestHelper.Address + requestStr, UriKind.Absolute, out uri);
             int finalFramesCounter = 0;
             int streamsQuantity = _useSecurePort ? 50 : 49;
 
             bool wasAllResourcesDownloaded = false;
             var allResourcesDowloadedEvent = new ManualResetEvent(false);
 
-            var iostream = TestHelpers.GetHandshakedStream(uri);
+            var iostream = TestHelper.GetHandshakedStream(uri);
 
             var mockedAdapter = new Mock<Http2ClientMessageHandler>(iostream, ConnectionEnd.Client,
-                                                                    TestHelpers.UseSecurePort,
+                                                                    TestHelper.UseSecurePort,
                                                                     new CancellationToken()) {CallBase = true};
             var adapter = mockedAdapter.Object;
 
@@ -371,16 +362,16 @@ namespace Http2.Katana.Tests
         {
             const string requestStr = "emptyFile.txt";
             Uri uri;
-            Uri.TryCreate(TestHelpers.GetAddress() + requestStr, UriKind.Absolute, out uri);
+            Uri.TryCreate(TestHelper.Address + requestStr, UriKind.Absolute, out uri);
 
             var wasFinalFrameReceived = false;
 
             var finalFrameReceivedRaisedEvent = new ManualResetEvent(false);
 
-            var iostream = TestHelpers.GetHandshakedStream(uri);
+            var iostream = TestHelper.GetHandshakedStream(uri);
 
             var mockedAdapter = new Mock<Http2ClientMessageHandler>(iostream, ConnectionEnd.Client,
-                                                                    TestHelpers.UseSecurePort,
+                                                                    TestHelper.UseSecurePort,
                                                                     new CancellationToken()) {CallBase = true};
 
             var adapter = mockedAdapter.Object;
@@ -438,9 +429,9 @@ namespace Http2.Katana.Tests
         [Fact]
         public void ServerPush()
         {
-            var requestStr = TestHelpers.IndexFileName;
+            var requestStr = TestHelper.IndexFileName;
             Uri uri;
-            Uri.TryCreate(TestHelpers.GetAddress() + requestStr, UriKind.Absolute, out uri);
+            Uri.TryCreate(TestHelper.Address + requestStr, UriKind.Absolute, out uri);
 
             var wasFinalFrameReceived = false;
 
@@ -449,10 +440,10 @@ namespace Http2.Katana.Tests
 
             var finalFrameReceivedEvent = new ManualResetEvent(false);
 
-            var iostream = TestHelpers.GetHandshakedStream(uri);
+            var iostream = TestHelper.GetHandshakedStream(uri);
 
             var mockedAdapter = new Mock<Http2ClientMessageHandler>(iostream, ConnectionEnd.Client,
-                                                                    TestHelpers.UseSecurePort,
+                                                                    TestHelper.UseSecurePort,
                                                                     new CancellationToken()) {CallBase = true};
             var adapter = mockedAdapter.Object;
             
@@ -499,8 +490,8 @@ namespace Http2.Katana.Tests
                 var str1 = resources[0].ToString();
                 var str2 = resources[1].ToString();
 
-                Assert.Equal(TestHelpers.FileContentSimpleTest, str1);
-                Assert.Equal(TestHelpers.FileContentIndex, str2);
+                Assert.Equal(TestHelper.FileContentSimpleTest, str1);
+                Assert.Equal(TestHelper.FileContentIndex, str2);
             }
             finally
             {
@@ -512,19 +503,19 @@ namespace Http2.Katana.Tests
         [Fact]
         public void RequestPushedResource()
         {
-            var requestStr = TestHelpers.IndexFileName;
+            var requestStr = TestHelper.IndexFileName;
             Uri uri;
-            Uri.TryCreate(TestHelpers.GetAddress() + requestStr, UriKind.Absolute, out uri);
+            Uri.TryCreate(TestHelper.Address + requestStr, UriKind.Absolute, out uri);
 
             var wasFinalFrameReceived = false;
             var response = new StringBuilder();
 
             var protocolErrorRaisedEvent = new ManualResetEvent(false);
 
-            var iostream = TestHelpers.GetHandshakedStream(uri);
+            var iostream = TestHelper.GetHandshakedStream(uri);
 
             var mockedAdapter = new Mock<Http2ClientMessageHandler>(iostream, ConnectionEnd.Client,
-                                                                    TestHelpers.UseSecurePort,
+                                                                    TestHelper.UseSecurePort,
                                                                     new CancellationToken()) {CallBase = true};
 
             var adapter = mockedAdapter.Object;
@@ -536,8 +527,8 @@ namespace Http2.Katana.Tests
                                  {
                                      Uri pushUri;
                                      Uri.TryCreate(
-                                         TestHelpers.GetAddress() +
-                                         stream.Headers.GetValue(CommonHeaders.Path).Replace("/", ""), UriKind.Absolute,
+                                         TestHelper.Address +
+                                         stream.Headers.GetValue(PseudoHeaders.Path).Replace("/", ""), UriKind.Absolute,
                                          out pushUri);
 
                                      try
@@ -582,7 +573,6 @@ namespace Http2.Katana.Tests
                 {
                     new KeyValuePair<string, string>(":method", method),
                     new KeyValuePair<string, string>(":path", path),
-                    new KeyValuePair<string, string>(":version", version),
                     new KeyValuePair<string, string>(":authority", host + ":" + uri.Port),
                     new KeyValuePair<string, string>(":scheme", scheme),
                 };

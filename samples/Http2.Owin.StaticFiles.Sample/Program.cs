@@ -6,7 +6,6 @@
 // THIS CODE IS PROVIDED ON AN *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION ANY IMPLIED WARRANTIES OR CONDITIONS OF TITLE, FITNESS FOR A PARTICULAR PURPOSE, MERCHANTABLITY OR NON-INFRINGEMENT.
 
 // See the Apache 2 License for the specific language governing permissions and limitations under the License.
-using System.Configuration;
 using Microsoft.Http2.Owin.Server;
 using Microsoft.Owin.Hosting;
 using System;
@@ -17,9 +16,7 @@ namespace Http2.Owin.StaticFiles.Sample
     {
         static void Main(string[] args)
         {
-            var address = ConfigurationManager.AppSettings["useSecurePort"] == "true"
-                                   ? ConfigurationManager.AppSettings["secureAddress"]
-                                   : ConfigurationManager.AppSettings["unsecureAddress"];
+            var address = ServerOptions.Address;
 
             var startOpt = new StartOptions(address)
             {
@@ -33,19 +30,18 @@ namespace Http2.Owin.StaticFiles.Sample
                 {
                     Console.WriteLine("Press Enter to stop the server");
                     Console.WriteLine("The following URLs could be used for testing:");
-                    Console.WriteLine(address + "simpleTest.txt");
-                    Console.WriteLine(address + "10mbTest.txt");
-                    
-                    Console.ReadLine(); 
-                } 
+                    Console.WriteLine(address + "root/simpleTest.txt");
+                    Console.WriteLine(address + "root/index.html");
+
+                    Console.ReadLine();
+                }
             }
             catch (Exception ex)
             {
-                Console.WriteLine(String.Format("Error => {0} : {1}", 
-                    ex.Message, 
-                    (ex.InnerException != null) ? ex.InnerException.Message : String.Empty));
-               	Console.ReadLine(); 
-           
+                Console.WriteLine("Error: {0} : {1}",
+                    ex.Message,
+                    (ex.InnerException != null) ? ex.InnerException.Message : String.Empty);
+                Console.ReadLine();
             }
         }
     }

@@ -47,12 +47,11 @@ namespace Microsoft.Http2.Protocol.Http2Session
             {
                 string key = header.Key;
                 if (key.StartsWith(":")
-                    && key != CommonHeaders.Method
-                    && key != CommonHeaders.Path
-                    && key != CommonHeaders.Scheme
-                    && key != CommonHeaders.Authority
-                    && key != CommonHeaders.Version
-                    && key != CommonHeaders.Status)
+                    && key != PseudoHeaders.Method
+                    && key != PseudoHeaders.Path
+                    && key != PseudoHeaders.Scheme
+                    && key != PseudoHeaders.Authority
+                    && key != PseudoHeaders.Status)
                 {
                     stream.WriteRst(ResetStatusCode.ProtocolError);
                     stream.Close(ResetStatusCode.ProtocolError);
@@ -71,10 +70,10 @@ namespace Microsoft.Http2.Protocol.Http2Session
                 /* 14 -> 8.1.2.1
                 Pseudo-header fields defined for responses MUST NOT appear in requests */
 
-                if (headers.GetValue(CommonHeaders.Method) == null
-                    || headers.GetValue(CommonHeaders.Path) == null
-                    || headers.GetValue(CommonHeaders.Scheme) == null
-                    || headers.GetValue(CommonHeaders.Status) != null)
+                if (headers.GetValue(PseudoHeaders.Method) == null
+                    || headers.GetValue(PseudoHeaders.Path) == null
+                    || headers.GetValue(PseudoHeaders.Scheme) == null
+                    || headers.GetValue(PseudoHeaders.Status) != null)
                 {
                     stream.WriteRst(ResetStatusCode.ProtocolError);
                     stream.Close(ResetStatusCode.ProtocolError);
@@ -274,7 +273,7 @@ namespace Microsoft.Http2.Protocol.Http2Session
             treat this as a connection error of type PROTOCOL_ERROR. */
 
             if (resetFrame.StreamId == 0)
-                throw new ProtocolError(ResetStatusCode.ProtocolError, "Rst frame with stream id=0");
+                throw new ProtocolError(ResetStatusCode.ProtocolError, "RST_STREAM frame with stream id=0");
 
             stream = GetStream(resetFrame.StreamId);
             
@@ -612,7 +611,7 @@ namespace Microsoft.Http2.Protocol.Http2Session
             that is not safe, it MUST respond with a stream error of type PROTOCOL_ERROR. */
 
             // only GET method is safe for now
-            var method = sequence.Headers.GetValue(CommonHeaders.Method);
+            var method = sequence.Headers.GetValue(PseudoHeaders.Method);
             if (method == null || !method.Equals(Verbs.Get, StringComparison.OrdinalIgnoreCase))
             {
                 var frameReceiveStream = GetStream(frame.StreamId);

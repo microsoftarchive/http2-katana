@@ -78,6 +78,7 @@
     <Content Include="root\5mbTest.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Content Include="root\index.html" />
     <Content Include="root\simpleTest.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>

@@ -61,6 +61,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ClientOptions.cs" />
     <Compile Include="CommandParser\CommandParser.cs" />
     <Compile Include="CommandParser\HelpDisplayer.cs" />
     <Compile Include="Commands\Command.cs" />

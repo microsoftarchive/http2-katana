@@ -122,16 +122,6 @@ namespace Microsoft.Http2.Protocol
             int initialWindowSize = Constants.InitialFlowControlWindowSize;
             int maxStreams = Constants.DefaultMaxConcurrentStreams;
 
-            if (initRequest != null && initRequest.ContainsKey(CommonHeaders.InitialWindowSize))
-            {
-                initialWindowSize = int.Parse(initRequest[CommonHeaders.InitialWindowSize]);
-            }
-
-            if (initRequest != null && initRequest.ContainsKey(CommonHeaders.MaxConcurrentStreams))
-            {
-                maxStreams = int.Parse(initRequest[CommonHeaders.MaxConcurrentStreams]);
-            }
-
             _session.OnFrameReceived += OnFrameReceivedHandler;
             _session.OnSettingsSent += OnSettingsSentHandler;
 
