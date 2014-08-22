@@ -276,16 +276,13 @@ namespace Microsoft.Http2.Protocol.Http2Session
                 throw new ProtocolError(ResetStatusCode.ProtocolError, "RST_STREAM frame with stream id=0");
 
             stream = GetStream(resetFrame.StreamId);
+            stream.WasRstReceived = true;
             
             if (stream.Closed)
             {
                 /* 14 -> 5.4.2
                 An endpoint MUST NOT send a RST_STREAM in response to an RST_STREAM
                 frame, to avoid looping. */
-                if (!stream.WasRstSent)
-                {
-                    throw new Http2StreamNotFoundException(resetFrame.StreamId);
-                }
                 return;
             }
 

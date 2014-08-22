@@ -7,8 +7,6 @@
 
 // See the Apache 2 License for the specific language governing permissions and limitations under the License.
 
-using System.Threading;
-using Microsoft.Http2.Protocol.Compression;
 using Microsoft.Http2.Protocol.EventArgs;
 using Microsoft.Http2.Protocol.Exceptions;
 using Microsoft.Http2.Protocol.FlowControl;
@@ -84,6 +82,8 @@ namespace Microsoft.Http2.Protocol
             IsFlowControlEnabled = _flowCrtlManager.IsFlowControlEnabled;
             WindowSize = _flowCrtlManager.StreamsInitialWindowSize;
             WasHeadersFrameRecived = false;
+            WasRstSent = false;
+            WasRstReceived = false;
 
             _flowCrtlManager.NewStreamOpenedHandler(this);
             OnFrameSent += (sender, args) => FramesSent++;
@@ -101,6 +101,7 @@ namespace Microsoft.Http2.Protocol
         public int FramesReceived { get; set; }
         public int Priority { get; set; }
         public bool WasRstSent { get; set; }
+        public bool WasRstReceived { get; set; }
         public Int32 MaxFrameSize { get; set; }
         public bool WasHeadersFrameRecived { get; set; }
 
@@ -424,6 +425,7 @@ namespace Microsoft.Http2.Protocol
             Http2Logger.LogFrameSend(frame);
 
             _writeQueue.WriteFrame(frame);
+            WasRstSent = true;
 
             if (OnFrameSent != null)
             {
