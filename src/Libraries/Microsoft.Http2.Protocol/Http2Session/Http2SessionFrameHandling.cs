@@ -276,7 +276,7 @@ namespace Microsoft.Http2.Protocol.Http2Session
                 throw new ProtocolError(ResetStatusCode.ProtocolError, "RST_STREAM frame with stream id=0");
 
             stream = GetStream(resetFrame.StreamId);
-            stream.WasRstReceived = true;
+            stream.WasRstOnStream = true;
             
             if (stream.Closed)
             {

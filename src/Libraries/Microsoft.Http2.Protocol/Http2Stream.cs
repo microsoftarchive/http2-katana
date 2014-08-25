@@ -82,8 +82,7 @@ namespace Microsoft.Http2.Protocol
             IsFlowControlEnabled = _flowCrtlManager.IsFlowControlEnabled;
             WindowSize = _flowCrtlManager.StreamsInitialWindowSize;
             WasHeadersFrameRecived = false;
-            WasRstSent = false;
-            WasRstReceived = false;
+            WasRstOnStream = false;
 
             _flowCrtlManager.NewStreamOpenedHandler(this);
             OnFrameSent += (sender, args) => FramesSent++;
@@ -100,8 +99,7 @@ namespace Microsoft.Http2.Protocol
         public int FramesSent { get; set; }
         public int FramesReceived { get; set; }
         public int Priority { get; set; }
-        public bool WasRstSent { get; set; }
-        public bool WasRstReceived { get; set; }
+        public bool WasRstOnStream { get; set; }
         public Int32 MaxFrameSize { get; set; }
         public bool WasHeadersFrameRecived { get; set; }
 
@@ -425,7 +423,7 @@ namespace Microsoft.Http2.Protocol
             Http2Logger.LogFrameSend(frame);
 
             _writeQueue.WriteFrame(frame);
-            WasRstSent = true;
+            WasRstOnStream = true;
 
             if (OnFrameSent != null)
             {

@@ -478,22 +478,22 @@ namespace Microsoft.Http2.Protocol.Http2Session
             catch (Http2StreamNotFoundException ex)
             {
                 Http2Logger.LogDebug(
-                    "Frame for already Closed stream: streamId={0}, WasRstSent={1}, WasRstReceived={2}", 
-                    ex.Id, stream.WasRstSent, stream.WasRstReceived);
+                    "Frame for already Closed stream: streamId={0}, WasRstOnStream={1}", 
+                    ex.Id, stream.WasRstOnStream);
 
                 /* 14 -> 5.4.2
                 An endpoint MUST NOT send a RST_STREAM in response to an RST_STREAM
                 frame, to avoid looping. */
-                if (!stream.WasRstSent || !stream.WasRstReceived)
+                /* 14 -> 5.1
+                An endpoint MUST ignore frames that it receives on
+                closed streams after it has sent a RST_STREAM frame. */   
+                if (!stream.WasRstOnStream)
                 {
                     var rstFrame = new RstStreamFrame(ex.Id, ResetStatusCode.StreamClosed);
                     _writeQueue.WriteFrame(rstFrame);
                     Http2Logger.LogFrameSend(rstFrame);
-                    stream.WasRstSent = true;
-                }
-                /* 14 -> 5.1
-                An endpoint MUST ignore frames that it receives on
-                closed streams after it has sent a RST_STREAM frame. */             
+                    stream.WasRstOnStream = true;
+                }                          
             }
             catch (CompressionError ex)
             {
