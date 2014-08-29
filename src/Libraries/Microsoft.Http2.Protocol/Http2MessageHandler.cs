@@ -119,14 +119,11 @@ namespace Microsoft.Http2.Protocol
         /// <returns></returns>
         public Task StartSessionAsync(IDictionary<string, string> initRequest = null)
         {
-            int initialWindowSize = Constants.InitialFlowControlWindowSize;
-            int maxStreams = Constants.DefaultMaxConcurrentStreams;
-
             _session.OnFrameReceived += OnFrameReceivedHandler;
             _session.OnSettingsSent += OnSettingsSentHandler;
 
-            _session.InitialWindowSize = initialWindowSize;
-            _session.OurMaxConcurrentStreams = maxStreams;
+            _session.InitialWindowSize = Constants.InitialFlowControlWindowSize;
+            _session.OurMaxConcurrentStreams = Constants.DefaultMaxConcurrentStreams;
 
             return Task.Run(async () =>
                 {

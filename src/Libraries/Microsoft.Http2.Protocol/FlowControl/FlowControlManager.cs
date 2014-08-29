@@ -10,19 +10,21 @@ using System;
 using Microsoft.Http2.Protocol.EventArgs;
 using Microsoft.Http2.Protocol.Exceptions;
 using Microsoft.Http2.Protocol.Framing;
+using Microsoft.Http2.Protocol.Utils;
 
 namespace Microsoft.Http2.Protocol.FlowControl
 {
     /// <summary>
-    /// This class is designed for flow control monitoring and processing.
-    /// Flow control handles only dataframes.
+    /// 14 -> 5.2  Flow Control
+    /// 14 -> 6.9  WINDOW_UPDATE
     /// </summary>
     internal class FlowControlManager
     {
-        private readonly Http2Session.Http2Session _flowControlledSession;
+        private readonly Http2Session.Http2Session _session;
         private StreamDictionary _streamDictionary;
         private Int32 _options;
         private bool _wasFlowControlSet;
+
         /// <summary>
         /// Gets or sets the flow control options property.
         /// </summary>
@@ -31,33 +33,33 @@ namespace Microsoft.Http2.Protocol.FlowControl
         /// The first bit indicated all streams flow control enabled.
         /// The second bit indicated session flow control enabled.
         /// </value>
-        public Int32 Options 
-        { 
-           get
+        public Int32 Options
+        {
+            get
             {
                 return _options;
             }
-           set
-           {
-               if (_wasFlowControlSet)
-                   throw new ProtocolError(ResetStatusCode.FlowControlError, "Trying to reenable flow control");
+            set
+            {
+                if (_wasFlowControlSet)
+                    throw new ProtocolError(ResetStatusCode.FlowControlError, "Trying to reenable flow control");
 
-               _wasFlowControlSet = true;
-               _options = value;
+                _wasFlowControlSet = true;
+                _options = value;
 
-               if (!IsFlowControlEnabled)
-               {
-                   foreach (var stream in _streamDictionary.Values)
-                   {
-                       DisableStreamFlowControl(stream);
-                   }
-               }
+                if (!IsFlowControlEnabled)
+                {
+                    foreach (var stream in _streamDictionary.Values)
+                    {
+                        DisableStreamFlowControl(stream);
+                    }
+                }
 
-               if (IsFlowControlEnabled)
-               {
-                   //TODO Disable session flow control
-               }
-           }
+                if (IsFlowControlEnabled)
+                {
+                    //TODO Disable session flow control
+                }
+            }
         }
 
         public bool IsFlowControlEnabled
@@ -69,24 +71,23 @@ namespace Microsoft.Http2.Protocol.FlowControl
         }
 
         public Int32 SessionInitialWindowSize { get; set; }
-        public Int32 StreamsInitialWindowSize { get; set; }
-
+        public Int32 StreamInitialWindowSize { get; set; }
         public bool IsSessionBlocked { get; set; }
 
-        public FlowControlManager(Http2Session.Http2Session flowControlledSession)
+        public FlowControlManager(Http2Session.Http2Session session)
         {
-            if (flowControlledSession == null)
-                throw new ArgumentNullException("flowControlledSession");
+            if (session == null)
+                throw new ArgumentNullException("session");
 
             /* 14 -> 6.9.2
-            When a HTTP/2.0 connection is first establishe, new streams are
+            When a HTTP/2.0 connection is first established, new streams are
             created with an initial flow control window size of 65535 bytes. 
             The connection flow control window is 65535 bytes. */
             SessionInitialWindowSize = Constants.InitialFlowControlWindowSize;
-            StreamsInitialWindowSize = Constants.InitialFlowControlWindowSize;
+            StreamInitialWindowSize = Constants.InitialFlowControlWindowSize;
 
-            _flowControlledSession = flowControlledSession;
-            _streamDictionary = _flowControlledSession.StreamDictionary;
+            _session = session;
+            _streamDictionary = _session.StreamDictionary;
 
             Options = Constants.InitialFlowControlOptionsValue;
             _wasFlowControlSet = false;
@@ -118,7 +119,7 @@ namespace Microsoft.Http2.Protocol.FlowControl
             if (stream == null)
                 throw new ArgumentNullException("stream is null");
 
-            _flowControlledSession.SessionWindowSize += StreamsInitialWindowSize;
+            _session.SessionWindowSize += StreamInitialWindowSize;
         }
 
         public void StreamClosedHandler(Http2Stream stream)
@@ -126,7 +127,7 @@ namespace Microsoft.Http2.Protocol.FlowControl
             if (stream == null)
                 throw new ArgumentNullException("stream is null");
 
-            _flowControlledSession.SessionWindowSize -= stream.WindowSize;
+            _session.SessionWindowSize -= stream.WindowSize;
         }
 
         /// <summary>
@@ -165,19 +166,25 @@ namespace Microsoft.Http2.Protocol.FlowControl
             }
 
             int dataAmount = args.DataAmount;
-          
-            stream.UpdateWindowSize(-dataAmount);
-            _flowControlledSession.SessionWindowSize += -dataAmount;
 
-            if (_flowControlledSession.SessionWindowSize <= 0)
+            stream.UpdateWindowSize(-dataAmount);
+            _session.SessionWindowSize += -dataAmount;
+
+            if (_session.SessionWindowSize <= 0)
             {
                 IsSessionBlocked = true;
                 //TODO What to do next?
             }
 
+            /* 14 -> 6.9.1
+            The sender MUST NOT
+            send a flow controlled frame with a length that exceeds the space
+            available in either of the flow control windows advertised by the
+            receiver. */
             if (stream.WindowSize <= 0)
             {
-                stream.IsFlowControlBlocked = true;
+                stream.IsBlocked = true;
+                Http2Logger.LogDebug("Flow control for stream id={0} blocked", id);
             }
         }
     }

@@ -78,9 +78,9 @@ namespace Microsoft.Http2.Protocol
 
             SentDataAmount = 0;
             ReceivedDataAmount = 0;
-            IsFlowControlBlocked = false;
+            IsBlocked = false;
             IsFlowControlEnabled = _flowCrtlManager.IsFlowControlEnabled;
-            WindowSize = _flowCrtlManager.StreamsInitialWindowSize;
+            UpdateWindowSize(_flowCrtlManager.StreamInitialWindowSize, false);
             WasHeadersFrameRecived = false;
             WasRstOnStream = false;
 
@@ -106,7 +106,12 @@ namespace Microsoft.Http2.Protocol
         public bool Opened
         {
             get { return _state == StreamState.Opened; }
-            set { Contract.Assert(value); _state = StreamState.Opened; }
+            set 
+            { 
+                Contract.Assert(value);
+                Http2Logger.LogStreamStateTrans(Id, _state, StreamState.Opened);
+                _state = StreamState.Opened; 
+            }
         }
 
         public bool Idle
@@ -121,12 +126,11 @@ namespace Microsoft.Http2.Protocol
             set
             {
                 Contract.Assert(value);
+                StreamState previousState = _state;
+
                 _state = HalfClosedLocal ? StreamState.Closed : StreamState.HalfClosedRemote;
 
-                if (Closed)
-                {
-                    Close(ResetStatusCode.None);
-                }
+                Http2Logger.LogStreamStateTrans(Id, previousState, _state);
             }
         }
 
@@ -136,12 +140,11 @@ namespace Microsoft.Http2.Protocol
             set
             {
                 Contract.Assert(value);
+                StreamState previousState = _state;
+
                 _state = HalfClosedRemote ? StreamState.Closed : StreamState.HalfClosedLocal;
 
-                if (Closed)
-                {
-                    Close(ResetStatusCode.None);
-                }
+                Http2Logger.LogStreamStateTrans(Id, previousState, _state);
             }
         }
 
@@ -151,12 +154,11 @@ namespace Microsoft.Http2.Protocol
             set
             {
                 Contract.Assert(value);
+                StreamState previousState = _state;
+
                 _state = ReservedRemote ? StreamState.Closed : StreamState.ReservedLocal;
 
-                if (Closed)
-                {
-                    Close(ResetStatusCode.None);
-                }
+                Http2Logger.LogStreamStateTrans(Id, previousState, _state);
             }
         }
 
@@ -166,19 +168,23 @@ namespace Microsoft.Http2.Protocol
             set
             {
                 Contract.Assert(value);
+                StreamState previousState = _state;
+
                 _state = HalfClosedLocal ? StreamState.Closed : StreamState.ReservedRemote;
 
-                if (Closed)
-                {
-                    Close(ResetStatusCode.None);
-                }
+                Http2Logger.LogStreamStateTrans(Id, previousState, _state);
             }
         }
 
         public bool Closed
         {
             get { return _state == StreamState.Closed; }
-            set { Contract.Assert(value); _state = StreamState.Closed; }
+            set 
+            { 
+                Contract.Assert(value);
+                Http2Logger.LogStreamStateTrans(Id, _state, StreamState.Closed);
+                _state = StreamState.Closed;
+            }
         }
 
         public HeadersList Headers { get; internal set; }
@@ -187,7 +193,7 @@ namespace Microsoft.Http2.Protocol
 
         #region FlowControl
 
-        public void UpdateWindowSize(Int32 delta)
+        public void UpdateWindowSize(Int32 delta, bool needToLog = true)
         {
             if (IsFlowControlEnabled)
             {
@@ -201,6 +207,10 @@ namespace Microsoft.Http2.Protocol
 
                 WindowSize += delta;
 
+                if (needToLog && delta != 0)
+                    Http2Logger.LogDebug("Window size changed: stream id={0}, from={1}, to={2}, delta={3}", 
+                        Id, WindowSize - delta, WindowSize, Math.Abs(delta));
+
                 if (WindowSize > Constants.MaxWindowSize)
                 {
                     Http2Logger.LogDebug("Incorrect window size : {0}", WindowSize);
@@ -209,9 +219,10 @@ namespace Microsoft.Http2.Protocol
             }
 
             // Unblock stream if it was blocked by flowCtrlManager
-            if (WindowSize > 0 && IsFlowControlBlocked)
+            if (WindowSize > 0 && IsBlocked)
             {
-                IsFlowControlBlocked = false;
+                IsBlocked = false;
+                Http2Logger.LogDebug("Flow control for stream id={0} unblocked", Id);
             }
         }
 
@@ -228,7 +239,7 @@ namespace Microsoft.Http2.Protocol
             // Handle window update one at a time
             lock (_unshippedDeliveryLock)
             {
-                while (_unshippedFrames.Count > 0 && IsFlowControlBlocked == false)
+                while (_unshippedFrames.Count > 0 && IsBlocked == false)
                 {
                     var dataFrame = _unshippedFrames.Dequeue();
                     WriteDataFrame(dataFrame);
@@ -243,13 +254,13 @@ namespace Microsoft.Http2.Protocol
         }
 
         //It should be Int64 becouse if it can be greater 2^31, it will be < 0
-        public Int64 WindowSize { get; set; }
+        public Int64 WindowSize { get; private set; }
 
         public Int64 SentDataAmount { get; private set; }
 
         public Int64 ReceivedDataAmount { get; set; }
 
-        public bool IsFlowControlBlocked { get; set; }
+        public bool IsBlocked { get; set; }
 
         public bool IsFlowControlEnabled { get; set; }
         #endregion
@@ -305,9 +316,13 @@ namespace Microsoft.Http2.Protocol
             if (Closed)
                 return;
 
-            Http2Logger.LogDebug("Window size for stream " + this.Id + " : " + this.WindowSize.ToString());
-
-            var dataFrame = new DataFrame(_id, data, isEndStream, true);
+            /* 14 -> 6.1
+            If the length of the padding is greater than the
+            length of the remainder of the frame payload, the recipient MUST
+            treat this as a connection error (Section 5.4.1) of type
+            PROTOCOL_ERROR. */
+            bool hasPadding = !isEndStream;
+            var dataFrame = new DataFrame(_id, data, isEndStream, hasPadding);
 
             // We cant let lesser frame that were passed through flow control window
             // be sent before greater frames that were not passed through flow control window
@@ -322,7 +337,7 @@ namespace Microsoft.Http2.Protocol
                 return;
             }
 
-            if (!IsFlowControlBlocked)
+            if (!IsBlocked)
             {
                 Http2Logger.LogFrameSend(dataFrame);
 
@@ -361,9 +376,7 @@ namespace Microsoft.Http2.Protocol
             if (Closed)
                 return;
 
-            Http2Logger.LogDebug("Window size for stream " + this.Id + " : " + this.WindowSize.ToString());
-
-            if (!IsFlowControlBlocked)
+            if (!IsBlocked)
             {
                 Http2Logger.LogFrameSend(dataFrame);
 
@@ -462,10 +475,7 @@ namespace Microsoft.Http2.Protocol
 
         public void Close(ResetStatusCode code)
         {
-            if (Closed || Idle)
-            {
-                return;
-            }
+            if (Closed || Idle) return;
 
             OnFrameSent = null;
 

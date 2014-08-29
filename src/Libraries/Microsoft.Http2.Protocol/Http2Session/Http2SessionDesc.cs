@@ -246,15 +246,21 @@ namespace Microsoft.Http2.Protocol.Http2Session
         public async Task Start(IDictionary<string, string> initialRequest = null)
         {
             Http2Logger.LogDebug("Http2 Session started");
+            Http2Logger.LogDebug("Created {0} streams with initial window size={1}", 
+                OurMaxConcurrentStreams, _flowControlManager.StreamInitialWindowSize);
 
             if (_ourEnd == ConnectionEnd.Server)
             {
                 if (!await TryGetConnectionPreface(_ioStream))
                 {
-                    /*Dispose();
-                    //throw something?
-                    return;*/
-                    // SendSessionHeader();
+                    /* 14 -> 3.5
+                    Clients and servers MUST terminate the TCP connection if either peer
+                    does not begin with a valid connection preface.  A GOAWAY frame
+                    (Section 6.8) can be omitted if it is clear that the peer is not
+                    using HTTP/2. */
+                    Http2Logger.LogError("Invalid connection preface");
+                    _goAwayReceived = true; // Close method will not send GOAWAY frame
+                    Close(ResetStatusCode.ProtocolError);
                 }
             }
             else
@@ -599,9 +605,6 @@ namespace Microsoft.Http2.Protocol.Http2Session
                 Close(ResetStatusCode.None);
                 return null;
             }
-
-            if (sequence.WasEndStreamReceived)
-                stream.HalfClosedLocal = sequence.WasEndStreamReceived;
 
             stream.OnFrameSent += (o, args) =>
             {

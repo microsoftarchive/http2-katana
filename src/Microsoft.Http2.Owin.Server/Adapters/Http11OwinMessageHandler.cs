@@ -22,7 +22,7 @@ namespace Microsoft.Http2.Owin.Server.Adapters
     /// This class overrides http11 request/response processing logic as owin requires
     /// Converts request to OWIN environment, triggers OWIN pipilene and then sends response back to the client.
     /// </summary>
-    public class Http11ProtocolOwinAdapter
+    public class Http11OwinMessageHandler
     {
         private readonly Stream _client;
         private readonly SslProtocols _protocol;
@@ -33,12 +33,12 @@ namespace Microsoft.Http2.Owin.Server.Adapters
         private AppFunc _opaqueCallback;
 
         /// <summary>
-        /// Creates new isntaces of the Http11ProtocolOwinAdapter class
+        /// Creates new isntaces of the Http11OwinMessageHandler class
         /// </summary>
         /// <param name="client">The client connection.</param>
         /// <param name="protocol">Security protocol which is used for connection.</param>
         /// <param name="next">The next component in the OWIN pipeline.</param>
-        public Http11ProtocolOwinAdapter(Stream client, SslProtocols protocol, AppFunc next)
+        public Http11OwinMessageHandler(Stream client, SslProtocols protocol, AppFunc next)
         {
             // args checking
             if (client == null)
@@ -56,15 +56,15 @@ namespace Microsoft.Http2.Owin.Server.Adapters
         /// </summary>
         public async void ProcessRequest()
         {
-           try
+            try
             {
                 // invalid connection, skip
                 if (!_client.CanRead) return;
 
                 var rawHeaders = Http11Helper.ReadHeaders(_client);
-                
+
                 Http2Logger.LogDebug("Http1.1 Protocol Handler. Process request " + string.Join(" ", rawHeaders));
-                
+
                 // invalid connection, skip
                 if (rawHeaders == null || rawHeaders.Length == 0) return;
 
@@ -131,7 +131,7 @@ namespace Microsoft.Http2.Owin.Server.Adapters
         /// <returns>True if method is supported, otherwise False.</returns>
         private static bool IsMethodSupported(string method)
         {
-            var supported = new[] {Verbs.Get, Verbs.Delete };
+            var supported = new[] { Verbs.Get, Verbs.Delete };
 
             return supported.Contains(method.ToUpper());
         }
@@ -149,7 +149,7 @@ namespace Microsoft.Http2.Owin.Server.Adapters
             _response.StatusCode = StatusCode.Code101SwitchingProtocols;
             _response.ReasonPhrase = StatusCode.Reason101SwitchingProtocols;
             _response.Protocol = Protocols.Http1;
-            _response.Headers.Add(CommonHeaders.Connection, new[] {CommonHeaders.Upgrade});
+            _response.Headers.Add(CommonHeaders.Connection, new[] { CommonHeaders.Upgrade });
 
             _opaqueCallback = opaqueCallback;
         }
@@ -228,7 +228,7 @@ namespace Microsoft.Http2.Owin.Server.Adapters
         /// <param name="queryString">The request query string</param>
         /// <param name="requestBody">The body of request.</param>
         /// <returns>OWIN representation for provided request parameters.</returns>
-        private static Dictionary<string, object> CreateOwinEnvironment(string method, string scheme, string pathBase, 
+        private static Dictionary<string, object> CreateOwinEnvironment(string method, string scheme, string pathBase,
                                                                         string path, IDictionary<string, string[]> headers, string queryString = "", byte[] requestBody = null)
         {
             var environment = new Dictionary<string, object>(StringComparer.Ordinal);
@@ -255,7 +255,7 @@ namespace Microsoft.Http2.Owin.Server.Adapters
 
             #region set default OWIN response params
 
-            var response = new OwinResponse(environment) {Body = new MemoryStream(), StatusCode = StatusCode.Code200Ok};
+            var response = new OwinResponse(environment) { Body = new MemoryStream(), StatusCode = StatusCode.Code200Ok };
             //response.Headers is readonly
             response.Set(CommonOwinKeys.ResponseHeaders, new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase));
 
@@ -264,6 +264,5 @@ namespace Microsoft.Http2.Owin.Server.Adapters
 
             return environment;
         }
-        
     }
 }

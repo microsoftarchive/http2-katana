@@ -8,7 +8,7 @@
 // See the Apache 2 License for the specific language governing permissions and limitations under the License.
 namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
 {
-    public enum IndexationType : byte
+    internal enum IndexationType : byte
     {
         // see 09 -> 7.2.2
         // The literal header field without indexing representation starts with

@@ -254,7 +254,7 @@ namespace Microsoft.Http2.Owin.Server
             {
                 Http2Logger.LogDebug("Selected protocol: HTTP/1.1");
 
-                new Http11ProtocolOwinAdapter(incomingClient, SslProtocols.Tls, _next.Invoke).ProcessRequest();
+                new Http11OwinMessageHandler(incomingClient, SslProtocols.Tls, _next.Invoke).ProcessRequest();
                 return;
             }
 

@@ -414,14 +414,14 @@ namespace Microsoft.Http2.Protocol.Http2Session
                         windows that it maintains by the difference between the new value and
                         the old value. */
                         int newInitWindowSize = setting.Value;
-                        int windowSizeDiff = newInitWindowSize - _flowControlManager.StreamsInitialWindowSize;
+                        int windowSizeDiff = newInitWindowSize - _flowControlManager.StreamInitialWindowSize;
 
                         foreach (var stream in StreamDictionary.FlowControlledStreams.Values)
                         {
-                            stream.WindowSize += windowSizeDiff;
+                            stream.UpdateWindowSize(windowSizeDiff, false);
                         }
 
-                        _flowControlManager.StreamsInitialWindowSize = newInitWindowSize;
+                        _flowControlManager.StreamInitialWindowSize = newInitWindowSize;
                         InitialWindowSize = newInitWindowSize;
                         break;
                     case SettingsIds.MaxFrameSize:
@@ -473,9 +473,13 @@ namespace Microsoft.Http2.Protocol.Http2Session
                 // as work around to support mozilla firefox
                 foreach (var s in StreamDictionary.FlowControlledStreams.Values)
                 {
-                    s.WindowSize += windowUpdateFrame.Delta;
+                    s.UpdateWindowSize(windowUpdateFrame.Delta, false);
                 }
-                _flowControlManager.StreamsInitialWindowSize += windowUpdateFrame.Delta;
+                _flowControlManager.StreamInitialWindowSize += windowUpdateFrame.Delta;
+                Http2Logger.LogDebug("Initial stream window size changed: from={0}, to={1}, delta={2}", 
+                    _flowControlManager.StreamInitialWindowSize - windowUpdateFrame.Delta,
+                    _flowControlManager.StreamInitialWindowSize,
+                    windowUpdateFrame.Delta);
                 stream = null;
                 return; 
             }

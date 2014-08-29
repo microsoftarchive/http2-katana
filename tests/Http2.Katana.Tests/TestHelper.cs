@@ -87,7 +87,7 @@ namespace Microsoft.Http2.Protocol.Tests
             return tcpClnt.GetStream();
         }
 
-        public static Http11ProtocolOwinAdapter CreateHttp11Adapter(Stream iostream, Func<IOwinContext, Task> appFunc)
+        public static Http11OwinMessageHandler CreateHttp11Handler(Stream iostream, Func<IOwinContext, Task> appFunc)
         {
             if (iostream == null)
                 throw new ArgumentNullException("stream is null");
@@ -117,7 +117,7 @@ namespace Microsoft.Http2.Protocol.Tests
                 .Returns<byte[], int, int>((buffer, offset, count) => count); // read our requestBytes
             mock.Setup(stream => stream.CanRead).Returns(true);
 
-            return new Http11ProtocolOwinAdapter(mock.Object, SslProtocols.Tls, appFunc);
+            return new Http11OwinMessageHandler(mock.Object, SslProtocols.Tls, appFunc);
         }
 
 

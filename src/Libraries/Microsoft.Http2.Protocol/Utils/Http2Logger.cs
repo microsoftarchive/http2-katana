@@ -62,6 +62,8 @@ namespace Microsoft.Http2.Protocol.Utils
         private static Http2LoggerState _loggerLevel = Http2LoggerState.MaxLogging;
         private static bool _writeToFile = true;
 
+        private const string DatePattern = "MM/dd/yy hh:mm:ss.fff";
+
         #region Properties
 
         /// <summary>
@@ -86,62 +88,46 @@ namespace Microsoft.Http2.Protocol.Utils
 
         #region Methods
 
-        /// <summary>
-        /// Logs error.
-        /// </summary>
-        /// <param name="errString">String to log</param>
-        public static void LogError(string errString)
+        public static void LogError(string msg)
         {
             if (_loggerLevel > Http2LoggerState.NoLogging)
             {
-                string outString = string.Format("[{0}] ThreadId:{1} ERROR: {2}", DateTime.Now, Thread.CurrentThread.ManagedThreadId, errString);
+                string outString = FormatString(msg, "ERROR");
                 Console.WriteLine(outString);
                 LogToFile(outString);
             }
         }
 
-        /// <summary>
-        /// Console output messages for interactive users.
-        /// </summary>
-        /// <param name="consoleString">String to display</param>
-        public static void LogConsole(string consoleString)
+        public static void LogConsole(string msg)
         {
             if ((_loggerLevel > Http2LoggerState.NoLogging))
             {
-                string outString = "[" + DateTime.Now + "] " + consoleString;
+                string outString = "[" + DateTime.Now.ToString(DatePattern) + "] " + msg;
                 Console.WriteLine(outString);
             }
         }
 
-        /// <summary>
-        /// Logs informational message.
-        /// </summary>
-        /// <param name="infoString">String to log</param>
-        public static void LogInfo(string infoString)
+        public static void LogInfo(string msg)
         {
             if (_loggerLevel >= Http2LoggerState.VerboseLogging)
             {
-                string outString = "[" + DateTime.Now.ToString("T") + "] INFO: " + infoString;
+                string outString = FormatString(msg, "INFO");
                 Console.WriteLine(outString);
                 LogToFile(outString);
             }
         }
 
-        /// <summary>
-        /// Logs debug message.
-        /// </summary>
-        /// <param name="debugString">String to log</param>
-        /// <param name="format">String format.</param>
-        public static void LogDebug(string debugString, params object[] format)
+        public static void LogDebug(string msg, params object[] format)
         {
             if (_loggerLevel >= Http2LoggerState.DebugLogging)
             {
-                debugString = string.Format(debugString, format);
-                string outString = string.Format("[{0}] ThreadId:{1} DBG: {2}", DateTime.Now, Thread.CurrentThread.ManagedThreadId, debugString);
+                string outString = FormatString(msg, "DEBUG", format);
                 Console.WriteLine(outString);
                 LogToFile(outString);
             }
         }
+
+        #region Framing
 
         public static void LogFrameSend(Frame frame)
         {
@@ -283,6 +269,8 @@ namespace Microsoft.Http2.Protocol.Utils
             }
         }
 
+        #endregion
+
         private static void LogToFile(string message)
         {
             if (!_writeToFile) return;
@@ -295,6 +283,42 @@ namespace Microsoft.Http2.Protocol.Utils
                     logFile.WriteLine(message);
                 }
             }
+        }
+
+        private static string FormatString(string msg, string level, params object[] format)
+        {
+            msg = string.Format(msg, format);
+            return string.Format("[{0}] Thread:{1,-2} {2,-5}: {3}",
+                DateTime.Now.ToString(DatePattern), Thread.CurrentThread.ManagedThreadId, level, msg);
+        }
+
+        public static void LogStreamStateTrans(int streamId, StreamState previous, 
+            StreamState current)
+        {
+            if (_loggerLevel >= Http2LoggerState.DebugLogging)
+            {
+                string previousName = GetStateName(previous);
+                string currentName = GetStateName(current);
+
+                if (previousName == currentName)
+                    return;
+
+                LogDebug("State transition: stream id={0} from '{1}' to '{2}'", streamId,
+                         previousName, currentName);
+            }
+        }
+
+        private static string GetStateName(StreamState value)
+        {
+            try
+            {
+                var type = value.GetType();
+                return ((Description)(type.GetMember(value.ToString())[0]).GetCustomAttributes(typeof(Description), false)[0]).Name;
+            }
+            catch(Exception ex)
+            {
+                return value.ToString().ToLower();
+            }            
         }
 
         #endregion

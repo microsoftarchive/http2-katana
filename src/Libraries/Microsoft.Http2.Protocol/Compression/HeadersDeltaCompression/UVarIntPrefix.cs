@@ -8,7 +8,7 @@
 // See the Apache 2 License for the specific language governing permissions and limitations under the License.
 namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
 {
-    public enum UVarIntPrefix : byte
+    internal enum UVarIntPrefix : byte
     {
         WithoutIndexing = 4,
         NeverIndexed = 4,

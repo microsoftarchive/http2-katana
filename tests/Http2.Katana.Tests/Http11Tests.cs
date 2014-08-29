@@ -77,7 +77,7 @@ namespace Http2.Katana.Tests
         [StandardFact]
         public void CreateEnvironment()
         {
-            var creator = typeof(Http11ProtocolOwinAdapter).GetMethod("CreateOwinEnvironment", BindingFlags.NonPublic | BindingFlags.Static);
+            var creator = typeof(Http11OwinMessageHandler).GetMethod("CreateOwinEnvironment", BindingFlags.NonPublic | BindingFlags.Static);
             const string method = "GET",
                          scheme = "https",
                          host = "localhost:80",
