@@ -24,7 +24,7 @@ using System.Threading.Tasks;
 using Microsoft.Http2.Protocol.Utils;
 using OpenSSL.SSL;
 
-namespace Microsoft.Http2.Protocol.Http2Session
+namespace Microsoft.Http2.Protocol.Session
 {
     /// <summary>
     /// This class creates and closes session, pumps incoming and outcoming frames and dispatches them.
@@ -34,13 +34,13 @@ namespace Microsoft.Http2.Protocol.Http2Session
     {
         private bool _goAwayReceived;
         private FrameReader _frameReader;
-        private WriteQueue _writeQueue;
+        private OutgoingQueue _writeQueue;
         private Stream _ioStream;
         private ManualResetEvent _pingReceived = new ManualResetEvent(false);
         private ManualResetEvent _settingsAckReceived = new ManualResetEvent(false);
         private bool _disposed;
         private ICompressionProcessor _comprProc;
-        private readonly FlowControlManager _flowControlManager;
+        private readonly FlowControlManager _flowCtrlManager;
         private readonly ConnectionEnd _ourEnd;
         private readonly ConnectionEnd _remoteEnd;
         private readonly bool _isSecure;
@@ -58,14 +58,8 @@ namespace Microsoft.Http2.Protocol.Http2Session
         /// </summary>
         public event EventHandler<SettingsSentEventArgs> OnSettingsSent;
 
-        /// <summary>
-        /// Occurs when frame was received.
-        /// </summary>
         public event EventHandler<FrameReceivedEventArgs> OnFrameReceived;
 
-        /// <summary>
-        /// Request sent event.
-        /// </summary>
         public event EventHandler<RequestSentEventArgs> OnRequestSent;
 
         /// <summary>
@@ -78,12 +72,6 @@ namespace Microsoft.Http2.Protocol.Http2Session
         /// </summary>
         public Int32 MaxFrameSize { get; set; }
 
-        /// <summary>
-        /// Gets the stream dictionary.
-        /// </summary>
-        /// <value>
-        /// The stream dictionary.
-        /// </value>
         internal StreamDictionary StreamDictionary { get; private set; }
 
         /// <summary>
@@ -103,27 +91,17 @@ namespace Microsoft.Http2.Protocol.Http2Session
         /// The remote max concurrent streams.
         /// </value>
         internal Int32 RemoteMaxConcurrentStreams { get; set; }
-        internal Int32 InitialWindowSize { get; set; }
-        internal Int64 SessionWindowSize { get; set; }
+
         internal bool IsPushEnabled { get; private set; }
 
         public Http2Session(Stream stream, ConnectionEnd end, 
-                            bool isSecure, CancellationToken cancel,
-                            int initialWindowSize = Constants.InitialFlowControlWindowSize,
-                            int maxConcurrentStreams = Constants.DefaultMaxConcurrentStreams)
+                            bool isSecure, CancellationToken cancel)
         {
-
             if (stream == null)
                 throw new ArgumentNullException("stream is null");
 
             if (cancel == null)
                 throw new ArgumentNullException("cancellation token is null");
-
-            if (maxConcurrentStreams <= 0)
-                throw new ArgumentOutOfRangeException("maxConcurrentStreams cant be less or equal then 0");
-
-            if (initialWindowSize <= 0)
-                throw new ArgumentOutOfRangeException("initialWindowSize cant be less or equal then 0");
 
             /*14 -> 6.5.2
             SETTINGS_MAX_FRAME_SIZE (0x5):  Indicates the size of the largest
@@ -160,21 +138,20 @@ namespace Microsoft.Http2.Protocol.Http2Session
 
             _frameReader = new FrameReader(_ioStream);
 
-            _writeQueue = new WriteQueue(_ioStream, _comprProc);
-            OurMaxConcurrentStreams = maxConcurrentStreams;
-            RemoteMaxConcurrentStreams = maxConcurrentStreams;
-            InitialWindowSize = initialWindowSize;
+            _writeQueue = new OutgoingQueue(_ioStream, _comprProc);
 
-            _flowControlManager = new FlowControlManager(this);
+            OurMaxConcurrentStreams = Constants.DefaultMaxConcurrentStreams;
+            RemoteMaxConcurrentStreams = Constants.DefaultMaxConcurrentStreams;            
 
-            SessionWindowSize = 0;
             _headersSequences = new HeadersSequenceList();
             _promisedResources = new Dictionary<int, string>();
 
             StreamDictionary = new StreamDictionary();
+            _flowCtrlManager = new FlowControlManager(StreamDictionary);
+
             for (byte i = 0; i < OurMaxConcurrentStreams; i++)
             {
-                var http2Stream = new Http2Stream(new HeadersList(), i + 1, _writeQueue, _flowControlManager)
+                var http2Stream = new Http2Stream(new HeadersList(), i + 1, _writeQueue, _flowCtrlManager)
                 {
                     Idle = true,
                     MaxFrameSize = MaxFrameSize
@@ -182,7 +159,6 @@ namespace Microsoft.Http2.Protocol.Http2Session
                 StreamDictionary.Add(new KeyValuePair<int, Http2Stream>(i + 1, http2Stream));
             }
 
-            _flowControlManager.SetStreamDictionary(StreamDictionary);
             _writeQueue.SetStreamDictionary(StreamDictionary);
         }
 
@@ -239,15 +215,13 @@ namespace Microsoft.Http2.Protocol.Http2Session
             }
         }
 
-        /// <summary>
-        /// Starts session.
-        /// </summary>
-        /// <returns></returns>
         public async Task Start(IDictionary<string, string> initialRequest = null)
         {
-            Http2Logger.LogDebug("Http2 Session started");
-            Http2Logger.LogDebug("Created {0} streams with initial window size={1}", 
-                OurMaxConcurrentStreams, _flowControlManager.StreamInitialWindowSize);
+            Http2Logger.Debug("Http2 Session started");
+            Http2Logger.Debug(
+                "Created {0} streams with initial window size={1}, initial connection window size={2}", 
+                OurMaxConcurrentStreams, _flowCtrlManager.InitialWindowSize,
+                _flowCtrlManager.ConnectionWindowSize);
 
             if (_ourEnd == ConnectionEnd.Server)
             {
@@ -258,7 +232,7 @@ namespace Microsoft.Http2.Protocol.Http2Session
                     does not begin with a valid connection preface.  A GOAWAY frame
                     (Section 6.8) can be omitted if it is clear that the peer is not
                     using HTTP/2. */
-                    Http2Logger.LogError("Invalid connection preface");
+                    Http2Logger.Error("Invalid connection preface");
                     _goAwayReceived = true; // Close method will not send GOAWAY frame
                     Close(ResetStatusCode.ProtocolError);
                 }
@@ -325,14 +299,14 @@ namespace Microsoft.Http2.Protocol.Http2Session
                 catch (IOException)
                 {
                     // Connection was closed by the remote endpoint
-                    Http2Logger.LogInfo("Connection was closed by the remote endpoint");
+                    Http2Logger.Info("Connection was closed by the remote endpoint");
                     Dispose();
                     break;
                 }
                 catch (Exception)
                 {
                     // Read failure, abort the connection/session.
-                    Http2Logger.LogInfo("Read failure, abort the connection/session");
+                    Http2Logger.Info("Read failure, abort the connection/session");
                     Dispose();
                     break;
                 }
@@ -349,11 +323,11 @@ namespace Microsoft.Http2.Protocol.Http2Session
                 }
             }
 
-            Http2Logger.LogDebug("Read thread finished");
+            Http2Logger.Debug("Read thread finished");
         }
 
         /// <summary>
-        /// Pumps the outgoing data to write queue
+        /// Pumps the outgoing data to outgoing queue
         /// </summary>
         /// <returns></returns>
         private void PumpOutgoingData()
@@ -364,23 +338,18 @@ namespace Microsoft.Http2.Protocol.Http2Session
             }
             catch (OperationCanceledException)
             {
-                Http2Logger.LogError("Handling session was cancelled");
+                Http2Logger.Error("Handling session was cancelled");
                 Dispose();
             }
             catch (Exception)
             {
-                Http2Logger.LogError("Sending frame was cancelled because connection was lost");
+                Http2Logger.Error("Sending frame was cancelled because connection was lost");
                 Dispose();
             }
 
-            Http2Logger.LogDebug("Write thread finished");
+            Http2Logger.Debug("Write thread finished");
         }
 
-        /// <summary>
-        /// Dispatches the incoming frame.
-        /// </summary>
-        /// <param name="frame">The frame.</param>
-        /// <exception cref="System.NotImplementedException"></exception>
         private void DispatchIncomingFrame(Frame frame)
         {
             Http2Stream stream = null;
@@ -462,7 +431,7 @@ namespace Microsoft.Http2.Protocol.Http2Session
                 if (frame is IEndStreamFrame && ((IEndStreamFrame) frame).IsEndStream)
                 {
                     // Tell the stream that it was the last frame
-                    Http2Logger.LogDebug("Final frame for stream id=" + stream.Id);
+                    Http2Logger.Debug("Final frame for stream id=" + stream.Id);
                     stream.HalfClosedRemote = true;
 
                     // Promised resource has been pushed
@@ -483,7 +452,7 @@ namespace Microsoft.Http2.Protocol.Http2Session
             RST_STREAM MUST treat that as a stream error of type STREAM_CLOSED. */
             catch (Http2StreamNotFoundException ex)
             {
-                Http2Logger.LogDebug(
+                Http2Logger.Debug(
                     "Frame for already Closed stream: streamId={0}, WasRstOnStream={1}", 
                     ex.Id, stream.WasRstOnStream);
 
@@ -497,19 +466,19 @@ namespace Microsoft.Http2.Protocol.Http2Session
                 {
                     var rstFrame = new RstStreamFrame(ex.Id, ResetStatusCode.StreamClosed);
                     _writeQueue.WriteFrame(rstFrame);
-                    Http2Logger.LogFrameSend(rstFrame);
+                    Http2Logger.FrameSend(rstFrame);
                     stream.WasRstOnStream = true;
                 }                          
             }
             catch (CompressionError ex)
             {
                 // The endpoint is unable to maintain the compression context for the connection.
-                Http2Logger.LogError("Compression error occurred: " + ex.Message);
+                Http2Logger.Error("Compression error occurred: " + ex.Message);
                 Close(ResetStatusCode.CompressionError);
             }
             catch (ProtocolError pEx)
             {
-                Http2Logger.LogError("Protocol error occurred: " + pEx.Message);
+                Http2Logger.Error("Protocol error occurred: " + pEx.Message);
                 Close(pEx.Code);
             }
             catch (MaxConcurrentStreamsLimitException)
@@ -519,18 +488,11 @@ namespace Microsoft.Http2.Protocol.Http2Session
             }
             catch (Exception ex)
             {
-                Http2Logger.LogError("Unknown error occurred: " + ex.Message);
+                Http2Logger.Error("Unknown error occurred: " + ex.Message);
                 Close(ResetStatusCode.InternalError);
             }
         }
 
-        /// <summary>
-        /// Creates stream.
-        /// </summary>
-        /// <param name="headers"></param>
-        /// <param name="streamId"></param>
-        /// <param name="priority"></param>
-        /// <returns></returns>
         public Http2Stream CreateStream(HeadersList headers, int streamId, int priority = -1)
         {
             if (headers == null)
@@ -760,7 +722,7 @@ namespace Microsoft.Http2.Protocol.Http2Session
 
             var frame = new SettingsFrame(new List<SettingsPair>(settings), isAck);
 
-            Http2Logger.LogFrameSend(frame);
+            Http2Logger.FrameSend(frame);
 
             _writeQueue.WriteFrame(frame);
 
@@ -792,7 +754,7 @@ namespace Microsoft.Http2.Protocol.Http2Session
 
             var frame = new GoAwayFrame(_lastId, code);
 
-            Http2Logger.LogFrameSend(frame);
+            Http2Logger.FrameSend(frame);
 
             _writeQueue.WriteFrame(frame);
         }
@@ -815,8 +777,23 @@ namespace Microsoft.Http2.Protocol.Http2Session
             _pingReceived.Reset();
 
             var newNow = DateTime.UtcNow;
-            Http2Logger.LogDebug("Ping: " + (newNow - now).Milliseconds);
+            Http2Logger.Debug("Ping: " + (newNow - now).Milliseconds);
             return newNow - now;
+        }
+
+        /// <summary>
+        /// Writes WINDOW_UPDATE frame for entire connection.
+        /// </summary>
+        public void WriteConnectionWindowUpdate(int windowSize)
+        {
+            /* 14 -> 6.9
+            The WINDOW_UPDATE frame can be specific to a stream or to the entire
+            connection.  In the former case, the frame's stream identifier
+            indicates the affected stream; in the latter, the value "0" indicates
+            that the entire connection is the subject of the frame. */
+            var frame = new WindowUpdateFrame(0, windowSize);
+            Http2Logger.FrameSend(frame);
+            _writeQueue.WriteFrame(frame);
         }
 
         public void Dispose()
@@ -837,7 +814,7 @@ namespace Microsoft.Http2.Protocol.Http2Session
             if (_disposed)
                 return;
 
-            Http2Logger.LogDebug("Http2 Session closing");
+            Http2Logger.Debug("Http2 Session closing");
             _disposed = true;
 
             // Dispose of all streams
@@ -903,7 +880,7 @@ namespace Microsoft.Http2.Protocol.Http2Session
 
             OnSessionDisposed = null;
 
-            Http2Logger.LogDebug("Http2 Session closed");
+            Http2Logger.Debug("Http2 Session closed");
         }
     }
 }

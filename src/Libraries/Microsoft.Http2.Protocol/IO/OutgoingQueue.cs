@@ -15,7 +15,7 @@ using System.Threading;
 namespace Microsoft.Http2.Protocol.IO
 {
     // Queue up frames to send, including headers, body, flush, pings, etc.
-    internal sealed class WriteQueue : IDisposable
+    internal sealed class OutgoingQueue : IDisposable
     {
         private readonly IQueue _messageQueue;
         private readonly Stream _stream;
@@ -24,7 +24,7 @@ namespace Microsoft.Http2.Protocol.IO
         private StreamDictionary _streams;
         private readonly ICompressionProcessor _proc;
         
-        public WriteQueue(Stream stream, ICompressionProcessor processor)
+        public OutgoingQueue(Stream stream, ICompressionProcessor processor)
         {
             if (stream == null)
                 throw new ArgumentNullException("io stream is null");

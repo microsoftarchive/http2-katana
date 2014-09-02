@@ -48,7 +48,7 @@ namespace Http2.TestClient.Adapters
             }
             catch (IOException)
             {
-                Http2Logger.LogError("File is still downloading. Repeat request later");
+                Http2Logger.Error("File is still downloading. Repeat request later");
                
                 stream.Close(ResetStatusCode.InternalError);
                 return;
@@ -58,14 +58,8 @@ namespace Http2.TestClient.Adapters
 
             if (dataFrame.IsEndStream)
             {
-                if (stream.HalfClosedRemote)
-                {
-                    //send terminator
-                    stream.WriteDataFrame(new ArraySegment<byte>(new byte[0]), true);
-                    Http2Logger.LogConsole("Terminator was sent");
-                }
                 _fileHelper.RemoveStream(path);
-                Http2Logger.LogDebug("Received for stream id={0}: {1} bytes", stream.Id, stream.ReceivedDataAmount);
+                Http2Logger.Debug("Received for stream id={0}: {1} bytes", stream.Id, stream.ReceivedDataAmount);
             }
         }
 

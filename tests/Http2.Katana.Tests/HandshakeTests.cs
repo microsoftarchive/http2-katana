@@ -2,7 +2,7 @@
 using System.IO;
 using Http2.TestClient.Handshake;
 using Microsoft.Http1.Protocol;
-using Microsoft.Http2.Owin.Middleware;
+using Microsoft.Http2.Owin.UpgradeMiddleware;
 using Microsoft.Http2.Owin.Server;
 using Microsoft.Http2.Protocol;
 using Microsoft.Http2.Protocol.Tests;

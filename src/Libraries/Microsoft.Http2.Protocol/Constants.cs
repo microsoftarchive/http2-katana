@@ -25,7 +25,6 @@ namespace Microsoft.Http2.Protocol
         (16,777,215) octets, inclusive. */
         public const int MaxFramePayloadSize = 0xffffff; // 16777215 bytes.
         public const int MaxFramePaddingSize = 300; // bytes
-        public const int InitialFlowControlOptionsValue = 0;
         public const string DefaultMethod = Verbs.Get;
         public const string DefaultHost = "localhost";
         /* 14 -> 6.5.2 
@@ -41,7 +40,7 @@ namespace Microsoft.Http2.Protocol
         When a HTTP/2 connection is first established, new streams are
         created with an initial flow control window size of 65535 bytes.
         The connection flow control window is 65535 bytes. */
-        public const int InitialFlowControlWindowSize = 0xFFFF;
+        public const int InitialWindowSize = 0xFFFF;
         public const int DefaultStreamPriority = 1 << 30;
 
         /* 14 -> 5.3.5

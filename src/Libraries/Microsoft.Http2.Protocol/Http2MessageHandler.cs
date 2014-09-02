@@ -11,6 +11,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Http2.Protocol.Session;
 using Microsoft.Http2.Protocol.Utils;
 using OpenSSL;
 using Microsoft.Http2.Protocol.EventArgs;
@@ -23,7 +24,7 @@ namespace Microsoft.Http2.Protocol
     /// </summary>
     public abstract class Http2MessageHandler : IDisposable
     {
-        protected Http2Session.Http2Session _session;
+        protected Http2Session _session;
         protected bool _isDisposed;
         protected readonly Stream _stream;
         protected readonly CancellationToken _cancToken;
@@ -54,7 +55,7 @@ namespace Microsoft.Http2.Protocol
             _end = end;
             _wereFirstSettingsSent = false;
 
-            _session = new Http2Session.Http2Session(_stream, _end, _isSecure, _cancToken);
+            _session = new Http2Session(_stream, _end, _isSecure, _cancToken);
         }
 
         /// <summary>
@@ -122,9 +123,6 @@ namespace Microsoft.Http2.Protocol
             _session.OnFrameReceived += OnFrameReceivedHandler;
             _session.OnSettingsSent += OnSettingsSentHandler;
 
-            _session.InitialWindowSize = Constants.InitialFlowControlWindowSize;
-            _session.OurMaxConcurrentStreams = Constants.DefaultMaxConcurrentStreams;
-
             return Task.Run(async () =>
                 {
                     try
@@ -163,7 +161,7 @@ namespace Microsoft.Http2.Protocol
 
             _isDisposed = true;
 
-            Http2Logger.LogDebug("Adapter disposed");
+            Http2Logger.Debug("Adapter disposed");
         }
     }
 }

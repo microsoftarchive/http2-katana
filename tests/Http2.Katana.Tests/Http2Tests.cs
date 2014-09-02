@@ -1,5 +1,5 @@
 using Http2.TestClient.Adapters;
-using Microsoft.Http2.Owin.Middleware;
+using Microsoft.Http2.Owin.UpgradeMiddleware;
 using Microsoft.Http2.Owin.Server;
 using Microsoft.Http2.Protocol;
 using Microsoft.Http2.Protocol.Exceptions;

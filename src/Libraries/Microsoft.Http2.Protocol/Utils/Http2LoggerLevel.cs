@@ -42,34 +42,12 @@
 // -----------------------------------------------------------------------
 namespace Microsoft.Http2.Protocol.Utils
 {
-    /// <summary>
-    /// Logger states.
-    /// </summary>
-    public enum Http2LoggerState
+    public enum Http2LoggerLevel
     {
-        /// <summary>
-        /// No logging is default state.
-        /// </summary>
-        NoLogging,
-
-        /// <summary>
-        /// Log only errors.
-        /// </summary>
-        ErrorsOnly,
-
-        /// <summary>
-        /// Log errors and info.
-        /// </summary>
-        VerboseLogging,
-
-        /// <summary>
-        /// Log everything.
-        /// </summary>
-        DebugLogging,
-
-        /// <summary>
-        /// Log everything.
-        /// </summary>
-        MaxLogging = DebugLogging
+        Silly,
+        Error,
+        Warn,
+        Info,
+        Debug
     }
 }

@@ -72,7 +72,7 @@ namespace Microsoft.Http2.Owin.Server
             }
             catch (Exception ex)
             {
-                Http2Logger.LogInfo("Unable to start server. Check certificate. Exception: " + ex.Message);
+                Http2Logger.Info("Unable to start server. Check certificate. Exception: " + ex.Message);
                 return;
             }
 
@@ -88,7 +88,7 @@ namespace Microsoft.Http2.Owin.Server
 
         private void Listen()
         {
-            Http2Logger.LogInfo("Server running at port " + _port);
+            Http2Logger.Info("Server running at port " + _port);
             _server.Start();
             while (!_disposed)
             {
@@ -100,11 +100,11 @@ namespace Microsoft.Http2.Owin.Server
                 }
                 catch (Exception ex)
                 {
-                    Http2Logger.LogError("Unhandled exception was caught: " + ex.Message);
+                    Http2Logger.Error("Unhandled exception was caught: " + ex.Message);
                 }
             }
 
-            Http2Logger.LogDebug("Listen thread was finished");
+            Http2Logger.Debug("Listen thread was finished");
         }
 
         public void Dispose()

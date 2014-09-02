@@ -15,7 +15,7 @@ using OpenSSL;
 namespace Microsoft.Http2.Protocol
 {
     /// <summary>
-    /// This collection consists of two collection - flow controlled and nonflowcontrolled streams.
+    /// This collection consists of http2 streams.
     /// </summary>
     internal class StreamDictionary : IDictionary<int, Http2Stream>
     {
@@ -26,31 +26,24 @@ namespace Microsoft.Http2.Protocol
         {
             private readonly StreamDictionary _collection;
             private KeyValuePair<int, Http2Stream> _curPair;
-            private Dictionary<int, Http2Stream>.Enumerator _nonControlledEnum;
-            private Dictionary<int, Http2Stream>.Enumerator _controlledEnum;
+            private Dictionary<int, Http2Stream>.Enumerator _enum;
 
             public StreamDictionaryEnumerator(StreamDictionary collection)
             {
                 _collection = collection;
                 _curPair = default(KeyValuePair<int, Http2Stream>);
 
-                _nonControlledEnum = _collection.NonFlowControlledStreams.GetEnumerator();
-                _controlledEnum = _collection.FlowControlledStreams.GetEnumerator();
+                _enum = _collection.Streams.GetEnumerator();
             }
 
             public bool MoveNext()
             {
-                Dictionary<int, Http2Stream>.Enumerator en = _nonControlledEnum;
-                if (_nonControlledEnum.MoveNext() == false)
+                if (_enum.MoveNext() == false)
                 {
-                    if (_controlledEnum.MoveNext() == false)
-                    {
-                        return false;
-                    }
-                    en = _controlledEnum;
+                    return false;
                 }
 
-                _curPair = en.Current;
+                _curPair = _enum.Current;
                 return true;
             }
 
@@ -61,8 +54,7 @@ namespace Microsoft.Http2.Protocol
 
             void IDisposable.Dispose()
             {
-                _nonControlledEnum.Dispose();
-                _controlledEnum.Dispose();
+                _enum.Dispose();
             }
 
             public KeyValuePair<int, Http2Stream> Current
@@ -76,23 +68,16 @@ namespace Microsoft.Http2.Protocol
             }
         }
 
-        public Dictionary<int, Http2Stream> NonFlowControlledStreams { get; private set; }
-        public Dictionary<int, Http2Stream> FlowControlledStreams { get; private set; }
+        public Dictionary<int, Http2Stream> Streams { get; private set; }
 
         public StreamDictionary()
         {
-            NonFlowControlledStreams = new Dictionary<int, Http2Stream>();
-            FlowControlledStreams = new Dictionary<int, Http2Stream>();
+            Streams = new Dictionary<int, Http2Stream>();
         }
 
         public bool TryGetValue(int key, out Http2Stream value)
         {
-            if (FlowControlledStreams.TryGetValue(key, out value))
-            {
-                return true;
-            }
-
-            if (NonFlowControlledStreams.TryGetValue(key, out value))
+            if (Streams.TryGetValue(key, out value))
             {
                 return true;
             }
@@ -104,13 +89,9 @@ namespace Microsoft.Http2.Protocol
         {
             get
             {
-                if (FlowControlledStreams.ContainsKey(key))
+                if (Streams.ContainsKey(key))
                 {
-                    return FlowControlledStreams[key];
-                }
-                if (NonFlowControlledStreams.ContainsKey(key))
-                {
-                    return NonFlowControlledStreams[key];
+                    return Streams[key];
                 }
 
                 return null;
@@ -123,13 +104,7 @@ namespace Microsoft.Http2.Protocol
 
         public void Add(Http2Stream item)
         {
-            if (item.IsFlowControlEnabled)
-            {
-                FlowControlledStreams.Add(item.Id, item);
-                return;
-            }
-
-            NonFlowControlledStreams.Add(item.Id, item);
+            Streams.Add(item.Id, item);
         }
 
         public void Add(int key, Http2Stream value)
@@ -150,13 +125,12 @@ namespace Microsoft.Http2.Protocol
 
         public void Clear()
         {
-            FlowControlledStreams.Clear();
-            NonFlowControlledStreams.Clear();
+            Streams.Clear();
         }
 
         public bool ContainsKey(int id)
         {
-            return NonFlowControlledStreams.ContainsKey(id) || FlowControlledStreams.ContainsKey(id);
+            return Streams.ContainsKey(id);
         }
 
         public bool Contains(KeyValuePair<int, Http2Stream> item)
@@ -176,12 +150,10 @@ namespace Microsoft.Http2.Protocol
         {
             get
             {
-                var fc = FlowControlledStreams.Keys.ToArray();
-                var nfc = NonFlowControlledStreams.Keys.ToArray();
-                var result = new int[fc.Length + nfc.Length];
+                var keys = Streams.Keys.ToArray();
+                var result = new int[keys.Length];
 
-                Array.Copy(fc, 0, result, 0, fc.Length);
-                Array.Copy(nfc, 0, result, fc.Length, nfc.Length);
+                Array.Copy(keys, 0, result, 0, keys.Length);
 
                 return result;
             }
@@ -191,12 +163,10 @@ namespace Microsoft.Http2.Protocol
         {
             get
             {
-                var fc = FlowControlledStreams.Values.ToArray();
-                var nfc = NonFlowControlledStreams.Values.ToArray();
-                var result = new Http2Stream[fc.Length + nfc.Length];
+                var values = Streams.Values.ToArray();
+                var result = new Http2Stream[values.Length];
 
-                Array.Copy(fc, 0, result, 0, fc.Length);
-                Array.Copy(nfc, 0, result, fc.Length, nfc.Length);
+                Array.Copy(values, 0, result, 0, values.Length);
 
                 return result;
             }
@@ -204,7 +174,7 @@ namespace Microsoft.Http2.Protocol
 
         public int Count
         {
-            get { return NonFlowControlledStreams.Count + FlowControlledStreams.Count; }
+            get { return Streams.Count; }
         }
 
         public bool IsReadOnly
@@ -222,38 +192,17 @@ namespace Microsoft.Http2.Protocol
 
         public bool Remove(int itemId)
         {
-            if (FlowControlledStreams.ContainsKey(itemId))
+            if (Streams.ContainsKey(itemId))
             {
-                return FlowControlledStreams.Remove(itemId);
+                return Streams.Remove(itemId);
             }
-            if (NonFlowControlledStreams.ContainsKey(itemId))
-            {
-                return NonFlowControlledStreams.Remove(itemId);
-            }
+
             return true; //Nothing to delete. Item was already deleted.
         }
 
         public bool Remove(Http2Stream item)
         {
             return item != null && Remove(item.Id);
-        }
-
-        public bool IsStreamFlowControlled(Http2Stream stream)
-        {
-            return FlowControlledStreams.ContainsKey(stream.Id);
-        }
-
-        public void DisableFlowControl(Http2Stream stream)
-        {
-            if (stream == null)
-                throw new ArgumentNullException("stream is null");
-
-            if (IsStreamFlowControlled(stream))
-            {
-                Remove(stream);
-                stream.IsFlowControlEnabled = false;
-                Add(stream);
-            }
         }
 
         public IEnumerator<KeyValuePair<int, Http2Stream>> GetEnumerator()
@@ -275,12 +224,10 @@ namespace Microsoft.Http2.Protocol
         {
             if (end == ConnectionEnd.Client)
             {
-                return FlowControlledStreams.Count(element => element.Key % 2 != 0) +
-                       NonFlowControlledStreams.Count(element => element.Key % 2 != 0);
+                return Streams.Count(element => element.Key%2 != 0);
             }
 
-            return FlowControlledStreams.Count(element => element.Key % 2 == 0) +
-                   NonFlowControlledStreams.Count(element => element.Key % 2 == 0);
+            return Streams.Count(element => element.Key%2 == 0);
         }
     }
 }

@@ -113,11 +113,11 @@
     <Compile Include="Http2Session\Http2SessionDesc.cs" />
     <Compile Include="Http2Stream\Http2Stream.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="IO\WriteQueue.cs" />
+    <Compile Include="IO\OutgoingQueue.cs" />
     <Compile Include="StatusCode.cs" />
     <Compile Include="Http2Stream\StreamState.cs" />
     <Compile Include="Utils\Http2Logger.cs" />
-    <Compile Include="Utils\Http2LoggerState.cs" />
+    <Compile Include="Utils\Http2LoggerLevel.cs" />
     <Compile Include="Verbs.cs" />
   </ItemGroup>
   <ItemGroup>

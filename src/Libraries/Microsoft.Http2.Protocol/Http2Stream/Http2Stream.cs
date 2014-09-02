@@ -28,8 +28,8 @@ namespace Microsoft.Http2.Protocol
 
         private readonly int _id;
         private StreamState _state;
-        private readonly WriteQueue _writeQueue;
-        private readonly FlowControlManager _flowCrtlManager;
+        private readonly OutgoingQueue _writeQueue;
+        private readonly FlowControlManager _flowCtrlManager;
 
         private readonly Queue<DataFrame> _unshippedFrames;
         private readonly object _unshippedDeliveryLock = new object();
@@ -53,14 +53,14 @@ namespace Microsoft.Http2.Protocol
 
         //Incoming
         internal Http2Stream(HeadersList headers, int id,
-                           WriteQueue writeQueue, FlowControlManager flowCrtlManager, int priority = Constants.DefaultStreamPriority)
+                           OutgoingQueue writeQueue, FlowControlManager flowCrtlManager, int priority = Constants.DefaultStreamPriority)
             : this(id, writeQueue, flowCrtlManager, priority)
         {
             Headers = headers;
         }
 
         //Outgoing
-        internal Http2Stream(int id, WriteQueue writeQueue, FlowControlManager flowCrtlManager, int priority = Constants.DefaultStreamPriority)
+        internal Http2Stream(int id, OutgoingQueue writeQueue, FlowControlManager flowCtrlManager, int priority = Constants.DefaultStreamPriority)
         {
             if (id <= 0)
                 throw new ArgumentOutOfRangeException("invalid id for stream");
@@ -71,7 +71,7 @@ namespace Microsoft.Http2.Protocol
             _id = id;
             Priority = priority;
             _writeQueue = writeQueue;
-            _flowCrtlManager = flowCrtlManager;
+            _flowCtrlManager = flowCtrlManager;
 
             _unshippedFrames = new Queue<DataFrame>(16);
             Headers = new HeadersList();
@@ -79,12 +79,10 @@ namespace Microsoft.Http2.Protocol
             SentDataAmount = 0;
             ReceivedDataAmount = 0;
             IsBlocked = false;
-            IsFlowControlEnabled = _flowCrtlManager.IsFlowControlEnabled;
-            UpdateWindowSize(_flowCrtlManager.StreamInitialWindowSize, false);
+            UpdateWindowSize(_flowCtrlManager.InitialWindowSize, false);
             WasHeadersFrameRecived = false;
             WasRstOnStream = false;
 
-            _flowCrtlManager.NewStreamOpenedHandler(this);
             OnFrameSent += (sender, args) => FramesSent++;
         }
 
@@ -109,7 +107,7 @@ namespace Microsoft.Http2.Protocol
             set 
             { 
                 Contract.Assert(value);
-                Http2Logger.LogStreamStateTrans(Id, _state, StreamState.Opened);
+                Http2Logger.StreamStateTransition(Id, _state, StreamState.Opened);
                 _state = StreamState.Opened; 
             }
         }
@@ -130,7 +128,7 @@ namespace Microsoft.Http2.Protocol
 
                 _state = HalfClosedLocal ? StreamState.Closed : StreamState.HalfClosedRemote;
 
-                Http2Logger.LogStreamStateTrans(Id, previousState, _state);
+                Http2Logger.StreamStateTransition(Id, previousState, _state);
             }
         }
 
@@ -144,7 +142,7 @@ namespace Microsoft.Http2.Protocol
 
                 _state = HalfClosedRemote ? StreamState.Closed : StreamState.HalfClosedLocal;
 
-                Http2Logger.LogStreamStateTrans(Id, previousState, _state);
+                Http2Logger.StreamStateTransition(Id, previousState, _state);
             }
         }
 
@@ -158,7 +156,7 @@ namespace Microsoft.Http2.Protocol
 
                 _state = ReservedRemote ? StreamState.Closed : StreamState.ReservedLocal;
 
-                Http2Logger.LogStreamStateTrans(Id, previousState, _state);
+                Http2Logger.StreamStateTransition(Id, previousState, _state);
             }
         }
 
@@ -172,7 +170,7 @@ namespace Microsoft.Http2.Protocol
 
                 _state = HalfClosedLocal ? StreamState.Closed : StreamState.ReservedRemote;
 
-                Http2Logger.LogStreamStateTrans(Id, previousState, _state);
+                Http2Logger.StreamStateTransition(Id, previousState, _state);
             }
         }
 
@@ -182,7 +180,7 @@ namespace Microsoft.Http2.Protocol
             set 
             { 
                 Contract.Assert(value);
-                Http2Logger.LogStreamStateTrans(Id, _state, StreamState.Closed);
+                Http2Logger.StreamStateTransition(Id, _state, StreamState.Closed);
                 _state = StreamState.Closed;
             }
         }
@@ -195,35 +193,26 @@ namespace Microsoft.Http2.Protocol
 
         public void UpdateWindowSize(Int32 delta, bool needToLog = true)
         {
-            if (IsFlowControlEnabled)
+            /* 14 -> 6.9.1
+            A sender MUST NOT allow a flow control window to exceed 2^31 - 1
+            bytes. If a sender receives a WINDOW_UPDATE that causes a flow
+            control window to exceed this maximum it MUST terminate either the
+            stream or the connection, as appropriate.  For streams, the sender
+            sends a RST_STREAM with the error code of FLOW_CONTROL_ERROR code;
+            for the connection, a GOAWAY frame with a FLOW_CONTROL_ERROR code. */
+            if (WindowSize > Constants.MaxWindowSize)
             {
-                /* 14 -> 6.9.1
-                A sender MUST NOT allow a flow control window to exceed 2^31 - 1
-                bytes. If a sender receives a WINDOW_UPDATE that causes a flow
-                control window to exceed this maximum it MUST terminate either the
-                stream or the connection, as appropriate.  For streams, the sender
-                sends a RST_STREAM with the error code of FLOW_CONTROL_ERROR code;
-                for the connection, a GOAWAY frame with a FLOW_CONTROL_ERROR code. */
-
-                WindowSize += delta;
-
-                if (needToLog && delta != 0)
-                    Http2Logger.LogDebug("Window size changed: stream id={0}, from={1}, to={2}, delta={3}", 
-                        Id, WindowSize - delta, WindowSize, Math.Abs(delta));
-
-                if (WindowSize > Constants.MaxWindowSize)
-                {
-                    Http2Logger.LogDebug("Incorrect window size : {0}", WindowSize);
-                    throw new ProtocolError(ResetStatusCode.FlowControlError, String.Format("Incorrect window size : {0}", WindowSize));
-                }
+                Http2Logger.Debug("Incorrect window size : {0}", WindowSize);
+                throw new ProtocolError(ResetStatusCode.FlowControlError,
+                    String.Format("Incorrect window size : {0}", WindowSize));
             }
 
-            // Unblock stream if it was blocked by flowCtrlManager
-            if (WindowSize > 0 && IsBlocked)
-            {
-                IsBlocked = false;
-                Http2Logger.LogDebug("Flow control for stream id={0} unblocked", Id);
-            }
+
+            WindowSize += delta;
+
+            if (needToLog && delta != 0)
+                Http2Logger.Debug("Window size changed: stream id={0}, from={1}, to={2}, delta={3}", 
+                    Id, WindowSize - delta, WindowSize, Math.Abs(delta));
         }
 
         /// <summary>
@@ -239,7 +228,7 @@ namespace Microsoft.Http2.Protocol
             // Handle window update one at a time
             lock (_unshippedDeliveryLock)
             {
-                while (_unshippedFrames.Count > 0 && IsBlocked == false)
+                while (_unshippedFrames.Count > 0 && !IsBlocked && !_flowCtrlManager.IsSessionBlocked)
                 {
                     var dataFrame = _unshippedFrames.Dequeue();
                     WriteDataFrame(dataFrame);
@@ -261,8 +250,6 @@ namespace Microsoft.Http2.Protocol
         public Int64 ReceivedDataAmount { get; set; }
 
         public bool IsBlocked { get; set; }
-
-        public bool IsFlowControlEnabled { get; set; }
         #endregion
 
         #region WriteMethods
@@ -282,7 +269,7 @@ namespace Microsoft.Http2.Protocol
                     Headers = headers,
                 };
 
-            Http2Logger.LogFrameSend(frame);
+            Http2Logger.FrameSend(frame);
 
             _writeQueue.WriteFrame(frame);
 
@@ -337,17 +324,17 @@ namespace Microsoft.Http2.Protocol
                 return;
             }
 
-            if (!IsBlocked)
+            if (!IsBlocked && !_flowCtrlManager.IsSessionBlocked)
             {
-                Http2Logger.LogFrameSend(dataFrame);
+                Http2Logger.FrameSend(dataFrame);
 
                 _writeQueue.WriteFrame(dataFrame);
                 SentDataAmount += dataFrame.Data.Count;
-                _flowCrtlManager.DataFrameSentHandler(this, new DataFrameSentEventArgs(dataFrame));
+                _flowCtrlManager.DataFrameSentHandler(this, new DataFrameSentEventArgs(dataFrame));
 
                 if (dataFrame.IsEndStream)
                 {
-                    Http2Logger.LogDebug("Sent for stream id={0}: {1} bytes", dataFrame.StreamId, SentDataAmount);
+                    Http2Logger.Debug("Sent for stream id={0}: {1} bytes", dataFrame.StreamId, SentDataAmount);
                     HalfClosedLocal = true;
                 }
 
@@ -376,17 +363,17 @@ namespace Microsoft.Http2.Protocol
             if (Closed)
                 return;
 
-            if (!IsBlocked)
+            if (!IsBlocked && !_flowCtrlManager.IsSessionBlocked)
             {
-                Http2Logger.LogFrameSend(dataFrame);
+                Http2Logger.FrameSend(dataFrame);
 
                 _writeQueue.WriteFrame(dataFrame);
                 SentDataAmount += dataFrame.Data.Count;
-                _flowCrtlManager.DataFrameSentHandler(this, new DataFrameSentEventArgs(dataFrame));
+                _flowCtrlManager.DataFrameSentHandler(this, new DataFrameSentEventArgs(dataFrame));
 
                 if (dataFrame.IsEndStream)
                 {
-                    Http2Logger.LogDebug("Bytes sent for stream id={0}: {1}", dataFrame.StreamId, SentDataAmount);
+                    Http2Logger.Debug("Bytes sent for stream id={0}: {1}", dataFrame.StreamId, SentDataAmount);
                     HalfClosedLocal = true;
                 }
 
@@ -416,7 +403,7 @@ namespace Microsoft.Http2.Protocol
 
             var frame = new WindowUpdateFrame(_id, windowSize);
 
-            Http2Logger.LogFrameSend(frame);
+            Http2Logger.FrameSend(frame);
 
             _writeQueue.WriteFrame(frame);
 
@@ -433,7 +420,7 @@ namespace Microsoft.Http2.Protocol
 
             var frame = new RstStreamFrame(_id, code);
 
-            Http2Logger.LogFrameSend(frame);
+            Http2Logger.FrameSend(frame);
 
             _writeQueue.WriteFrame(frame);
             WasRstOnStream = true;
@@ -461,7 +448,7 @@ namespace Microsoft.Http2.Protocol
             The stream state for the reserved stream transitions to reserved (local). */        
             ReservedLocal = true;
 
-            Http2Logger.LogFrameSend(frame);
+            Http2Logger.FrameSend(frame);
 
             _writeQueue.WriteFrame(frame);
 
@@ -479,14 +466,12 @@ namespace Microsoft.Http2.Protocol
 
             OnFrameSent = null;
 
-            Http2Logger.LogDebug("Total outgoing data frames volume " + SentDataAmount);
-            Http2Logger.LogDebug("Total frames sent: {0}", FramesSent);
-            Http2Logger.LogDebug("Total frames received: {0}", FramesReceived);
+            Http2Logger.Debug("Total outgoing data frames volume " + SentDataAmount);
+            Http2Logger.Debug("Total frames sent: {0}", FramesSent);
+            Http2Logger.Debug("Total frames received: {0}", FramesReceived);
 
             if (code == ResetStatusCode.Cancel || code == ResetStatusCode.InternalError)
                 WriteRst(code);
-
-            _flowCrtlManager.StreamClosedHandler(this);
 
             Closed = true;
 
@@ -495,7 +480,7 @@ namespace Microsoft.Http2.Protocol
 
             OnClose = null;
 
-            Http2Logger.LogDebug("Stream closed " + _id);
+            Http2Logger.Debug("Stream closed " + _id);
         }
     }
 }

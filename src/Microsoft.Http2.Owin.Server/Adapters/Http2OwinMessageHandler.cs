@@ -118,7 +118,7 @@ namespace Microsoft.Http2.Owin.Server.Adapters
         /// <param name="ex">The caught exception.</param>
         private void EndResponse(Http2Stream stream, Exception ex)
         {
-            Http2Logger.LogDebug("Error processing request:\r\n" + ex);
+            Http2Logger.Debug("Error processing request:\r\n" + ex);
             // TODO: What if the response has already started?
             WriteStatus(stream, StatusCode.Code500InternalServerError, true);
         }

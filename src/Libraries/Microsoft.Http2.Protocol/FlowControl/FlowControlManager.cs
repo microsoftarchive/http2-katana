@@ -8,8 +8,6 @@
 // See the Apache 2 License for the specific language governing permissions and limitations under the License.
 using System;
 using Microsoft.Http2.Protocol.EventArgs;
-using Microsoft.Http2.Protocol.Exceptions;
-using Microsoft.Http2.Protocol.Framing;
 using Microsoft.Http2.Protocol.Utils;
 
 namespace Microsoft.Http2.Protocol.FlowControl
@@ -20,127 +18,29 @@ namespace Microsoft.Http2.Protocol.FlowControl
     /// </summary>
     internal class FlowControlManager
     {
-        private readonly Http2Session.Http2Session _session;
         private StreamDictionary _streamDictionary;
-        private Int32 _options;
-        private bool _wasFlowControlSet;
 
-        /// <summary>
-        /// Gets or sets the flow control options property.
-        /// </summary>
-        /// <value>
-        /// The options. 
-        /// The first bit indicated all streams flow control enabled.
-        /// The second bit indicated session flow control enabled.
-        /// </value>
-        public Int32 Options
-        {
-            get
-            {
-                return _options;
-            }
-            set
-            {
-                if (_wasFlowControlSet)
-                    throw new ProtocolError(ResetStatusCode.FlowControlError, "Trying to reenable flow control");
-
-                _wasFlowControlSet = true;
-                _options = value;
-
-                if (!IsFlowControlEnabled)
-                {
-                    foreach (var stream in _streamDictionary.Values)
-                    {
-                        DisableStreamFlowControl(stream);
-                    }
-                }
-
-                if (IsFlowControlEnabled)
-                {
-                    //TODO Disable session flow control
-                }
-            }
-        }
-
-        public bool IsFlowControlEnabled
-        {
-            get
-            {
-                return _options % 2 == 0;
-            }
-        }
-
-        public Int32 SessionInitialWindowSize { get; set; }
-        public Int32 StreamInitialWindowSize { get; set; }
+        public Int32 InitialWindowSize { get; set; }
+        public Int32 ConnectionWindowSize { get; set; }
         public bool IsSessionBlocked { get; set; }
 
-        public FlowControlManager(Http2Session.Http2Session session)
+        public FlowControlManager(StreamDictionary streamDictionary)
         {
-            if (session == null)
-                throw new ArgumentNullException("session");
+            if (streamDictionary == null)
+                throw new ArgumentNullException("streamDictionary");
+
+            _streamDictionary = streamDictionary;
+            IsSessionBlocked = false;
 
             /* 14 -> 6.9.2
             When a HTTP/2.0 connection is first established, new streams are
             created with an initial flow control window size of 65535 bytes. 
             The connection flow control window is 65535 bytes. */
-            SessionInitialWindowSize = Constants.InitialFlowControlWindowSize;
-            StreamInitialWindowSize = Constants.InitialFlowControlWindowSize;
+            InitialWindowSize = Constants.InitialWindowSize;
 
-            _session = session;
-            _streamDictionary = _session.StreamDictionary;
-
-            Options = Constants.InitialFlowControlOptionsValue;
-            _wasFlowControlSet = false;
-            IsSessionBlocked = false;
-        }
-
-        public void SetStreamDictionary(StreamDictionary streams)
-        {
-            _streamDictionary = streams;
-        }
-
-        /// <summary>
-        /// Check if stream is flowcontrolled.
-        /// </summary>
-        /// <param name="stream">The stream to check.</param>
-        /// <returns>
-        ///   <c>true</c> if the stream is flow controlled; otherwise, <c>false</c>.
-        /// </returns>
-        public bool IsStreamFlowControlled(Http2Stream stream)
-        {
-            if (stream == null)
-                throw new ArgumentNullException("stream is null");
-
-            return _streamDictionary.IsStreamFlowControlled(stream);
-        }
-
-        public void NewStreamOpenedHandler(Http2Stream stream)
-        {
-            if (stream == null)
-                throw new ArgumentNullException("stream is null");
-
-            _session.SessionWindowSize += StreamInitialWindowSize;
-        }
-
-        public void StreamClosedHandler(Http2Stream stream)
-        {
-            if (stream == null)
-                throw new ArgumentNullException("stream is null");
-
-            _session.SessionWindowSize -= stream.WindowSize;
-        }
-
-        /// <summary>
-        /// Disables the stream flow control.
-        /// Flow control cant be enabled once disabled
-        /// </summary>
-        /// <param name="stream">The stream.</param>
-        public void DisableStreamFlowControl(Http2Stream stream)
-        {
-            if (stream == null)
-                throw new ArgumentNullException("stream is null");
-
-            _streamDictionary.DisableFlowControl(stream);
+            /* 14 ->  6.9.2 
+            The connection flow control window is 65,535 bytes. */
+            ConnectionWindowSize = Constants.InitialWindowSize;
         }
 
         /// <summary>
@@ -160,21 +60,10 @@ namespace Microsoft.Http2.Protocol.FlowControl
             }
 
             var stream = _streamDictionary[id];
-            if (!stream.IsFlowControlEnabled)
-            {
-                return;
-            }
-
             int dataAmount = args.DataAmount;
 
             stream.UpdateWindowSize(-dataAmount);
-            _session.SessionWindowSize += -dataAmount;
-
-            if (_session.SessionWindowSize <= 0)
-            {
-                IsSessionBlocked = true;
-                //TODO What to do next?
-            }
+            ConnectionWindowSize += -dataAmount;
 
             /* 14 -> 6.9.1
             The sender MUST NOT
@@ -184,7 +73,17 @@ namespace Microsoft.Http2.Protocol.FlowControl
             if (stream.WindowSize <= 0)
             {
                 stream.IsBlocked = true;
-                Http2Logger.LogDebug("Flow control for stream id={0} blocked", id);
+                Http2Logger.Debug("Flow control for stream id={0} blocked", id);
+            }
+            if (stream.WindowSize > 0 && stream.IsBlocked)
+            {
+                stream.IsBlocked = false;
+                Http2Logger.Debug("Flow control for stream id={0} unblocked", id);
+            }
+            if (ConnectionWindowSize < 0)
+            {
+                IsSessionBlocked = true;
+                Http2Logger.Debug("Flow control for connection blocked");
             }
         }
     }

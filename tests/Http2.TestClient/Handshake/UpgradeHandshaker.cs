@@ -68,7 +68,7 @@ namespace Http2.TestClient.Handshake
             }
             catch (Exception ex)
             {
-                Http2Logger.LogError(ex.Message);
+                Http2Logger.Error(ex.Message);
                 throw;
             }
         }
@@ -128,7 +128,7 @@ namespace Http2.TestClient.Handshake
                 _handshakeResult.Add(HandshakeKeys.Successful, HandshakeKeys.False);
                 var path = _headers[PseudoHeaders.Path] as string;
                 
-                Http2Logger.LogDebug("Handling with http11");
+                Http2Logger.Debug("Handling with http11");
                 var http11Adapter = new Http11ClientMessageHandler(IoStream, path);
                 http11Adapter.HandleHttp11Response(_response.ResponseBytes.Array, 0, _response.ResponseBytes.Count);
 

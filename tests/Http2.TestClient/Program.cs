@@ -52,7 +52,7 @@ namespace Http2.TestClient
             
             var waitForTestsFinish = new ManualResetEvent(!isTestsEnabled);
 
-            Http2Logger.LogDebug("Tests enabled: " + isTestsEnabled);
+            Http2Logger.Debug("Tests enabled: " + isTestsEnabled);
 
             ThreadPool.SetMaxThreads(10, 10);
 
@@ -85,7 +85,7 @@ namespace Http2.TestClient
                     }
                     catch (Exception ex)
                     {
-                        Http2Logger.LogError(ex.Message);
+                        Http2Logger.Error(ex.Message);
                         continue;
                     }
                     //Scheme and port were checked during parsing get cmd.
@@ -96,7 +96,7 @@ namespace Http2.TestClient
                         case CommandType.Get:
                         case CommandType.Delete:
                         case CommandType.Dir:
-                            Http2Logger.LogConsole("Uri command detected");
+                            Http2Logger.Info("Uri command detected");
                             var uriCmd = (IUriCommand) cmd;
                             var method = uriCmd.Method;
 
@@ -104,19 +104,19 @@ namespace Http2.TestClient
                             //Only unique sessions can be opened
                             if (_sessions.ContainsKey(uriCmd.Uri.Authority))
                             {
-                                Http2Logger.LogConsole("Session already exists");
+                                Http2Logger.Info("Session already exists");
                                 _sessions[uriCmd.Uri.Authority].SendRequestAsync(uriCmd.Uri, method);
                                 break;
                             }
 
-                            Http2Logger.LogConsole("Creating new session");
+                            Http2Logger.Info("Creating new session");
                             var sessionHandler = new Http2SessionHandler(_environment);
                             _sessions.Add(uriCmd.Uri.Authority, sessionHandler);
                             sessionHandler.OnClosed +=
                                 (sender, eventArgs) =>
                                     {
                                         _sessions.Remove(sessionHandler.ServerUri);
-                                        Http2Logger.LogDebug("Session deleted from collection: " + sessionHandler.ServerUri);
+                                        Http2Logger.Debug("Session deleted from collection: " + sessionHandler.ServerUri);
 
                                         waitForTestsFinish.Set();
                                     };
@@ -127,7 +127,7 @@ namespace Http2.TestClient
                             bool success = sessionHandler.Connect(uriCmd.Uri);
                             if (!success)
                             {
-                                Http2Logger.LogError("Connection failed");
+                                Http2Logger.Error("Connection failed");
                                 break;
                             }
 
@@ -153,7 +153,7 @@ namespace Http2.TestClient
                             }
                             else
                             {
-                                Http2Logger.LogError("Can't ping until session is opened.");
+                                Http2Logger.Error("Can't ping until session is opened.");
                             }
                             break;
                         case CommandType.Exit:
@@ -169,13 +169,13 @@ namespace Http2.TestClient
                 }
                 catch (Exception e)
                 {
-                    Http2Logger.LogError("Problems occurred - please restart client. Error: " + e.Message);
+                    Http2Logger.Error("Problems occurred - please restart client. Error: " + e.Message);
                 }
             } while (!isTestsEnabled);
 
             waitForTestsFinish.WaitOne(5000);
 
-            Http2Logger.LogDebug("Exiting");
+            Http2Logger.Debug("Exiting");
             Console.WriteLine();
             Console.WriteLine();
         }

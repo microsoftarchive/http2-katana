@@ -16,7 +16,7 @@ using Microsoft.Http2.Protocol.Framing;
 using Microsoft.Http2.Protocol.Utils;
 using OpenSSL;
 
-namespace Microsoft.Http2.Protocol.Http2Session
+namespace Microsoft.Http2.Protocol.Session
 {
     public partial class Http2Session
     {
@@ -103,7 +103,7 @@ namespace Microsoft.Http2.Protocol.Http2Session
             var headers = new HeadersList(decompressedHeaders);
             headersFrame.Headers.AddRange(headers);
 
-            Http2Logger.LogFrameReceived(headersFrame);
+            Http2Logger.FrameReceived(headersFrame);
 
             var sequence = _headersSequences.Find(headersFrame.StreamId);
             if (sequence == null)
@@ -170,7 +170,7 @@ namespace Microsoft.Http2.Protocol.Http2Session
 
         private void HandleContinuation(ContinuationFrame contFrame, out Http2Stream stream)
         {
-            Http2Logger.LogFrameReceived(contFrame);
+            Http2Logger.FrameReceived(contFrame);
 
             if (!(_lastFrame is ContinuationFrame || _lastFrame is HeadersFrame))
                 throw new ProtocolError(ResetStatusCode.ProtocolError,
@@ -195,7 +195,7 @@ namespace Microsoft.Http2.Protocol.Http2Session
             var contHeaders = new HeadersList(decomprHeaders);
             foreach (var header in contHeaders)
             {
-                Http2Logger.LogDebug("Stream {0} header: {1}={2}", contFrame.StreamId, header.Key, header.Value);
+                Http2Logger.Debug("Stream {0} header: {1}={2}", contFrame.StreamId, header.Key, header.Value);
             }
             contFrame.Headers.AddRange(contHeaders);
             var sequence = _headersSequences.Find(contFrame.StreamId);
@@ -240,7 +240,7 @@ namespace Microsoft.Http2.Protocol.Http2Session
 
         private void HandlePriority(PriorityFrame priorityFrame, out Http2Stream stream)
         {
-            Http2Logger.LogFrameReceived(priorityFrame);
+            Http2Logger.FrameReceived(priorityFrame);
 
             /* 14 -> 6.3
             The PRIORITY frame is associated with an existing stream. If a
@@ -265,7 +265,7 @@ namespace Microsoft.Http2.Protocol.Http2Session
 
         private void HandleRstFrame(RstStreamFrame resetFrame, out Http2Stream stream)
         {
-            Http2Logger.LogFrameReceived(resetFrame);
+            Http2Logger.FrameReceived(resetFrame);
 
             /* 14 -> 6.4
             RST_STREAM frames MUST be associated with a stream.  If a RST_STREAM
@@ -298,7 +298,7 @@ namespace Microsoft.Http2.Protocol.Http2Session
 
         private void HandleDataFrame(DataFrame dataFrame, out Http2Stream stream)
         {
-            Http2Logger.LogFrameReceived(dataFrame);
+            Http2Logger.FrameReceived(dataFrame);
 
             /* 14 -> 6.1
             DATA frames MUST be associated with a stream. If a DATA frame is
@@ -318,15 +318,16 @@ namespace Microsoft.Http2.Protocol.Http2Session
                 throw new ProtocolError(ResetStatusCode.ProtocolError, "data in non opened or half closed (local) stream");
 
             
-            if (stream.IsFlowControlEnabled && !dataFrame.IsEndStream)
+            if (!dataFrame.IsEndStream)
             {
                 stream.WriteWindowUpdate(dataFrame.Buffer.Length - Constants.FramePreambleSize);
+                WriteConnectionWindowUpdate(dataFrame.Buffer.Length - Constants.FramePreambleSize);
             }
         }
 
         private void HandlePingFrame(PingFrame pingFrame)
         {
-            Http2Logger.LogFrameReceived(pingFrame);
+            Http2Logger.FrameReceived(pingFrame);
 
             /* 14 -> 6.7
             PING frames are not associated with any individual stream.  If a PING
@@ -359,7 +360,7 @@ namespace Microsoft.Http2.Protocol.Http2Session
 
         private void HandleSettingsFrame(SettingsFrame settingsFrame)
         {
-            Http2Logger.LogFrameReceived(settingsFrame);
+            Http2Logger.FrameReceived(settingsFrame);
 
             _wasSettingsReceived = true;
             
@@ -382,7 +383,8 @@ namespace Microsoft.Http2.Protocol.Http2Session
 
                 if (settingsFrame.PayloadLength != 0)
                     throw new ProtocolError(ResetStatusCode.FrameSizeError, 
-                        "Settings frame with ACK flag set and non-zero payload");               
+                        "Settings frame with ACK flag set and non-zero payload");
+
                 return;
             }
 
@@ -414,15 +416,16 @@ namespace Microsoft.Http2.Protocol.Http2Session
                         windows that it maintains by the difference between the new value and
                         the old value. */
                         int newInitWindowSize = setting.Value;
-                        int windowSizeDiff = newInitWindowSize - _flowControlManager.StreamInitialWindowSize;
+                        int windowSizeDiff = newInitWindowSize - _flowCtrlManager.InitialWindowSize;
 
-                        foreach (var stream in StreamDictionary.FlowControlledStreams.Values)
+                        foreach (var stream in StreamDictionary.Streams.Values)
                         {
                             stream.UpdateWindowSize(windowSizeDiff, false);
                         }
 
-                        _flowControlManager.StreamInitialWindowSize = newInitWindowSize;
-                        InitialWindowSize = newInitWindowSize;
+                        _flowCtrlManager.InitialWindowSize = newInitWindowSize;
+                        /* 14 -> 6.9.2
+                        A SETTINGS frame cannot alter the connection flow control window. */
                         break;
                     case SettingsIds.MaxFrameSize:
                         /* 14 -> 6.5.2
@@ -459,7 +462,20 @@ namespace Microsoft.Http2.Protocol.Http2Session
 
         private void HandleWindowUpdateFrame(WindowUpdateFrame windowUpdateFrame, out Http2Stream stream)
         {
-            Http2Logger.LogFrameReceived(windowUpdateFrame);
+            Http2Logger.FrameReceived(windowUpdateFrame);
+
+            /* 14 -> 6.9 
+            The payload of a WINDOW_UPDATE frame is one reserved bit, plus an
+            unsigned 31-bit integer indicating the number of bytes that the
+            sender can transmit in addition to the existing flow control window.
+            The legal range for the increment to the flow control window is 1 to
+            2^31 - 1 (0x7fffffff) bytes. */
+            if (!(0 < windowUpdateFrame.Delta && windowUpdateFrame.Delta <= Constants.MaxWindowSize))
+            {
+                Http2Logger.Debug("Incorrect window update delta : {0}", windowUpdateFrame.Delta);
+                throw new ProtocolError(ResetStatusCode.FlowControlError,
+                    String.Format("Incorrect window update delta : {0}", windowUpdateFrame.Delta));
+            }
 
             // TODO implement flow control connection window size
             /* 14 -> 6.9
@@ -471,15 +487,26 @@ namespace Microsoft.Http2.Protocol.Http2Session
             {
                 // TODO: applying connection window size to all existing streams 
                 // as work around to support mozilla firefox
-                foreach (var s in StreamDictionary.FlowControlledStreams.Values)
+                foreach (var s in StreamDictionary.Streams.Values)
                 {
                     s.UpdateWindowSize(windowUpdateFrame.Delta, false);
                 }
-                _flowControlManager.StreamInitialWindowSize += windowUpdateFrame.Delta;
-                Http2Logger.LogDebug("Initial stream window size changed: from={0}, to={1}, delta={2}", 
-                    _flowControlManager.StreamInitialWindowSize - windowUpdateFrame.Delta,
-                    _flowControlManager.StreamInitialWindowSize,
+
+                _flowCtrlManager.InitialWindowSize += windowUpdateFrame.Delta;
+                _flowCtrlManager.ConnectionWindowSize += windowUpdateFrame.Delta;
+
+                Http2Logger.Debug("Initial stream window size changed: from={0}, to={1}, delta={2}", 
+                    _flowCtrlManager.InitialWindowSize - windowUpdateFrame.Delta,
+                    _flowCtrlManager.InitialWindowSize,
                     windowUpdateFrame.Delta);
+
+                if (_flowCtrlManager.ConnectionWindowSize > 0 && 
+                    _flowCtrlManager.IsSessionBlocked)
+                {
+                    _flowCtrlManager.IsSessionBlocked = false;
+                    Http2Logger.Debug("Flow control for connection unblocked");
+                }
+
                 stream = null;
                 return; 
             }
@@ -491,21 +518,8 @@ namespace Microsoft.Http2.Protocol.Http2Session
             END_STREAM flag.  This means that a receiver could receive a
             WINDOW_UPDATE frame on a "half closed (remote)" or "closed" stream.
             A receiver MUST NOT treat this as an error. */
-
             if (!(stream.Opened || stream.HalfClosedRemote || stream.HalfClosedLocal || stream.Closed))
                 throw new ProtocolError(ResetStatusCode.ProtocolError, "window update in incorrect state");
-
-            /* 14 -> 6.9 
-            The payload of a WINDOW_UPDATE frame is one reserved bit, plus an
-            unsigned 31-bit integer indicating the number of bytes that the
-            sender can transmit in addition to the existing flow control window.
-            The legal range for the increment to the flow control window is 1 to
-            2^31 - 1 (0x7fffffff) bytes. */
-            if (!(0 < windowUpdateFrame.Delta && windowUpdateFrame.Delta <= Constants.MaxWindowSize))
-            {
-                Http2Logger.LogDebug("Incorrect window update delta : {0}", windowUpdateFrame.Delta);
-                throw new ProtocolError(ResetStatusCode.FlowControlError, String.Format("Incorrect window update delta : {0}", windowUpdateFrame.Delta));
-            }           
 
             stream.UpdateWindowSize(windowUpdateFrame.Delta);
             stream.PumpUnshippedFrames();
@@ -513,20 +527,20 @@ namespace Microsoft.Http2.Protocol.Http2Session
 
         private void HandleGoAwayFrame(GoAwayFrame goAwayFrame)
         {
-            Http2Logger.LogFrameReceived(goAwayFrame);
+            Http2Logger.FrameReceived(goAwayFrame);
 
             if (goAwayFrame.StreamId != 0)
                 throw new ProtocolError(ResetStatusCode.ProtocolError, "GoAway Stream id should always be null");
 
             _goAwayReceived = true;
            
-            Http2Logger.LogDebug("last successful id = {0}", goAwayFrame.LastGoodStreamId);
+            Http2Logger.Debug("last successful id = {0}", goAwayFrame.LastGoodStreamId);
             Dispose();
         }
 
         private void HandlePushPromiseFrame(PushPromiseFrame frame, out Http2Stream stream)
         {
-            Http2Logger.LogFrameReceived(frame);
+            Http2Logger.FrameReceived(frame);
 
             /* 14 -> 6.6. 
             PUSH_PROMISE frames MUST be associated with an existing, peer-initiated stream.
@@ -571,7 +585,7 @@ namespace Microsoft.Http2.Protocol.Http2Session
             var headers = new HeadersList(decompressedHeaders);
             foreach (var header in headers)
             {
-                Http2Logger.LogDebug("Stream {0} header: {1}={2}", frame.StreamId, header.Key, header.Value);
+                Http2Logger.Debug("Stream {0} header: {1}={2}", frame.StreamId, header.Key, header.Value);
 
                 frame.Headers.Add(header);
             }

@@ -23,7 +23,7 @@ using OpenSSL;
 using OpenSSL.SSL;
 using Owin;
 
-namespace Microsoft.Http2.Owin.Middleware
+namespace Microsoft.Http2.Owin.UpgradeMiddleware
 {
     using UpgradeDelegate = Action<IDictionary<string, object>, Func<IOwinContext, Task>>;
     // Http-01/2.0 uses a similar upgrade handshake to WebSockets. This middleware answers upgrade requests
@@ -73,7 +73,7 @@ namespace Microsoft.Http2.Owin.Middleware
                         }
                         catch (Exception ex)
                         {
-                            Http2Logger.LogError(ex.Message);
+                            Http2Logger.Error(ex.Message);
                         }
                     });
 
@@ -104,7 +104,7 @@ namespace Microsoft.Http2.Owin.Middleware
 
         private static IDictionary<string, string> GetInitialRequestParams(IOwinRequest request)
         {
-            var defaultWindowSize = Constants.InitialFlowControlWindowSize.ToString(CultureInfo.InvariantCulture);
+            var defaultWindowSize = Constants.InitialWindowSize.ToString(CultureInfo.InvariantCulture);
             var defaultMaxStreams = Constants.DefaultMaxConcurrentStreams.ToString(CultureInfo.InvariantCulture);
 
             bool areSettingsOk = true;

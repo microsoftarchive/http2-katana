@@ -165,6 +165,9 @@
     <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Http2Stream\StreamState.cs">
       <Link>Sources\Libraries\Microsoft.Http2.Protocol\Http2Stream\StreamState.cs</Link>
     </Compile>
+    <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\IO\OutgoingQueue.cs">
+      <Link>Sources\Libraries\Microsoft.Http2.Protocol\IO\OutgoingQueue.cs</Link>
+    </Compile>
     <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\IO\ResponseStream.cs">
       <Link>Sources\Libraries\Microsoft.Http2.Protocol\IO\ResponseStream.cs</Link>
     </Compile>
@@ -173,6 +176,9 @@
     </Compile>
     <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\StreamDictionary.cs">
       <Link>Sources\Libraries\Microsoft.Http2.Protocol\StreamDictionary.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Utils\Http2LoggerLevel.cs">
+      <Link>Sources\Libraries\Microsoft.Http2.Protocol\Utils\Http2LoggerLevel.cs</Link>
     </Compile>
     <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Verbs.cs">
       <Link>Sources\Libraries\Microsoft.Http2.Protocol\Verbs.cs</Link>
@@ -572,9 +578,6 @@
     <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\IO\PriorityQueueEntry.cs">
       <Link>Sources\Libraries\Microsoft.Http2.Protocol\IO\PriorityQueueEntry</Link>
     </Compile>
-    <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\IO\WriteQueue.cs">
-      <Link>Sources\Libraries\Microsoft.Http2.Protocol\IO\WriteQueue</Link>
-    </Compile>
     <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\obj\Debug\TemporaryGeneratedFile_036C0B5B-1481-4323-8D20-8F5ADCB23D92.cs">
       <Link>Sources\Libraries\Microsoft.Http2.Protocol\obj\Debug\TemporaryGeneratedFile_036C0B5B-1481-4323-8D20-8F5ADCB23D92</Link>
     </Compile>
@@ -592,9 +595,6 @@
     </Compile>
     <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Utils\Http2Logger.cs">
       <Link>Sources\Libraries\Microsoft.Http2.Protocol\Utils\Http2Logger</Link>
-    </Compile>
-    <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Utils\Http2LoggerState.cs">
-      <Link>Sources\Libraries\Microsoft.Http2.Protocol\Utils\Http2LoggerState</Link>
     </Compile>
     <Compile Include="..\..\src\Microsoft.Http2.Owin.Middleware\Http2Extensions.cs">
       <Link>Sources\Microsoft.Http2.Owin.Middleware\Http2Extensions</Link>

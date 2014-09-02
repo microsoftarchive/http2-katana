@@ -143,7 +143,6 @@ using Microsoft.Http2.Protocol.Extensions;
 using Microsoft.Http2.Protocol.Utils;
 using System;
 using System.Collections.Generic;
-using System.Configuration;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
@@ -310,7 +309,7 @@ namespace Http2.TestClient
                             }
                             else
                             {
-                                Http2Logger.LogError("Specified server did not respond");
+                                Http2Logger.Error("Specified server did not respond");
                                 Dispose(true);
                                 return false;
                             }
@@ -318,7 +317,7 @@ namespace Http2.TestClient
                     }
                 }
 
-                Http2Logger.LogDebug("Handshake finished");
+                Http2Logger.Debug("Handshake finished");
 
                 Protocol = _isSecure ? SslProtocols.Tls : SslProtocols.None;
 
@@ -329,13 +328,13 @@ namespace Http2.TestClient
             }
             catch (SocketException)
             {
-                Http2Logger.LogError("Check if any server listens port " + connectUri.Port);
+                Http2Logger.Error("Check if any server listens port " + connectUri.Port);
                 Dispose(true);
                 return false;
             }
             catch (Exception ex)
             {
-                Http2Logger.LogError("Unknown connection exception was caught: " + ex.Message);
+                Http2Logger.Error("Unknown connection exception was caught: " + ex.Message);
                 Dispose(true);
                 return false;
             }
@@ -345,7 +344,7 @@ namespace Http2.TestClient
 
         public async void StartConnection()
         {
-            Console.WriteLine("Start connection called");
+            Http2Logger.Info("Start connection called");
             if (_useHttp20 && !_sessionAdapter.IsDisposed && !_isDisposed)
             {
                 Dictionary<string, string> initialRequest = null;
@@ -363,7 +362,7 @@ namespace Http2.TestClient
             if (!_sessionAdapter.IsDisposed) 
                 return;
 
-            Http2Logger.LogError("Connection was aborted by the remote side. Check your session header.");
+            Http2Logger.Error("Connection was aborted by the remote side. Check your session header.");
             Dispose(true);
         }
 
@@ -372,7 +371,7 @@ namespace Http2.TestClient
         private void SubmitRequest(Uri request, string method)
         {
             //Submit request if http2 was chosen
-            Http2Logger.LogConsole("Submitting request");
+            Http2Logger.Info("Submitting request");
 
             var headers = new HeadersList
                 {
@@ -382,11 +381,8 @@ namespace Http2.TestClient
                     new KeyValuePair<string, string>(PseudoHeaders.Scheme, _scheme.ToLower()),
                 };
             
-            Http2Logger.LogHeaders(headers);
-
             //Sending request with default  priority
             _sessionAdapter.SendRequest(headers, Constants.DefaultStreamPriority, true);
-            Http2Logger.LogConsole("Request sent");
         }
 
         public void SendRequestAsync(Uri request, string method)
@@ -400,7 +396,7 @@ namespace Http2.TestClient
 
                 if (!_useHttp20)
                 {
-                    Http2Logger.LogConsole("Download with Http/1.1");
+                    Http2Logger.Info("Download with Http/1.1");
                 }
 
                 //Submit request in the current thread, response will be handled in the session thread.

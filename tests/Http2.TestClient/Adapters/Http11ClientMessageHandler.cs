@@ -64,12 +64,12 @@ namespace Http2.TestClient.Adapters
 
                 if (!respHeaders.ContainsKey(name))
                 {
-                    Http2Logger.LogDebug("Incoming header: {0} : {1}", name, value);
+                    Http2Logger.Debug("Incoming header: {0} : {1}", name, value);
                     respHeaders.Add(name, value);
                 }
             }
 
-            Http2Logger.LogDebug("Parsed headers");
+            Http2Logger.Debug("Parsed headers");
 
             byte[] respBody = new byte[0];
             if (statusCode == 200)
@@ -84,7 +84,7 @@ namespace Http2.TestClient.Adapters
                     totalReceived += received;
                 }
 
-                Http2Logger.LogDebug("Received: {0}", totalReceived);
+                Http2Logger.Debug("Received: {0}", totalReceived);
             }
 
             return new KeyValuePair<IDictionary<string, string>, byte[]>(respHeaders, respBody);
@@ -101,7 +101,7 @@ namespace Http2.TestClient.Adapters
                 stream.Write(response.Value, 0, response.Value.Length);
             }
 
-            Http2Logger.LogDebug("Response was saved as {0}", _path);
+            Http2Logger.Debug("Response was saved as {0}", _path);
         }
 
         public void Dispose()

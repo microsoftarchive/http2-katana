@@ -47,37 +47,28 @@ using System.Threading;
 using Microsoft.Http2.Protocol.Framing;
 
 namespace Microsoft.Http2.Protocol.Utils
-{
-    /// <summary>
-    /// Http2 logger class
-    /// </summary>   
+{ 
     public static class Http2Logger
     {
         private static readonly string AssemblyPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().CodeBase.Substring(8));
-        private const string LogFileName = "log.txt";
+        private const string FileName = "log.txt";
 
-        private static readonly string LogFilePath = Path.Combine(AssemblyPath, LogFileName);
+        private static readonly string FilePath = Path.Combine(AssemblyPath, FileName);
         private static readonly object Locker = new object();
 
-        private static Http2LoggerState _loggerLevel = Http2LoggerState.MaxLogging;
+        private static Http2LoggerLevel _level = Http2LoggerLevel.Debug;
         private static bool _writeToFile = true;
 
         private const string DatePattern = "MM/dd/yy hh:mm:ss.fff";
 
         #region Properties
 
-        /// <summary>
-        /// Gets or sets logging level.
-        /// </summary>
-        public static Http2LoggerState LoggerLevel
+        public static Http2LoggerLevel Level
         {
-            get { return _loggerLevel; }
-            set { _loggerLevel = value; }
+            get { return _level; }
+            set { _level = value; }
         }
 
-        /// <summary>
-        /// Gets or sets whenever message will be logged to a file.
-        /// </summary>
         public static bool WriteToFile
         {
             get { return _writeToFile; }
@@ -86,110 +77,112 @@ namespace Microsoft.Http2.Protocol.Utils
 
         #endregion
 
-        #region Methods
-
-        public static void LogError(string msg)
+        public static void Error(string msg)
         {
-            if (_loggerLevel > Http2LoggerState.NoLogging)
+            if (_level > Http2LoggerLevel.Silly)
             {
-                string outString = FormatString(msg, "ERROR");
+                string outString = Format(msg, "ERROR");
                 Console.WriteLine(outString);
-                LogToFile(outString);
+                ToFile(outString);
             }
         }
 
-        public static void LogConsole(string msg)
+        public static void Info(string msg)
         {
-            if ((_loggerLevel > Http2LoggerState.NoLogging))
+            if (_level >= Http2LoggerLevel.Info)
             {
-                string outString = "[" + DateTime.Now.ToString(DatePattern) + "] " + msg;
+                string outString = Format(msg, "INFO");
                 Console.WriteLine(outString);
+                ToFile(outString);
             }
         }
 
-        public static void LogInfo(string msg)
+        public static void Debug(string msg, params object[] format)
         {
-            if (_loggerLevel >= Http2LoggerState.VerboseLogging)
+            if (_level >= Http2LoggerLevel.Debug)
             {
-                string outString = FormatString(msg, "INFO");
+                string outString = Format(msg, "DEBUG", format);
                 Console.WriteLine(outString);
-                LogToFile(outString);
+                ToFile(outString);
             }
         }
 
-        public static void LogDebug(string msg, params object[] format)
+        public static void StreamStateTransition(int streamId, StreamState previous,
+            StreamState current)
         {
-            if (_loggerLevel >= Http2LoggerState.DebugLogging)
-            {
-                string outString = FormatString(msg, "DEBUG", format);
-                Console.WriteLine(outString);
-                LogToFile(outString);
-            }
+            string prev = GetStateName(previous);
+            string curr = GetStateName(current);
+
+            if (prev == curr)
+                return;
+
+            Debug("State transition: stream id={0} from '{1}' to '{2}'", streamId,
+                        prev, curr);
         }
 
         #region Framing
 
-        public static void LogFrameSend(Frame frame)
+        public static void FrameSend(Frame frame)
         {
-            LogFrame(frame, "Sending");
+            Frame(frame, "Sending");
         }
 
-        public static void LogFrameReceived(Frame frame)
+        public static void FrameReceived(Frame frame)
         {
-            LogFrame(frame, "Incoming");
+            Frame(frame, "Incoming");
         }
 
-        public static void LogFrame(Frame frame, string action = null)
+        private static void Frame(Frame frame, string action = null)
         {
             switch (frame.FrameType)
             {
                 case FrameType.Settings:
-                    LogSettingsFrame(frame as SettingsFrame, action);
+                    SettingsFrame(frame as SettingsFrame, action);
                     break;
                 case FrameType.Headers:
-                    LogHeadersFrame(frame as HeadersFrame, action);
+                    HeadersFrame(frame as HeadersFrame, action);
                     break;
                 case FrameType.Data:
-                    LogDataFrame(frame as DataFrame, action);
+                    DataFrame(frame as DataFrame, action);
                     break;
                 case FrameType.Continuation:
-                    LogContinuationFrame(frame as ContinuationFrame, action);
+                    ContinuationFrame(frame as ContinuationFrame, action);
                     break;
                 case FrameType.WindowUpdate:
-                    LogWindowUpdateFrame(frame as WindowUpdateFrame, action);
+                    WindowUpdateFrame(frame as WindowUpdateFrame, action);
                     break;
                 case FrameType.Ping:
-                    LogPingFrame(frame as PingFrame, action);
+                    PingFrame(frame as PingFrame, action);
                     break;
                 case FrameType.Priority:
-                    LogPriorityFrame(frame as PriorityFrame, action);
+                    PriorityFrame(frame as PriorityFrame, action);
                     break;
                 case FrameType.PushPromise:
-                    LogPushPromiseFrame(frame as PushPromiseFrame, action);
+                    PushPromiseFrame(frame as PushPromiseFrame, action);
                     break;
                 case FrameType.RstStream:
-                    LogRstFrame(frame as RstStreamFrame, action);
+                    RstFrame(frame as RstStreamFrame, action);
                     break;
                 case FrameType.GoAway:
-                    LogGoAwayFrame(frame as GoAwayFrame, action);
+                    GoAwayFrame(frame as GoAwayFrame, action);
                     break;
             }
         }
 
-        private static void LogSettingsFrame(SettingsFrame frame, string action = null)
+        private static void SettingsFrame(SettingsFrame frame, string action = null)
         {
-            LogDebug("{0} SETTINGS frame: stream id={1}, payload len={2}, is ack={3}, count={4}",
+            Debug("{0} SETTINGS frame: stream id={1}, payload len={2}, is ack={3}, count={4}",
                 action, frame.StreamId, frame.PayloadLength, frame.IsAck, frame.EntryCount);
 
             for (int i = 0; i < frame.EntryCount; i++)
             {
-                LogDebug("{0}={1}", frame[i].Id.ToString(), frame[i].Value);
+                Debug("{0}={1}", frame[i].Id.ToString(), frame[i].Value);
             }
         }
 
-        private static void LogHeadersFrame(HeadersFrame frame, string action = null)
+        private static void HeadersFrame(HeadersFrame frame, string action = null)
         {
-            LogDebug("{0} HEADERS frame: stream id={1}, has pad={2}, " +
+            Debug("{0} HEADERS frame: stream id={1}, has pad={2}, " +
                      "pad len={3}, end stream={4}, end headers={5}, has priority={6}, " +
                      "exclusive={7}, dependency={8}, weight={9}, count={10}", action,
                      frame.StreamId, frame.HasPadding,
@@ -199,128 +192,101 @@ namespace Microsoft.Http2.Protocol.Utils
 
             foreach (var h in frame.Headers)
             {
-                LogDebug("{0}={1}", h.Key, h.Value);
+                Debug("{0}={1}", h.Key, h.Value);
             }
         }
 
-        private static void LogDataFrame(DataFrame frame, string action = null)
+        private static void DataFrame(DataFrame frame, string action = null)
         {
-            LogDebug("{0} DATA frame: stream id={1}, payload len={2}, has pad={3}, pad len={4}, " +
+            Debug("{0} DATA frame: stream id={1}, payload len={2}, has pad={3}, pad len={4}, " +
                      "end stream={5}", action, frame.StreamId, frame.PayloadLength,
                      frame.HasPadding, frame.PadLength, frame.IsEndStream);
         }
 
-        private static void LogWindowUpdateFrame(WindowUpdateFrame frame, string action = null)
+        private static void WindowUpdateFrame(WindowUpdateFrame frame, string action = null)
         {
-            LogDebug("{0} WINDOW_UPDATE frame: stream id={1}, delta={2}", action, frame.StreamId,
+            Debug("{0} WINDOW_UPDATE frame: stream id={1}, delta={2}", action, frame.StreamId,
                  frame.Delta);
         }
 
-        private static void LogPushPromiseFrame(PushPromiseFrame frame, string action = null)
+        private static void PushPromiseFrame(PushPromiseFrame frame, string action = null)
         {
-            LogDebug("{0} PUSH_PROMISE frame: stream id={1}, promised id={2}, " +
+            Debug("{0} PUSH_PROMISE frame: stream id={1}, promised id={2}, " +
                      "has pad={3}, pad len={4}, end headers={5}, count={6}", action,
                      frame.StreamId, frame.PromisedStreamId, frame.HasPadding,
                      frame.PadLength, frame.IsEndHeaders, frame.Headers.Count);
 
             foreach (var h in frame.Headers)
             {
-                LogDebug("{0}={1}", h.Key, h.Value);
+                Debug("{0}={1}", h.Key, h.Value);
             }
         }
 
-        private static void LogRstFrame(RstStreamFrame frame, string action = null)
+        private static void RstFrame(RstStreamFrame frame, string action = null)
         {
-            LogDebug("{0} RST_STREAM frame: stream id={1}, status code={2}", action,
+            Debug("{0} RST_STREAM frame: stream id={1}, status code={2}", action,
                      frame.StreamId, frame.StatusCode);
         }
 
-        private static void LogGoAwayFrame(GoAwayFrame frame, string action = null)
+        private static void GoAwayFrame(GoAwayFrame frame, string action = null)
         {
-            LogDebug("{0} GOAWAY frame: stream id={1}, status code={2}", action, 
+            Debug("{0} GOAWAY frame: stream id={1}, status code={2}", action, 
                 frame.StreamId, frame.StatusCode);
         }
 
-        private static void LogPingFrame(PingFrame frame, string action = null)
+        private static void PingFrame(PingFrame frame, string action = null)
         {
-            LogDebug("{0} PING frame: stream id={1}, payload={2}", action, frame.StreamId,
+            Debug("{0} PING frame: stream id={1}, payload={2}", action, frame.StreamId,
                 frame.Payload.Count);
         }
 
-        private static void LogPriorityFrame(PriorityFrame frame, string action = null)
+        private static void PriorityFrame(PriorityFrame frame, string action = null)
         {
-            LogDebug("{0} PRIORITY frame: stream id={1}, exclusive={2}, dependency={3}, weight={4}",
+            Debug("{0} PRIORITY frame: stream id={1}, exclusive={2}, dependency={3}, weight={4}",
                      action, frame.StreamId, frame.Exclusive, frame.StreamDependency, frame.Weight);
         }
 
-        private static void LogContinuationFrame(ContinuationFrame frame, string action = null)
+        private static void ContinuationFrame(ContinuationFrame frame, string action = null)
         {
-            LogDebug("{0} CONTINUATION frame: stream id={1}, payload len={2}, " +
+            Debug("{0} CONTINUATION frame: stream id={1}, payload len={2}, " +
                      " end headers={3}", action, frame.StreamId, frame.PayloadLength,
                      frame.IsEndHeaders);
         }
 
-        public static void LogHeaders(HeadersList headers)
-        {
-            Console.WriteLine("Headers set:");
-            foreach (var header in headers)
-            {
-                Console.WriteLine("{0}={1}", header.Key, header.Value);
-            }
-        }
-
         #endregion
 
-        private static void LogToFile(string message)
+        private static void ToFile(string message)
         {
             if (!_writeToFile) return;
 
 
             lock (Locker)
             {
-                using (var logFile = new StreamWriter(LogFilePath, true))
+                using (var file = new StreamWriter(FilePath, true))
                 {
-                    logFile.WriteLine(message);
+                    file.WriteLine(message);
                 }
             }
         }
 
-        private static string FormatString(string msg, string level, params object[] format)
+        private static string GetStateName(StreamState state)
+        {
+            try
+            {
+                var type = state.GetType();
+                return ((Description)(type.GetMember(state.ToString())[0]).GetCustomAttributes(typeof(Description), false)[0]).Name;
+            }
+            catch(Exception ex)
+            {
+                return state.ToString().ToLower();
+            }            
+        }
+
+        private static string Format(string msg, string level, params object[] format)
         {
             msg = string.Format(msg, format);
             return string.Format("[{0}] Thread:{1,-2} {2,-5}: {3}",
                 DateTime.Now.ToString(DatePattern), Thread.CurrentThread.ManagedThreadId, level, msg);
         }
-
-        public static void LogStreamStateTrans(int streamId, StreamState previous, 
-            StreamState current)
-        {
-            if (_loggerLevel >= Http2LoggerState.DebugLogging)
-            {
-                string previousName = GetStateName(previous);
-                string currentName = GetStateName(current);
-
-                if (previousName == currentName)
-                    return;
-
-                LogDebug("State transition: stream id={0} from '{1}' to '{2}'", streamId,
-                         previousName, currentName);
-            }
-        }
-
-        private static string GetStateName(StreamState value)
-        {
-            try
-            {
-                var type = value.GetType();
-                return ((Description)(type.GetMember(value.ToString())[0]).GetCustomAttributes(typeof(Description), false)[0]).Name;
-            }
-            catch(Exception ex)
-            {
-                return value.ToString().ToLower();
-            }            
-        }
-
-        #endregion
     }
 }
