@@ -7,7 +7,7 @@
     <ProjectGuid>{AE3E0DF3-1E7E-4D8D-9780-78D3D1CE436F}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>Microsoft.Http2.Owin.Middleware</RootNamespace>
+    <RootNamespace>Microsoft.Http2.Owin.UpgradeMiddleware</RootNamespace>
     <AssemblyName>Microsoft.Http2.Owin.UpgradeMiddleware</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
@@ -50,7 +50,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Http2Extensions.cs" />
-    <Compile Include="Http2Middleware.cs" />
+    <Compile Include="UpgradeMiddleware.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

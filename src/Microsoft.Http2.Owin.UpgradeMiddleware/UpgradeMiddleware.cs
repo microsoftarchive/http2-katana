@@ -29,9 +29,9 @@ namespace Microsoft.Http2.Owin.UpgradeMiddleware
     // Http-01/2.0 uses a similar upgrade handshake to WebSockets. This middleware answers upgrade requests
     // using the Opaque Upgrade OWIN extension and then switches the pipeline to HTTP/2.0 binary framing.
     // Interestingly the HTTP/2.0 handshake does not need to be the first HTTP/1.1 request on a connection, only the last.
-    public class Http2Middleware : OwinMiddleware
+    public class UpgradeMiddleware : OwinMiddleware
     {
-        public Http2Middleware(OwinMiddleware next)
+        public UpgradeMiddleware(OwinMiddleware next)
             :base(next)
         {
         }

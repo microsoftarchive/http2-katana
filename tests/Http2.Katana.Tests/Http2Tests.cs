@@ -12,13 +12,11 @@ using OpenSSL;
 using OpenSSL.SSL;
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
-using Owin.Types;
 
 namespace Http2.Katana.Tests
 {
@@ -37,41 +35,11 @@ namespace Http2.Katana.Tests
         public Http2Setup()
         {
             SecureServer =
-                new HttpSocketServer(new Http2Middleware(new PushMiddleware(new ResponseMiddleware(null))).Invoke,
-                                     GetProperties(true));
+                new HttpSocketServer(new UpgradeMiddleware(new PushMiddleware(new ResponseMiddleware(null))).Invoke,
+                                     TestHelper.GetProperties(true));
             UnsecureServer =
-                new HttpSocketServer(new Http2Middleware(new PushMiddleware(new ResponseMiddleware(null))).Invoke,
-                                     GetProperties(false));
-        }
-
-        private static Dictionary<string, object> GetProperties(bool useSecurePort)
-        {
-            string address = TestHelper.GetAddress(useSecurePort);
-
-            Uri uri;
-            Uri.TryCreate(address, UriKind.Absolute, out uri);
-
-            var properties = new Dictionary<string, object>();
-            var addresses = new List<IDictionary<string, object>>
-                {
-                    new Dictionary<string, object>
-                        {
-                            {"host", uri.Host},
-                            {"scheme", uri.Scheme},
-                            {"port", uri.Port.ToString(CultureInfo.InvariantCulture)},
-                            {"path", uri.AbsolutePath}
-                        }
-                };
-
-            properties.Add(OwinConstants.CommonKeys.Addresses, addresses);
-
-            var isDirectEnabled = ServerOptions.IsDirectEnabled;
-            properties.Add(Strings.DirectEnabled, isDirectEnabled);
-
-            string serverName = ServerOptions.ServerName;
-            properties.Add(Strings.ServerName, serverName);
-
-            return properties;
+                new HttpSocketServer(new UpgradeMiddleware(new PushMiddleware(new ResponseMiddleware(null))).Invoke,
+                                     TestHelper.GetProperties(false));
         }
 
         public void Dispose()
@@ -426,7 +394,7 @@ namespace Http2.Katana.Tests
             Task.WhenAll(tasks).Wait();
         }       
 
-        [Fact]
+        [LongTaskFact]
         public void ServerPush()
         {
             var requestStr = TestHelper.IndexFileName;
@@ -484,7 +452,7 @@ namespace Http2.Katana.Tests
                 SendRequest(adapter, uri);
 
                 // wait for manual reset event
-                finalFrameReceivedEvent.WaitOne(30000);
+                finalFrameReceivedEvent.WaitOne(45000);
 
                 Assert.True(streamIds.Count == 2);
                 var str1 = resources[0].ToString();

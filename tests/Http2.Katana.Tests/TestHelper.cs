@@ -1,4 +1,5 @@
-﻿using Http2.TestClient.Handshake;
+﻿using System.Globalization;
+using Http2.TestClient.Handshake;
 using Microsoft.Http2.Owin.Server;
 using Microsoft.Http2.Owin.Server.Adapters;
 using Microsoft.Owin;
@@ -14,6 +15,8 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
 using Xunit;
+using Owin.Types;
+
 
 namespace Microsoft.Http2.Protocol.Tests
 {
@@ -175,6 +178,30 @@ namespace Microsoft.Http2.Protocol.Tests
             {
                 return FormatAddress(ServerOptions.Address);
             }
+        }
+
+        public static IDictionary<string, object> GetProperties(bool useSecurePort)
+        {
+            string address = GetAddress(useSecurePort);
+
+            Uri uri;
+            Uri.TryCreate(address, UriKind.Absolute, out uri);
+
+            var properties = new Dictionary<string, object>();
+            var addresses = new List<IDictionary<string, object>>
+                {
+                    new Dictionary<string, object>
+                        {
+                            {"host", uri.Host},
+                            {"scheme", uri.Scheme},
+                            {"port", uri.Port.ToString(CultureInfo.InvariantCulture)},
+                            {"path", uri.AbsolutePath}
+                        }
+                };
+
+            properties.Add(OwinConstants.CommonKeys.Addresses, addresses);
+
+            return properties;
         }
 
         private static string FormatAddress(string address)

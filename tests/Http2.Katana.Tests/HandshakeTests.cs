@@ -19,43 +19,13 @@ namespace Http2.Katana.Tests
         public HttpSocketServer Http2SecureServer { get; private set; }
         public HttpSocketServer Http2UnsecureServer { get; private set; }
 
-        private IDictionary<string, object> GetProperties(bool useSecurePort)
-        {
-            string address = TestHelper.GetAddress(useSecurePort);
-
-            Uri uri;
-            Uri.TryCreate(address, UriKind.Absolute, out uri);
-
-            var properties = new Dictionary<string, object>();
-            var addresses = new List<IDictionary<string, object>>
-                {
-                    new Dictionary<string, object>
-                        {
-                            {"host", uri.Host},
-                            {"scheme", uri.Scheme},
-                            {"port", uri.Port.ToString(CultureInfo.InvariantCulture)},
-                            {"path", uri.AbsolutePath}
-                        }
-                };
-
-            properties.Add(OwinConstants.CommonKeys.Addresses, addresses);
-
-            const bool isDirectEnabled = false;
-            properties.Add(Strings.DirectEnabled, isDirectEnabled);
-
-            string serverName = ServerOptions.ServerName;
-            properties.Add(Strings.ServerName, serverName);
-
-            return properties;
-        }
-
         public HandshakeSetup()
         {
-            var secureProperties = GetProperties(true);
-            var unsecureProperties = GetProperties(false);
+            var secureProperties = TestHelper.GetProperties(true);
+            var unsecureProperties = TestHelper.GetProperties(false);
 
-            Http2SecureServer = new HttpSocketServer(new Http2Middleware(new ResponseMiddleware(null)).Invoke, secureProperties);
-            Http2UnsecureServer = new HttpSocketServer(new Http2Middleware(new ResponseMiddleware(null)).Invoke, unsecureProperties);
+            Http2SecureServer = new HttpSocketServer(new UpgradeMiddleware(new ResponseMiddleware(null)).Invoke, secureProperties);
+            Http2UnsecureServer = new HttpSocketServer(new UpgradeMiddleware(new ResponseMiddleware(null)).Invoke, unsecureProperties);
         }
 
         public void Dispose()

@@ -84,7 +84,7 @@
     </Content>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Microsoft.Http2.Owin.Middleware\Microsoft.Http2.Owin.UpgradeMiddleware.csproj">
+    <ProjectReference Include="..\..\src\Microsoft.Http2.Owin.UpgradeMiddleware\Microsoft.Http2.Owin.UpgradeMiddleware.csproj">
       <Project>{ae3e0df3-1e7e-4d8d-9780-78d3d1ce436f}</Project>
       <Name>Microsoft.Http2.Owin.UpgradeMiddleware</Name>
     </ProjectReference>

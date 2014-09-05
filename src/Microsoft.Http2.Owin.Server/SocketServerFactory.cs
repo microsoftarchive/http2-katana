@@ -26,13 +26,8 @@ namespace Microsoft.Http2.Owin.Server
             }
         }
 
-        // todo pass ServerOptions insted of properties
         public static IDisposable Create(AppFunc app, IDictionary<string, object> properties)
         {
-            var isDirectEnabled = ServerOptions.IsDirectEnabled;
-            var serverName = ServerOptions.ServerName;
-            properties.Add(Strings.DirectEnabled, isDirectEnabled);
-            properties.Add(Strings.ServerName, serverName);
             return new HttpSocketServer(app, properties);
         }
     }

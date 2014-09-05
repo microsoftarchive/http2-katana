@@ -393,6 +393,21 @@
     <Compile Include="..\..\src\Microsoft.Http2.Owin.Server\Strings.cs">
       <Link>Sources\Microsoft.Http2.Owin.Server\Strings.cs</Link>
     </Compile>
+    <Compile Include="..\..\src\Microsoft.Http2.Owin.UpgradeMiddleware\Http2Extensions.cs">
+      <Link>Sources\Microsoft.Http2.Owin.UpgradeMiddleware\Http2Extensions.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Microsoft.Http2.Owin.UpgradeMiddleware\obj\Debug\TemporaryGeneratedFile_036C0B5B-1481-4323-8D20-8F5ADCB23D92.cs">
+      <Link>Sources\Microsoft.Http2.Owin.UpgradeMiddleware\obj\Debug\TemporaryGeneratedFile_036C0B5B-1481-4323-8D20-8F5ADCB23D92.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Microsoft.Http2.Owin.UpgradeMiddleware\obj\Debug\TemporaryGeneratedFile_5937a670-0e60-4077-877b-f7221da3dda1.cs">
+      <Link>Sources\Microsoft.Http2.Owin.UpgradeMiddleware\obj\Debug\TemporaryGeneratedFile_5937a670-0e60-4077-877b-f7221da3dda1.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Microsoft.Http2.Owin.UpgradeMiddleware\obj\Debug\TemporaryGeneratedFile_E7A71F73-0F8D-4B9B-B56E-8E70B10BC5D3.cs">
+      <Link>Sources\Microsoft.Http2.Owin.UpgradeMiddleware\obj\Debug\TemporaryGeneratedFile_E7A71F73-0F8D-4B9B-B56E-8E70B10BC5D3.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Microsoft.Http2.Owin.UpgradeMiddleware\UpgradeMiddleware.cs">
+      <Link>Sources\Microsoft.Http2.Owin.UpgradeMiddleware\UpgradeMiddleware.cs</Link>
+    </Compile>
     <Compile Include="..\..\src\Microsoft.Http2.PushMiddleware\Bing\BingHelpers\BingHelper.cs">
       <Link>Sources\Microsoft.Http2.PushMiddleware\Bing\BingHelpers\BingHelper.cs</Link>
     </Compile>
@@ -595,21 +610,6 @@
     </Compile>
     <Compile Include="..\..\src\Libraries\Microsoft.Http2.Protocol\Utils\Http2Logger.cs">
       <Link>Sources\Libraries\Microsoft.Http2.Protocol\Utils\Http2Logger</Link>
-    </Compile>
-    <Compile Include="..\..\src\Microsoft.Http2.Owin.Middleware\Http2Extensions.cs">
-      <Link>Sources\Microsoft.Http2.Owin.Middleware\Http2Extensions</Link>
-    </Compile>
-    <Compile Include="..\..\src\Microsoft.Http2.Owin.Middleware\Http2Middleware.cs">
-      <Link>Sources\Microsoft.Http2.Owin.Middleware\Http2Middleware</Link>
-    </Compile>
-    <Compile Include="..\..\src\Microsoft.Http2.Owin.Middleware\obj\Debug\TemporaryGeneratedFile_036C0B5B-1481-4323-8D20-8F5ADCB23D92.cs">
-      <Link>Sources\Microsoft.Http2.Owin.Middleware\obj\Debug\TemporaryGeneratedFile_036C0B5B-1481-4323-8D20-8F5ADCB23D92</Link>
-    </Compile>
-    <Compile Include="..\..\src\Microsoft.Http2.Owin.Middleware\obj\Debug\TemporaryGeneratedFile_5937a670-0e60-4077-877b-f7221da3dda1.cs">
-      <Link>Sources\Microsoft.Http2.Owin.Middleware\obj\Debug\TemporaryGeneratedFile_5937a670-0e60-4077-877b-f7221da3dda1</Link>
-    </Compile>
-    <Compile Include="..\..\src\Microsoft.Http2.Owin.Middleware\obj\Debug\TemporaryGeneratedFile_E7A71F73-0F8D-4B9B-B56E-8E70B10BC5D3.cs">
-      <Link>Sources\Microsoft.Http2.Owin.Middleware\obj\Debug\TemporaryGeneratedFile_E7A71F73-0F8D-4B9B-B56E-8E70B10BC5D3</Link>
     </Compile>
     <Compile Include="..\..\src\Microsoft.Http2.Owin.Server\DictionaryExtensions.cs">
       <Link>Sources\Microsoft.Http2.Owin.Server\DictionaryExtensions</Link>

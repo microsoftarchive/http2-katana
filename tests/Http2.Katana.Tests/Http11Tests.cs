@@ -48,13 +48,7 @@ namespace Http2.Katana.Tests
                 };
             properties.Add(Owin.Types.OwinConstants.CommonKeys.Addresses, addresses);
 
-            bool isDirectEnabled = ServerOptions.IsDirectEnabled;
-            properties.Add(Strings.DirectEnabled, isDirectEnabled);
-
-            string serverName = ServerOptions.ServerName;
-            properties.Add(Strings.ServerName, serverName);
-
-            Server = new HttpSocketServer(new Http2Middleware(new ResponseMiddleware(null)).Invoke, properties);
+            Server = new HttpSocketServer(new UpgradeMiddleware(new ResponseMiddleware(null)).Invoke, properties);
         }
 
         public void Dispose()

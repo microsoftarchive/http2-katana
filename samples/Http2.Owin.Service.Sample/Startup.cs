@@ -19,7 +19,7 @@ namespace Http2.Owin.Service.Sample
         /// <param name="builder">This object is used for building katana stack</param>
         public void Configuration(IAppBuilder builder)
         {
-            builder.UseHttp2();
+            builder.UseUpgrade();
             builder.UsePush();
             builder.UseStaticFiles("/root");
         }

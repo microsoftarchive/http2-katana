@@ -34,7 +34,7 @@ namespace Microsoft.Http2.Protocol.Session
     {
         private bool _goAwayReceived;
         private FrameReader _frameReader;
-        private OutgoingQueue _writeQueue;
+        private OutgoingQueue _outgoingQueue;
         private Stream _ioStream;
         private ManualResetEvent _pingReceived = new ManualResetEvent(false);
         private ManualResetEvent _settingsAckReceived = new ManualResetEvent(false);
@@ -48,6 +48,7 @@ namespace Microsoft.Http2.Protocol.Session
         private int _lastPromisedId;    //check pushed  (server) streams ids
         private bool _wasSettingsReceived;
         private bool _wasResponseReceived;
+        private bool _wasFirstConnectionWinSizeSent;
         private Frame _lastFrame;
         private readonly CancellationToken _cancelSessionToken;
         private readonly HeadersSequenceList _headersSequences; 
@@ -138,7 +139,7 @@ namespace Microsoft.Http2.Protocol.Session
 
             _frameReader = new FrameReader(_ioStream);
 
-            _writeQueue = new OutgoingQueue(_ioStream, _comprProc);
+            _outgoingQueue = new OutgoingQueue(_ioStream, _comprProc);
 
             OurMaxConcurrentStreams = Constants.DefaultMaxConcurrentStreams;
             RemoteMaxConcurrentStreams = Constants.DefaultMaxConcurrentStreams;            
@@ -151,7 +152,7 @@ namespace Microsoft.Http2.Protocol.Session
 
             for (byte i = 0; i < OurMaxConcurrentStreams; i++)
             {
-                var http2Stream = new Http2Stream(new HeadersList(), i + 1, _writeQueue, _flowCtrlManager)
+                var http2Stream = new Http2Stream(new HeadersList(), i + 1, _outgoingQueue, _flowCtrlManager)
                 {
                     Idle = true,
                     MaxFrameSize = MaxFrameSize
@@ -159,7 +160,7 @@ namespace Microsoft.Http2.Protocol.Session
                 StreamDictionary.Add(new KeyValuePair<int, Http2Stream>(i + 1, http2Stream));
             }
 
-            _writeQueue.SetStreamDictionary(StreamDictionary);
+            _outgoingQueue.SetStreamDictionary(StreamDictionary);
         }
 
         private void SendConnectionPreface()
@@ -334,7 +335,7 @@ namespace Microsoft.Http2.Protocol.Session
         {
             try
             {
-                _writeQueue.PumpToStream(_cancelSessionToken);
+                _outgoingQueue.PumpToStream(_cancelSessionToken);
             }
             catch (OperationCanceledException)
             {
@@ -465,7 +466,7 @@ namespace Microsoft.Http2.Protocol.Session
                 if (!stream.WasRstOnStream)
                 {
                     var rstFrame = new RstStreamFrame(ex.Id, ResetStatusCode.StreamClosed);
-                    _writeQueue.WriteFrame(rstFrame);
+                    _outgoingQueue.WriteFrame(rstFrame);
                     Http2Logger.FrameSend(rstFrame);
                     stream.WasRstOnStream = true;
                 }                          
@@ -724,7 +725,7 @@ namespace Microsoft.Http2.Protocol.Session
 
             Http2Logger.FrameSend(frame);
 
-            _writeQueue.WriteFrame(frame);
+            _outgoingQueue.WriteFrame(frame);
 
             if (!isAck && !_settingsAckReceived.WaitOne(60000))
             {
@@ -756,7 +757,7 @@ namespace Microsoft.Http2.Protocol.Session
 
             Http2Logger.FrameSend(frame);
 
-            _writeQueue.WriteFrame(frame);
+            _outgoingQueue.WriteFrame(frame);
         }
 
         /// <summary>
@@ -766,7 +767,7 @@ namespace Microsoft.Http2.Protocol.Session
         public TimeSpan Ping()
         {
             var pingFrame = new PingFrame(false);
-            _writeQueue.WriteFrame(pingFrame);
+            _outgoingQueue.WriteFrame(pingFrame);
             var now = DateTime.UtcNow;
 
             if (!_pingReceived.WaitOne(3000))
@@ -793,7 +794,7 @@ namespace Microsoft.Http2.Protocol.Session
             that the entire connection is the subject of the frame. */
             var frame = new WindowUpdateFrame(0, windowSize);
             Http2Logger.FrameSend(frame);
-            _writeQueue.WriteFrame(frame);
+            _outgoingQueue.WriteFrame(frame);
         }
 
         public void Dispose()
@@ -814,7 +815,7 @@ namespace Microsoft.Http2.Protocol.Session
             if (_disposed)
                 return;
 
-            Http2Logger.Debug("Http2 Session closing");
+            Http2Logger.Debug("Http2 Session closing: status={0}", status);
             _disposed = true;
 
             // Dispose of all streams
@@ -828,7 +829,7 @@ namespace Microsoft.Http2.Protocol.Session
             {
                 WriteGoAway(status);
 
-                // TODO: fix delay. wait for goAway send and then dispose WriteQueue
+                // TODO: fix delay. wait for goAway send and then dispose OutgoingQueue
                 using (var goAwayDelay = new ManualResetEvent(false))
                 {
                     goAwayDelay.WaitOne(500);
@@ -843,10 +844,10 @@ namespace Microsoft.Http2.Protocol.Session
                 _frameReader = null;
             }
 
-            if (_writeQueue != null)
+            if (_outgoingQueue != null)
             {
-                _writeQueue.Flush();
-                _writeQueue.Dispose();
+                _outgoingQueue.Flush();
+                _outgoingQueue.Dispose();
             }
 
             if (_comprProc != null)

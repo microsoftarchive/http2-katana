@@ -28,7 +28,7 @@ namespace Microsoft.Http2.Protocol
 
         private readonly int _id;
         private StreamState _state;
-        private readonly OutgoingQueue _writeQueue;
+        private readonly OutgoingQueue _outgoingQueue;
         private readonly FlowControlManager _flowCtrlManager;
 
         private readonly Queue<DataFrame> _unshippedFrames;
@@ -53,14 +53,14 @@ namespace Microsoft.Http2.Protocol
 
         //Incoming
         internal Http2Stream(HeadersList headers, int id,
-                           OutgoingQueue writeQueue, FlowControlManager flowCrtlManager, int priority = Constants.DefaultStreamPriority)
-            : this(id, writeQueue, flowCrtlManager, priority)
+                           OutgoingQueue outgoingQueue, FlowControlManager flowCrtlManager, int priority = Constants.DefaultStreamPriority)
+            : this(id, outgoingQueue, flowCrtlManager, priority)
         {
             Headers = headers;
         }
 
         //Outgoing
-        internal Http2Stream(int id, OutgoingQueue writeQueue, FlowControlManager flowCtrlManager, int priority = Constants.DefaultStreamPriority)
+        internal Http2Stream(int id, OutgoingQueue outgoingQueue, FlowControlManager flowCtrlManager, int priority = Constants.DefaultStreamPriority)
         {
             if (id <= 0)
                 throw new ArgumentOutOfRangeException("invalid id for stream");
@@ -70,7 +70,7 @@ namespace Microsoft.Http2.Protocol
 
             _id = id;
             Priority = priority;
-            _writeQueue = writeQueue;
+            _outgoingQueue = outgoingQueue;
             _flowCtrlManager = flowCtrlManager;
 
             _unshippedFrames = new Queue<DataFrame>(16);
@@ -271,7 +271,7 @@ namespace Microsoft.Http2.Protocol
 
             Http2Logger.FrameSend(frame);
 
-            _writeQueue.WriteFrame(frame);
+            _outgoingQueue.WriteFrame(frame);
 
             if (frame.IsEndStream)
             {
@@ -328,7 +328,7 @@ namespace Microsoft.Http2.Protocol
             {
                 Http2Logger.FrameSend(dataFrame);
 
-                _writeQueue.WriteFrame(dataFrame);
+                _outgoingQueue.WriteFrame(dataFrame);
                 SentDataAmount += dataFrame.Data.Count;
                 _flowCtrlManager.DataFrameSentHandler(this, new DataFrameSentEventArgs(dataFrame));
 
@@ -367,7 +367,7 @@ namespace Microsoft.Http2.Protocol
             {
                 Http2Logger.FrameSend(dataFrame);
 
-                _writeQueue.WriteFrame(dataFrame);
+                _outgoingQueue.WriteFrame(dataFrame);
                 SentDataAmount += dataFrame.Data.Count;
                 _flowCtrlManager.DataFrameSentHandler(this, new DataFrameSentEventArgs(dataFrame));
 
@@ -405,7 +405,7 @@ namespace Microsoft.Http2.Protocol
 
             Http2Logger.FrameSend(frame);
 
-            _writeQueue.WriteFrame(frame);
+            _outgoingQueue.WriteFrame(frame);
 
             if (OnFrameSent != null)
             {
@@ -422,7 +422,7 @@ namespace Microsoft.Http2.Protocol
 
             Http2Logger.FrameSend(frame);
 
-            _writeQueue.WriteFrame(frame);
+            _outgoingQueue.WriteFrame(frame);
             WasRstOnStream = true;
 
             if (OnFrameSent != null)
@@ -450,7 +450,7 @@ namespace Microsoft.Http2.Protocol
 
             Http2Logger.FrameSend(frame);
 
-            _writeQueue.WriteFrame(frame);
+            _outgoingQueue.WriteFrame(frame);
 
             if (OnFrameSent != null)
             {

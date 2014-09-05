@@ -11,7 +11,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{72EF18F4
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.Http2.Owin.Server", "src\Microsoft.Http2.Owin.Server\Microsoft.Http2.Owin.Server.csproj", "{658C0A0D-A624-4532-AFF0-180EC5ED7887}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.Http2.Owin.UpgradeMiddleware", "src\Microsoft.Http2.Owin.Middleware\Microsoft.Http2.Owin.UpgradeMiddleware.csproj", "{AE3E0DF3-1E7E-4D8D-9780-78D3D1CE436F}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.Http2.Owin.UpgradeMiddleware", "src\Microsoft.Http2.Owin.UpgradeMiddleware\Microsoft.Http2.Owin.UpgradeMiddleware.csproj", "{AE3E0DF3-1E7E-4D8D-9780-78D3D1CE436F}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.Http2.Protocol", "src\Libraries\Microsoft.Http2.Protocol\Microsoft.Http2.Protocol.csproj", "{E34AC310-324C-46BC-AF9F-1A41DF58E867}"
 EndProject

@@ -62,8 +62,8 @@ namespace Microsoft.Http2.Owin.Server
 
             _cancelAccept = new CancellationTokenSource();
 
-            _isDirectEnabled = (bool)properties[Strings.DirectEnabled];
-            _serverName = (string)properties[Strings.ServerName];
+            _isDirectEnabled = ServerOptions.IsDirectEnabled;
+            _serverName = ServerOptions.ServerName;
 
             _certificateFilename = Strings.CertName;
             try

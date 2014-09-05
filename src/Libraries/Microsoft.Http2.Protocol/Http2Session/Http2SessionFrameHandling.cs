@@ -320,6 +320,9 @@ namespace Microsoft.Http2.Protocol.Session
             
             if (!dataFrame.IsEndStream)
             {
+                /* 14 -> 6.9.1
+                Separate WINDOW_UPDATE frames are sent for the stream and connection level
+                flow control windows. */
                 stream.WriteWindowUpdate(dataFrame.Buffer.Length - Constants.FramePreambleSize);
                 WriteConnectionWindowUpdate(dataFrame.Buffer.Length - Constants.FramePreambleSize);
             }
@@ -354,7 +357,7 @@ namespace Microsoft.Http2.Protocol.Session
                 a PING frame with the ACK flag set in response, with an identical payload. */
 
                 var pingAckFrame = new PingFrame(true, pingFrame.Payload.ToArray());
-                _writeQueue.WriteFrame(pingAckFrame);
+                _outgoingQueue.WriteFrame(pingAckFrame);
             }
         }
 
@@ -384,6 +387,12 @@ namespace Microsoft.Http2.Protocol.Session
                 if (settingsFrame.PayloadLength != 0)
                     throw new ProtocolError(ResetStatusCode.FrameSizeError, 
                         "Settings frame with ACK flag set and non-zero payload");
+
+                if (!_wasFirstConnectionWinSizeSent && _ourEnd == ConnectionEnd.Client)
+                {
+                    WriteConnectionWindowUpdate(Constants.MaxFramePayloadSize);
+                    _wasFirstConnectionWinSizeSent = true;
+                }
 
                 return;
             }

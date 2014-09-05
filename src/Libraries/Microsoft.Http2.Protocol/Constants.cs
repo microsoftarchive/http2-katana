@@ -25,7 +25,7 @@ namespace Microsoft.Http2.Protocol
         (16,777,215) octets, inclusive. */
         public const int MaxFramePayloadSize = 0xffffff; // 16777215 bytes.
         public const int MaxFramePaddingSize = 300; // bytes
-        public const string DefaultMethod = Verbs.Get;
+        public const string DefaultMethod = Verbs.Get;  
         public const string DefaultHost = "localhost";
         /* 14 -> 6.5.2 
         It is recommended that this value be no smaller than 100, so as to not

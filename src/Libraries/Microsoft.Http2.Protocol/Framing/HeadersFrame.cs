@@ -233,7 +233,7 @@ namespace Microsoft.Http2.Protocol.Framing
         }
 
         /* Headers List will be compressed and added to frame Buffer later,
-        in WriteQueue.PumpToStream() method. */
+        in OutgoingQueue.PumpToStream() method. */
         public HeadersList Headers
         {
             get

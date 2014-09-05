@@ -20,7 +20,7 @@ namespace Http2.Owin.BingProxy.Sample
     {
         public void Configuration(IAppBuilder builder)
         {
-            builder.UseHttp2();
+            builder.UseUpgrade();
             builder.UseBing();
         }
     }
