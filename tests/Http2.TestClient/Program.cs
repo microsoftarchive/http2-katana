@@ -52,7 +52,7 @@ namespace Http2.TestClient
             
             var waitForTestsFinish = new ManualResetEvent(!isTestsEnabled);
 
-            Http2Logger.Debug("Tests enabled: " + isTestsEnabled);
+            Http2Logger.Info("Tests enabled: " + isTestsEnabled);
 
             ThreadPool.SetMaxThreads(10, 10);
 
@@ -104,7 +104,7 @@ namespace Http2.TestClient
                             //Only unique sessions can be opened
                             if (_sessions.ContainsKey(uriCmd.Uri.Authority))
                             {
-                                Http2Logger.Info("Session already exists");
+                                Http2Logger.Warn("Session already exists");
                                 _sessions[uriCmd.Uri.Authority].SendRequestAsync(uriCmd.Uri, method);
                                 break;
                             }
@@ -116,7 +116,7 @@ namespace Http2.TestClient
                                 (sender, eventArgs) =>
                                     {
                                         _sessions.Remove(sessionHandler.ServerUri);
-                                        Http2Logger.Debug("Session deleted from collection: " + sessionHandler.ServerUri);
+                                        Http2Logger.Info("Session deleted from collection: " + sessionHandler.ServerUri);
 
                                         waitForTestsFinish.Set();
                                     };
@@ -153,7 +153,7 @@ namespace Http2.TestClient
                             }
                             else
                             {
-                                Http2Logger.Error("Can't ping until session is opened.");
+                                Http2Logger.Info("Can't ping until session is opened.");
                             }
                             break;
                         case CommandType.Exit:
@@ -175,7 +175,7 @@ namespace Http2.TestClient
 
             waitForTestsFinish.WaitOne(5000);
 
-            Http2Logger.Debug("Exiting");
+            Http2Logger.Info("Exiting");
             Console.WriteLine();
             Console.WriteLine();
         }

@@ -388,6 +388,9 @@ namespace Microsoft.Http2.Protocol.Session
                     throw new ProtocolError(ResetStatusCode.FrameSizeError, 
                         "Settings frame with ACK flag set and non-zero payload");
 
+                /* 14 -> 6.9.2
+                The connection flow control window can only be changed
+                using WINDOW_UPDATE frames. */
                 if (!_wasFirstConnectionWinSizeSent && _ourEnd == ConnectionEnd.Client)
                 {
                     WriteConnectionWindowUpdate(Constants.MaxFramePayloadSize);
@@ -481,7 +484,7 @@ namespace Microsoft.Http2.Protocol.Session
             2^31 - 1 (0x7fffffff) bytes. */
             if (!(0 < windowUpdateFrame.Delta && windowUpdateFrame.Delta <= Constants.MaxWindowSize))
             {
-                Http2Logger.Debug("Incorrect window update delta : {0}", windowUpdateFrame.Delta);
+                Http2Logger.Error("Incorrect window update delta : {0}", windowUpdateFrame.Delta);
                 throw new ProtocolError(ResetStatusCode.FlowControlError,
                     String.Format("Incorrect window update delta : {0}", windowUpdateFrame.Delta));
             }

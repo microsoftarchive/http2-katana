@@ -202,7 +202,7 @@ namespace Microsoft.Http2.Protocol
             for the connection, a GOAWAY frame with a FLOW_CONTROL_ERROR code. */
             if (WindowSize > Constants.MaxWindowSize)
             {
-                Http2Logger.Debug("Incorrect window size : {0}", WindowSize);
+                Http2Logger.Error("Incorrect window size : {0}", WindowSize);
                 throw new ProtocolError(ResetStatusCode.FlowControlError,
                     String.Format("Incorrect window size : {0}", WindowSize));
             }
@@ -334,7 +334,7 @@ namespace Microsoft.Http2.Protocol
 
                 if (dataFrame.IsEndStream)
                 {
-                    Http2Logger.Debug("Sent for stream id={0}: {1} bytes", dataFrame.StreamId, SentDataAmount);
+                    Http2Logger.Info("Sent for stream id={0}: {1} bytes", dataFrame.StreamId, SentDataAmount);
                     HalfClosedLocal = true;
                 }
 
@@ -373,7 +373,7 @@ namespace Microsoft.Http2.Protocol
 
                 if (dataFrame.IsEndStream)
                 {
-                    Http2Logger.Debug("Bytes sent for stream id={0}: {1}", dataFrame.StreamId, SentDataAmount);
+                    Http2Logger.Info("Bytes sent for stream id={0}: {1}", dataFrame.StreamId, SentDataAmount);
                     HalfClosedLocal = true;
                 }
 
@@ -466,9 +466,9 @@ namespace Microsoft.Http2.Protocol
 
             OnFrameSent = null;
 
-            Http2Logger.Debug("Total outgoing data frames volume " + SentDataAmount);
-            Http2Logger.Debug("Total frames sent: {0}", FramesSent);
-            Http2Logger.Debug("Total frames received: {0}", FramesReceived);
+            Http2Logger.Info("Total outgoing data frames volume " + SentDataAmount);
+            Http2Logger.Info("Total frames sent: {0}", FramesSent);
+            Http2Logger.Info("Total frames received: {0}", FramesReceived);
 
             if (code == ResetStatusCode.Cancel || code == ResetStatusCode.InternalError)
                 WriteRst(code);
@@ -480,7 +480,7 @@ namespace Microsoft.Http2.Protocol
 
             OnClose = null;
 
-            Http2Logger.Debug("Stream closed " + _id);
+            Http2Logger.Info("Stream closed " + _id);
         }
     }
 }

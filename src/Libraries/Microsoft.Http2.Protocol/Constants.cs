@@ -30,7 +30,7 @@ namespace Microsoft.Http2.Protocol
         /* 14 -> 6.5.2 
         It is recommended that this value be no smaller than 100, so as to not
         unnecessarily limit parallelism. */
-        public const int DefaultMaxConcurrentStreams = 100;
+        public const int DefaultMaxConcurrentStreams = 1000;
         /* 14 -> 6.9.1
         A sender MUST NOT allow a flow control window to exceed 2^31 - 1 bytes. */
         public const int MaxWindowSize = 0x7FFFFFFF;

@@ -150,7 +150,7 @@ namespace Microsoft.Http2.Protocol.Session
             StreamDictionary = new StreamDictionary();
             _flowCtrlManager = new FlowControlManager(StreamDictionary);
 
-            for (byte i = 0; i < OurMaxConcurrentStreams; i++)
+            for (int i = 0; i < OurMaxConcurrentStreams; i++)
             {
                 var http2Stream = new Http2Stream(new HeadersList(), i + 1, _outgoingQueue, _flowCtrlManager)
                 {
@@ -169,17 +169,25 @@ namespace Microsoft.Http2.Protocol.Session
             _ioStream.Write(bytes, 0 , bytes.Length);
         }
 
-        private async Task<bool> TryGetConnectionPreface(Stream incomingClient)
+        private async Task<bool> TryGetConnectionPreface()
         {
             var buffer = new byte[Constants.ConnectionPreface.Length];
 
-            int read = await incomingClient.ReadAsync(buffer, 0, buffer.Length, _cancelSessionToken);
-            if (read == 0)
+            try
             {
-                throw new TimeoutException(String.Format("Connection preface was not received in timeout {0}",
-                    incomingClient.ReadTimeout));
+                int read = await _ioStream.ReadAsync(buffer, 0, buffer.Length, _cancelSessionToken);
+                if (read == 0)
+                {
+                    throw new TimeoutException(String.Format("Connection preface was not received in timeout {0}",
+                        _ioStream.ReadTimeout));
+                }
             }
-
+            catch (IOException ex)
+            {
+                Http2Logger.Error("Exception occured while getting connection preface: {0}", ex.Message);
+                return false;
+            }
+            
             var receivedPreface = Encoding.UTF8.GetString(buffer);
 
             return string.Equals(receivedPreface, Constants.ConnectionPreface, StringComparison.OrdinalIgnoreCase);
@@ -218,15 +226,15 @@ namespace Microsoft.Http2.Protocol.Session
 
         public async Task Start(IDictionary<string, string> initialRequest = null)
         {
-            Http2Logger.Debug("Http2 Session started");
-            Http2Logger.Debug(
+            Http2Logger.Info("Http2 Session started");
+            Http2Logger.Info(
                 "Created {0} streams with initial window size={1}, initial connection window size={2}", 
                 OurMaxConcurrentStreams, _flowCtrlManager.InitialWindowSize,
                 _flowCtrlManager.ConnectionWindowSize);
 
             if (_ourEnd == ConnectionEnd.Server)
             {
-                if (!await TryGetConnectionPreface(_ioStream))
+                if (!await TryGetConnectionPreface())
                 {
                     /* 14 -> 3.5
                     Clients and servers MUST terminate the TCP connection if either peer
@@ -319,12 +327,12 @@ namespace Microsoft.Http2.Protocol.Session
                 else
                 {
                     // Looks like connection was lost
-                    Dispose();
+                    //Dispose();
                     break;
                 }
             }
 
-            Http2Logger.Debug("Read thread finished");
+            Http2Logger.Info("Read thread finished");
         }
 
         /// <summary>
@@ -344,11 +352,11 @@ namespace Microsoft.Http2.Protocol.Session
             }
             catch (Exception)
             {
-                Http2Logger.Error("Sending frame was cancelled because connection was lost");
+                Http2Logger.Info("Sending frame was cancelled because connection was lost");
                 Dispose();
             }
 
-            Http2Logger.Debug("Write thread finished");
+            Http2Logger.Info("Write thread finished");
         }
 
         private void DispatchIncomingFrame(Frame frame)
@@ -453,7 +461,7 @@ namespace Microsoft.Http2.Protocol.Session
             RST_STREAM MUST treat that as a stream error of type STREAM_CLOSED. */
             catch (Http2StreamNotFoundException ex)
             {
-                Http2Logger.Debug(
+                Http2Logger.Warn(
                     "Frame for already Closed stream: streamId={0}, WasRstOnStream={1}", 
                     ex.Id, stream.WasRstOnStream);
 
@@ -514,13 +522,6 @@ namespace Microsoft.Http2.Protocol.Session
             _headersSequences.Add(streamSequence);
 
             var stream = StreamDictionary[streamId];
-
-            if (stream == null)
-            {
-                Close(ResetStatusCode.None);
-                return null;
-            }
-
             stream.OnFrameSent += (o, args) =>
                 {
                     if (!(args.Frame is IHeadersFrame))
@@ -562,13 +563,6 @@ namespace Microsoft.Http2.Protocol.Session
             var headers = sequence.Headers;
 
             var stream = StreamDictionary[id];
-
-            if (stream == null)
-            {
-                Close(ResetStatusCode.None);
-                return null;
-            }
-
             stream.OnFrameSent += (o, args) =>
             {
                 if (!(args.Frame is IHeadersFrame))
@@ -620,13 +614,6 @@ namespace Microsoft.Http2.Protocol.Session
             }
             int nextId = GetNextId();
             var stream = StreamDictionary[nextId];
-
-            if (stream == null)
-            {
-                Close(ResetStatusCode.None);
-                return null;
-            }
-
             var streamSequence = new HeadersSequence(nextId, (new HeadersFrame(nextId, true)));
             _headersSequences.Add(streamSequence);
 
@@ -778,7 +765,7 @@ namespace Microsoft.Http2.Protocol.Session
             _pingReceived.Reset();
 
             var newNow = DateTime.UtcNow;
-            Http2Logger.Debug("Ping: " + (newNow - now).Milliseconds);
+            Http2Logger.Info("Ping: " + (newNow - now).Milliseconds);
             return newNow - now;
         }
 
@@ -815,7 +802,8 @@ namespace Microsoft.Http2.Protocol.Session
             if (_disposed)
                 return;
 
-            Http2Logger.Debug("Http2 Session closing: status={0}", status);
+            Http2Logger.Info("Http2 Session closing: status={0}", status);
+
             _disposed = true;
 
             // Dispose of all streams
@@ -881,7 +869,7 @@ namespace Microsoft.Http2.Protocol.Session
 
             OnSessionDisposed = null;
 
-            Http2Logger.Debug("Http2 Session closed");
+            Http2Logger.Info("Http2 Session closed: status={0}", status);
         }
     }
 }

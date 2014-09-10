@@ -77,21 +77,31 @@ namespace Microsoft.Http2.Protocol.Utils
 
         #endregion
 
-        public static void Error(string msg)
+        public static void Error(string msg, params object[] format)
         {
             if (_level > Http2LoggerLevel.Silly)
             {
-                string outString = Format(msg, "ERROR");
+                string outString = Format(msg, "ERROR", format);
                 Console.WriteLine(outString);
                 ToFile(outString);
             }
         }
 
-        public static void Info(string msg)
+        public static void Warn(string msg, params object[] format)
+        {
+            if (_level >= Http2LoggerLevel.Warn)
+            {
+                string outString = Format(msg, "WARN", format);
+                Console.WriteLine(outString);
+                ToFile(outString);
+            }
+        }
+
+        public static void Info(string msg, params object[] format)
         {
             if (_level >= Http2LoggerLevel.Info)
             {
-                string outString = Format(msg, "INFO");
+                string outString = Format(msg, "INFO", format);
                 Console.WriteLine(outString);
                 ToFile(outString);
             }
@@ -224,7 +234,7 @@ namespace Microsoft.Http2.Protocol.Utils
 
         private static void RstFrame(RstStreamFrame frame, string action = null)
         {
-            Debug("{0} RST_STREAM frame: stream id={1}, status code={2}", action,
+            Warn("{0} RST_STREAM frame: stream id={1}, status code={2}", action,
                      frame.StreamId, frame.StatusCode);
         }
 
@@ -236,7 +246,7 @@ namespace Microsoft.Http2.Protocol.Utils
 
         private static void PingFrame(PingFrame frame, string action = null)
         {
-            Debug("{0} PING frame: stream id={1}, payload={2}", action, frame.StreamId,
+            Info("{0} PING frame: stream id={1}, payload={2}", action, frame.StreamId,
                 frame.Payload.Count);
         }
 

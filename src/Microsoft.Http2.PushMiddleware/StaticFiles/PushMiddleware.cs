@@ -169,20 +169,7 @@ namespace Microsoft.Http2.Push
 
         protected override void Push(IOwinRequest request, PushFunc pushPromise, string pushReference)
         {
-            // Copy the headers
-            var headers = new HeaderDictionary(
-                new Dictionary<string, string[]>(request.Headers, StringComparer.OrdinalIgnoreCase));
-
-            // Populate special HTTP2 headers
-            headers[PseudoHeaders.Method] = request.Method.ToUpper(); // TODO: Not all methods are allowed for push.  Don't push, or change to GET?
-            headers[PseudoHeaders.Scheme] = request.Scheme;
-            headers.Remove(CommonHeaders.Host);
-            headers[PseudoHeaders.Authority] = request.Headers[CommonHeaders.Host];
-            headers.Remove(CommonHeaders.ContentLength); // Push promises cannot emulate requests with bodies.        
-
-            // Change the request path to the pushed resource
-            headers[PseudoHeaders.Path] = pushReference;
-
+            var headers = AddPseudoHeaders(request, pushReference);
             pushPromise(headers);
         }
 
@@ -194,6 +181,24 @@ namespace Microsoft.Http2.Push
         protected virtual void AddVertex(string key, string[] value)
         {
             _references.AddVertex(key, value);
+        }
+
+        private HeaderDictionary AddPseudoHeaders(IOwinRequest request, string pushReference)
+        {
+            var headers = new HeaderDictionary(
+                new Dictionary<string, string[]>(request.Headers, StringComparer.OrdinalIgnoreCase));
+
+            // TODO: Not all methods are allowed for push.  Don't push, or change to GET?
+            headers[PseudoHeaders.Method] = request.Method.ToUpper();
+            headers[PseudoHeaders.Scheme] = request.Scheme;
+            headers.Remove(CommonHeaders.Host);
+            headers[PseudoHeaders.Authority] = request.Headers[CommonHeaders.Host];
+            headers.Remove(CommonHeaders.ContentLength); // Push promises cannot emulate requests with bodies.        
+
+            // Change the request path to the pushed resource
+            headers[PseudoHeaders.Path] = pushReference;
+
+            return headers;
         }
     }
 }

@@ -190,10 +190,10 @@ namespace Microsoft.Http2.Owin.Server
             }
             catch (OperationCanceledException)
             {
-                Http2Logger.Debug("Listen was cancelled");
+                Http2Logger.Warn("Listen was cancelled");
                 return;
             }  
-            Http2Logger.Debug("New connection accepted");
+            Http2Logger.Info("New connection accepted");
             Task.Run(() =>
                 {
                     try
@@ -252,15 +252,15 @@ namespace Microsoft.Http2.Owin.Server
             //Server checks selected protocol and calls http2 or http11 layer
             if (backToHttp11 || alpnSelectedProtocol == Protocols.Http1)
             {
-                Http2Logger.Debug("Selected protocol: HTTP/1.1");
+                Http2Logger.Info("Selected protocol: HTTP/1.1");
 
                 new Http11OwinMessageHandler(incomingClient, SslProtocols.Tls, _next.Invoke).ProcessRequest();
                 return;
             }
 
             //ALPN selected http2. No need to perform upgrade handshake.
-            Http2Logger.Debug("ALPN selected protocol: " + alpnSelectedProtocol);
-            Http2Logger.Debug("TLS Handshake done");
+            Http2Logger.Info("ALPN selected protocol: " + alpnSelectedProtocol);
+            Http2Logger.Info("TLS Handshake done");
             OpenHttp2Session(incomingClient);
         }
 

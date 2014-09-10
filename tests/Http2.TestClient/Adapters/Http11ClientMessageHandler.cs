@@ -84,7 +84,7 @@ namespace Http2.TestClient.Adapters
                     totalReceived += received;
                 }
 
-                Http2Logger.Debug("Received: {0}", totalReceived);
+                Http2Logger.Info("Received: {0}", totalReceived);
             }
 
             return new KeyValuePair<IDictionary<string, string>, byte[]>(respHeaders, respBody);
@@ -101,7 +101,7 @@ namespace Http2.TestClient.Adapters
                 stream.Write(response.Value, 0, response.Value.Length);
             }
 
-            Http2Logger.Debug("Response was saved as {0}", _path);
+            Http2Logger.Info("Response was saved as {0}", _path);
         }
 
         public void Dispose()

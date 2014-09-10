@@ -130,7 +130,9 @@ namespace Microsoft.Http2.Protocol
                         await _session.Start(initRequest);
                     }
                     catch (Exception ex)
-                    {                        
+                    {
+                        Http2Logger.Error("Unknown error occurred while working session: {0}", 
+                            ex.Message);
                     }                   
                 });
         }
@@ -161,7 +163,7 @@ namespace Microsoft.Http2.Protocol
 
             _isDisposed = true;
 
-            Http2Logger.Debug("Adapter disposed");
+            Http2Logger.Info("Adapter disposed");
         }
     }
 }

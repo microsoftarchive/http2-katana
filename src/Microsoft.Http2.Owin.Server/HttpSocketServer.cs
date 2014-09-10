@@ -72,7 +72,7 @@ namespace Microsoft.Http2.Owin.Server
             }
             catch (Exception ex)
             {
-                Http2Logger.Info("Unable to start server. Check certificate. Exception: " + ex.Message);
+                Http2Logger.Error("Unable to start server. Check certificate. Exception: " + ex.Message);
                 return;
             }
 
@@ -104,7 +104,7 @@ namespace Microsoft.Http2.Owin.Server
                 }
             }
 
-            Http2Logger.Debug("Listen thread was finished");
+            Http2Logger.Info("Listen thread was finished");
         }
 
         public void Dispose()

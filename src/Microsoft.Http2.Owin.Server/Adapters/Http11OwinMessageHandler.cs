@@ -63,7 +63,7 @@ namespace Microsoft.Http2.Owin.Server.Adapters
 
                 var rawHeaders = Http11Helper.ReadHeaders(_client);
 
-                Http2Logger.Debug("Http1.1 Protocol Handler. Process request " + string.Join(" ", rawHeaders));
+                Http2Logger.Info("Http1.1 Protocol Handler. Process request " + string.Join(" ", rawHeaders));
 
                 // invalid connection, skip
                 if (rawHeaders == null || rawHeaders.Length == 0) return;
@@ -116,10 +116,9 @@ namespace Microsoft.Http2.Owin.Server.Adapters
             }
             catch (Exception ex)
             {
-
                 Http2Logger.Error(ex.Message);
                 EndResponse(ex);
-                Http2Logger.Debug("Closing connection");
+                Http2Logger.Info("Closing connection");
                 _client.Close();
             }
         }
@@ -212,7 +211,7 @@ namespace Microsoft.Http2.Owin.Server.Adapters
 
             if (closeConnection)
             {
-                Http2Logger.Debug("Closing connection");
+                Http2Logger.Info("Closing connection");
                 _client.Close();
             }
         }

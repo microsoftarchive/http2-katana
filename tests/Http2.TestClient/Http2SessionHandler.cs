@@ -317,7 +317,7 @@ namespace Http2.TestClient
                     }
                 }
 
-                Http2Logger.Debug("Handshake finished");
+                Http2Logger.Info("Handshake finished");
 
                 Protocol = _isSecure ? SslProtocols.Tls : SslProtocols.None;
 
@@ -362,7 +362,7 @@ namespace Http2.TestClient
             if (!_sessionAdapter.IsDisposed) 
                 return;
 
-            Http2Logger.Error("Connection was aborted by the remote side. Check your session header.");
+            Http2Logger.Error("Connection was aborted by the remote side. Check your connection preface.");
             Dispose(true);
         }
 

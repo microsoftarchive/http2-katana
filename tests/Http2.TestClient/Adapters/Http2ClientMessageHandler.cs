@@ -59,7 +59,7 @@ namespace Http2.TestClient.Adapters
             if (dataFrame.IsEndStream)
             {
                 _fileHelper.RemoveStream(path);
-                Http2Logger.Debug("Received for stream id={0}: {1} bytes", stream.Id, stream.ReceivedDataAmount);
+                Http2Logger.Info("Received for stream id={0}: {1} bytes", stream.Id, stream.ReceivedDataAmount);
             }
         }
 

@@ -58,13 +58,6 @@ namespace Microsoft.Http2.Owin.Server.Adapters
                     pushDelegate = async pairs =>
                         {
                             var promisedStream = CreateStream();
-
-                            // We need check stream, as it used outside of session.
-                            if (promisedStream == null)
-                            {
-                                return;
-                            }
-
                             promisedStream.WritePushPromise(pairs, stream.Id);
 
                             var headers = new HeadersList(pairs);
@@ -118,7 +111,7 @@ namespace Microsoft.Http2.Owin.Server.Adapters
         /// <param name="ex">The caught exception.</param>
         private void EndResponse(Http2Stream stream, Exception ex)
         {
-            Http2Logger.Debug("Error processing request:\r\n" + ex);
+            Http2Logger.Error("Error processing request:\r\n" + ex);
             // TODO: What if the response has already started?
             WriteStatus(stream, StatusCode.Code500InternalServerError, true);
         }

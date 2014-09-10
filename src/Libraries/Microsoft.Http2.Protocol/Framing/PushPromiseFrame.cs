@@ -116,7 +116,7 @@ namespace Microsoft.Http2.Protocol.Framing
             }
             set
             {
-                Contract.Assert(value >= 0 && value <= 255);
+                Contract.Assert(value >= 0 && value <= int.MaxValue);
 
                 if (HasPadding)
                 {
