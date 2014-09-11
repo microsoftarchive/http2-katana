@@ -25,7 +25,7 @@ The following endpoints are available to try out http2-katana implementation:
   This endpoint requires TLSv1.2 and DHE or EDCHE with GCM cipher suite.
 * http://http2katanatest.cloudapp.net:8080/root/index.html (Upgrade)
 
-  h2c-14 and http/1.1
+  h2c-12 and http/1.1
 * https://http2katanatest.cloudapp.net:8448/Y3A9NTcuNjE2NjY1fjM5Ljg2NjY2NSZsdmw9MyZzdHk9ciZxPVlhcm9zbGF2bA==
 
   This endpoint is Bing proxy demo, requires TLSv1.2 with ALPN extension as well.
