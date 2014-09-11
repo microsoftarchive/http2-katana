@@ -441,7 +441,9 @@ namespace Microsoft.Http2.Protocol
                 return;
 
             var headers = new HeadersList(pairs);
-            var frame = new PushPromiseFrame(streamId, Id, true, true, headers);
+
+            //TODO: Do not add padding for PUSH_PROMISE frame to support Chromium
+            var frame = new PushPromiseFrame(streamId, Id, false, true, headers);
 
             /* 14 -> 5.1
             Sending a PUSH_PROMISE frame marks the associated stream for later use.
