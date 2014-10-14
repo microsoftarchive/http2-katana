@@ -414,13 +414,6 @@ namespace Microsoft.Http2.Protocol.Compression.HeadersDeltaCompression
                 _currentOffset += len;
             }
 
-            /* 09 -> 8.4
-            An implementation has to set a limit for the values it accepts for
-            integers, as well as for the encoded length. In the same way, it has
-            to set a limit to the length it accepts for string literals. */
-            if (result.Length > MaxStringLength)
-                throw new CompressionError("Header name or value is too large");
-
             return result;
         }
     
